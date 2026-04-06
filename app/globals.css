@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --verdant-bg: #f9faf2;
+  --verdant-ink: #012d1d;
+  --verdant-muted: #5a7a6a;
+  --verdant-accent: #0a7a4a;
+  --verdant-emerald: #10b981;
+  --verdant-line: #d8e0d0;
+  --verdant-red: #b91c1c;
+  --verdant-amber: #f59e0b;
+}
+
+html, body {
+  background-color: var(--verdant-bg);
+  color: var(--verdant-ink);
+  font-family: "Assistant", system-ui, sans-serif;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Uniform card primitive */
+@layer components {
+  .v-card {
+    @apply bg-white border border-verdant-line rounded-card shadow-card;
+  }
+  .v-card-pad {
+    @apply v-card p-5 md:p-6;
+  }
+  .v-divider {
+    @apply border-verdant-line;
+  }
+  .eq-row {
+    @apply grid gap-5;
+    grid-auto-rows: 1fr; /* equal-height grid rows */
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  /* Form inputs used by onboarding & CRM */
+  .inp {
+    @apply w-full bg-white border border-verdant-line rounded-lg px-3 py-2 text-sm text-verdant-ink
+           outline-none transition-all placeholder:text-verdant-muted
+           focus:ring-2 focus:ring-verdant-accent/30 focus:border-verdant-accent;
+  }
+  select.inp {
+    @apply appearance-none;
+    background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22%235a7a6a%22%20d%3D%22M7%2010l5%205%205-5z%22%2F%3E%3C%2Fsvg%3E');
+    background-size: 12px;
+    background-position: right 0.75rem center;
+    background-repeat: no-repeat;
+    padding-right: 2rem;
+  }
+  textarea.inp {
+    @apply resize-y;
+    min-height: 80px;
+  }
+}
+
+/* Toast animation */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Scrollbar polish */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--verdant-line); border-radius: 4px; }
