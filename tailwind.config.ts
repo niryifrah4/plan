@@ -27,7 +27,8 @@ const config: Config = {
         card: "1rem",
       },
       boxShadow: {
-        card: "0 1px 2px rgba(1,45,29,.04), 0 8px 24px rgba(1,45,29,.05)",
+        card: "0 1px 3px rgba(1,45,29,.04), 0 4px 16px rgba(1,45,29,.06)",
+        "card-hover": "0 2px 8px rgba(1,45,29,.08), 0 12px 32px rgba(1,45,29,.10)",
       },
     },
   },

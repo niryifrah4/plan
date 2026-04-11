@@ -24,21 +24,21 @@ interface Props {
  * Gap bars switch colour automatically per safety-margin rule.
  * Exact ILS data labels sit above each bar.
  */
-export function CashflowBarChart({ data, height = 280 }: Props) {
+export function CashflowBarChart({ data, height = 420 }: Props) {
   return (
     <div className="w-full">
       <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={data} margin={{ top: 24, right: 16, left: 8, bottom: 32 }}>
+        <BarChart data={data} margin={{ top: 28, right: 20, left: 12, bottom: 40 }} barCategoryGap="20%" barGap={6}>
           <CartesianGrid strokeDasharray="2 4" stroke="#eef2ea" vertical={false} />
           <XAxis
             dataKey="month"
-            tick={{ fontSize: 11, fontWeight: 800, fill: "#012d1d" }}
+            tick={{ fontSize: 12, fontWeight: 800, fill: "#012d1d" }}
             axisLine={{ stroke: "#d8e0d0" }}
             tickLine={false}
             reversed /* RTL */
           />
           <YAxis
-            tick={{ fontSize: 10, fill: "#5a7a6a", fontWeight: 700 }}
+            tick={{ fontSize: 11, fill: "#5a7a6a", fontWeight: 700 }}
             axisLine={{ stroke: "#d8e0d0" }}
             tickLine={false}
             tickFormatter={fmtK}
@@ -52,24 +52,24 @@ export function CashflowBarChart({ data, height = 280 }: Props) {
             }}
           />
           <Legend
-            verticalAlign="bottom" height={28}
-            formatter={(v) => <span style={{ color: "#012d1d", fontWeight: 700 }}>{v}</span>}
+            verticalAlign="bottom" height={32}
+            formatter={(v) => <span style={{ color: "#012d1d", fontWeight: 700, fontSize: 12 }}>{v}</span>}
           />
-          <Bar dataKey="income" name="הכנסה" fill={GAP_COLOURS.safe} radius={[3,3,0,0]}>
+          <Bar dataKey="income" name="הכנסה" fill={GAP_COLOURS.safe} radius={[5,5,0,0]} maxBarSize={42}>
             <LabelList
               dataKey="income" position="top"
               formatter={(v: number) => fmtILS(v)}
               style={{ fontSize: 10, fontWeight: 800, fill: GAP_COLOURS.safe }}
             />
           </Bar>
-          <Bar dataKey="expense" name="הוצאה" fill={GAP_COLOURS.shortfall} radius={[3,3,0,0]}>
+          <Bar dataKey="expense" name="הוצאה" fill={GAP_COLOURS.shortfall} radius={[5,5,0,0]} maxBarSize={42}>
             <LabelList
               dataKey="expense" position="top"
               formatter={(v: number) => fmtILS(v)}
               style={{ fontSize: 10, fontWeight: 800, fill: GAP_COLOURS.shortfall }}
             />
           </Bar>
-          <Bar dataKey="gap" name="פער (תזרים)" radius={[3,3,0,0]}>
+          <Bar dataKey="gap" name="פער (תזרים)" radius={[5,5,0,0]} maxBarSize={42}>
             {data.map((d, i) => <Cell key={i} fill={gapColor(d.gap)} />)}
             <LabelList
               dataKey="gap" position="top"

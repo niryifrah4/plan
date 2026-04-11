@@ -124,7 +124,9 @@ const TIER_MAP: Record<string, ExpenseTier> = {
   insurance:     "essential",
   education:     "essential",
   transport:     "essential",
+  fees:          "essential",    // bank fees are essential overhead
   leisure:       "lifestyle",
+  dining_out:    "lifestyle",   // dining out & entertainment
   shopping:      "lifestyle",
   subscriptions: "lifestyle",
   cash:          "lifestyle",

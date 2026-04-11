@@ -8,6 +8,8 @@ import * as XLSX from "xlsx";
 import { matchSynonym, detectBank, type CanonicalField } from "./synonyms";
 import { cleanAmount, parseILDate } from "./number-utils";
 import { categorize } from "./categorizer";
+import { extractInstruments } from "./instruments";
+import { extractBalances, reconcile } from "./reconciliation";
 import type { ParsedDocument, ParsedTransaction, ColumnMapping } from "./types";
 
 /**
@@ -215,6 +217,20 @@ export function parseExcel(buffer: Buffer, filename: string): ParsedDocument {
   const totalCredit = transactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
   const dates = transactions.map(t => t.date).filter(Boolean).sort();
 
+  // Extract financial instruments from full sheet text (headers + metadata rows)
+  const instruments = extractInstruments(fullText, bankHint);
+
+  // ─── Reconciliation: extract opening/closing balances and verify totals ───
+  const { opening, closing } = extractBalances(fullText);
+  const reconciliation = reconcile({
+    openingBalance: opening,
+    closingBalance: closing,
+    transactions,
+  });
+  if (!reconciliation.ok || reconciliation.severity === "major") {
+    warnings.push(reconciliation.message);
+  }
+
   return {
     filename,
     type: "xlsx",
@@ -224,5 +240,15 @@ export function parseExcel(buffer: Buffer, filename: string): ParsedDocument {
     totalCredit,
     dateRange: { from: dates[0] || "", to: dates[dates.length - 1] || "" },
     warnings,
+    instruments,
+    openingBalance: opening,
+    closingBalance: closing,
+    reconciliation: {
+      ok: reconciliation.ok,
+      severity: reconciliation.severity,
+      message: reconciliation.message,
+      delta: reconciliation.delta,
+      computed: reconciliation.computed,
+    },
   };
 }

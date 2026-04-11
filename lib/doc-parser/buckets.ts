@@ -43,10 +43,12 @@ const CAT_TO_BUCKET: Record<string, Bucket> = {
   leisure:       "variable",
   shopping:      "variable",
   cash:          "variable",
+  dining_out:    "variable",
 
-  // Loans
-  pension:       "fixed",     // pension deductions are fixed
-  salary:        "variable",  // income, treated as variable context
+  // Fixed — fees & pension
+  fees:          "fixed",      // bank fees/interest are recurring fixed costs
+  pension:       "fixed",      // pension deductions are fixed
+  salary:        "variable",   // income, treated as variable context
 
   // Refunds — variable (offsets expenses)
   refunds:       "variable",

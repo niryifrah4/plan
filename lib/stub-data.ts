@@ -88,6 +88,99 @@ export const demoSecurities: SecurityValued[] = [
     unrealized_pnl_ils: 316200, unrealized_pnl_pct: 100, vest_date: "2026-11-01", strike_price: 95 },
 ];
 
+/**
+ * Holistic exposure — maps underlying index/sector across ALL instruments.
+ * pension track, hishtalmut track, self-managed portfolio.
+ */
+export interface ExposureSlice {
+  index: string;       // e.g. "S&P 500", "אג\"ח ממשלתי"
+  pension: number;     // ₪ amount in pension
+  hishtalmut: number;  // ₪ amount in hishtalmut
+  selfManaged: number; // ₪ amount in self-managed portfolio
+  total: number;
+}
+
+export const demoExposure: ExposureSlice[] = [
+  { index: "S&P 500",         pension: 190000, hishtalmut: 28000, selfManaged: 156240, total: 374240 },
+  { index: "אג\"ח ממשלתי",     pension: 114000, hishtalmut: 10500, selfManaged: 0,      total: 124500 },
+  { index: "נדל\"ן ישראל",     pension: 38000,  hishtalmut: 3500,  selfManaged: 0,      total: 41500 },
+  { index: "אג\"ח קונצרני",    pension: 19000,  hishtalmut: 2000,  selfManaged: 0,      total: 21000 },
+  { index: "שווקים מתעוררים",  pension: 19000,  hishtalmut: 1000,  selfManaged: 88536,  total: 108536 },
+  { index: "קריפטו",           pension: 0,      hishtalmut: 0,     selfManaged: 88536,  total: 88536 },
+];
+
+/** Benchmark models for investment comparison */
+export interface BenchmarkModel {
+  id: string;
+  name: string;
+  description: string;
+  allocation: { label: string; pct: number; color: string }[];
+  expectedReturn: number; // annual
+  risk: "low" | "medium" | "high";
+}
+
+export const demoBenchmarks: BenchmarkModel[] = [
+  {
+    id: "conservative",
+    name: "סולידי 20/80",
+    description: "20% מניות, 80% אג\"ח — מתאים לשמרנים",
+    allocation: [
+      { label: "מניות", pct: 20, color: "#0a7a4a" },
+      { label: "אג\"ח ממשלתי", pct: 50, color: "#10b981" },
+      { label: "אג\"ח קונצרני", pct: 20, color: "#58e1b0" },
+      { label: "מזומן", pct: 10, color: "#d8e0d0" },
+    ],
+    expectedReturn: 0.045,
+    risk: "low",
+  },
+  {
+    id: "balanced",
+    name: "מאוזן 60/40",
+    description: "60% מניות, 40% אג\"ח — קלאסי",
+    allocation: [
+      { label: "מניות ארה\"ב", pct: 35, color: "#0a7a4a" },
+      { label: "מניות בינלאומי", pct: 25, color: "#1a6b42" },
+      { label: "אג\"ח", pct: 30, color: "#10b981" },
+      { label: "מזומן", pct: 10, color: "#d8e0d0" },
+    ],
+    expectedReturn: 0.07,
+    risk: "medium",
+  },
+  {
+    id: "aggressive",
+    name: "אגרסיבי S&P 500",
+    description: "100% מניות — מבוסס S&P 500",
+    allocation: [
+      { label: "S&P 500", pct: 80, color: "#0a7a4a" },
+      { label: "מניות צמיחה", pct: 15, color: "#1a6b42" },
+      { label: "קריפטו", pct: 5, color: "#f59e0b" },
+    ],
+    expectedReturn: 0.10,
+    risk: "high",
+  },
+];
+
+/** Financial infrastructure — bank accounts & credit cards extracted from mapping */
+export interface FinancialInstrument {
+  id: string;
+  type: "bank" | "credit_card" | "investment";
+  name: string;
+  institution: string;
+  last4?: string;
+  balance?: number;
+  lastUpdated?: string; // ISO date
+  accountNumber?: string;
+}
+
+export const demoInstruments: FinancialInstrument[] = [
+  { id: "fi1", type: "bank",        name: "חשבון עו\"ש",   institution: "לאומי",    last4: "4521", balance: 32000, lastUpdated: "2026-04-05", accountNumber: "12-456-4521" },
+  { id: "fi2", type: "bank",        name: "חשבון חיסכון",  institution: "לאומי",    last4: "4522", balance: 16000, lastUpdated: "2026-03-10", accountNumber: "12-456-4522" },
+  { id: "fi3", type: "credit_card", name: "ויזה פלטינום",   institution: "לאומי קארד", last4: "8834", lastUpdated: "2026-04-01" },
+  { id: "fi4", type: "credit_card", name: "מאסטרקארד",      institution: "ישראכרט",   last4: "1209", lastUpdated: "2026-02-15" },
+  { id: "fi5", type: "investment",  name: "תיק השקעות IBKR", institution: "Interactive Brokers", balance: 122760, lastUpdated: "2026-04-08", accountNumber: "U98765" },
+  { id: "fi6", type: "investment",  name: "תיק E*TRADE",    institution: "E*TRADE",   balance: 177072, lastUpdated: "2026-03-28", accountNumber: "6734-2211" },
+];
+
 /** Map CashflowSummary rows → chart points (chronological oldest→newest). */
 export function toChartPoints(rows: CashflowSummary[]): CashflowMonthPoint[] {
   return [...rows]

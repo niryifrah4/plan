@@ -410,16 +410,17 @@ export default function CrmPage() {
     setLeads((prev) => prev.map((l) => (l.id === selectedLead.id ? { ...l, status: "converted" as LeadStatus } : l)));
     const newId = Math.max(0, ...clients.map((c) => c.id)) + 1;
     const monthStr = `${String(new Date().getMonth() + 1).padStart(2, "0")}/${new Date().getFullYear()}`;
-    setClients((prev) => [
-      ...prev,
-      {
-        id: newId, family: selectedLead.name, step: 0, totalSteps: 3, netWorth: 0,
-        trend: "—", members: 1, joined: monthStr, docsUploaded: 0, docsTotal: 10,
-        monthlyRevenue: 0, riskProfile: "—", convertedFromLead: selectedLead.name,
-      },
-    ]);
+    const newClient = {
+      id: newId, family: selectedLead.name, step: 0, totalSteps: 3, netWorth: 0,
+      trend: "—", members: 1, joined: monthStr, docsUploaded: 0, docsTotal: 10,
+      monthlyRevenue: 0, riskProfile: "—", convertedFromLead: selectedLead.name,
+    };
+    setClients((prev) => [...prev, newClient]);
+    // Also persist current client ID for the client layout to pick up
+    try { localStorage.setItem("verdant:current_hh", String(newId)); } catch {}
     closeDrawer();
     setTab("clients"); // switch to clients tab to show the new client
+    setToast(`✅ "${selectedLead.name}" הומר ללקוח בהצלחה`);
   }
 
   /* ═══════════════════════════════════════════════════════════════════
@@ -913,11 +914,11 @@ export default function CrmPage() {
                         <td className="px-4 py-3.5 text-verdant-muted font-bold text-right">{c.joined}</td>
                         <td className="px-4 py-3.5 text-right">
                           <div className="flex items-center gap-2 justify-end">
-                            <Link href="/onboarding" className="text-[11px] font-bold text-verdant-muted hover:text-verdant-accent transition-colors whitespace-nowrap">
+                            <Link href={`/onboarding?hh=${c.id}`} className="text-[11px] font-bold text-verdant-muted hover:text-verdant-accent transition-colors whitespace-nowrap">
                               שאלון אפיון
                             </Link>
                             <Link
-                              href="/dashboard"
+                              href={`/dashboard?hh=${c.id}`}
                               className="text-[11px] font-extrabold text-white px-3.5 py-1.5 rounded-lg whitespace-nowrap transition-transform hover:scale-[0.97]"
                               style={{ background: "linear-gradient(135deg,#012d1d 0%,#0a7a4a 100%)" }}
                             >

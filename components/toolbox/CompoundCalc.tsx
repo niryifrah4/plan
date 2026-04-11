@@ -1,24 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { fmtILS } from "@/lib/format";
 import { futureValue } from "@/lib/financial-math";
+import { loadAssumptions } from "@/lib/assumptions";
 
 export function CompoundCalc() {
   const [lump, setLump]         = useState(50000);
   const [monthly, setMonthly]   = useState(2000);
   const [rate, setRate]         = useState(6);
   const [years, setYears]       = useState(20);
+  const [showReal, setShowReal] = useState(false);
+  const [inflation, setInflation] = useState(3);
 
-  const fv = futureValue(lump, monthly, rate / 100, years);
+  // Load from assumptions
+  useEffect(() => {
+    const a = loadAssumptions();
+    setInflation(parseFloat((a.inflationRate * 100).toFixed(2)));
+    setMonthly(Math.round(a.monthlyInvestment / 2));
+    setRate(parseFloat((a.expectedReturnInvest * 100).toFixed(2)));
+  }, []);
+
+  const nominalRate = rate / 100;
+  const realRate = Math.max(0, nominalRate - inflation / 100);
+  const effectiveRate = showReal ? realRate : nominalRate;
+
+  const fv = futureValue(lump, monthly, effectiveRate, years);
   const totalDeposited = lump + monthly * years * 12;
   const interest = fv - totalDeposited;
 
   return (
     <div className="space-y-4">
       <Card>
-        <h3 className="text-lg font-extrabold text-verdant-ink mb-4 text-right">פרמטרים</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-extrabold text-verdant-ink text-right">פרמטרים</h3>
+          <button
+            onClick={() => setShowReal(!showReal)}
+            className="text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1 transition-colors"
+            style={{
+              background: showReal ? "#7c3aed12" : "#0a7a4a12",
+              color: showReal ? "#7c3aed" : "#0a7a4a",
+            }}
+          >
+            <span className="material-symbols-outlined text-[12px]">swap_horiz</span>
+            {showReal ? `ריאלי (אחרי אינפלציה ${inflation}%)` : "נומינלי"}
+          </button>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <label className="block">
             <span className="text-[11px] text-verdant-muted font-bold">סכום פתיחה</span>
@@ -44,19 +72,25 @@ export function CompoundCalc() {
       </Card>
 
       <Card>
-        <h3 className="text-lg font-extrabold text-verdant-ink mb-4 text-right">תוצאות</h3>
+        <h3 className="text-lg font-extrabold text-verdant-ink mb-4 text-right">
+          תוצאות {showReal && <span className="text-xs font-bold" style={{ color: "#7c3aed" }}>(ערכים ריאליים)</span>}
+        </h3>
         <div className="grid grid-cols-3 gap-3">
           <div className="p-4 rounded-lg border v-divider text-right">
             <div className="text-[10px] uppercase tracking-[0.15em] text-verdant-muted font-bold mb-1">סך הפקדות</div>
             <div className="text-xl font-extrabold tabular">{fmtILS(totalDeposited)}</div>
           </div>
           <div className="p-4 rounded-lg border v-divider text-right">
-            <div className="text-[10px] uppercase tracking-[0.15em] text-verdant-muted font-bold mb-1">ריבית מצטברת</div>
+            <div className="text-[10px] uppercase tracking-[0.15em] text-verdant-muted font-bold mb-1">
+              {showReal ? "ריבית ריאלית" : "ריבית מצטברת"}
+            </div>
             <div className="text-xl font-extrabold tabular" style={{ color: "#0a7a4a" }}>{fmtILS(interest)}</div>
           </div>
-          <div className="p-4 rounded-lg text-right" style={{ background: "#0a7a4a11", border: "1px solid #0a7a4a" }}>
-            <div className="text-[10px] uppercase tracking-[0.15em] text-verdant-muted font-bold mb-1">שווי עתידי (FV)</div>
-            <div className="text-2xl font-extrabold tabular" style={{ color: "#0a7a4a" }}>{fmtILS(fv)}</div>
+          <div className="p-4 rounded-lg text-right" style={{ background: showReal ? "#7c3aed08" : "#0a7a4a11", border: `1px solid ${showReal ? "#7c3aed" : "#0a7a4a"}` }}>
+            <div className="text-[10px] uppercase tracking-[0.15em] text-verdant-muted font-bold mb-1">
+              {showReal ? "שווי עתידי ריאלי" : "שווי עתידי (FV)"}
+            </div>
+            <div className="text-2xl font-extrabold tabular" style={{ color: showReal ? "#7c3aed" : "#0a7a4a" }}>{fmtILS(fv)}</div>
           </div>
         </div>
       </Card>

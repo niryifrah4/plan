@@ -58,12 +58,24 @@ html, body {
   }
 }
 
+/* Smooth global transitions */
+* { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+::selection { background: rgba(10,122,74,0.15); color: var(--verdant-ink); }
+
 /* Toast animation */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translate(-50%, 12px); }
   to   { opacity: 1; transform: translate(-50%, 0); }
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* Scrollbar polish */
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-thumb { background: var(--verdant-line); border-radius: 4px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--verdant-line); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--verdant-muted); }

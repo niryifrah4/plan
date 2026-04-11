@@ -152,6 +152,21 @@ export interface Scenario {
   saved_at: string;
 }
 
+// ===== Client Instruments (bank accounts + credit cards) =====
+export type InstrumentType = "bank_account" | "credit_card";
+
+export interface ClientInstrument {
+  id: string;
+  household_id: string;
+  type: InstrumentType;
+  institution: string;
+  identifier: string;
+  label: string;
+  source_file: string | null;
+  detected_at: string;
+  created_at: string;
+}
+
 // ===== Securities / Crypto / RSU / Options =====
 export type SecurityKind = "stock" | "etf" | "crypto" | "rsu" | "option" | "bond" | "fund";
 export type CurrencyCode = "ILS" | "USD" | "EUR" | "GBP";

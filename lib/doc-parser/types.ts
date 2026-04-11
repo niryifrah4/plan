@@ -21,6 +21,19 @@ export interface ParsedDocument {
   totalCredit: number;
   dateRange: { from: string; to: string };
   warnings: string[];
+  instruments?: { type: "bank_account" | "credit_card"; institution: string; identifier: string; label: string }[];
+  /** Declared opening balance extracted from source (for reconciliation) */
+  openingBalance?: number;
+  /** Declared closing balance extracted from source (for reconciliation) */
+  closingBalance?: number;
+  /** Reconciliation result — matches source doc 100% when 'clean' */
+  reconciliation?: {
+    ok: boolean;
+    severity: "clean" | "minor" | "major" | "skipped";
+    message: string;
+    delta: number;
+    computed: number;
+  };
 }
 
 export interface ColumnMapping {

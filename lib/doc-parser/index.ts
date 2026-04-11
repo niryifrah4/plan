@@ -19,6 +19,8 @@ export { deduplicateTransactions } from "./dedup";
 export { assignSubCategory, learnSubRule, loadSubRules, SUB_CATEGORIES, SUB_CATEGORIES_BY_BUCKET } from "./sub-categories";
 export type { SubCategory, SubCategoryRule } from "./sub-categories";
 export type { ParsedDocument, ParsedTransaction, ColumnMapping } from "./types";
+export { extractInstruments, loadInstruments, mergeAndSaveInstruments, getInstrumentSummary } from "./instruments";
+export type { FinancialInstrument, InstrumentType, StoredInstruments } from "./instruments";
 
 import { parseExcel } from "./parse-excel";
 import { parsePDF } from "./parse-pdf";

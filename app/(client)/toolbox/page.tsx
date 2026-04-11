@@ -1,56 +1,41 @@
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ToolboxTabs } from "@/components/toolbox/ToolboxTabs";
 import { CompoundCalc } from "@/components/toolbox/CompoundCalc";
-import { RealEstateCalc } from "@/components/toolbox/RealEstateCalc";
 import { MiluimCalc } from "@/components/toolbox/MiluimCalc";
+import { TaxCalc } from "@/components/toolbox/TaxCalc";
+import { RealReturnCalc } from "@/components/toolbox/RealReturnCalc";
+import { BituachLeumiCalc } from "@/components/toolbox/BituachLeumiCalc";
+import { RsuCalc } from "@/components/toolbox/RsuCalc";
+import { RealEstateLab } from "@/components/toolbox/RealEstateLab";
+import { GoalContextStrip } from "@/components/toolbox/GoalContextStrip";
 
 const TABS = [
-  { id: "compound",      label: "ריבית דריבית",     icon: "trending_up" },
-  { id: "mortgage",      label: "מחשבון משכנתא",    icon: "home" },
-  { id: "consolidation", label: "איחוד הלוואות",    icon: "merge" },
-  { id: "realestate",    label: "נדל״ן להשקעה",     icon: "apartment" },
-  { id: "miluim",        label: "סימולטור מילואים",  icon: "military_tech" },
-  { id: "tax",           label: "מס רווח הון",       icon: "receipt_long" },
+  { id: "realestate", label: "מעבדת נדל״ן",            icon: "home_work" },
+  { id: "tax",        label: "מס הכנסה ורווח הון",   icon: "receipt_long" },
+  { id: "realreturn", label: "תשואה ריאלית",          icon: "analytics" },
+  { id: "bituach",    label: "ביטוח לאומי",            icon: "shield" },
+  { id: "compound",   label: "ריבית דריבית",           icon: "trending_up" },
+  { id: "rsu",        label: "מחשבון RSU",             icon: "inventory_2" },
+  { id: "miluim",     label: "סימולטור מילואים",        icon: "military_tech" },
 ];
 
 export default function ToolboxPage() {
   return (
     <div className="max-w-6xl mx-auto">
       <PageHeader
-        subtitle="Toolbox · מחשבונים פיננסיים"
-        title="ארגז כלים"
-        description="מחשבונים מקצועיים — שומרים כסיטואציות ניתנות להשוואה"
+        subtitle="Calculators & Tools · מחשבונים וכלים"
+        title="מחשבונים וכלים"
+        description="כלי תכנון דינמיים — נדל״ן, מיסוי, תשואה ריאלית, RSU וזכויות"
       />
       <ToolboxTabs tabs={TABS}>
         {{
-          compound: <CompoundCalc />,
-          mortgage: (
-            <div className="v-card p-7">
-              <h3 className="text-base font-bold text-verdant-ink mb-2 text-right">מחשבון משכנתא</h3>
-              <p className="text-sm text-verdant-muted text-right leading-relaxed">
-                פירוק למסלולים, לוח סילוקין ושינוי ריבית. תשתית הפיננסית (PMT + amortSchedule) מוכנה ב-lib/financial-math.ts.
-              </p>
-            </div>
-          ),
-          consolidation: (
-            <div className="v-card p-7">
-              <h3 className="text-base font-bold text-verdant-ink mb-2 text-right">איחוד הלוואות</h3>
-              <p className="text-sm text-verdant-muted text-right leading-relaxed">
-                הצגת חיסכון בריבית משוקללת אחרי איחוד. יתווסף בגרסה הבאה.
-              </p>
-            </div>
-          ),
-          realestate: <RealEstateCalc />,
-          miluim: <MiluimCalc />,
-          tax: (
-            <div className="v-card p-7">
-              <h3 className="text-base font-bold text-verdant-ink mb-2 text-right">סימולטור מס רווח הון</h3>
-              <p className="text-sm text-verdant-muted text-right leading-relaxed">
-                חישוב מס רווח הון עתידי (25%/30%) על ני&quot;ע ישראלים וזרים.
-                המנוע (capitalGainsTax) כבר פעיל ומחובר לטבלת ני&quot;ע במפת העושר.
-              </p>
-            </div>
-          ),
+          realestate: <><GoalContextStrip domain="realestate" /><RealEstateLab /></>,
+          tax: <><GoalContextStrip domain="tax" /><TaxCalc /></>,
+          realreturn: <><GoalContextStrip domain="investments" /><RealReturnCalc /></>,
+          bituach: <><GoalContextStrip domain="retirement" /><BituachLeumiCalc /></>,
+          compound: <><GoalContextStrip domain="freedom" /><CompoundCalc /></>,
+          rsu: <><GoalContextStrip domain="investments" /><RsuCalc /></>,
+          miluim: <><GoalContextStrip domain="general" title="איך ימי המילואים משפיעים על תכנית החיסכון שלך?" /><MiluimCalc /></>,
         }}
       </ToolboxTabs>
     </div>

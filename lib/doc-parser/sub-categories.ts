@@ -107,6 +107,20 @@ const PENSION_FIXED: SubCategory = {
   categoryKeys: ["pension"],
 };
 
+const FEES_FIXED: SubCategory = {
+  key: "fees_fixed",
+  label: "עמלות וריביות",
+  icon: "receipt_long",
+  bucket: "fixed",
+  keywords: [
+    "עמלה", "דמי כרטיס", "ריבית", "דמי ניהול חשבון",
+    "דמי ניהול", "עמלת פעולה", "דמי שימוש", "עמלת המרה",
+    "עמלת העברה", "דמי חיוב", "ריבית חובה", "ריבית פיגורים",
+    "עמלת כרטיס", "דמי כספומט", "עמלת בנק",
+  ],
+  categoryKeys: ["fees"],
+};
+
 /* ─────────────── Variable Sub-categories ─────────────── */
 
 const GROCERY: SubCategory = {
@@ -182,6 +196,27 @@ const DINING: SubCategory = {
   categoryKeys: ["leisure"],
 };
 
+const DINING_OUT_VAR: SubCategory = {
+  key: "dining_out_var",
+  label: "אוכל בחוץ ובילויים",
+  icon: "restaurant",
+  bucket: "variable",
+  keywords: [
+    "מסעדה", "קפה", "בית קפה", "ארומה", "קופי",
+    "קפה הלל", "קפה אורבן", "ברסטה", "קפה גרג",
+    "קפה לנדוור", "קפה קפה", "coffee bean",
+    "מקדונלדס", "mcdonald", "בורגר קינג", "burger king",
+    "דומינוס", "פיצה האט", "kfc",
+    "wolt", "וולט", "japanika", "ג'פניקה", "ten bis", "תן ביס",
+    "cibus", "סיבוס", "משלוחה",
+    "סושי", "נגיסה", "אדו", "נודה",
+    "פאב", "בר", "מייק פלייס", "מולי בלום",
+    "סינמה", "קולנוע", "yes planet", "סינמה סיטי",
+    "הופעה", "הצגה", "תיאטרון", "הבימה", "קאמרי",
+  ],
+  categoryKeys: ["dining_out"],
+};
+
 const SHOPPING_VAR: SubCategory = {
   key: "shopping_var",
   label: "קניות וביגוד",
@@ -252,9 +287,9 @@ const REFUNDS_VAR: SubCategory = {
 
 export const SUB_CATEGORIES: SubCategory[] = [
   // Fixed
-  HOUSING, HOME_BILLS, TELECOM, INSURANCE, EDU_FIXED, PENSION_FIXED,
+  HOUSING, HOME_BILLS, TELECOM, INSURANCE, EDU_FIXED, PENSION_FIXED, FEES_FIXED,
   // Variable
-  GROCERY, TRANSPORT_VAR, DINING, SHOPPING_VAR, HEALTH_VAR, CASH_VAR, REFUNDS_VAR,
+  GROCERY, TRANSPORT_VAR, DINING, DINING_OUT_VAR, SHOPPING_VAR, HEALTH_VAR, CASH_VAR, REFUNDS_VAR,
 ];
 
 /** Sub-categories grouped by bucket */

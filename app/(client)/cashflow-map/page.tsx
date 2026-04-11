@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { BudgetVsActual } from "@/components/cashflow/BudgetVsActual";
 import { fmtILS } from "@/lib/format";
 import type { ParsedTransaction } from "@/lib/doc-parser/types";
 import type { Bucket } from "@/lib/doc-parser/buckets";
@@ -11,6 +12,7 @@ import {
   learnSubRule,
   type SubCategory,
 } from "@/lib/doc-parser/sub-categories";
+import type { FinancialInstrument } from "@/lib/doc-parser/instruments";
 
 /* ─── Storage ─── */
 const STORAGE_KEY = "verdant:parsed_transactions";
@@ -27,9 +29,9 @@ const BUCKET_ORDER: Bucket[] = ["fixed", "variable", "installments", "loans"];
 
 const CAT_TO_BUCKET: Record<string, Bucket> = {
   housing: "fixed", utilities: "fixed", insurance: "fixed", education: "fixed",
-  subscriptions: "fixed", pension: "fixed",
+  subscriptions: "fixed", pension: "fixed", fees: "fixed",
   food: "variable", transport: "variable", health: "variable", leisure: "variable",
-  shopping: "variable", cash: "variable", refunds: "variable",
+  shopping: "variable", cash: "variable", refunds: "variable", dining_out: "variable",
   transfers: "unmapped", other: "unmapped", salary: "variable",
 };
 const INSTALLMENT_RX = [/תשלום\s*\d+\s*מתוך\s*\d+/i, /\d+\/\d+\s*תשלומים/i, /תש(לום|\.)\s*\d/i, /installment/i, /תשלומים/i];
@@ -54,6 +56,7 @@ const CAT_COLORS: Record<string, string> = {
   health: "#ef4444", education: "#8b5cf6", insurance: "#06b6d4", leisure: "#ec4899",
   shopping: "#f97316", salary: "#10b981", pension: "#1a6b42", transfers: "#64748b",
   cash: "#78716c", subscriptions: "#a855f7", refunds: "#059669", other: "#94a3b8",
+  fees: "#dc2626", dining_out: "#e11d48",
 };
 
 const HE_MONTHS = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
@@ -83,6 +86,7 @@ export default function CashflowMapPage() {
   const [expandedBucket, setExpandedBucket] = useState<Bucket | null>(null);
   const [expandedSub, setExpandedSub] = useState<string | null>(null);
   const [showSaved, setShowSaved] = useState(false);
+  const [instruments, setInstruments] = useState<FinancialInstrument[]>([]);
 
   /* ── Load ── */
   useEffect(() => {
@@ -94,6 +98,10 @@ export default function CashflowMapPage() {
       const savedDel = localStorage.getItem("verdant:cf_deleted");
       if (savedDel) setDeletedIndices(new Set(JSON.parse(savedDel)));
     } catch { /* empty */ }
+    // Load financial instruments
+    import("@/lib/doc-parser/instruments").then(({ loadInstruments }) => {
+      setInstruments(loadInstruments());
+    });
   }, []);
 
   /* ── Persist ── */
@@ -112,8 +120,15 @@ export default function CashflowMapPage() {
       const ov = overrides[i];
       if (ov) {
         const isRefund = ov.key === "refunds";
+        // Refund fix: ensure refunds become negative (income-like).
+        // If amount > 0 (was parsed as expense), negate it.
+        // If amount is already ≤ 0 (credit column), keep it as-is.
         const amt = isRefund && t.amount > 0 ? -t.amount : t.amount;
         return { ...t, category: ov.key, categoryLabel: ov.label, amount: amt, _idx: i };
+      }
+      // Auto-detect: if category is "refunds" from the parser itself, ensure amount is negative
+      if (t.category === "refunds" && t.amount > 0) {
+        return { ...t, amount: -t.amount, _idx: i };
       }
       return { ...t, _idx: i };
     }).filter(Boolean) as TxWithIdx[];
@@ -275,6 +290,9 @@ export default function CashflowMapPage() {
       {hasData && avg && (
         <div className="space-y-5">
 
+          {/* ═══ 0. Budget vs Actual — Real-Time ═══ */}
+          <BudgetVsActual />
+
           {/* ═══ 1. KPIs — 3 Cards ═══ */}
           <div className="grid grid-cols-3 gap-4">
             <KPICard icon="account_balance_wallet" label="הכנסה ממוצעת" value={fmtILS(avg.income)} color="#10b981" bgTint="rgba(16,185,129,0.08)" />
@@ -282,6 +300,9 @@ export default function CashflowMapPage() {
             <KPICard icon="account_balance" label="תזרים חודשי" value={`${avg.gap >= 0 ? "+" : ""}${fmtILS(avg.gap)}`} color={gapColor(avg.gap)}
               bgTint={avg.gap > 1000 ? "rgba(16,185,129,0.08)" : avg.gap >= 0 ? "rgba(245,158,11,0.08)" : "rgba(239,68,68,0.08)"} />
           </div>
+
+          {/* ═══ 1b. Financial Instruments Widget ═══ */}
+          {instruments.length > 0 && <InstrumentsWidget instruments={instruments} />}
 
           {/* ═══ 2. Performance Grid — 3 Months + Average ═══ */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -573,6 +594,77 @@ function MiniChart({ title, income, expense, gap, maxVal, isAvg }: {
       </div>
       <div className="text-[10px] tabular" style={{ fontFamily: "Assistant", fontWeight: 700, color: gapColor(gap) }}>
         {gap >= 0 ? "+" : ""}{fmtILS(gap)}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   InstrumentsWidget — "מכשירים פיננסיים מקושרים"
+   ═══════════════════════════════════════════════════ */
+function InstrumentsWidget({ instruments }: { instruments: FinancialInstrument[] }) {
+  const banks = instruments.filter(i => i.type === "bank_account");
+  const cards = instruments.filter(i => i.type === "credit_card");
+
+  return (
+    <div className="p-5" style={{ background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.03)", borderRadius: "1rem" }}>
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-4">
+        <span className="w-8 h-8 flex items-center justify-center" style={{ background: "rgba(1,45,29,0.08)", borderRadius: "0.5rem" }}>
+          <span className="material-symbols-outlined text-[18px]" style={{ color: "#012d1d" }}>account_balance_wallet</span>
+        </span>
+        <h3 className="text-sm" style={{ fontFamily: "Assistant", fontWeight: 700, color: "#012d1d" }}>
+          מכשירים פיננסיים מקושרים
+        </h3>
+      </div>
+
+      {/* Instrument list */}
+      <div className="space-y-2">
+        {banks.map((inst, i) => (
+          <div key={`bank-${i}`} className="flex items-center gap-3 px-3 py-2.5" style={{ background: "#f9faf2", borderRadius: "0.75rem" }}>
+            <span className="text-[18px]">🏦</span>
+            <div className="flex-1">
+              <div className="text-xs" style={{ fontFamily: "Assistant", fontWeight: 700, color: "#012d1d" }}>
+                {inst.institution}
+              </div>
+              <div className="text-[10px]" style={{ fontFamily: "Assistant", fontWeight: 400, color: "#5a7a6a" }}>
+                חשבון {inst.identifier}
+              </div>
+            </div>
+            <span className="text-[10px] px-2 py-0.5" style={{
+              fontFamily: "Assistant", fontWeight: 700,
+              background: "rgba(10,122,74,0.1)", color: "#0a7a4a", borderRadius: "0.375rem",
+            }}>
+              בנק
+            </span>
+          </div>
+        ))}
+        {cards.map((inst, i) => (
+          <div key={`card-${i}`} className="flex items-center gap-3 px-3 py-2.5" style={{ background: "#f9faf2", borderRadius: "0.75rem" }}>
+            <span className="text-[18px]">💳</span>
+            <div className="flex-1">
+              <div className="text-xs" style={{ fontFamily: "Assistant", fontWeight: 700, color: "#012d1d" }}>
+                {inst.institution}
+              </div>
+              <div className="text-[10px]" style={{ fontFamily: "Assistant", fontWeight: 400, color: "#5a7a6a" }}>
+                סיומת {inst.identifier}
+              </div>
+            </div>
+            <span className="text-[10px] px-2 py-0.5" style={{
+              fontFamily: "Assistant", fontWeight: 700,
+              background: "rgba(59,130,246,0.1)", color: "#3b82f6", borderRadius: "0.375rem",
+            }}>
+              אשראי
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Summary footer */}
+      <div className="mt-3 pt-3 text-center" style={{ borderTop: "1px solid #eef2e8" }}>
+        <span className="text-[10px]" style={{ fontFamily: "Assistant", fontWeight: 700, color: "#5a7a6a" }}>
+          סה&quot;כ: {cards.length} כרטיסי אשראי, {banks.length} חשבונות בנק
+        </span>
       </div>
     </div>
   );

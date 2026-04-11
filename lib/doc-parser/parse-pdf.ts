@@ -9,6 +9,8 @@ import pdfParse from "pdf-parse";
 import { matchSynonym, detectBank } from "./synonyms";
 import { cleanAmount, parseILDate } from "./number-utils";
 import { categorize } from "./categorizer";
+import { extractInstruments } from "./instruments";
+import { extractBalances, reconcile } from "./reconciliation";
 import type { ParsedDocument, ParsedTransaction } from "./types";
 
 /**
@@ -161,6 +163,20 @@ export async function parsePDF(buffer: Buffer, filename: string): Promise<Parsed
   const totalCredit = transactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
   const dates = transactions.map(t => t.date).filter(Boolean).sort();
 
+  // Extract financial instruments from the full PDF text
+  const instruments = extractInstruments(text, bankHint);
+
+  // ─── Reconciliation ───
+  const { opening, closing } = extractBalances(text);
+  const reconciliation = reconcile({
+    openingBalance: opening,
+    closingBalance: closing,
+    transactions,
+  });
+  if (!reconciliation.ok || reconciliation.severity === "major") {
+    warnings.push(reconciliation.message);
+  }
+
   return {
     filename,
     type: "pdf",
@@ -170,5 +186,15 @@ export async function parsePDF(buffer: Buffer, filename: string): Promise<Parsed
     totalCredit,
     dateRange: { from: dates[0] || "", to: dates[dates.length - 1] || "" },
     warnings,
+    instruments,
+    openingBalance: opening,
+    closingBalance: closing,
+    reconciliation: {
+      ok: reconciliation.ok,
+      severity: reconciliation.severity,
+      message: reconciliation.message,
+      delta: reconciliation.delta,
+      computed: reconciliation.computed,
+    },
   };
 }

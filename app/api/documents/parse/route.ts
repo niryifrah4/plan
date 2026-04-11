@@ -77,6 +77,19 @@ export async function POST(req: NextRequest) {
     const bankHints = [...new Set(parsedDocs.map(d => d.bankHint).filter(h => h !== "לא זוהה"))];
     const bankHint = bankHints.length > 0 ? bankHints.join(" + ") : "לא זוהה";
 
+    // Merge instruments (deduplicate across files)
+    const seenInst = new Set<string>();
+    const allInstruments: NonNullable<ParsedDocument["instruments"]> = [];
+    for (const doc of parsedDocs) {
+      for (const inst of doc.instruments || []) {
+        const key = `${inst.type}::${inst.institution}::${inst.identifier}`;
+        if (!seenInst.has(key)) {
+          seenInst.add(key);
+          allInstruments.push(inst);
+        }
+      }
+    }
+
     // Calculate totals from merged set
     const totalDebit = merged.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
     const totalCredit = merged.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
@@ -91,6 +104,7 @@ export async function POST(req: NextRequest) {
       totalCredit,
       dateRange: { from: dates[0] || "", to: dates[dates.length - 1] || "" },
       warnings: allWarnings,
+      instruments: allInstruments,
       sourceFiles,
       duplicatesRemoved,
     };
