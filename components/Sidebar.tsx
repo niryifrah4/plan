@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { NAV_CLIENT } from "@/lib/nav";
+import { useEffect, useState } from "react";
+import { NAV_SECTIONS, type NavGroup, type NavItem } from "@/lib/nav";
+import { manualFactoryReset } from "@/lib/factory-reset";
 
 interface SidebarProps {
   familyName: string;
@@ -12,113 +14,401 @@ interface SidebarProps {
   saveStatus?: "idle" | "saving" | "saved" | "error";
 }
 
+const GROUPS_STORAGE_KEY = "verdant:nav:groups";
+
+/** Read open/closed state per group id from localStorage. */
+function loadGroupState(): Record<string, boolean> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(GROUPS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveGroupState(state: Record<string, boolean>): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(state));
+  } catch {}
+}
+
 export function Sidebar({ familyName, membersCount, advisorName, onExit, saveStatus = "idle" }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
+  // Group open/closed state, hydrated from localStorage after mount
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    const defaults: Record<string, boolean> = {};
+    for (const g of NAV_SECTIONS) {
+      if (g.collapsible) defaults[g.id] = g.defaultOpen ?? true;
+    }
+    return defaults;
+  });
+
+  useEffect(() => {
+    const stored = loadGroupState();
+    setOpenGroups((prev) => {
+      const merged = { ...prev };
+      for (const g of NAV_SECTIONS) {
+        if (g.collapsible && stored[g.id] !== undefined) merged[g.id] = stored[g.id];
+      }
+      return merged;
+    });
+  }, []);
+
+  // Auto-open a group if the active route is inside it (so user doesn't land on a collapsed group)
+  useEffect(() => {
+    if (!pathname) return;
+    for (const g of NAV_SECTIONS) {
+      if (!g.collapsible) continue;
+      const hasActive = g.items.some((it) => pathname === it.href || pathname.startsWith(it.href + "/"));
+      if (hasActive && !openGroups[g.id]) {
+        setOpenGroups((prev) => {
+          const next = { ...prev, [g.id]: true };
+          saveGroupState(next);
+          return next;
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  const [resetStage, setResetStage] = useState<"idle" | "confirm">("idle");
+  useEffect(() => {
+    if (resetStage !== "confirm") return;
+    const t = setTimeout(() => setResetStage("idle"), 4000);
+    return () => clearTimeout(t);
+  }, [resetStage]);
+
+  const handleReset = () => {
+    if (resetStage === "idle") {
+      setResetStage("confirm");
+      return;
+    }
+    const { wiped } = manualFactoryReset();
+    // Hard reload so every page re-mounts with zeroed state
+    try {
+      // eslint-disable-next-line no-console
+      console.info(`[manual-reset] wiped ${wiped} keys — reloading`);
+    } catch {}
+    window.location.href = "/dashboard";
+  };
+
+  const toggleGroup = (id: string) => {
+    setOpenGroups((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      saveGroupState(next);
+      return next;
+    });
+  };
+
+  const isActive = (href: string) => pathname === href || pathname?.startsWith(href + "/");
+
+  const renderItem = (item: NavItem, indent = false) => {
+    const active = isActive(item.href);
+    return (
+      <li key={item.id}>
+        <Link
+          href={item.href as any}
+          className="flex items-center justify-between gap-3 rounded-2xl transition-all relative"
+          style={{
+            height: "46px",
+            paddingInline: indent ? "14px" : "12px",
+            paddingInlineStart: indent ? "28px" : "12px",
+            background: active ? "rgba(255,255,255,0.08)" : "transparent",
+            color: active ? "#F9FAF2" : "#A8C5B1",
+          }}
+          onMouseEnter={(e) => {
+            if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+          }}
+          onMouseLeave={(e) => {
+            if (!active) e.currentTarget.style.background = "transparent";
+          }}
+        >
+          {/* Active right-side bar (RTL: right edge) */}
+          {active && (
+            <span
+              aria-hidden
+              className="absolute"
+              style={{
+                right: 0,
+                top: 10,
+                bottom: 10,
+                width: 3,
+                borderRadius: 3,
+                background: "#C1ECD4",
+              }}
+            />
+          )}
+          <span
+            className="material-symbols-outlined text-[20px]"
+            style={{
+              color: active ? "#C1ECD4" : "#7FA68D",
+              fontVariationSettings: active ? "'FILL' 1, 'wght' 500" : "'FILL' 0, 'wght' 400",
+            }}
+          >
+            {item.icon}
+          </span>
+          <span
+            className="text-[14px] flex-1 text-right"
+            style={{
+              fontWeight: active ? 700 : 500,
+              color: active ? "#F9FAF2" : "#A8C5B1",
+            }}
+          >
+            {item.label}
+          </span>
+          {item.badge && (
+            <span
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+              style={{
+                background: active ? "#C1ECD4" : "rgba(168,197,177,0.15)",
+                color: active ? "#012D1D" : "#A8C5B1",
+              }}
+            >
+              {item.badge}
+            </span>
+          )}
+        </Link>
+      </li>
+    );
+  };
+
+  const renderGroup = (group: NavGroup) => {
+    // Flat group (no header) — just render items
+    if (!group.label) {
+      return (
+        <ul className="space-y-1 mt-2" key={group.id}>
+          {group.items.map((it) => renderItem(it, false))}
+        </ul>
+      );
+    }
+
+    // Non-collapsible labeled group (legacy fallback)
+    if (!group.collapsible) {
+      return (
+        <div key={group.id} className="mt-5">
+          <div
+            className="mb-2 px-3 text-[11px] uppercase tracking-[0.18em] font-bold text-right"
+            style={{ color: "rgba(168,197,177,0.6)" }}
+          >
+            {group.label}
+          </div>
+          <ul className="space-y-1">{group.items.map((it) => renderItem(it, false))}</ul>
+        </div>
+      );
+    }
+
+    // Collapsible group
+    const open = openGroups[group.id] ?? true;
+    const hasActiveChild = group.items.some((it) => isActive(it.href));
+    return (
+      <div key={group.id} className="mt-4">
+        <button
+          onClick={() => toggleGroup(group.id)}
+          className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl transition-all"
+          style={{
+            color: hasActiveChild ? "#F9FAF2" : "#A8C5B1",
+            background: "transparent",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          aria-expanded={open}
+        >
+          <span
+            className="material-symbols-outlined text-[18px] transition-transform"
+            style={{
+              color: "#7FA68D",
+              transform: open ? "rotate(0deg)" : "rotate(90deg)",
+            }}
+          >
+            expand_more
+          </span>
+          <span className="flex items-center gap-2 flex-1 justify-end">
+            <span
+              className="text-[12px] uppercase tracking-[0.14em] font-bold text-right"
+              style={{ color: hasActiveChild ? "#F9FAF2" : "rgba(168,197,177,0.7)" }}
+            >
+              {group.label}
+            </span>
+            {group.icon && (
+              <span
+                className="material-symbols-outlined text-[18px]"
+                style={{ color: hasActiveChild ? "#C1ECD4" : "#7FA68D" }}
+              >
+                {group.icon}
+              </span>
+            )}
+          </span>
+        </button>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateRows: open ? "1fr" : "0fr",
+            transition: "grid-template-rows 200ms ease",
+          }}
+        >
+          <div style={{ overflow: "hidden" }}>
+            <ul className="space-y-1 mt-1">{group.items.map((it) => renderItem(it, true))}</ul>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <aside
-      className="fixed inset-y-0 right-0 w-[280px] flex flex-col text-white z-40"
-      style={{ background: "#012d1d" }}
+      className="fixed inset-y-0 right-0 w-[280px] flex flex-col z-40"
+      style={{
+        background: "#012D1D",
+        borderLeft: "1px solid rgba(255,255,255,0.06)",
+        color: "#A8C5B1",
+      }}
     >
       {/* Brand */}
-      <div className="px-6 pt-6 pb-4 border-b border-white/10">
-        <div className="flex items-baseline justify-end gap-2">
-          <span className="text-[10px] uppercase tracking-[0.25em] text-white/60 font-bold">
-            Verdant
-          </span>
-          <span className="text-xl font-extrabold">plan</span>
-        </div>
-        <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-bold mt-1 text-right">
-          Wealth Management
+      <div className="px-6 pt-7 pb-5">
+        <div className="flex items-center gap-3 justify-start">
+          <div className="text-right">
+            <div
+              className="text-[20px] font-extrabold tracking-tight leading-tight"
+              style={{ color: "#F9FAF2", fontFamily: "Manrope, Assistant, system-ui, sans-serif" }}
+            >
+              פלאן
+            </div>
+            <div className="text-[11px] font-bold mt-0.5" style={{ color: "#A8C5B1" }}>
+              מערכת לתכנון פיננסי
+            </div>
+          </div>
+          <div
+            className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+            style={{ background: "rgba(193,236,212,0.12)" }}
+          >
+            <span className="material-symbols-outlined text-[22px]" style={{ color: "#C1ECD4" }}>
+              potted_plant
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Active household */}
-      <div className="px-6 py-4 border-b border-white/10">
-        <div className="text-[10px] uppercase tracking-[0.15em] text-white/50 font-bold text-right">
-          תיק פעיל
-        </div>
-        <div className="text-base font-extrabold mt-1 text-right">{familyName}</div>
-        <div className="text-[11px] text-white/50 mt-0.5 text-right">
-          {membersCount} בני משפחה
+      <div className="px-6 pb-3">
+        <div
+          className="rounded-2xl px-4 py-3"
+          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+        >
+          <div
+            className="text-[10px] uppercase tracking-[0.18em] font-bold text-right"
+            style={{ color: "rgba(168,197,177,0.6)" }}
+          >
+            תיק פעיל
+          </div>
+          <div className="text-[15px] font-extrabold mt-1 text-right" style={{ color: "#F9FAF2" }}>
+            {familyName}
+          </div>
+          <div className="text-[11px] mt-0.5 text-right" style={{ color: "#A8C5B1" }}>
+            {membersCount} בני משפחה
+          </div>
         </div>
       </div>
 
-      {/* Nav items — Plan-Based client journey */}
-      <nav className="flex-1 overflow-y-auto py-3 px-3">
-        <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-bold mb-2 px-3 text-right">
-          תחנות הליווי
-        </div>
-        <ul className="space-y-0.5">
-          {NAV_CLIENT.map((item) => {
-            const active = pathname === item.href || pathname?.startsWith(item.href + "/");
-            return (
-              <li key={item.id}>
-                <Link
-                  href={item.href as any}
-                  className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                    active
-                      ? "bg-verdant-accent/30 text-white"
-                      : "text-white/75 hover:bg-white/5 hover:text-white"
-                  }`}
-                  style={active ? { boxShadow: "inset 2px 0 0 #10b981" } : undefined}
-                >
-                  <span className="material-symbols-outlined text-[20px] opacity-70">
-                    {item.icon}
-                  </span>
-                  <span className="text-sm font-bold flex-1 text-right">{item.label}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto px-4 pb-2">
+        {NAV_SECTIONS.map((g) => renderGroup(g))}
       </nav>
 
-      {/* Advisor footer */}
-      <div className="px-6 py-4 border-t border-white/10">
+      {/* Footer */}
+      <div className="px-6 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-verdant-accent flex items-center justify-center text-sm font-bold">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center text-[14px] font-extrabold flex-shrink-0"
+            style={{ background: "#C1ECD4", color: "#012D1D" }}
+          >
             {advisorName.charAt(0)}
           </div>
-          <div className="flex-1 text-right">
-            <div className="text-sm font-bold">{advisorName}</div>
-            <div className="text-[10px] text-white/50">מתכנן אחראי</div>
+          <div className="flex-1 text-right min-w-0">
+            <div className="text-[14px] font-bold truncate" style={{ color: "#F9FAF2" }}>
+              {advisorName}
+            </div>
+            <div className="text-[11px]" style={{ color: "#A8C5B1" }}>
+              מתכנן אחראי
+            </div>
           </div>
         </div>
 
-        {/* Save Status */}
         {saveStatus !== "idle" && (
-          <div className="mb-3 flex items-center justify-center gap-2 text-[11px] font-bold py-1.5 rounded-lg" style={{
-            background: saveStatus === "saving" ? "rgba(255,255,255,0.05)" : saveStatus === "saved" ? "rgba(16,185,129,0.15)" : "rgba(185,28,28,0.15)",
-            color: saveStatus === "saving" ? "rgba(255,255,255,0.5)" : saveStatus === "saved" ? "#10b981" : "#f87171",
-          }}>
-            <span className={`material-symbols-outlined text-[14px] ${saveStatus === "saving" ? "animate-pulse" : ""}`}>
+          <div
+            className="mt-3 flex items-center justify-center gap-2 text-[11px] font-bold py-1.5 rounded-xl"
+            style={{
+              background:
+                saveStatus === "saving"
+                  ? "rgba(92,96,88,0.08)"
+                  : saveStatus === "saved"
+                  ? "rgba(27,67,50,0.08)"
+                  : "rgba(185,28,28,0.08)",
+              color:
+                saveStatus === "saving"
+                  ? "#5C6058"
+                  : saveStatus === "saved"
+                  ? "#1B4332"
+                  : "#b91c1c",
+            }}
+          >
+            <span
+              className={`material-symbols-outlined text-[14px] ${
+                saveStatus === "saving" ? "animate-pulse" : ""
+              }`}
+            >
               {saveStatus === "saving" ? "cloud_sync" : saveStatus === "saved" ? "cloud_done" : "cloud_off"}
             </span>
             {saveStatus === "saving" ? "שומר..." : saveStatus === "saved" ? "נשמר" : "שגיאה"}
           </div>
         )}
 
-        {/* Back to CRM */}
+        <button
+          onClick={handleReset}
+          className="mt-3 w-full px-3 py-2.5 rounded-2xl text-[13px] font-bold flex items-center justify-center gap-2 transition-all"
+          style={{
+            background: resetStage === "confirm" ? "#b91c1c" : "rgba(239,68,68,0.12)",
+            color: resetStage === "confirm" ? "#F9FAF2" : "#FCA5A5",
+            border: resetStage === "confirm" ? "1px solid #b91c1c" : "1px solid rgba(239,68,68,0.25)",
+          }}
+          title="מוחק את כל הנתונים של הלקוח ומחזיר את כל הערכים לאפס"
+        >
+          <span className="material-symbols-outlined text-[16px]">
+            {resetStage === "confirm" ? "warning" : "restart_alt"}
+          </span>
+          {resetStage === "confirm" ? "לחץ שוב לאישור סופי" : "איפוס מלא לאפס"}
+        </button>
+
         <button
           onClick={() => router.push("/crm")}
-          className="mt-3 w-full px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm font-bold flex items-center justify-center gap-2 transition-colors"
+          className="mt-3 w-full px-3 py-2.5 rounded-2xl text-[13px] font-bold flex items-center justify-center gap-2 transition-all"
+          style={{ background: "rgba(255,255,255,0.06)", color: "#F9FAF2", border: "1px solid rgba(255,255,255,0.1)" }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.10)")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
         >
           <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
           חזרה ל-CRM
         </button>
 
-        {/* Divider + Logout */}
-        <div className="mt-2 pt-2 border-t border-white/10">
-          <button
-            onClick={onExit ?? (() => router.push("/login"))}
-            className="w-full px-3 py-2 rounded-lg bg-white/5 hover:bg-red-500/20 text-white/60 hover:text-white text-sm font-bold flex items-center justify-center gap-2 transition-colors"
-          >
-            <span className="material-symbols-outlined text-[16px]">logout</span>
-            התנתקות
-          </button>
-        </div>
+        <button
+          onClick={onExit ?? (() => router.push("/login"))}
+          className="mt-2 w-full px-3 py-2.5 rounded-2xl text-[13px] font-bold flex items-center justify-center gap-2 transition-all"
+          style={{ background: "transparent", color: "#A8C5B1" }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(239,68,68,0.12)";
+            e.currentTarget.style.color = "#FCA5A5";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = "#A8C5B1";
+          }}
+        >
+          <span className="material-symbols-outlined text-[16px]">logout</span>
+          התנתקות
+        </button>
       </div>
     </aside>
   );

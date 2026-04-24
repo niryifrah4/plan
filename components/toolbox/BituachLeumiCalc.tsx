@@ -23,7 +23,7 @@ export function BituachLeumiCalc() {
 
   return (
     <div className="space-y-6">
-      <div className="v-card p-5">
+      <div className="card-pad">
         <div className="flex items-center gap-2 mb-4">
           <span className="material-symbols-outlined text-verdant-emerald">shield</span>
           <h3 className="text-sm font-extrabold text-verdant-ink">זכויות בביטוח לאומי</h3>
@@ -59,7 +59,7 @@ export function BituachLeumiCalc() {
       </div>
 
       {/* Payments card */}
-      <div className="v-card p-5">
+      <div className="card-pad">
         <h4 className="text-xs font-extrabold text-verdant-ink mb-3 flex items-center gap-2">
           <span className="material-symbols-outlined text-[16px] text-verdant-emerald">payments</span>
           תשלומים
@@ -71,29 +71,29 @@ export function BituachLeumiCalc() {
       </div>
 
       {/* Rights card */}
-      <div className="v-card p-5">
+      <div className="card-pad">
         <h4 className="text-xs font-extrabold text-verdant-ink mb-3 flex items-center gap-2">
           <span className="material-symbols-outlined text-[16px] text-verdant-emerald">verified</span>
           זכויות (אומדן)
         </h4>
         <div className="rounded-xl p-4 space-y-3" style={{ background: "#f4f7ed" }}>
           <div className="flex items-start gap-3 p-2 rounded-lg" style={{ background: "#fff" }}>
-            <span className="material-symbols-outlined text-[18px] mt-0.5" style={{ color: "#0a7a4a" }}>elderly</span>
+            <span className="material-symbols-outlined text-[18px] mt-0.5" style={{ color: "#1B4332" }}>elderly</span>
             <div className="flex-1">
               <div className="text-xs font-extrabold text-verdant-ink">קצבת זקנה</div>
               <div className="text-[10px] text-verdant-muted mt-0.5">מגיל {retirementAge} · בעוד {yearsToRetirement} שנים</div>
-              <div className="text-sm font-extrabold tabular mt-1" style={{ color: "#0a7a4a" }}>~{fmtILS(estimatedMonthly)}/חודש</div>
+              <div className="text-sm font-extrabold tabular mt-1" style={{ color: "#1B4332" }}>~{fmtILS(estimatedMonthly)}/חודש</div>
               <div className="text-[9px] text-verdant-muted">כולל תוספת ותק {seniorityBonus}%</div>
             </div>
           </div>
 
           {childrenUnder18 > 0 && (
             <div className="flex items-start gap-3 p-2 rounded-lg" style={{ background: "#fff" }}>
-              <span className="material-symbols-outlined text-[18px] mt-0.5" style={{ color: "#8b5cf6" }}>child_care</span>
+              <span className="material-symbols-outlined text-[18px] mt-0.5" style={{ color: "#2B694D" }}>child_care</span>
               <div className="flex-1">
                 <div className="text-xs font-extrabold text-verdant-ink">קצבת ילדים</div>
                 <div className="text-[10px] text-verdant-muted mt-0.5">{childrenUnder18} ילדים</div>
-                <div className="text-sm font-extrabold tabular mt-1" style={{ color: "#8b5cf6" }}>~{fmtILS(childAllowance)}/חודש</div>
+                <div className="text-sm font-extrabold tabular mt-1" style={{ color: "#2B694D" }}>~{fmtILS(childAllowance)}/חודש</div>
               </div>
             </div>
           )}

@@ -20,7 +20,7 @@ export function EmptyState({ icon = "inbox", title, detail, ctaLabel, ctaHref }:
         {ctaLabel && ctaHref && (
           <a
             href={ctaHref}
-            className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-verdant-accent text-white text-sm font-bold hover:bg-verdant-emerald transition-colors"
+            className="btn-botanical mt-5 inline-flex items-center gap-2 text-sm"
           >
             {ctaLabel}
             <span className="material-symbols-outlined text-[18px]">arrow_back</span>

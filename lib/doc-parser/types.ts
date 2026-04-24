@@ -3,6 +3,8 @@
  * Canonical format for parsed bank/credit transactions.
  */
 
+import type { Scope } from "../scope-types";
+
 export interface ParsedTransaction {
   date: string;           // ISO yyyy-mm-dd
   description: string;    // original merchant / action text
@@ -10,6 +12,22 @@ export interface ParsedTransaction {
   category: string;       // auto-assigned category key
   categoryLabel: string;  // Hebrew display name
   raw?: string;           // original line for debugging
+  /** Business / personal / mixed tag. Undefined = personal. */
+  scope?: Scope;
+  /** ID of the source document (history entry) — lets us trace back to origin file. */
+  sourceDocId?: string;
+  /** Original filename of the source document — for quick display in cashflow. */
+  sourceFile?: string;
+  /**
+   * Categorization confidence 0..1.
+   *   1.00 — user-learned override
+   *   0.90 — long keyword hit (≥6 chars)
+   *   0.70 — short keyword hit
+   *   0.50 — regex fallback
+   *   0.00 — no match, classified "other"
+   * UI should surface transactions with confidence < 0.7 for manual review.
+   */
+  confidence?: number;
 }
 
 export interface ParsedDocument {

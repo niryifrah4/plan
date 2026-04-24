@@ -7,16 +7,16 @@ interface Props {
 
 /**
  * Projected Pension — dark card matching original HTML exactly.
- * Background: #012d1d, accent: #58e1b0.
+ * Background: #012d1d, accent: #2B694D.
  */
 export function PensionCard({ monthlyPension, replacementRate }: Props) {
   const pct = Math.round(replacementRate * 100);
 
   return (
-    <div className="p-7 rounded-[14px]" style={{ background: "#012d1d", color: "#fff" }}>
+    <div className="p-7 rounded-organic shadow-soft bg-botanical-deep text-white">
       <div
         className="text-[10px] uppercase tracking-[0.25em] font-bold mb-2"
-        style={{ color: "#58e1b0" }}
+        style={{ color: "#2B694D" }}
       >
         קצבה חזויה בפרישה
       </div>
@@ -26,14 +26,14 @@ export function PensionCard({ monthlyPension, replacementRate }: Props) {
       <div className="pt-5 border-t border-white/10">
         <div className="flex items-center justify-between text-xs mb-2">
           <span className="opacity-70">שיעור החלפת הכנסה</span>
-          <span className="font-bold" style={{ color: "#58e1b0" }}>
+          <span className="font-bold" style={{ color: "#2B694D" }}>
             {pct}%
           </span>
         </div>
         <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
           <div
             className="h-full rounded-full"
-            style={{ width: `${pct}%`, background: "#58e1b0" }}
+            style={{ width: `${pct}%`, background: "#2B694D" }}
           />
         </div>
       </div>

@@ -151,6 +151,7 @@ export async function parsePDF(buffer: Buffer, filename: string): Promise<Parsed
       amount,
       category: cat.key,
       categoryLabel: cat.label,
+      confidence: cat.confidence,
       raw: line,
     });
   }

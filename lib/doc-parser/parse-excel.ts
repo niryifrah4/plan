@@ -5,7 +5,7 @@
  */
 
 import * as XLSX from "xlsx";
-import { matchSynonym, detectBank, type CanonicalField } from "./synonyms";
+import { matchSynonymScored, detectBank, type CanonicalField } from "./synonyms";
 import { cleanAmount, parseILDate } from "./number-utils";
 import { categorize } from "./categorizer";
 import { extractInstruments } from "./instruments";
@@ -13,19 +13,86 @@ import { extractBalances, reconcile } from "./reconciliation";
 import type { ParsedDocument, ParsedTransaction, ColumnMapping } from "./types";
 
 /**
+ * Extract plain text that lives OUTSIDE <table> blocks in an HTML-as-XLS file.
+ * Used to find metadata (account numbers, customer name, balance summary) that
+ * sits in headers/footers or floats above the transactions table.
+ *
+ * CRITICAL: we strip <table> blocks first, otherwise transaction descriptions
+ * (which often mention other banks/cards) bleed into bank-name detection.
+ */
+function stripHtmlToText(buffer: Buffer): string {
+  const text = buffer.toString("utf8");
+  if (!/<html/i.test(text.slice(0, 500))) return "";
+  return text
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<table[\s\S]*?<\/table>/gi, " ")  // ← strip table content
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/[\u200E\u200F]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Parse HTML-as-XLS files (common in Israeli bank exports, especially Leumi).
+ * These are HTML files saved with .xls extension.
+ */
+function parseHtmlToRows(buffer: Buffer): string[][] | null {
+  // Try UTF-8 first, then try with BOM handling
+  let text = buffer.toString("utf8");
+
+  // Check if it's HTML
+  if (!/<html/i.test(text.slice(0, 500))) return null;
+
+  const rows: string[][] = [];
+  // Find all <tr> blocks
+  const trRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  let trMatch;
+  while ((trMatch = trRegex.exec(text)) !== null) {
+    const trContent = trMatch[1];
+    const cells: string[] = [];
+    const tdRegex = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
+    let tdMatch;
+    while ((tdMatch = tdRegex.exec(trContent)) !== null) {
+      // Strip HTML tags, decode entities, trim
+      let cell = tdMatch[1]
+        .replace(/<[^>]+>/g, "")
+        .replace(/&nbsp;/g, " ")
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&quot;/g, '"')
+        .replace(/[\r\n]+/g, " ")
+        .trim();
+      cells.push(cell);
+    }
+    if (cells.length >= 2) {
+      rows.push(cells);
+    }
+  }
+
+  return rows.length > 0 ? rows : null;
+}
+
+/**
  * Detect if a column header suggests a "combined amount" column
  * (single column with + for income, - for expense)
  */
 function isCombinedAmountHeader(header: string): boolean {
   const lower = header.trim().replace(/[\u200F\u200E]/g, "").toLowerCase();
-  return ["סכום", "amount", "סכום העסקה", "סכום בש\"ח"].includes(lower);
+  return ["סכום", "amount", "סכום העסקה", "סכום בש\"ח", "₪ זכות/חובה", "זכות/חובה"].includes(lower);
 }
 
 /**
  * Detect if this is a credit card format (single amount column = expense)
  */
 function isCreditCardBank(bankHint: string): boolean {
-  return ["ישראכרט", "כאל", "מקס", "ויזה כאל", "אמריקן אקספרס"].some(
+  return ["ישראכרט", "כאל", "מקס", "ויזה כאל", "ויזה", "אמריקן אקספרס", "דיינרס", "לאומי קארד"].some(
     cc => bankHint.includes(cc)
   );
 }
@@ -34,21 +101,55 @@ function isCreditCardBank(bankHint: string): boolean {
  * Parse an Excel buffer into a ParsedDocument.
  */
 export function parseExcel(buffer: Buffer, filename: string): ParsedDocument {
-  const workbook = XLSX.read(buffer, { type: "buffer" });
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  const rows: string[][] = XLSX.utils.sheet_to_json(sheet, {
-    header: 1,
-    defval: "",
-    raw: false,
-  }) as string[][];
+  // ─── Check for HTML-as-XLS (common in Israeli bank exports, especially Leumi) ───
+  const htmlRows = parseHtmlToRows(buffer);
+  // When HTML is used, keep the full stripped text so metadata *outside* <tr>
+  // (account numbers, balances, customer name) is still visible for detection.
+  const htmlMetaText = htmlRows ? stripHtmlToText(buffer) : "";
+
+  let rows: string[][];
+
+  if (htmlRows) {
+    rows = htmlRows;
+  } else {
+    const workbook = XLSX.read(buffer, { type: "buffer" });
+    // ─── Pick best sheet ────────────────────────────────────────────────
+    // Numbers (Mac) exports put real data in "גיליון1"/"Sheet1" and the first
+    // sheet is a metadata summary ("סיכום פעולת הייצוא"). Also some bank
+    // exports put cover/summary tabs first. Strategy:
+    //   1. Skip sheets whose name contains "סיכום"/"summary"/"cover".
+    //   2. From remaining, pick the sheet with the most NON-EMPTY rows.
+    //   3. Fallback: first sheet.
+    const candidateSheets = workbook.SheetNames
+      .map(name => ({
+        name,
+        rows: XLSX.utils.sheet_to_json(workbook.Sheets[name], {
+          header: 1,
+          defval: "",
+          raw: false,
+        }) as string[][],
+      }))
+      .map(s => ({
+        ...s,
+        nonEmpty: s.rows.filter(r => r && r.some(c => String(c).trim() !== "")).length,
+      }));
+
+    const isSummaryName = (n: string) =>
+      /סיכום|summary|cover|index/i.test(n);
+
+    let pick =
+      candidateSheets
+        .filter(s => !isSummaryName(s.name))
+        .sort((a, b) => b.nonEmpty - a.nonEmpty)[0] ??
+      candidateSheets.sort((a, b) => b.nonEmpty - a.nonEmpty)[0];
+
+    rows = pick?.rows ?? [];
+  }
 
   const warnings: string[] = [];
-  const fullText = rows.flat().join(" ");
-  const bankHint = detectBank(fullText);
-  const isCreditCard = isCreditCardBank(bankHint);
 
-  // Find header row — scan first 15 rows for one that has ≥2 synonym matches
+  // Find header row FIRST — we need it to restrict bank detection to metadata only
+  // (transaction descriptions can contain other bank names and mislead detection)
   let headerRowIdx = -1;
   let mapping: ColumnMapping | null = null;
   let hasSeparateDebitCredit = false;
@@ -65,9 +166,20 @@ export function parseExcel(buffer: Buffer, filename: string): ParsedDocument {
       const cellText = String(row[col]).trim();
       if (!cellText) continue;
 
-      const field = matchSynonym(cellText);
-      if (field && !detected[field]) {
-        detected[field] = col;
+      const hit = matchSynonymScored(cellText);
+      if (!hit) continue;
+      // CRITICAL: must check `=== undefined` not `!detected[field]`, because
+      // col 0 is a valid column index but `!0 === true` would let col 1
+      // overwrite it (this caused the Hapoalim HTML-as-XLS parser to misalign
+      // the date column and drop almost all rows).
+      // FIRST MATCH WINS — bank exports almost always put the primary column
+      // (e.g. "תאריך" the transaction date) before the secondary one
+      // ("תאריך ערך" value date). Preferring later/longer matches broke Yael's
+      // Hapoalim HTML export whose value-date column is empty. The
+      // HEADER_BLACKLIST in synonyms.ts handles the "קוד פעולה" vs "הפעולה"
+      // trap by excluding code columns before they can claim the slot.
+      if (detected[hit.field] === undefined) {
+        detected[hit.field] = col;
         matchCount++;
       }
     }
@@ -90,6 +202,38 @@ export function parseExcel(buffer: Buffer, filename: string): ParsedDocument {
     }
   }
 
+  // Detect bank from metadata rows only (before header), NOT from transaction descriptions
+  // This prevents false matches when transaction text mentions other banks (e.g. "העברה מ...בנק הפועלים")
+  const metadataText = [
+    rows.slice(0, Math.max(headerRowIdx, 0) + 1).flat().join(" "),
+    htmlMetaText,
+  ].filter(Boolean).join(" ");
+  const fullText = [rows.flat().join(" "), htmlMetaText].filter(Boolean).join(" ");
+  let bankHint = detectBank(metadataText);
+  // Header-based bank detection for banks that don't mention their name in metadata
+  if (bankHint === "לא זוהה") {
+    const headerText = headerRow.join(" ").toLowerCase();
+    if (headerText.includes("זכות/חובה") || headerText.includes("ערוץ ביצוע")) {
+      bankHint = "בנק דיסקונט";
+    } else if (headerText.includes("בחובה") && headerText.includes("בזכות")) {
+      bankHint = "בנק לאומי";
+    }
+    // NOTE: we do NOT try to distinguish Leumi from Hapoalim based on the
+    // "סוג תנועה" + "תאריך ערך" header combo alone — both banks export
+    // HTML tables with that exact layout, and without a unique metadata
+    // keyword we'd misclassify one for the other. Let detectBank(fullText)
+    // handle the ambiguous cases via transaction-description signals; if it
+    // still can't tell, bankHint stays "לא זוהה" which is truthful.
+  }
+  // Fallback to full text only if still unidentified.
+  // For bank-format files (separate חובה/זכות columns) skip credit-card brand
+  // detection — those names are usually noise from transaction descriptions
+  // (e.g. "ישראכרט (י)" rows in a Hapoalim checking account).
+  if (bankHint === "לא זוהה") {
+    bankHint = detectBank(fullText, { skipCreditCards: hasSeparateDebitCredit });
+  }
+  const isCreditCard = isCreditCardBank(bankHint);
+
   if (headerRowIdx === -1 || !mapping) {
     warnings.push("לא זוהתה שורת כותרות — נסה להעלות קובץ עם כותרות ברורות");
     return {
@@ -108,6 +252,18 @@ export function parseExcel(buffer: Buffer, filename: string): ParsedDocument {
   const debitHeader = mapping.debit >= 0 ? headerRow[mapping.debit] || "" : "";
   const isCombinedColumn = !hasSeparateDebitCredit && isCombinedAmountHeader(debitHeader);
 
+  // ─── Detect date format: DD/MM or M/D ───
+  // Scan date column — if ANY value has second number > 12, the format must be M/D/YY
+  let isMonthDayYear = false;
+  for (let i = headerRowIdx + 1; i < rows.length; i++) {
+    const raw = String(rows[i]?.[mapping.date] ?? "").trim().replace(/[\u200F\u200E]/g, "");
+    const m = raw.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})$/);
+    if (m && parseInt(m[2]) > 12) {
+      isMonthDayYear = true;
+      break;
+    }
+  }
+
   // Parse data rows
   const transactions: ParsedTransaction[] = [];
 
@@ -116,7 +272,20 @@ export function parseExcel(buffer: Buffer, filename: string): ParsedDocument {
     if (!row || row.length < 2) continue;
 
     const rawDate = String(row[mapping.date] ?? "");
-    const date = parseILDate(rawDate);
+    let date: string;
+    if (isMonthDayYear) {
+      // M/D/YY format — swap month and day before parsing as DD/MM/YYYY
+      const cleaned = rawDate.trim().replace(/[\u200F\u200E]/g, "");
+      const dm = cleaned.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})$/);
+      if (dm) {
+        // dm[1]=month, dm[2]=day → rewrite as day/month/year for parseILDate
+        date = parseILDate(`${dm[2]}/${dm[1]}/${dm[3]}`);
+      } else {
+        date = parseILDate(rawDate);
+      }
+    } else {
+      date = parseILDate(rawDate);
+    }
     if (!date || date.length < 6) continue; // skip non-data rows
 
     // Get description — try description column, fallback to any text column
@@ -173,8 +342,11 @@ export function parseExcel(buffer: Buffer, filename: string): ParsedDocument {
         amount = -Math.abs(creditVal); // Credit column = refund
       }
     } else if (isCombinedColumn) {
-      // ── Combined amount column (positive = expense, negative = income) ──
-      amount = debitVal;
+      // ── Combined amount column ──
+      // For Israeli bank combined columns (e.g. Discount "₪ זכות/חובה"):
+      //   positive = income (credit), negative = expense (debit)
+      // Our model: positive = expense, negative = income → negate
+      amount = -debitVal;
     } else {
       // ── Fallback: try to determine from available columns ──
       if (debitVal !== 0) {
@@ -205,6 +377,7 @@ export function parseExcel(buffer: Buffer, filename: string): ParsedDocument {
       amount,
       category: cat.key,
       categoryLabel: cat.label,
+      confidence: cat.confidence,
       raw: row.join(" | "),
     });
   }

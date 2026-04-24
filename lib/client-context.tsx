@@ -11,6 +11,8 @@ import {
 import { useSearchParams } from "next/navigation";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import type { Household, Profile } from "@/types/db";
+import { runClientMigration } from "@/lib/client-migration";
+import { ACTIVE_CLIENT_CHANGED, dispatchAllRefreshEvents } from "@/lib/client-scope";
 
 /* ───── localStorage keys ───── */
 const LS_CLIENTS = "verdant:clients";
@@ -31,6 +33,8 @@ export interface LocalClient {
   monthlyRevenue: number;
   riskProfile: string;
   convertedFromLead?: string;
+  email?: string;
+  phone?: string;
 }
 
 /* ───── Context value ───── */
@@ -78,6 +82,20 @@ export function ClientProvider({ children }: { children: ReactNode }) {
 
   // Read client ID from URL (?hh=<id>) or fallback to last used
   const hhParam = searchParams.get("hh");
+  const [switchTick, setSwitchTick] = useState(0);
+
+  // Run one-time migration on mount
+  useEffect(() => {
+    try { runClientMigration(); } catch (e) { console.warn("[client-migration] failed:", e); }
+  }, []);
+
+  // Re-run load on active-client-changed events
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handler = () => setSwitchTick((t) => t + 1);
+    window.addEventListener(ACTIVE_CLIENT_CHANGED, handler);
+    return () => window.removeEventListener(ACTIVE_CLIENT_CHANGED, handler);
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -88,7 +106,9 @@ export function ClientProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Save as last used
+    // Save as last used & detect if scope changed
+    const prevId = localStorage.getItem(LS_CURRENT);
+    const scopeChanged = prevId !== String(clientId);
     try { localStorage.setItem(LS_CURRENT, String(clientId)); } catch {}
 
     // 1. Load from localStorage
@@ -105,7 +125,15 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     }
 
     setLoading(false);
-  }, [hhParam]);
+
+    // Fire refresh events so child components re-read from the correct scope.
+    // On first load, child useEffects may have already run with null scope,
+    // so we always fire when scope was just set (prevId was null or different).
+    if (scopeChanged) {
+      // Use microtask to ensure state updates flush first
+      queueMicrotask(() => dispatchAllRefreshEvents());
+    }
+  }, [hhParam, switchTick]);
 
   const updateClient = useCallback(
     (patch: Partial<LocalClient>) => {
@@ -122,7 +150,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
 
   const value: ClientContextValue = {
     clientId: client?.id ?? null,
-    familyName: client ? `משפחת ${client.family}` : "לקוח חדש",
+    familyName: client ? client.family : "לקוח חדש",
     membersCount: client?.members ?? 1,
     client,
     household,
@@ -168,7 +196,15 @@ function saveLocalClient(client: LocalClient) {
 function getLastUsedClientId(): number | null {
   try {
     const raw = localStorage.getItem(LS_CURRENT);
-    return raw ? Number(raw) : null;
+    if (raw) return Number(raw);
+    // No current_hh set — auto-select first client from registry
+    const clients = getLocalClients();
+    if (clients.length > 0) {
+      const firstId = clients[0].id;
+      localStorage.setItem(LS_CURRENT, String(firstId));
+      return firstId;
+    }
+    return null;
   } catch {
     return null;
   }

@@ -1,0 +1,1106 @@
+"use client";
+
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { SaveStatus } from "@/components/ui/SaveStatus";
+import { SolidKpi, SolidKpiRow } from "@/components/ui/SolidKpi";
+import { useSaveStatus } from "@/lib/hooks/useSaveStatus";
+import { fmtILS } from "@/lib/format";
+import { onSync } from "@/lib/sync-engine";
+import { scopedKey } from "@/lib/client-scope";
+import {
+  Bucket,
+  BucketPriority,
+  loadBuckets,
+  saveBuckets,
+  createBucket,
+  updateBucket,
+  removeBucket,
+  pickColor,
+  BUCKET_COLORS,
+} from "@/lib/buckets-store";
+import {
+  projectBucket,
+  totalFreeUpPotential,
+  totalDeficitContribution,
+  BucketProjection,
+  BucketRecommendation,
+} from "@/lib/buckets-rebalancing";
+import { MonthlyCheckIn, hasCheckedInThisMonth } from "@/components/MonthlyCheckIn";
+import { KidsSavingsSection } from "@/components/KidsSavingsSection";
+import { syncOnboardingToStores } from "@/lib/onboarding-sync";
+import {
+  loadLinks,
+  computeGoalAmountFromLinks,
+  type AssetType,
+  type AssetGoalLink,
+} from "@/lib/asset-goal-linking";
+import { loadProperties } from "@/lib/realestate-store";
+import { type Scope, SCOPE_LABELS, SCOPE_COLORS, cycleScope } from "@/lib/scope-types";
+
+/* ═══════════════════════════════════════════════════════════ */
+/* Constants                                                     */
+/* ═══════════════════════════════════════════════════════════ */
+
+const GOAL_ICONS: Record<string, string> = {
+  "קרן חירום": "savings", "חינוך": "school", "חינוך ילדים": "school", "לימודים": "school",
+  "רכב": "directions_car", "החלפת רכב": "directions_car",
+  "דירה": "home", "שדרוג דיור": "home", "רכישת דירה": "home",
+  "חתונה": "favorite", "חופשה": "flight_takeoff",
+  "פרישה": "elderly", "פרישה מוקדמת": "elderly",
+  "עסק": "storefront", "פתיחת עסק": "storefront", "default": "flag",
+};
+
+const PRIORITY_COLORS: Record<BucketPriority, { bg: string; text: string }> = {
+  high:   { bg: "#8B2E2E10", text: "#8B2E2E" },
+  medium: { bg: "#B4530910", text: "#B45309" },
+  low:    { bg: "#1B433210", text: "#1B4332" },
+};
+const PRIORITY_LABELS: Record<BucketPriority, string> = { high: "גבוהה", medium: "בינונית", low: "נמוכה" };
+const PRIORITY_ORDER: Record<BucketPriority, number> = { high: 0, medium: 1, low: 2 };
+
+/* Status → color + label (aligned to Botanical brand palette) */
+const STATUS_COLOR: Record<string, string> = {
+  ahead:    "#1B4332", // forest
+  on_track: "#2B694D", // emerald
+  behind:   "#B45309", // amber
+  at_risk:  "#8B2E2E", // deep red
+};
+const STATUS_LABEL: Record<string, string> = {
+  ahead: "מקדים",
+  on_track: "בדרך",
+  behind: "בפיגור",
+  at_risk: "בסיכון",
+};
+
+/* Instruments catalog (kept from previous version — used for tax context) */
+const INSTRUMENTS: Record<string, { label: string; rate: number; horizon: string; taxNote: string; category: string }> = {
+  "pension":            { label: "קרן פנסיה", rate: 0.05, horizon: "long", taxNote: "פטור ממס על קצבה עד תקרה. הפקדות מוכרות כניכוי/זיכוי מס.", category: "פנסיוני" },
+  "managers-insurance": { label: "ביטוח מנהלים", rate: 0.045, horizon: "long", taxNote: "דמי ניהול גבוהים יותר מפנסיה. פטור ממס על קצבה עד תקרה.", category: "פנסיוני" },
+  "gemel-savings":      { label: "קופת גמל לחיסכון", rate: 0.05, horizon: "long", taxNote: "משיכה כקצבה — פטור. משיכה הונית אחרי 60 — 25% מס רווחי הון.", category: "פנסיוני" },
+  "gemel-invest":       { label: "קופת גמל להשקעה", rate: 0.055, horizon: "medium", taxNote: "25% מס רווחי הון. נזילה אחרי 15 שנה ללא מס, או בכל עת עם מס.", category: "פנסיוני" },
+  "gemel-child":        { label: "קופת גמל לילד", rate: 0.05, horizon: "long", taxNote: "פטור ממס רווחי הון עד גיל 18. אחרי 18 — 25% מס.", category: "פנסיוני" },
+  "hishtalmut":         { label: "קרן השתלמות", rate: 0.05, horizon: "medium", taxNote: "פטור מלא ממס רווחי הון אחרי 6 שנים (3 לגיל 60+). עד תקרת הפקדה.", category: "חיסכון מוטה מס" },
+  "savings-policy":     { label: "פוליסת חיסכון", rate: 0.04, horizon: "medium", taxNote: "25% מס רווחי הון. ללא דמי ניהול מההפקדה (רק מהצבירה).", category: "חיסכון מוטה מס" },
+  "etf-israel":         { label: "קרן סל ישראלית", rate: 0.06, horizon: "medium", taxNote: "25% מס רווחי הון.", category: "שוק ההון" },
+  "etf-global":         { label: "קרן סל עולמית (S&P 500 וכו׳)", rate: 0.08, horizon: "long", taxNote: "25% מס רווחי הון. חשיפה למט\"ח.", category: "שוק ההון" },
+  "mutual-fund":        { label: "קרן נאמנות", rate: 0.055, horizon: "medium", taxNote: "25% מס רווחי הון. דמי ניהול משתנים.", category: "שוק ההון" },
+  "money-market":       { label: "קרן כספית", rate: 0.04, horizon: "short", taxNote: "25% מס רווחי הון. נזילות מיידית.", category: "נזיל" },
+  "bank-deposit":       { label: "פיקדון בנקאי", rate: 0.035, horizon: "short", taxNote: "15% מס על ריבית.", category: "נזיל" },
+  "bank-savings":       { label: "תוכנית חיסכון בנקאית", rate: 0.038, horizon: "short", taxNote: "15% מס. נעול לתקופה קבועה.", category: "נזיל" },
+};
+
+const INSTRUMENT_CATEGORIES = ["פנסיוני", "חיסכון מוטה מס", "שוק ההון", "נזיל"];
+
+function instrumentsByCategory() {
+  return INSTRUMENT_CATEGORIES.map(cat => ({
+    category: cat,
+    items: Object.entries(INSTRUMENTS)
+      .filter(([, v]) => v.category === cat)
+      .map(([k, v]) => ({ key: k, label: v.label })),
+  })).filter(g => g.items.length > 0);
+}
+
+/* Presets for quickly creating new buckets */
+const BUCKET_PRESETS: { name: string; icon: string; targetAmount: number; years: number; priority: BucketPriority; instrument: string; color: string }[] = [
+  { name: "רכישת דירה",   icon: "home",            targetAmount: 500000,  years: 7,  priority: "high",   instrument: "etf-global",    color: "#2563eb" },
+  { name: "החלפת רכב",    icon: "directions_car",  targetAmount: 150000,  years: 3,  priority: "medium", instrument: "money-market",  color: "#d97706" },
+  { name: "חינוך ילדים",  icon: "school",          targetAmount: 200000,  years: 10, priority: "medium", instrument: "hishtalmut",    color: "#16a34a" },
+  { name: "חתונה",         icon: "favorite",        targetAmount: 80000,   years: 2,  priority: "high",   instrument: "bank-savings",  color: "#be185d" },
+  { name: "חופשה",         icon: "flight_takeoff",  targetAmount: 25000,   years: 1,  priority: "low",    instrument: "money-market",  color: "#0891b2" },
+  { name: "טיול גדול",     icon: "luggage",         targetAmount: 60000,   years: 2,  priority: "low",    instrument: "money-market",  color: "#7c3aed" },
+  { name: "לימודים",       icon: "school",          targetAmount: 120000,  years: 3,  priority: "medium", instrument: "bank-savings",  color: "#0284c7" },
+  { name: "קרן חירום",     icon: "savings",         targetAmount: 80000,   years: 1,  priority: "high",   instrument: "bank-deposit",  color: "#dc2626" },
+  { name: "פרישה מוקדמת",  icon: "elderly",         targetAmount: 3000000, years: 25, priority: "medium", instrument: "gemel-invest",  color: "#4338ca" },
+  { name: "פתיחת עסק",    icon: "storefront",      targetAmount: 300000,  years: 5,  priority: "medium", instrument: "etf-global",    color: "#0f766e" },
+];
+
+/* ═══════════════════════════════════════════════════════════ */
+/* Helpers                                                       */
+/* ═══════════════════════════════════════════════════════════ */
+
+function getIcon(name: string): string {
+  for (const [key, icon] of Object.entries(GOAL_ICONS)) {
+    if (name.includes(key)) return icon;
+  }
+  return GOAL_ICONS.default;
+}
+
+function formatDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  const months = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+  return `${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function formatYears(months: number): string {
+  if (months < 12) return `${months} חודשים`;
+  const years = months / 12;
+  if (years < 2) {
+    const remMonths = Math.round(months - 12);
+    return remMonths > 0 ? `שנה ו-${remMonths} חודשים` : "שנה";
+  }
+  return `${Math.round(years)} שנים`;
+}
+
+function taxRecommendation(years: number, amount: number): string | null {
+  const tips: string[] = [];
+  if (years <= 3) tips.push("לטווח קצר — קרן כספית או תוכנית חיסכון");
+  else if (years <= 6) tips.push("קרן השתלמות — פטור ממס אחרי 6 שנים (עד תקרה)");
+  else if (years <= 15) tips.push("קרן סל עולמית או קופת גמל להשקעה — פיזור + יתרון מס");
+  else tips.push("קופת גמל להשקעה (פטור אחרי 15 שנה) או קרן פנסיה");
+  if (amount > 300000 && years > 5) tips.push("שקול פיצול: קרן השתלמות + קרן סל + קופת גמל להשקעה");
+  return tips.length > 0 ? tips.join("\n") : null;
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* Grouped Instrument Select                                     */
+/* ═══════════════════════════════════════════════════════════ */
+
+function InstrumentSelect({ value, onChange, className, style }: {
+  value: string;
+  onChange: (key: string) => void;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <select value={value} onChange={e => onChange(e.target.value)}
+      className={className} style={style}>
+      {instrumentsByCategory().map(g => (
+        <optgroup key={g.category} label={g.category}>
+          {g.items.map(item => (
+            <option key={item.key} value={item.key}>{item.label}</option>
+          ))}
+        </optgroup>
+      ))}
+    </select>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* Recommendation Card — the signature of the new product        */
+/* ═══════════════════════════════════════════════════════════ */
+
+function RecommendationCard({ rec, color }: { rec: BucketRecommendation; color: string }) {
+  if (rec.type === "on_track") return null;
+
+  const bgMap: Record<string, string> = {
+    free_up: "#ecfdf5",
+    increase: "#fffbeb",
+    extend_date: "#eff6ff",
+    reach_now: "#ecfdf5",
+  };
+  const borderMap: Record<string, string> = {
+    free_up: "#1B433233",
+    increase: "#f59e0b33",
+    extend_date: "#2563eb33",
+    reach_now: "#1B433233",
+  };
+  const textMap: Record<string, string> = {
+    free_up: "#065f46",
+    increase: "#92400e",
+    extend_date: "#1e40af",
+    reach_now: "#065f46",
+  };
+
+  return (
+    <div
+      className="p-4 rounded-xl"
+      style={{
+        background: bgMap[rec.type] || "#f9faf2",
+        border: `1px solid ${borderMap[rec.type] || "#d8e0d0"}`,
+      }}
+    >
+      <div className="text-[12px] font-extrabold mb-1.5" style={{ color: textMap[rec.type] }}>
+        {rec.title}
+      </div>
+      <div className="text-[11px] font-bold leading-relaxed" style={{ color: textMap[rec.type] }}>
+        {rec.message}
+      </div>
+      <div className="text-[9px] font-bold mt-2 opacity-70" style={{ color: textMap[rec.type] }}>
+        {rec.confidence === "high" ? "מבוסס על תשואה בפועל" : "מבוסס על תשואה צפויה — יתעדכן כשיהיה מידע אמיתי"}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* Main Page                                                     */
+/* ═══════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════ */
+/* Asset-value lookup — reads securities / RE / pension / cash   */
+/* Used to compute bucket currentAmount LIVE from asset links    */
+/* ═══════════════════════════════════════════════════════════ */
+function buildAssetValueLookup(): (type: AssetType, id: string) => number {
+  if (typeof window === "undefined") return () => 0;
+  // Securities
+  const secIndex = new Map<string, number>();
+  try {
+    const raw = localStorage.getItem(scopedKey("verdant:securities"));
+    if (raw) {
+      const arr = JSON.parse(raw) as Array<{ id: string; market_value_ils?: number }>;
+      for (const s of arr) secIndex.set(s.id, s.market_value_ils || 0);
+    }
+  } catch {}
+  // Real estate (net equity = currentValue - mortgageBalance)
+  const reIndex = new Map<string, number>();
+  try {
+    const props = loadProperties();
+    for (const p of props) {
+      const netEquity = (p.currentValue || 0) - (p.mortgageBalance || 0);
+      reIndex.set(p.id, Math.max(0, netEquity));
+    }
+  } catch {}
+  // Pension — sum of fund balances (loaded lazily from storage)
+  const penIndex = new Map<string, number>();
+  try {
+    const raw = localStorage.getItem(scopedKey("verdant:pension:funds"));
+    if (raw) {
+      const arr = JSON.parse(raw) as Array<{ id: string; balance?: number }>;
+      for (const f of arr) penIndex.set(f.id, f.balance || 0);
+    }
+  } catch {}
+  return (type, id) => {
+    switch (type) {
+      case "security":   return secIndex.get(id) ?? 0;
+      case "realestate": return reIndex.get(id) ?? 0;
+      case "pension":    return penIndex.get(id) ?? 0;
+      case "cash":       return 0; // cash linking comes in Phase 2
+      default:           return 0;
+    }
+  };
+}
+
+export default function GoalsPage() {
+  /* ── Save status indicator ── */
+  const { status: saveStatus, pulse } = useSaveStatus();
+
+  const [buckets, setBuckets] = useState<Bucket[]>([]);
+  const [links, setLinks] = useState<Record<string, AssetGoalLink>>({});
+  const [assetLookupVersion, setAssetLookupVersion] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [checkInOpen, setCheckInOpen] = useState(false);
+  const [needsCheckIn, setNeedsCheckIn] = useState(false);
+
+  const GOALS_CHECKIN_KEY = "goals:last_checkin_dismissed";
+  const MS_30_DAYS_GOALS = 30 * 24 * 60 * 60 * 1000;
+
+  useEffect(() => {
+    // Auto-sync onboarding data (kids savings, pension, etc.) on page load
+    syncOnboardingToStores();
+  }, []);
+
+  // Banner logic: grace period of 14 days after the user's FIRST goal.
+  // Then show once per month, and not within 30 days of being dismissed.
+  useEffect(() => {
+    if (buckets.length === 0) { setNeedsCheckIn(false); return; }
+    const shouldShow = (() => {
+      // 14-day grace from the oldest goal's creation
+      const oldest = buckets.reduce((min, b) => {
+        const t = b.createdAt ? new Date(b.createdAt).getTime() : Date.now();
+        return t < min ? t : min;
+      }, Date.now());
+      const GRACE_MS = 14 * 24 * 60 * 60 * 1000;
+      if (Date.now() - oldest < GRACE_MS) return false;
+      if (hasCheckedInThisMonth()) return false;
+      try {
+        const last = Number(localStorage.getItem(scopedKey(GOALS_CHECKIN_KEY)) || 0);
+        if (last && Date.now() - last < MS_30_DAYS_GOALS) return false;
+      } catch {}
+      return true;
+    })();
+    setNeedsCheckIn(shouldShow);
+  }, [buckets, GOALS_CHECKIN_KEY, MS_30_DAYS_GOALS]);
+
+  useEffect(() => {
+    setBuckets(loadBuckets());
+    setLinks(loadLinks());
+    setLoading(false);
+    const refresh = () => {
+      setBuckets(loadBuckets());
+      setLinks(loadLinks());
+      setAssetLookupVersion(v => v + 1);
+    };
+    const unsubGoals = onSync("verdant:goals:updated", refresh);
+    const unsubInv = onSync("verdant:investments:updated", refresh);
+    const unsubNet = onSync("verdant:networth:updated", refresh);
+    // Real-estate store uses its own event name
+    const reHandler = () => refresh();
+    window.addEventListener("verdant:realestate:updated", reHandler);
+    return () => {
+      unsubGoals();
+      unsubInv();
+      unsubNet();
+      window.removeEventListener("verdant:realestate:updated", reHandler);
+    };
+  }, []);
+
+  // Build the asset-value lookup — rebuilt whenever any asset source changes
+  const assetLookup = useMemo(() => buildAssetValueLookup(), [assetLookupVersion, buckets, links]);
+
+  // Effective buckets — currentAmount = linked assets + initialCash.
+  const effectiveBuckets = useMemo<Bucket[]>(() => {
+    return buckets.map(b => {
+      const linkedAmount = computeGoalAmountFromLinks(b.id, assetLookup, links).total;
+      const ic = b.initialCash ?? 0;
+      return { ...b, currentAmount: linkedAmount + ic };
+    });
+  }, [buckets, links, assetLookup]);
+
+  // Per-bucket source breakdown (security / realestate / pension / cash)
+  const bucketBreakdowns = useMemo<Record<string, Record<AssetType, number>>>(() => {
+    const out: Record<string, Record<AssetType, number>> = {};
+    for (const b of buckets) {
+      out[b.id] = computeGoalAmountFromLinks(b.id, assetLookup, links).byType;
+    }
+    return out;
+  }, [buckets, links, assetLookup]);
+
+  // Debounced save
+  useEffect(() => {
+    if (loading) return;
+    const t = setTimeout(() => saveBuckets(buckets), 400);
+    return () => clearTimeout(t);
+  }, [buckets, loading]);
+
+  // Projections — use effectiveBuckets so currentAmount reflects linked assets
+  const projections = useMemo<BucketProjection[]>(
+    () => effectiveBuckets.map(projectBucket),
+    [effectiveBuckets]
+  );
+
+  // Sorted: priority first, then by target date
+  const sorted = useMemo(() => {
+    const bucketsWithProj = effectiveBuckets.map(b => {
+      const proj = projections.find(p => p.bucketId === b.id)!;
+      return { bucket: b, proj };
+    });
+    return [...bucketsWithProj].sort((a, b) => {
+      const pDiff = PRIORITY_ORDER[a.bucket.priority] - PRIORITY_ORDER[b.bucket.priority];
+      if (pDiff !== 0) return pDiff;
+      return new Date(a.bucket.targetDate).getTime() - new Date(b.bucket.targetDate).getTime();
+    });
+  }, [effectiveBuckets, projections]);
+
+  // Aggregates
+  const totalTarget = effectiveBuckets.reduce((s, b) => s + b.targetAmount, 0);
+  const totalCurrent = effectiveBuckets.reduce((s, b) => s + b.currentAmount, 0);
+  const totalRequired = projections.reduce((s, p) => s + p.requiredMonthly, 0);
+  const freeUp = totalFreeUpPotential(effectiveBuckets);
+  const deficit = totalDeficitContribution(effectiveBuckets);
+
+  /* ── CRUD ──────────────────────────────────── */
+
+  const addBucket = useCallback((input: {
+    name: string;
+    targetAmount: number;
+    targetDate: string;
+    currentAmount: number;
+    monthlyContribution: number;
+    expectedAnnualReturn: number;
+    priority: BucketPriority;
+    fundingSource?: string;
+    color?: string;
+    scope?: Scope;
+    initialCash?: number;
+  }) => {
+    const bucket = createBucket({
+      ...input,
+      icon: getIcon(input.name),
+      color: input.color || pickColor(input.name + Date.now()),
+    });
+    if (input.scope) bucket.scope = input.scope;
+    setBuckets(prev => [...prev, bucket]);
+    pulse();
+    setShowAddForm(false);
+  }, [pulse]);
+
+  const updateBucketById = useCallback((id: string, patch: Partial<Bucket>) => {
+    setBuckets(prev => updateBucket(prev, id, {
+      ...patch,
+      icon: patch.name ? getIcon(patch.name) : undefined,
+    }));
+    pulse();
+    setEditingId(null);
+  }, [pulse]);
+
+  const deleteBucket = useCallback((id: string) => {
+    if (!confirm("למחוק את הקופה? פעולה זו בלתי הפיכה.")) return;
+    setBuckets(prev => removeBucket(prev, id));
+    pulse();
+  }, [pulse]);
+
+  /* ═══════ RENDER ═══════ */
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto py-20 text-center text-verdant-muted text-[13px] font-bold">
+        טוען קופות...
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto" style={{ fontFamily: "'Assistant', sans-serif" }}>
+      <PageHeader
+        subtitle="Plan · מטרות ויעדים"
+        title="המטרות והיעדים שלי"
+        description="הגדרת מטרות חיים וצביעת הכסף אליהן — כדי לדעת לאן אנחנו הולכים"
+      />
+      {/* אינדיקטור שמירה */}
+      <div className="flex justify-end -mt-4 mb-3 min-h-[18px]">
+        <SaveStatus status={saveStatus} />
+      </div>
+
+      {/* ═══════ Monthly check-in banner ═══════ */}
+      {buckets.length > 0 && needsCheckIn && (
+        <section
+          className="rounded-2xl p-5 mb-6 flex items-center justify-between gap-4"
+          style={{ background: "#fffbea", border: "1px solid #fde68a" }}
+        >
+          <div className="flex items-center gap-4">
+            <div
+              className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: "#f59e0b20" }}
+            >
+              <span className="material-symbols-outlined text-[24px]" style={{ color: "#b45309" }}>
+                event_available
+              </span>
+            </div>
+            <div>
+              <div className="text-[13px] font-extrabold" style={{ color: "#78350f" }}>
+                הגיע הזמן ל-check-in חודשי
+              </div>
+              <div className="text-[11px] font-bold" style={{ color: "#92400e" }}>
+                רגע של כנות — האם באמת הפקדת החודש למה שתכננת?
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              try { localStorage.setItem(scopedKey(GOALS_CHECKIN_KEY), String(Date.now())); } catch {}
+              setCheckInOpen(true);
+            }}
+            className="px-5 py-2.5 rounded-xl text-[12px] font-extrabold text-white transition-colors hover:opacity-90 shrink-0"
+            style={{ background: "#b45309" }}
+          >
+            התחל check-in
+          </button>
+        </section>
+      )}
+
+      <MonthlyCheckIn
+        open={checkInOpen}
+        onClose={() => {
+          try { localStorage.setItem(scopedKey(GOALS_CHECKIN_KEY), String(Date.now())); } catch {}
+          setCheckInOpen(false);
+          setNeedsCheckIn(false);
+        }}
+        onDone={() => {
+          try { localStorage.setItem(scopedKey(GOALS_CHECKIN_KEY), String(Date.now())); } catch {}
+          setBuckets(loadBuckets());
+          setNeedsCheckIn(false);
+        }}
+      />
+
+      {/* ═══════ Summary Row — only when there ARE buckets ═══════ */}
+      {buckets.length > 0 && (
+        <SolidKpiRow>
+          <SolidKpi
+            label={`${buckets.length} קופות`}
+            value={fmtILS(totalCurrent)}
+            icon="savings"
+            tone="forest"
+            sub={`מתוך ${fmtILS(totalTarget)}`}
+          />
+          <SolidKpi
+            label="נדרש בחודש"
+            value={fmtILS(Math.round(totalRequired))}
+            icon="calendar_month"
+            tone="ink"
+            sub="להגיע ליעדים בזמן"
+          />
+          {freeUp > 0 && (
+            <SolidKpi
+              label="✨ פוטנציאל שחרור"
+              value={`${fmtILS(freeUp)}/ח׳`}
+              icon="bolt"
+              tone="emerald"
+              sub="יש יעדים מקדימים"
+            />
+          )}
+          {deficit > 0 && (
+            <SolidKpi
+              label="⚠️ חוסר בתקציב"
+              value={`${fmtILS(deficit)}/ח׳`}
+              icon="warning"
+              tone="red"
+              sub="יעדים בפיגור"
+            />
+          )}
+        </SolidKpiRow>
+      )}
+
+      {/* ═══════ Add Button — only when there ARE buckets ═══════ */}
+      {buckets.length > 0 && (
+        <div className="flex items-center justify-between mb-6">
+          <div />
+          <button onClick={() => setShowAddForm(true)}
+            className="btn-botanical inline-flex items-center gap-2 text-[12px] !px-5 !py-2.5">
+            <span className="material-symbols-outlined text-[16px]">add</span>הוסף מטרה
+          </button>
+        </div>
+      )}
+
+      {/* ═══════ Add Form ═══════ */}
+      {showAddForm && (
+        <div className="mb-6">
+          <BucketAddForm onSave={addBucket} onCancel={() => setShowAddForm(false)} />
+        </div>
+      )}
+
+      {/* ═══════ Empty State ═══════ */}
+      {buckets.length === 0 && !showAddForm && (
+        <div className="card-mint">
+          <div className="flex items-start gap-5">
+            <div className="icon-lg shrink-0" style={{ background: "rgba(27,67,50,0.1)", color: "var(--botanical-forest)" }}>
+              <span className="material-symbols-outlined text-[26px]">palette</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="t-lg font-extrabold mb-2" style={{ color: "var(--botanical-deep)" }}>לא הוגדרו מטרות ויעדים</div>
+              <div className="text-[13px] leading-6 mb-4" style={{ color: "rgba(1,45,29,0.75)" }}>
+                כל שקל שאתה חוסך צריך לדעת לאן הוא הולך. בוא נתחיל להגדיר מטרות ולצבוע אליהן את הכסף.
+              </div>
+              <button onClick={() => setShowAddForm(true)} className="btn btn-primary btn-sm">
+                <span className="material-symbols-outlined text-[16px]">add</span>
+                הוסף מטרה ראשונה
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════ Bucket Cards ═══════ */}
+      <div className="space-y-5">
+        {sorted.map(({ bucket, proj }) => {
+          const isEditing = editingId === bucket.id;
+          const statusColor = STATUS_COLOR[proj.status];
+          const inst = bucket.fundingSource ? INSTRUMENTS[bucket.fundingSource] : null;
+
+          return (
+            <div
+              key={bucket.id}
+              className="rounded-2xl transition-all duration-200 hover:shadow-soft overflow-hidden"
+              style={{
+                background: "#fff",
+                border: "1px solid #E8E9E1",
+                boxShadow: "0 1px 3px rgba(27,67,50,0.04), 0 4px 16px rgba(27,67,50,0.04)",
+              }}
+            >
+              {/* Row 1: Name + Badges */}
+              <div className="px-7 pt-6 pb-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div
+                      className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                      style={{ background: "var(--botanical-forest)" }}
+                    >
+                      <span className="material-symbols-outlined text-[24px]" style={{ color: "#C1ECD4" }}>
+                        {bucket.icon}
+                      </span>
+                    </div>
+                    <h3 className="text-xl font-extrabold leading-tight" style={{ color: "#012D1D" }}>{bucket.name}</h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {(bucket.scope === "business" || bucket.scope === "mixed") && (
+                      <span
+                        className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+                        style={{
+                          background: `${SCOPE_COLORS[bucket.scope]}15`,
+                          color: SCOPE_COLORS[bucket.scope],
+                        }}
+                        title={SCOPE_LABELS[bucket.scope]}
+                      >
+                        {SCOPE_LABELS[bucket.scope]}
+                      </span>
+                    )}
+                    <button
+                      onClick={() => {
+                        const next = cycleScope(bucket.scope);
+                        setBuckets(prev => updateBucket(prev, bucket.id, { scope: next } as Partial<Bucket>));
+                        pulse();
+                      }}
+                      className="shrink-0 flex items-center justify-center w-5 h-5 rounded-full transition-all hover:scale-110"
+                      style={{
+                        background: bucket.scope ? SCOPE_COLORS[bucket.scope] : "transparent",
+                        border: `1.5px solid ${bucket.scope ? SCOPE_COLORS[bucket.scope] : "#c8d6c0"}`,
+                      }}
+                      title={bucket.scope ? `${SCOPE_LABELS[bucket.scope]} — לחץ לשינוי` : "סמן כעסקי/מעורב"}
+                    />
+                    <span className="text-[11px] font-extrabold px-3 py-1.5 rounded-full"
+                      style={{ background: `${statusColor}15`, color: statusColor }}>
+                      {STATUS_LABEL[proj.status]}
+                    </span>
+                    <button onClick={() => setEditingId(isEditing ? null : bucket.id)}
+                      title={isEditing ? "סגור עריכה" : "ערוך יעד"}
+                      className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:shadow-sm"
+                      style={{ background: "#F3F4EC", color: "#1B4332" }}>
+                      <span className="material-symbols-outlined text-[18px]">{isEditing ? "close" : "edit"}</span>
+                    </button>
+                    <button onClick={() => deleteBucket(bucket.id)}
+                      title="מחק יעד"
+                      className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:bg-red-100"
+                      style={{ background: "#FEF2F2", color: "#b91c1c" }}>
+                      <span className="material-symbols-outlined text-[18px]">delete_outline</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 2: Target + date */}
+              <div className="px-7 pb-3">
+                <div className="flex items-baseline gap-3">
+                  <span className="text-2xl font-extrabold tabular-nums" style={{ color: "#012d1d" }}>
+                    {fmtILS(bucket.targetAmount)}
+                  </span>
+                  <span className="text-[12px] font-bold text-verdant-muted">
+                    {formatDate(bucket.targetDate)} · בעוד {formatYears(proj.monthsRemaining)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Row 3: Progress */}
+              <div className="px-7 pb-4">
+                <div className="flex items-center justify-between text-[11px] font-bold text-verdant-muted mb-1.5">
+                  <span className="tabular-nums">{proj.progressPct}% הושג</span>
+                  <span className="tabular-nums">
+                    {fmtILS(Math.round(bucket.currentAmount))} מתוך {fmtILS(bucket.targetAmount)}
+                  </span>
+                </div>
+                <div className="h-2.5 rounded-full overflow-hidden" style={{ background: "#eef2e8" }}>
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{
+                      width: `${proj.progressPct}%`,
+                      background: `linear-gradient(90deg, ${statusColor}AA, ${statusColor})`,
+                    }}
+                  />
+                </div>
+                {/* Breakdown: initialCash + linked assets — show even if only one source exists */}
+                {(() => {
+                  const ic = bucket.initialCash ?? 0;
+                  const linked = computeGoalAmountFromLinks(bucket.id, assetLookup, links).total;
+                  const parts: string[] = [];
+                  if (ic > 0) parts.push(`${fmtILS(Math.round(ic))} מזומן`);
+                  if (linked > 0) parts.push(`${fmtILS(Math.round(linked))} נכסים מקושרים`);
+                  if (parts.length === 0) return null;
+                  return (
+                    <div className="mt-1.5 text-[10px] font-bold" style={{ color: "#5a7a6a" }}>
+                      {parts.map((p, i) => (
+                        <span key={i}>
+                          {i > 0 && <>&nbsp;&nbsp;•&nbsp;&nbsp;</>}
+                          • {p}
+                        </span>
+                      ))}
+                    </div>
+                  );
+                })()}
+                {/* Source breakdown — שוק ההון / נדל"ן / פנסיה / מזומן */}
+                {(() => {
+                  const bd = bucketBreakdowns[bucket.id];
+                  if (!bd) return null;
+                  const items: { label: string; icon: string; value: number; color: string }[] = [
+                    { label: "שוק ההון",  icon: "candlestick_chart",   value: bd.security,   color: "#1B4332" }, // forest
+                    { label: 'נדל״ן',     icon: "home_work",           value: bd.realestate, color: "#B45309" }, // amber (earth)
+                    { label: "פנסיה",     icon: "elderly",             value: bd.pension,    color: "#2B694D" }, // emerald
+                    { label: "מזומן",     icon: "account_balance_wallet", value: bd.cash,    color: "#4A7C59" }, // moss
+                  ].filter(i => i.value > 0);
+                  if (items.length === 0) return null;
+                  return (
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+                      {items.map(item => (
+                        <div key={item.label} className="flex items-center gap-1 text-[10px] font-bold" style={{ color: item.color }}>
+                          <span className="material-symbols-outlined text-[13px]">{item.icon}</span>
+                          <span>{item.label}: {fmtILS(Math.round(item.value))}</span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Row 4: 4 key numbers */}
+              <div className="px-7 pb-5 border-t pt-4" style={{ borderColor: "#eef2e8" }}>
+                <div className="grid grid-cols-4 gap-5">
+                  <div>
+                    <div className="text-[10px] font-bold text-verdant-muted mb-1">הפקדה חודשית</div>
+                    <div className="text-[14px] font-extrabold tabular-nums text-verdant-ink">
+                      {fmtILS(bucket.monthlyContribution)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold text-verdant-muted mb-1">נדרש בחודש</div>
+                    <div
+                      className="text-[14px] font-extrabold tabular-nums"
+                      style={{ color: proj.requiredMonthly > bucket.monthlyContribution ? "#8B2E2E" : "#1B4332" }}
+                    >
+                      {fmtILS(Math.round(proj.requiredMonthly))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold text-verdant-muted mb-1">מכשיר</div>
+                    <div className="text-[13px] font-extrabold text-verdant-ink">{inst?.label || "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold text-verdant-muted mb-1">
+                      {proj.effectiveAnnualReturn === bucket.expectedAnnualReturn ? "תשואה צפויה" : "תשואה בפועל"}
+                    </div>
+                    <div className="text-[14px] font-extrabold text-verdant-ink">
+                      {(proj.effectiveAnnualReturn * 100).toFixed(1)}%
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 5: Recommendation */}
+              {proj.recommendation.type !== "on_track" && (
+                <div className="mx-7 mb-5">
+                  <RecommendationCard rec={proj.recommendation} color={statusColor} />
+                </div>
+              )}
+
+              {/* Inline Edit Form */}
+              {isEditing && (
+                <div className="mx-7 mb-6">
+                  <BucketEditForm
+                    bucket={bucket}
+                    onSave={u => updateBucketById(bucket.id, u)}
+                    onCancel={() => setEditingId(null)}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ═══════ Kids Savings ═══════ */}
+      <div className="mt-8">
+        <KidsSavingsSection />
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* Edit Form                                                     */
+/* ═══════════════════════════════════════════════════════════ */
+
+function BucketEditForm({ bucket, onSave, onCancel }: {
+  bucket: Bucket;
+  onSave: (u: Partial<Bucket>) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState(bucket.name);
+  const [targetAmount, setTargetAmount] = useState(bucket.targetAmount.toString());
+  const [targetDate, setTargetDate] = useState(bucket.targetDate);
+  const [monthlyContribution, setMonthlyContribution] = useState(bucket.monthlyContribution.toString());
+  const [expectedReturn, setExpectedReturn] = useState((bucket.expectedAnnualReturn * 100).toFixed(1));
+  const [priority, setPriority] = useState<BucketPriority>(bucket.priority);
+  const [fundingSource, setFundingSource] = useState(bucket.fundingSource || "money-market");
+  const [color, setColor] = useState(bucket.color);
+  const [initialCash, setInitialCash] = useState((bucket.initialCash || 0).toString());
+
+  const years = (new Date(targetDate).getTime() - Date.now()) / (365.25 * 24 * 3600 * 1000);
+  const amount = parseFloat(targetAmount) || 0;
+  const tip = taxRecommendation(years, amount);
+  const currentInst = INSTRUMENTS[fundingSource];
+
+  const handleInstrumentChange = (key: string) => {
+    setFundingSource(key);
+    const inst = INSTRUMENTS[key];
+    if (inst) setExpectedReturn((inst.rate * 100).toFixed(1));
+  };
+
+  return (
+    <div className="rounded-xl p-6 space-y-4" style={{ background: "#f9faf2", border: "1px solid #d8e0d0" }}>
+      <div className="text-[11px] font-extrabold text-verdant-ink">עריכת קופה</div>
+      <div className="grid grid-cols-3 gap-3">
+        <Field label="שם הקופה" value={name} onChange={setName} />
+        <Field label="סכום יעד (₪)" value={targetAmount} onChange={setTargetAmount} type="number" />
+        <Field label="תאריך יעד" value={targetDate} onChange={setTargetDate} type="date" />
+        <Field label="הפקדה חודשית (₪)" value={monthlyContribution} onChange={setMonthlyContribution} type="number" />
+        <Field label="תשואה צפויה %" value={expectedReturn} onChange={setExpectedReturn} type="number" />
+      </div>
+      <div>
+        <div className="text-[9px] font-bold text-verdant-muted mb-1">סכום מזומן שיש לך היום ליעד הזה (אופציונלי)</div>
+        <input
+          type="number"
+          value={initialCash}
+          onChange={e => setInitialCash(e.target.value)}
+          placeholder="₪0"
+          className="w-full text-[11px] font-bold px-3 py-2 rounded-lg border outline-none focus:ring-2 focus:ring-verdant-accent/30"
+          style={{ borderColor: "#d8e0d0", background: "#fff", color: "#0891b2" }}
+        />
+        <div className="text-[9px] font-bold mt-1" style={{ color: "#5a7a6a" }}>
+          סכום חד-פעמי שכבר קיים בידיך — יחושב כחלק מהיעד מיידית
+        </div>
+      </div>
+
+      <div>
+        <div className="text-[9px] font-bold text-verdant-muted mb-1">מכשיר ההשקעה</div>
+        <InstrumentSelect value={fundingSource} onChange={handleInstrumentChange}
+          className="w-full text-[11px] font-bold rounded-lg px-3 py-2 border outline-none"
+          style={{ borderColor: "#d8e0d0", background: "#fff" }} />
+        {currentInst && (
+          <div className="text-[9px] font-bold mt-1.5 leading-relaxed" style={{ color: "#5a7a6a" }}>
+            {currentInst.taxNote}
+          </div>
+        )}
+      </div>
+
+      {tip && (
+        <div className="p-3 rounded-lg" style={{ background: "#eff6ff", border: "1px solid #93c5fd30" }}>
+          {tip.split("\n").map((line, i) => (
+            <div key={i} className="text-[11px] font-bold leading-relaxed" style={{ color: "#1e40af" }}>
+              {line}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center gap-3">
+        <div className="text-[9px] font-bold text-verdant-muted ml-2">עדיפות:</div>
+        {(["high", "medium", "low"] as const).map(p => (
+          <button key={p} onClick={() => setPriority(p)}
+            className="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all"
+            style={{ background: priority === p ? PRIORITY_COLORS[p].text : "#eef2e8", color: priority === p ? "#fff" : PRIORITY_COLORS[p].text }}>
+            {PRIORITY_LABELS[p]}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-3 pt-3 border-t" style={{ borderColor: "#d8e0d0" }}>
+        <button
+          onClick={() => onSave({
+            name,
+            targetAmount: parseFloat(targetAmount) || 0,
+            targetDate,
+            monthlyContribution: parseFloat(monthlyContribution) || 0,
+            currentAmount: 0,
+            expectedAnnualReturn: (parseFloat(expectedReturn) || 5) / 100,
+            priority,
+            fundingSource,
+            color,
+            initialCash: parseFloat(initialCash) || 0,
+          })}
+          className="btn-botanical text-[12px] !px-5 !py-2"
+        >
+          שמור שינויים
+        </button>
+        <button onClick={onCancel} className="btn-botanical-ghost text-[12px] !px-4 !py-2">
+          ביטול
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* Add Form                                                      */
+/* ═══════════════════════════════════════════════════════════ */
+
+function BucketAddForm({ onSave, onCancel }: {
+  onSave: (input: {
+    name: string;
+    targetAmount: number;
+    targetDate: string;
+    currentAmount: number;
+    monthlyContribution: number;
+    expectedAnnualReturn: number;
+    priority: BucketPriority;
+    fundingSource?: string;
+    color?: string;
+    scope?: Scope;
+    initialCash?: number;
+  }) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [targetAmount, setTargetAmount] = useState("");
+  const [targetDate, setTargetDate] = useState(
+    new Date(Date.now() + 3 * 365.25 * 24 * 3600 * 1000).toISOString().split("T")[0]
+  );
+  const [monthlyContribution, setMonthlyContribution] = useState("");
+  const [expectedReturn, setExpectedReturn] = useState("5.0");
+  const [priority, setPriority] = useState<BucketPriority>("medium");
+  const [fundingSource, setFundingSource] = useState("money-market");
+  const [color, setColor] = useState<string>(BUCKET_COLORS[0]);
+  const [scope, setScope] = useState<Scope | undefined>(undefined);
+  const [initialCash, setInitialCash] = useState("");
+
+  const applyPreset = (preset: typeof BUCKET_PRESETS[0]) => {
+    setName(preset.name);
+    setTargetAmount(preset.targetAmount.toString());
+    setTargetDate(new Date(Date.now() + preset.years * 365.25 * 24 * 3600 * 1000).toISOString().split("T")[0]);
+    setPriority(preset.priority);
+    setFundingSource(preset.instrument);
+    setColor(preset.color);
+    const inst = INSTRUMENTS[preset.instrument];
+    if (inst) setExpectedReturn((inst.rate * 100).toFixed(1));
+  };
+
+  const handleInstrumentChange = (key: string) => {
+    setFundingSource(key);
+    const inst = INSTRUMENTS[key];
+    if (inst) setExpectedReturn((inst.rate * 100).toFixed(1));
+  };
+
+  const years = (new Date(targetDate).getTime() - Date.now()) / (365.25 * 24 * 3600 * 1000);
+  const amount = parseFloat(targetAmount) || 0;
+  const tip = taxRecommendation(years, amount);
+  const currentInst = INSTRUMENTS[fundingSource];
+
+  return (
+    <div className="rounded-2xl p-6 space-y-5" style={{ background: "#fff", border: "2px solid #1B433233" }}>
+      <h3 className="text-base font-extrabold text-verdant-ink">קופה חדשה</h3>
+
+      <div>
+        <div className="text-[10px] font-bold text-verdant-muted mb-2">בחר תבנית מוכנה:</div>
+        <div className="flex flex-wrap gap-2">
+          {BUCKET_PRESETS.map(p => (
+            <button key={p.name} onClick={() => applyPreset(p)}
+              className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-2 rounded-lg transition-all hover:shadow-sm"
+              style={{ background: `${p.color}10`, color: "#012d1d", border: `1px solid ${p.color}30` }}>
+              <span className="material-symbols-outlined text-[14px]" style={{ color: p.color }}>{p.icon}</span>
+              {p.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <Field label="שם הקופה" value={name} onChange={setName} placeholder="למשל: החלפת רכב" />
+        <Field label="סכום יעד (₪)" value={targetAmount} onChange={setTargetAmount} type="number" placeholder="150000" />
+        <Field label="תאריך יעד" value={targetDate} onChange={setTargetDate} type="date" />
+        <Field label="הפקדה חודשית (₪)" value={monthlyContribution} onChange={setMonthlyContribution} type="number" placeholder="2000" />
+        <Field label="תשואה צפויה %" value={expectedReturn} onChange={setExpectedReturn} type="number" />
+      </div>
+      <div>
+        <div className="text-[9px] font-bold text-verdant-muted mb-1">סכום מזומן שיש לך היום ליעד הזה (אופציונלי)</div>
+        <input
+          type="number"
+          value={initialCash}
+          onChange={e => setInitialCash(e.target.value)}
+          placeholder="₪0"
+          className="w-full text-[11px] font-bold px-3 py-2 rounded-lg border outline-none focus:ring-2 focus:ring-verdant-accent/30"
+          style={{ borderColor: "#d8e0d0", background: "#fff", color: "#0891b2" }}
+        />
+        <div className="text-[9px] font-bold mt-1" style={{ color: "#5a7a6a" }}>
+          סכום חד-פעמי שכבר קיים בידיך — יחושב כחלק מהיעד מיידית
+        </div>
+      </div>
+
+      <div>
+        <div className="text-[9px] font-bold text-verdant-muted mb-1">מכשיר</div>
+        <InstrumentSelect value={fundingSource} onChange={handleInstrumentChange}
+          className="w-full text-[11px] font-bold rounded-lg px-3 py-2 border outline-none"
+          style={{ borderColor: "#d8e0d0", background: "#fff" }} />
+        {currentInst && (
+          <div className="text-[9px] font-bold mt-1.5 leading-relaxed" style={{ color: "#5a7a6a" }}>
+            {currentInst.taxNote}
+          </div>
+        )}
+      </div>
+
+      {tip && (
+        <div className="p-3 rounded-lg" style={{ background: "#eff6ff", border: "1px solid #93c5fd30" }}>
+          {tip.split("\n").map((line, i) => (
+            <div key={i} className="text-[11px] font-bold leading-relaxed" style={{ color: "#1e40af" }}>
+              {line}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center gap-3">
+        <div className="text-[9px] font-bold text-verdant-muted ml-2">עדיפות:</div>
+        {(["high", "medium", "low"] as const).map(p => (
+          <button key={p} onClick={() => setPriority(p)}
+            className="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all"
+            style={{ background: priority === p ? PRIORITY_COLORS[p].text : "#eef2e8", color: priority === p ? "#fff" : PRIORITY_COLORS[p].text }}>
+            {PRIORITY_LABELS[p]}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-3">
+        <div className="text-[9px] font-bold text-verdant-muted ml-2">ייעוד:</div>
+        {([
+          { key: undefined, label: "פרטי (ברירת מחדל)" },
+          { key: "business" as const, label: "עסקי" },
+          { key: "mixed" as const, label: "מעורב" },
+        ]).map(opt => {
+          const active = scope === opt.key;
+          const color = opt.key ? SCOPE_COLORS[opt.key] : SCOPE_COLORS.personal;
+          return (
+            <button
+              key={String(opt.key)}
+              type="button"
+              onClick={() => setScope(opt.key)}
+              className="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all inline-flex items-center gap-1.5"
+              style={{ background: active ? color : "#eef2e8", color: active ? "#fff" : color }}
+            >
+              <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: active ? "#fff" : color }} />
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex items-center gap-3 pt-3 border-t" style={{ borderColor: "#eef2e8" }}>
+        <button
+          disabled={!name || !targetAmount}
+          onClick={() => onSave({
+            name,
+            targetAmount: parseFloat(targetAmount) || 0,
+            targetDate,
+            currentAmount: 0,
+            monthlyContribution: parseFloat(monthlyContribution) || 0,
+            expectedAnnualReturn: (parseFloat(expectedReturn) || 5) / 100,
+            priority,
+            fundingSource,
+            color,
+            scope,
+            initialCash: parseFloat(initialCash) || 0,
+          })}
+          className="btn-botanical text-[12px] !px-5 !py-2 disabled:opacity-40"
+        >
+          הוסף מטרה
+        </button>
+        <button onClick={onCancel} className="btn-botanical-ghost text-[12px] !px-4 !py-2">
+          ביטול
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* Field helper                                                  */
+/* ═══════════════════════════════════════════════════════════ */
+
+function Field({ label, value, onChange, type = "text", placeholder }: {
+  label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string;
+}) {
+  return (
+    <div>
+      <div className="text-[9px] font-bold text-verdant-muted mb-1">{label}</div>
+      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+        className="w-full text-[11px] font-bold px-3 py-2 rounded-lg border outline-none focus:ring-2 focus:ring-verdant-accent/30"
+        style={{ borderColor: "#d8e0d0", background: "#fff" }} />
+    </div>
+  );
+}

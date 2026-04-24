@@ -1,585 +1,436 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { PensionCard } from "@/components/PensionCard";
-import { MaslekaUpload } from "@/components/MaslekaUpload";
-import { AlternativesCompare } from "@/components/AlternativesCompare";
+/**
+ * ═══════════════════════════════════════════════════════════════════════
+ *  /retirement — The Retirement Workshop
+ * ═══════════════════════════════════════════════════════════════════════
+ *
+ * The "heart of the heart" for Nir: a dedicated page where every lever of
+ * the retirement plan is tweakable live. Pull a slider → the engine
+ * (computeMonthlyIncomeTrajectory) re-runs → chart, gap, timeline all reflow.
+ *
+ * Layout:
+ *   1. KPI strip            target / projected-at-retirement / gap / coverage
+ *   2. Interactive sliders  retirementAge, monthlyInvestment, SWR
+ *   3. Income mountain      stacked areas of all income layers + target line
+ *   4. Event timeline       hishtalmut-start / BTL-start / mortgage-end
+ *   5. Advisor panel        (Stage 4c) Claude streams structured insights
+ */
+
+import { useState, useEffect, useMemo } from "react";
 import { fmtILS } from "@/lib/format";
-import { futureValue } from "@/lib/financial-math";
-import { demoAssets, demoExposure } from "@/lib/stub-data";
-import { loadAssumptions } from "@/lib/assumptions";
-import type { Assumptions } from "@/lib/assumptions";
-
-interface PensionFund {
-  id: string;
-  company: string;
-  type: "pension" | "gemel" | "hishtalmut" | "bituach";
-  balance: number;
-  mgmtFeeDeposit: number;
-  mgmtFeeBalance: number;
-  track: string;
-  monthlyContrib: number;
-  insuranceCover?: { death: boolean; disability: boolean; lossOfWork: boolean };
-}
-
-const FUND_TYPE_LABELS: Record<string, string> = {
-  pension: "פנסיה מקיפה",
-  gemel: "קופת גמל",
-  hishtalmut: "קרן השתלמות",
-  bituach: "ביטוח מנהלים",
-};
-const FUND_TYPE_COLORS: Record<string, string> = {
-  pension: "#0a7a4a",
-  gemel: "#10b981",
-  hishtalmut: "#1a6b42",
-  bituach: "#125c38",
-};
-
-const demoFunds: PensionFund[] = [
-  { id: "pf1", company: "מנורה מבטחים", type: "pension", balance: 240000, mgmtFeeDeposit: 1.5, mgmtFeeBalance: 0.22, track: "מסלול כללי", monthlyContrib: 2100,
-    insuranceCover: { death: true, disability: true, lossOfWork: true } },
-  { id: "pf2", company: "מגדל", type: "pension", balance: 95000, mgmtFeeDeposit: 2.0, mgmtFeeBalance: 0.35, track: "מניות", monthlyContrib: 800,
-    insuranceCover: { death: true, disability: true, lossOfWork: false } },
-  { id: "pf3", company: "הראל", type: "hishtalmut", balance: 45000, mgmtFeeDeposit: 0.0, mgmtFeeBalance: 0.8, track: "כללי", monthlyContrib: 850 },
-  { id: "pf4", company: "אלטשולר שחם", type: "gemel", balance: 28000, mgmtFeeDeposit: 0.0, mgmtFeeBalance: 0.52, track: "מניות חו״ל", monthlyContrib: 500 },
-];
+import { useClient } from "@/lib/client-context";
+import { loadAssumptions, type Assumptions } from "@/lib/assumptions";
+import { loadProperties } from "@/lib/realestate-store";
+import { loadPensionFunds } from "@/lib/pension-store";
+import { loadAccounts, totalBankBalance } from "@/lib/accounts-store";
+import { loadSecurities, totalSecuritiesValue } from "@/lib/securities-store";
+import { syncOnboardingToStores } from "@/lib/onboarding-sync";
+import { buildTrajectory } from "@/lib/trajectory-builder";
+import {
+  computeMonthlyIncomeTrajectory,
+  loadTargetRetirementIncome,
+  weightedConversionFactor,
+} from "@/lib/retirement-income";
+import { RetirementAdvisorPanel } from "./RetirementAdvisorPanel";
 
 export default function RetirementPage() {
+  const { familyName, clientId } = useClient();
   const [assumptions, setAssumptions] = useState<Assumptions | null>(null);
+  const [reProperties, setReProperties] = useState<ReturnType<typeof loadProperties>>([]);
+  const [pensionFunds, setPensionFunds] = useState<ReturnType<typeof loadPensionFunds>>([]);
+  const [liquid, setLiquid] = useState(0);
+  const [targetMonthly, setTargetMonthly] = useState(0);
+
+  // ── Slider overrides — start from assumptions, user tweaks, engine responds
+  const [ovrRetirementAge, setOvrRetirementAge] = useState<number | null>(null);
+  const [ovrMonthlyInvest, setOvrMonthlyInvest] = useState<number | null>(null);
+  const [ovrSWR, setOvrSWR] = useState<number | null>(null);
 
   useEffect(() => {
-    setAssumptions(loadAssumptions());
-    const handler = () => setAssumptions(loadAssumptions());
-    window.addEventListener("verdant:assumptions", handler);
-    window.addEventListener("storage", handler);
-    return () => {
-      window.removeEventListener("verdant:assumptions", handler);
-      window.removeEventListener("storage", handler);
+    syncOnboardingToStores();
+    const reload = () => {
+      setAssumptions(loadAssumptions());
+      setReProperties(loadProperties());
+      setPensionFunds(loadPensionFunds());
+      const accts = loadAccounts();
+      setLiquid(totalBankBalance(accts) + totalSecuritiesValue(loadSecurities()));
+      setTargetMonthly(loadTargetRetirementIncome());
     };
+    reload();
+    const handler = () => reload();
+    window.addEventListener("verdant:realestate:updated", handler);
+    window.addEventListener("verdant:pension:updated", handler);
+    return () => {
+      window.removeEventListener("verdant:realestate:updated", handler);
+      window.removeEventListener("verdant:pension:updated", handler);
+    };
+  }, [clientId]);
+
+  /* ─── Advisor "Apply" button handler — moves sliders from insights cards ─── */
+  useEffect(() => {
+    const onApply = (e: Event) => {
+      const action = (e as CustomEvent).detail as {
+        kind: string; targetValue?: number;
+      };
+      if (!action?.kind) return;
+      switch (action.kind) {
+        case "retirement_age":
+          if (action.targetValue != null) setOvrRetirementAge(action.targetValue);
+          break;
+        case "monthly_invest":
+          if (action.targetValue != null) setOvrMonthlyInvest(action.targetValue);
+          break;
+        case "swr":
+          if (action.targetValue != null) setOvrSWR(action.targetValue / 100);
+          break;
+        case "add_property":
+          window.location.href = "/realestate";
+          break;
+      }
+    };
+    window.addEventListener("retirement:advisor:apply", onApply);
+    return () => window.removeEventListener("retirement:advisor:apply", onApply);
   }, []);
 
-  const currentAge = assumptions?.currentAge ?? 42;
-  const retireAge = assumptions?.retirementAge ?? 67;
-  const yearsToRetire = retireAge - currentAge;
+  /* ─── Effective assumptions (slider-overridden) ─── */
+  const effAssumptions = useMemo<Assumptions | null>(() => {
+    if (!assumptions) return null;
+    return {
+      ...assumptions,
+      retirementAge: ovrRetirementAge ?? assumptions.retirementAge,
+      monthlyInvestment: ovrMonthlyInvest ?? assumptions.monthlyInvestment,
+      safeWithdrawalRate: ovrSWR ?? assumptions.safeWithdrawalRate ?? 0.04,
+    };
+  }, [assumptions, ovrRetirementAge, ovrMonthlyInvest, ovrSWR]);
 
-  const pension = demoAssets
-    .filter((a) => a.asset_group === "pension")
-    .reduce((acc, a) => acc + a.balance, 0);
+  /* ─── Live trajectory + income ─── */
+  const trajectory = useMemo(() => {
+    if (!effAssumptions) return [];
+    const pensionBalance = pensionFunds.reduce((s, f) => s + (f.balance || 0), 0);
+    const realEstateVal = reProperties.reduce((s, p) => s + p.currentValue, 0);
+    return buildTrajectory({
+      assumptions: effAssumptions,
+      liquid,
+      pension: pensionBalance,
+      realestate: realEstateVal,
+    });
+  }, [effAssumptions, pensionFunds, reProperties, liquid]);
 
-  const totalFundsBalance = demoFunds.reduce((s, f) => s + f.balance, 0);
-  const totalMonthlyContrib = demoFunds.reduce((s, f) => s + f.monthlyContrib, 0);
+  const incomeResult = useMemo(() => {
+    if (!effAssumptions) return null;
+    return computeMonthlyIncomeTrajectory(trajectory, effAssumptions, {
+      properties: reProperties,
+      pensionFunds,
+      btlAge: 67,
+      targetMonthly,
+    });
+  }, [trajectory, effAssumptions, reProperties, pensionFunds, targetMonthly]);
 
-  const weightedFee = useMemo(() => {
-    if (totalFundsBalance === 0) return 0;
-    return demoFunds.reduce((s, f) => s + f.mgmtFeeBalance * f.balance, 0) / totalFundsBalance;
-  }, [totalFundsBalance]);
+  /* ─── UI helpers ─── */
+  const retAge = effAssumptions?.retirementAge ?? 67;
+  const retPoint = incomeResult?.points.find(p => p.age === retAge);
+  const coverage = targetMonthly > 0 && retPoint ? Math.min(100, (retPoint.total / targetMonthly) * 100) : 0;
+  const gap = incomeResult?.gapAtRetirement ?? 0;
 
-  const fundsByType = useMemo(() => {
-    const groups: Record<string, PensionFund[]> = {};
-    for (const f of demoFunds) {
-      if (!groups[f.type]) groups[f.type] = [];
-      groups[f.type].push(f);
-    }
-    return groups;
-  }, []);
-
-  // ─── Pension Simulation: year-by-year projection ───
-  const simulation = useMemo(() => {
-    const annualReturn = assumptions?.expectedReturnPension ?? 0.05;
-    const inflRate = assumptions?.inflationRate ?? 0.025;
-    const trajectory: { age: number; nominal: number; real: number }[] = [];
-    let nominal = totalFundsBalance;
-    let real = totalFundsBalance;
-    const monthlyReal = totalMonthlyContrib;
-
-    for (let y = 0; y <= yearsToRetire; y++) {
-      trajectory.push({ age: currentAge + y, nominal: Math.round(nominal), real: Math.round(real) });
-      nominal = futureValue(nominal, totalMonthlyContrib, annualReturn, 1);
-      real = futureValue(real, monthlyReal, annualReturn - inflRate, 1);
-    }
-
-    const projectedNominal = trajectory[trajectory.length - 1]?.nominal ?? 0;
-    const projectedReal = trajectory[trajectory.length - 1]?.real ?? 0;
-    // Monthly pension estimate: 4% SWR / 12
-    const monthlyPensionNominal = Math.round(projectedNominal * 0.04 / 12);
-    const monthlyPensionReal = Math.round(projectedReal * 0.04 / 12);
-    const monthlyIncome = assumptions?.monthlyIncome ?? 28500;
-    const replacementRate = monthlyIncome > 0 ? monthlyPensionReal / monthlyIncome : 0;
-
-    return { trajectory, projectedNominal, projectedReal, monthlyPensionNominal, monthlyPensionReal, replacementRate };
-  }, [totalFundsBalance, totalMonthlyContrib, yearsToRetire, currentAge, assumptions]);
-
-  // ─── Insurance Duplication Check ───
-  const insuranceDuplication = useMemo(() => {
-    const fundsWithInsurance = demoFunds.filter(f => f.insuranceCover);
-    if (fundsWithInsurance.length < 2) return null;
-
-    const deathCovers = fundsWithInsurance.filter(f => f.insuranceCover?.death);
-    const disabilityCovers = fundsWithInsurance.filter(f => f.insuranceCover?.disability);
-    const lowCovers = fundsWithInsurance.filter(f => f.insuranceCover?.lossOfWork);
-
-    const duplicates: { type: string; label: string; funds: string[]; estimatedWaste: number }[] = [];
-    if (deathCovers.length > 1) duplicates.push({ type: "death", label: "ביטוח חיים (מוות)", funds: deathCovers.map(f => f.company), estimatedWaste: 80 });
-    if (disabilityCovers.length > 1) duplicates.push({ type: "disability", label: "אובדן כושר עבודה", funds: disabilityCovers.map(f => f.company), estimatedWaste: 120 });
-    if (lowCovers.length > 1) duplicates.push({ type: "low", label: "פיצוי אבטלה", funds: lowCovers.map(f => f.company), estimatedWaste: 60 });
-
-    return duplicates.length > 0 ? duplicates : null;
-  }, []);
-
-  // ─── Fee Impact Calculator ───
-  const feeImpact = useMemo(() => {
-    const highFee = weightedFee / 100;
-    const lowFee = 0.25 / 100; // Optimal fee
-    const years = yearsToRetire;
-    const returnRate = assumptions?.expectedReturnPension ?? 0.05;
-
-    const fvCurrent = futureValue(totalFundsBalance, totalMonthlyContrib, returnRate - highFee, years);
-    const fvOptimal = futureValue(totalFundsBalance, totalMonthlyContrib, returnRate - lowFee, years);
-    return { fvCurrent, fvOptimal, delta: fvOptimal - fvCurrent };
-  }, [weightedFee, yearsToRetire, totalFundsBalance, totalMonthlyContrib, assumptions]);
-
-  // ─── SVG Chart ───
-  const chartW = 500, chartH = 140;
-  const maxVal = Math.max(...simulation.trajectory.map(t => t.nominal), 1);
+  if (!assumptions || !effAssumptions || !incomeResult) {
+    return (
+      <div className="max-w-6xl mx-auto p-6">
+        <div className="animate-pulse text-verdant-muted">טוען...</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <PageHeader
-        subtitle="Retirement Lab · מעבדת פרישה"
-        title="פנסיה ופרישה"
-        description="סימולציית פנסיה, בדיקת כפילויות ביטוח, דמי ניהול ותכנון פרישה מקיף"
-      />
+    <div className="max-w-6xl mx-auto" style={{ fontFamily: "'Assistant', sans-serif" }}>
+      {/* ═══ Header ═══ */}
+      <header className="mb-10 pb-8 border-b v-divider">
+        <div className="text-[10px] uppercase tracking-[0.25em] text-verdant-muted font-bold mb-3">
+          Retirement Workshop · תכנון פרישה
+        </div>
+        <h1 className="text-4xl font-extrabold text-botanical-forest tracking-tight leading-tight">
+          תכנון פרישה · {familyName}
+        </h1>
+        <p className="text-sm text-verdant-muted mt-2">
+          משוך את המחוונים וצפה בתמונה הכוללת מתעדכנת. כל שינוי מחושב מחדש מול כל שכבות ההכנסה.
+        </p>
+      </header>
 
-      {/* ===== KPI Row ===== */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div className="v-card p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="material-symbols-outlined text-[14px] text-verdant-muted">savings</span>
-            <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">צבירה פנסיונית</div>
-          </div>
-          <div className="text-xl md:text-2xl font-extrabold text-verdant-ink tabular">{fmtILS(totalFundsBalance)}</div>
-        </div>
-        <div className="v-card p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="material-symbols-outlined text-[14px] text-verdant-muted">calendar_month</span>
-            <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">הפקדה חודשית</div>
-          </div>
-          <div className="text-xl md:text-2xl font-extrabold text-verdant-emerald tabular">{fmtILS(totalMonthlyContrib)}</div>
-        </div>
-        <div className="v-card p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="material-symbols-outlined text-[14px] text-verdant-muted">percent</span>
-            <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">דמי ניהול ממוצעים</div>
-          </div>
-          <div className="text-xl md:text-2xl font-extrabold tabular" style={{ color: weightedFee > 0.5 ? "#b91c1c" : "#0a7a4a" }}>
-            {weightedFee.toFixed(2)}%
-          </div>
-          <div className="text-[10px] text-verdant-muted mt-0.5">מצבירה · ממוצע משוקלל</div>
-        </div>
-        <div className="v-card p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="material-symbols-outlined text-[14px] text-verdant-muted">elderly</span>
-            <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">שנים לפרישה</div>
-          </div>
-          <div className="text-xl md:text-2xl font-extrabold text-verdant-ink tabular">{yearsToRetire}</div>
-          <div className="text-[10px] text-verdant-muted mt-0.5">גיל {retireAge}</div>
+      {/* ═══ KPI strip ═══ */}
+      <section className="grid grid-cols-4 gap-4 mb-8">
+        <Kpi label="יעד חודשי" value={targetMonthly} hint="מהשאלון" color="#012d1d" />
+        <Kpi label={`צפוי בגיל ${retAge}`} value={retPoint?.total ?? 0} color="#1B4332" />
+        <Kpi
+          label={gap > 0 ? "פער" : "עודף"}
+          value={Math.abs(gap)}
+          color={gap > 0 ? "#8B2E2E" : "#2B694D"}
+          highlight={gap > 0}
+        />
+        <Kpi label="כיסוי" value={coverage} suffix="%" isPct color={coverage >= 100 ? "#2B694D" : coverage >= 80 ? "#B45309" : "#8B2E2E"} />
+      </section>
+
+      {/* ═══ Sliders ═══ */}
+      <section className="card-pad-lg mb-8">
+        <h3 className="t-lg font-extrabold mb-5" style={{ color: "var(--botanical-forest)" }}>
+          מחוונים · משוך ותראה את ההשפעה
+        </h3>
+        <div className="grid grid-cols-3 gap-6">
+          <SliderField
+            label="גיל פרישה"
+            value={effAssumptions.retirementAge}
+            min={55} max={75} step={1}
+            onChange={v => setOvrRetirementAge(v)}
+            originalValue={assumptions.retirementAge}
+            onReset={() => setOvrRetirementAge(null)}
+            suffix=" שנים"
+          />
+          <SliderField
+            label="הפקדה חודשית לחיסכון"
+            value={effAssumptions.monthlyInvestment}
+            min={0} max={20000} step={500}
+            onChange={v => setOvrMonthlyInvest(v)}
+            originalValue={assumptions.monthlyInvestment}
+            onReset={() => setOvrMonthlyInvest(null)}
+            formatter={v => fmtILS(v)}
+          />
+          <SliderField
+            label="שיעור משיכה בטוח (SWR)"
+            value={(effAssumptions.safeWithdrawalRate ?? 0.04) * 100}
+            min={2.5} max={5} step={0.1}
+            onChange={v => setOvrSWR(v / 100)}
+            originalValue={(assumptions.safeWithdrawalRate ?? 0.04) * 100}
+            onReset={() => setOvrSWR(null)}
+            suffix="%"
+          />
         </div>
       </section>
 
-      {/* ===== Pension Simulation Chart ===== */}
-      <section className="v-card p-5 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px] text-verdant-emerald">show_chart</span>
-            <div>
-              <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted mb-0.5">סימולציית פנסיה</div>
-              <h3 className="text-sm font-extrabold text-verdant-ink">צבירה צפויה עד גיל {retireAge}</h3>
-            </div>
-          </div>
-          <div className="flex items-center gap-4 text-[10px] font-bold">
-            <span className="flex items-center gap-1"><span className="w-3 h-0.5 rounded" style={{ background: "#0a7a4a" }} /> נומינלי</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-0.5 rounded" style={{ background: "#58e1b0" }} /> ריאלי</span>
-          </div>
-        </div>
-        <svg viewBox={`0 0 ${chartW} ${chartH}`} className="w-full h-36">
-          {/* Nominal area */}
-          <path
-            d={`M 0 ${chartH} ` + simulation.trajectory.map((t, i) => {
-              const x = (i / Math.max(simulation.trajectory.length - 1, 1)) * chartW;
-              const y = chartH - (t.nominal / maxVal) * (chartH - 8);
-              return `L ${x} ${y}`;
-            }).join(" ") + ` L ${chartW} ${chartH} Z`}
-            fill="#0a7a4a" opacity="0.15"
-          />
-          {/* Nominal line */}
-          <polyline
-            points={simulation.trajectory.map((t, i) => {
-              const x = (i / Math.max(simulation.trajectory.length - 1, 1)) * chartW;
-              const y = chartH - (t.nominal / maxVal) * (chartH - 8);
-              return `${x},${y}`;
-            }).join(" ")}
-            fill="none" stroke="#0a7a4a" strokeWidth="2.5" strokeLinecap="round"
-          />
-          {/* Real line */}
-          <polyline
-            points={simulation.trajectory.map((t, i) => {
-              const x = (i / Math.max(simulation.trajectory.length - 1, 1)) * chartW;
-              const y = chartH - (t.real / maxVal) * (chartH - 8);
-              return `${x},${y}`;
-            }).join(" ")}
-            fill="none" stroke="#58e1b0" strokeWidth="2" strokeDasharray="6 3" strokeLinecap="round"
-          />
-          {/* End dots */}
-          {(() => {
-            const last = simulation.trajectory[simulation.trajectory.length - 1];
-            const x = chartW;
-            return <>
-              <circle cx={x} cy={chartH - (last.nominal / maxVal) * (chartH - 8)} r="4" fill="#0a7a4a" stroke="#fff" strokeWidth="2" />
-              <circle cx={x} cy={chartH - (last.real / maxVal) * (chartH - 8)} r="4" fill="#58e1b0" stroke="#fff" strokeWidth="2" />
-            </>;
-          })()}
-        </svg>
-        <div className="flex justify-between text-[9px] text-verdant-muted font-bold mt-1">
-          <span>גיל {currentAge}</span>
-          <span>גיל {retireAge}</span>
-        </div>
-
-        {/* Simulation results */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 pt-4 border-t v-divider">
-          <div>
-            <div className="text-[10px] text-verdant-muted font-bold mb-0.5">צבירה נומינלית</div>
-            <div className="text-lg font-extrabold text-verdant-ink tabular">{fmtILS(simulation.projectedNominal)}</div>
-          </div>
-          <div>
-            <div className="text-[10px] text-verdant-muted font-bold mb-0.5">צבירה ריאלית</div>
-            <div className="text-lg font-extrabold tabular" style={{ color: "#58e1b0" }}>{fmtILS(simulation.projectedReal)}</div>
-          </div>
-          <div>
-            <div className="text-[10px] text-verdant-muted font-bold mb-0.5">קצבה חודשית (ריאלי)</div>
-            <div className="text-lg font-extrabold text-verdant-emerald tabular">{fmtILS(simulation.monthlyPensionReal)}</div>
-          </div>
-          <div>
-            <div className="text-[10px] text-verdant-muted font-bold mb-0.5">שיעור החלפה</div>
-            <div className="text-lg font-extrabold tabular" style={{ color: simulation.replacementRate >= 0.7 ? "#0a7a4a" : "#b91c1c" }}>
-              {(simulation.replacementRate * 100).toFixed(0)}%
-            </div>
-            <div className="text-[9px] text-verdant-muted">מומלץ: 70%+</div>
-          </div>
-        </div>
+      {/* ═══ Income Mountain ═══ */}
+      <section className="card-pad-lg mb-8">
+        <IncomeMountain
+          points={incomeResult.points}
+          retirementAge={retAge}
+          targetMonthly={targetMonthly}
+        />
       </section>
 
-      {/* ===== Pension Exposure Pie — All Instruments ===== */}
-      <section className="v-card p-5 mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="material-symbols-outlined text-[18px] text-verdant-emerald">donut_large</span>
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted mb-0.5">חשיפה מצרפית</div>
-            <h3 className="text-sm font-extrabold text-verdant-ink">חשיפה למדדים — פנסיה + השתלמות + עצמאי</h3>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* SVG Pie */}
-          <div className="flex items-center justify-center">
-            {(() => {
-              const totalExp = demoExposure.reduce((s, e) => s + e.total, 0);
-              const COLORS = ["#0a7a4a", "#10b981", "#1a6b42", "#58e1b0", "#f59e0b", "#8b5cf6"];
-              let cum = 0;
-              return (
-                <svg viewBox="0 0 200 200" className="w-44 h-44">
-                  {demoExposure.map((e, i) => {
-                    const pct = totalExp > 0 ? e.total / totalExp : 0;
-                    const angle = pct * 360;
-                    const start = cum;
-                    cum += angle;
-                    if (pct < 0.01) return null;
-                    const r = 80, cx = 100, cy = 100;
-                    const sr = (start - 90) * Math.PI / 180;
-                    const er = (start + angle - 90) * Math.PI / 180;
-                    const la = angle > 180 ? 1 : 0;
-                    return (
-                      <path key={e.index}
-                        d={`M ${cx} ${cy} L ${cx + r * Math.cos(sr)} ${cy + r * Math.sin(sr)} A ${r} ${r} 0 ${la} 1 ${cx + r * Math.cos(er)} ${cy + r * Math.sin(er)} Z`}
-                        fill={COLORS[i % COLORS.length]} stroke="#fff" strokeWidth="2" />
-                    );
-                  })}
-                  <circle cx="100" cy="100" r="42" fill="#f9faf2" />
-                  <text x="100" y="96" textAnchor="middle" className="text-[10px] font-bold" fill="#012d1d">חשיפה</text>
-                  <text x="100" y="110" textAnchor="middle" className="text-[9px]" fill="#5a7a6a">מצרפית</text>
-                </svg>
-              );
-            })()}
-          </div>
-          {/* Breakdown */}
-          <div className="space-y-2">
-            {demoExposure.map((e, i) => {
-              const totalExp = demoExposure.reduce((s, x) => s + x.total, 0);
-              const pct = totalExp > 0 ? (e.total / totalExp * 100).toFixed(1) : "0";
-              const COLORS = ["#0a7a4a", "#10b981", "#1a6b42", "#58e1b0", "#f59e0b", "#8b5cf6"];
-              return (
-                <div key={e.index} className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#f4f7ed] transition-colors">
-                  <div className="w-3 h-3 rounded-sm flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold text-verdant-ink">{e.index}</div>
-                    <div className="flex gap-2 text-[9px] text-verdant-muted mt-0.5">
-                      <span>פנסיה: {fmtILS(e.pension)}</span>
-                      <span>השתלמות: {fmtILS(e.hishtalmut)}</span>
-                      <span>עצמאי: {fmtILS(e.selfManaged)}</span>
-                    </div>
-                  </div>
-                  <div className="text-left">
-                    <div className="text-xs font-extrabold tabular">{pct}%</div>
-                    <div className="text-[10px] text-verdant-muted tabular">{fmtILS(e.total)}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* ===== Insurance Duplication Alert ===== */}
-      {insuranceDuplication && (
-        <section className="rounded-2xl p-5 mb-6" style={{ background: "#fef3c7", border: "1.5px solid #f59e0b" }}>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="material-symbols-outlined text-[20px]" style={{ color: "#f59e0b" }}>warning</span>
-            <h3 className="text-sm font-extrabold" style={{ color: "#92400e" }}>כפילויות ביטוח שזוהו</h3>
-          </div>
-          <p className="text-xs mb-3" style={{ color: "#92400e" }}>
-            נמצאו כיסויים ביטוחיים כפולים בקרנות שלך. כפילויות עולות כסף ולא מוסיפות הגנה.
-          </p>
-          <div className="space-y-2">
-            {insuranceDuplication.map(dup => (
-              <div key={dup.type} className="flex items-center justify-between p-3 rounded-lg" style={{ background: "rgba(255,255,255,0.7)" }}>
-                <div>
-                  <div className="text-xs font-extrabold" style={{ color: "#92400e" }}>{dup.label}</div>
-                  <div className="text-[10px] text-verdant-muted mt-0.5">
-                    כפול ב: {dup.funds.join(", ")}
-                  </div>
-                </div>
-                <div className="text-left">
-                  <div className="text-xs font-extrabold" style={{ color: "#b91c1c" }}>~₪{dup.estimatedWaste}/חודש</div>
-                  <div className="text-[9px] text-verdant-muted">בזבוז משוער</div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-3 pt-3 border-t" style={{ borderColor: "rgba(245,158,11,0.3)" }}>
-            <div className="text-xs font-extrabold" style={{ color: "#92400e" }}>
-              חיסכון שנתי פוטנציאלי: ₪{(insuranceDuplication.reduce((s, d) => s + d.estimatedWaste, 0) * 12).toLocaleString("he-IL")}
-            </div>
-          </div>
+      {/* ═══ Event Timeline ═══ */}
+      {incomeResult.events.length > 0 && (
+        <section className="card-pad-lg mb-8">
+          <h3 className="t-lg font-extrabold mb-5" style={{ color: "var(--botanical-forest)" }}>
+            ציר זמן · אירועים מרכזיים
+          </h3>
+          <EventTimeline events={incomeResult.events} />
         </section>
       )}
 
-      {/* ===== Fee Impact Card ===== */}
-      <section className="v-card p-5 mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="material-symbols-outlined text-[18px]" style={{ color: weightedFee > 0.5 ? "#b91c1c" : "#0a7a4a" }}>money_off</span>
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted mb-0.5">השפעת דמי ניהול</div>
-            <h3 className="text-sm font-extrabold text-verdant-ink">כמה דמי ניהול עולים לך לאורך {yearsToRetire} שנים?</h3>
-          </div>
+      {/* ═══ Advisor Panel (Stage 4c) ═══ */}
+      <RetirementAdvisorPanel
+        incomeResult={incomeResult}
+        assumptions={effAssumptions}
+        targetMonthly={targetMonthly}
+        familyName={familyName}
+      />
+    </div>
+  );
+}
+
+/* ═══════════════ Sub-components ═══════════════ */
+
+function Kpi({ label, value, hint, color, suffix, isPct, highlight }: {
+  label: string; value: number; hint?: string; color: string;
+  suffix?: string; isPct?: boolean; highlight?: boolean;
+}) {
+  return (
+    <div
+      className="rounded-xl p-4"
+      style={{
+        background: highlight ? `${color}12` : "#f9faf2",
+        border: `1px solid ${highlight ? color + "40" : "#d8e0d0"}`,
+      }}
+    >
+      <div className="text-[10px] font-bold" style={{ color: highlight ? color : "#8aab99" }}>{label}</div>
+      <div className="text-2xl font-extrabold tabular mt-1" style={{ color }}>
+        {isPct ? `${Math.round(value)}${suffix ?? ""}` : fmtILS(Math.round(value))}
+      </div>
+      {hint && <div className="text-[10px] text-verdant-muted font-bold mt-1">{hint}</div>}
+    </div>
+  );
+}
+
+function SliderField({ label, value, min, max, step, onChange, originalValue, onReset, suffix, formatter }: {
+  label: string; value: number; min: number; max: number; step: number;
+  onChange: (v: number) => void; originalValue: number; onReset: () => void;
+  suffix?: string; formatter?: (v: number) => string;
+}) {
+  const modified = Math.abs(value - originalValue) > 0.0001;
+  return (
+    <div>
+      <div className="flex items-baseline justify-between mb-2">
+        <span className="text-[11px] font-bold text-verdant-ink">{label}</span>
+        {modified && (
+          <button
+            onClick={onReset}
+            className="text-[10px] font-bold text-verdant-muted hover:text-verdant-ink underline"
+          >
+            איפוס
+          </button>
+        )}
+      </div>
+      <div className="text-xl font-extrabold tabular mb-2" style={{ color: modified ? "#B45309" : "#1B4332" }}>
+        {formatter ? formatter(value) : `${value.toFixed(step < 1 ? 1 : 0)}${suffix ?? ""}`}
+      </div>
+      <input
+        type="range"
+        min={min} max={max} step={step}
+        value={value}
+        onChange={e => onChange(parseFloat(e.target.value))}
+        className="w-full accent-botanical-forest"
+        style={{ accentColor: "#1B4332" }}
+      />
+      <div className="flex justify-between text-[9px] text-verdant-muted font-bold mt-1">
+        <span>{min}{suffix ?? ""}</span>
+        <span>{max}{suffix ?? ""}</span>
+      </div>
+    </div>
+  );
+}
+
+function IncomeMountain({ points, retirementAge, targetMonthly }: {
+  points: ReturnType<typeof computeMonthlyIncomeTrajectory>["points"];
+  retirementAge: number; targetMonthly: number;
+}) {
+  const CW = 820, CH = 280, PAD_TOP = 30;
+  const maxY = Math.max(...points.map(p => p.total), targetMonthly * 1.15, 1);
+  const chartW = CW - 60;
+  // Guard: points.length < 2 would divide by 0/−1 and NaN the entire SVG
+  const xOf = (i: number) => points.length > 1 ? (i / (points.length - 1)) * chartW : 0;
+  const yOf = (v: number) => PAD_TOP + (CH - PAD_TOP) * (1 - v / maxY);
+
+  // Early out when there's no meaningful trajectory
+  if (points.length === 0) {
+    return <div className="text-center py-10 text-verdant-muted text-sm font-bold">אין עדיין נתונים לתחזית</div>;
+  }
+  const fmtY = (v: number) => v >= 1000 ? `₪${Math.round(v / 100) / 10}K` : `₪${Math.round(v)}`;
+
+  // Stacked layers from bottom to top
+  const bandPath = (getY: (p: typeof points[number]) => number) =>
+    `M 0 ${CH} ` +
+    points.map((p, i) => `L ${xOf(i)} ${yOf(getY(p))}`).join(" ") +
+    ` L ${chartW} ${CH} Z`;
+
+  return (
+    <div>
+      <div className="flex items-end justify-between mb-4">
+        <div>
+          <div className="caption mb-1">Income Mountain · הר ההכנסה</div>
+          <h3 className="t-lg font-extrabold" style={{ color: "var(--botanical-forest)" }}>הכנסה חודשית לאורך הפרישה</h3>
         </div>
-
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div className="p-3 rounded-xl" style={{ background: "#f4f7ed" }}>
-            <div className="text-[10px] text-verdant-muted font-bold mb-1">דמ"נ נוכחי ({weightedFee.toFixed(2)}%)</div>
-            <div className="text-lg font-extrabold text-verdant-ink tabular">{fmtILS(feeImpact.fvCurrent)}</div>
-          </div>
-          <div className="p-3 rounded-xl" style={{ background: "#f0fdf4" }}>
-            <div className="text-[10px] text-verdant-muted font-bold mb-1">דמ"נ אופטימלי (0.25%)</div>
-            <div className="text-lg font-extrabold tabular" style={{ color: "#0a7a4a" }}>{fmtILS(feeImpact.fvOptimal)}</div>
-          </div>
-          <div className="p-3 rounded-xl" style={{ background: "#fef3c7" }}>
-            <div className="text-[10px] font-bold mb-1" style={{ color: "#92400e" }}>עלות דמ"נ עודפים</div>
-            <div className="text-lg font-extrabold tabular" style={{ color: "#b91c1c" }}>{fmtILS(feeImpact.delta)}</div>
-          </div>
+        <div className="flex gap-3 text-[10px] font-bold text-verdant-muted">
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: "#2B694D" }} />שכ&quot;ד</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: "#1e6b3a" }} />פנסיה</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: "#4a7a3a" }} />בט&quot;ל</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: "#7a9a4a" }} />השתלמות</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: "#1B4332" }} />נזיל (SWR)</span>
         </div>
+      </div>
 
-        <div className="mt-3">
-          <div className="w-full h-3 rounded-full overflow-hidden flex" style={{ background: "#e5e7d8" }}>
-            <div className="h-full" style={{ width: `${(feeImpact.fvCurrent / feeImpact.fvOptimal * 100).toFixed(1)}%`, background: "#0a7a4a" }} />
-            <div className="h-full" style={{ width: `${(100 - feeImpact.fvCurrent / feeImpact.fvOptimal * 100).toFixed(1)}%`, background: "#f59e0b" }} />
-          </div>
-          <div className="flex justify-between text-[9px] text-verdant-muted font-bold mt-1">
-            <span>מה תקבל</span>
-            <span style={{ color: "#f59e0b" }}>מה דמ"נ אוכלים</span>
-          </div>
-        </div>
-      </section>
+      <svg viewBox={`0 0 ${CW} ${CH}`} className="w-full" style={{ height: 320, background: "#fafcf8", borderRadius: 8 }}>
+        {/* Grid */}
+        {[0, 0.25, 0.5, 0.75, 1].map(f => {
+          const y = PAD_TOP + (CH - PAD_TOP) * (1 - f);
+          return (
+            <g key={f}>
+              <line x1="0" x2={chartW} y1={y} y2={y} stroke="#eef2e8" strokeDasharray={f === 0 ? undefined : "2 4"} />
+              {f > 0 && (
+                <text x={CW - 2} y={y + 4} textAnchor="end" fontSize="9" fill="#8aab99" fontWeight="600">
+                  {fmtY(maxY * f)}
+                </text>
+              )}
+            </g>
+          );
+        })}
 
-      {/* ===== Tikun 190 Section ===== */}
-      <section className="v-card p-5 mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="material-symbols-outlined text-[18px] text-verdant-emerald">description</span>
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted mb-0.5">תיקון 190</div>
-            <h3 className="text-sm font-extrabold text-verdant-ink">הטבות מס לקופות גמל להשקעה</h3>
-          </div>
-        </div>
+        {/* Stacked bands — bottom to top: RE → pension → btl → hishtalmut → SWR+manual */}
+        <path d={bandPath(p => p.realestateNet + p.pension + p.btl + p.hishtalmut + p.liquidSWR + p.manual)} fill="#1B4332" opacity="0.55" />
+        <path d={bandPath(p => p.realestateNet + p.pension + p.btl + p.hishtalmut)} fill="#7a9a4a" opacity="0.65" />
+        <path d={bandPath(p => p.realestateNet + p.pension + p.btl)} fill="#4a7a3a" opacity="0.7" />
+        <path d={bandPath(p => p.realestateNet + p.pension)} fill="#1e6b3a" opacity="0.75" />
+        <path d={bandPath(p => p.realestateNet)} fill="#2B694D" opacity="0.8" />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-4 rounded-xl" style={{ background: "#f0fdf4", border: "1px solid #0a7a4a20" }}>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="material-symbols-outlined text-[16px] text-verdant-emerald">savings</span>
-              <span className="text-xs font-extrabold text-verdant-ink">קופת גמל להשקעה</span>
-            </div>
-            <ul className="space-y-1.5 text-[11px] text-verdant-muted font-bold">
-              <li className="flex items-start gap-1.5">
-                <span className="material-symbols-outlined text-[12px] text-verdant-emerald mt-0.5">check_circle</span>
-                תקרת הפקדה: ₪79,005/שנה (2026)
-              </li>
-              <li className="flex items-start gap-1.5">
-                <span className="material-symbols-outlined text-[12px] text-verdant-emerald mt-0.5">check_circle</span>
-                פטור ממס רווח הון בגיל 60+
-              </li>
-              <li className="flex items-start gap-1.5">
-                <span className="material-symbols-outlined text-[12px] text-verdant-emerald mt-0.5">check_circle</span>
-                אפשרות משיכה כקצבה חודשית פטורה
-              </li>
-              <li className="flex items-start gap-1.5">
-                <span className="material-symbols-outlined text-[12px] text-verdant-emerald mt-0.5">check_circle</span>
-                ניהול עצמאי — בחירת מסלול השקעה
-              </li>
-            </ul>
-          </div>
-
-          <div className="p-4 rounded-xl" style={{ background: "#f9faf2", border: "1px solid #d8e0d0" }}>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="material-symbols-outlined text-[16px] text-verdant-emerald">calculate</span>
-              <span className="text-xs font-extrabold text-verdant-ink">סימולציית חיסכון מס</span>
-            </div>
-            {(() => {
-              const annualDeposit = 79005;
-              const years = retireAge - currentAge;
-              const rate = (assumptions?.expectedReturnInvest ?? 0.065);
-              const fvTax = futureValue(0, annualDeposit / 12, rate, years);
-              const gains = fvTax - annualDeposit * years;
-              const taxSaved = gains * 0.25;
-              return (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-[11px]">
-                    <span className="text-verdant-muted font-bold">הפקדה מקסימלית</span>
-                    <span className="font-extrabold text-verdant-ink tabular">₪{annualDeposit.toLocaleString("he-IL")}/שנה</span>
-                  </div>
-                  <div className="flex justify-between text-[11px]">
-                    <span className="text-verdant-muted font-bold">צבירה צפויה (גיל {retireAge})</span>
-                    <span className="font-extrabold text-verdant-ink tabular">{fmtILS(fvTax)}</span>
-                  </div>
-                  <div className="flex justify-between text-[11px]">
-                    <span className="text-verdant-muted font-bold">רווחים צפויים</span>
-                    <span className="font-extrabold tabular" style={{ color: "#0a7a4a" }}>{fmtILS(gains)}</span>
-                  </div>
-                  <div className="flex justify-between text-[11px] pt-2 border-t v-divider">
-                    <span className="font-bold" style={{ color: "#0a7a4a" }}>חיסכון מס צפוי</span>
-                    <span className="font-extrabold tabular text-lg" style={{ color: "#0a7a4a" }}>{fmtILS(taxSaved)}</span>
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        </div>
-      </section>
-
-      {/* ===== Pension Projection + Card ===== */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
-        <div className="v-card p-5">
-          <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted mb-1">צבירה נוכחית</div>
-          <div className="text-2xl font-extrabold text-verdant-ink tabular">{fmtILS(pension)}</div>
-          <div className="text-[11px] text-verdant-muted mt-1">מכלל הקרנות הפנסיוניות</div>
-        </div>
-        <div className="v-card p-5">
-          <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted mb-1">צפי בפרישה (ריאלי)</div>
-          <div className="text-2xl font-extrabold text-verdant-emerald tabular">{fmtILS(simulation.projectedReal)}</div>
-          <div className="text-[11px] text-verdant-muted mt-1">תשואה {((assumptions?.expectedReturnPension ?? 0.05) * 100).toFixed(1)}% · {yearsToRetire} שנים</div>
-        </div>
-        <PensionCard monthlyPension={simulation.monthlyPensionReal} replacementRate={simulation.replacementRate} />
-      </section>
-
-      {/* ===== Pension Funds Table ===== */}
-      <section className="v-card overflow-hidden mb-6">
-        <div className="px-5 py-4 border-b v-divider flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-extrabold text-verdant-ink">קרנות פנסיה וחיסכון</h2>
-            <p className="text-[11px] text-verdant-muted mt-0.5">{demoFunds.length} קרנות · מעודכן מהמסלקה הפנסיונית</p>
-          </div>
-        </div>
-
-        {Object.entries(fundsByType).map(([type, funds]) => (
-          <div key={type}>
-            <div className="px-5 py-2.5 flex items-center gap-2" style={{ background: "#f4f7ed" }}>
-              <div className="w-2 h-2 rounded-full" style={{ background: FUND_TYPE_COLORS[type] || "#0a7a4a" }} />
-              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-verdant-muted">
-                {FUND_TYPE_LABELS[type] || type}
-              </span>
-            </div>
-            {funds.map(f => (
-              <div key={f.id} className="px-5 py-3.5 border-b v-divider flex items-center justify-between hover:bg-[#f9faf2] transition-colors">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <div className="text-sm font-extrabold text-verdant-ink">{f.company}</div>
-                    {f.insuranceCover && (
-                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "#e0f2fe", color: "#0369a1" }}>
-                        כולל ביטוח
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-[11px] text-verdant-muted mt-0.5">
-                    מסלול: {f.track} · הפקדה: {fmtILS(f.monthlyContrib)}/חודש
-                  </div>
-                </div>
-                <div className="flex items-center gap-6">
-                  <div className="text-left">
-                    <div className="text-[10px] text-verdant-muted font-bold">דמי ניהול</div>
-                    <div className="text-xs font-extrabold tabular" style={{ color: f.mgmtFeeBalance > 0.5 ? "#b91c1c" : "#0a7a4a" }}>
-                      {f.mgmtFeeDeposit}% הפקדה · {f.mgmtFeeBalance}% צבירה
-                    </div>
-                  </div>
-                  <div className="text-left min-w-[100px]">
-                    <div className="text-[10px] text-verdant-muted font-bold">יתרה</div>
-                    <div className="text-sm font-extrabold text-verdant-ink tabular">{fmtILS(f.balance)}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ))}
-      </section>
-
-      {/* ===== Masleka Upload + Fee Comparison ===== */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
-        <MaslekaUpload />
-        <AlternativesCompare
-          title="השוואת דמי ניהול פנסיה"
-          horizonYears={yearsToRetire}
-          current={{  label: "מצב נוכחי",  lumpToday: totalFundsBalance, monthly: totalMonthlyContrib, annualRate: 0.047 }}
-          proposed={{ label: "מצב מוצע",   lumpToday: totalFundsBalance, monthly: totalMonthlyContrib, annualRate: 0.053 }}
-          note="הפער נובע מהפחתת דמי ניהול מ-1.0% ל-0.4%, שמשפרת את התשואה נטו ב-0.6% לשנה."
+        {/* Total line */}
+        <polyline
+          points={points.map((p, i) => `${xOf(i)},${yOf(p.total)}`).join(" ")}
+          fill="none" stroke="#012d1d" strokeWidth="2.25" strokeLinecap="round"
         />
-      </div>
 
-      {/* ===== Retirement Insight ===== */}
-      <div className="rounded-2xl p-5 md:p-6" style={{ background: "linear-gradient(135deg,#012d1d 0%,#064e32 50%,#0a7a4a 100%)", color: "#fff" }}>
-        <div className="flex items-start gap-3 md:gap-4">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(88,225,176,0.2)" }}>
-            <span className="material-symbols-outlined" style={{ color: "#58e1b0" }}>elderly</span>
+        {/* Target line */}
+        {targetMonthly > 0 && (
+          <g>
+            <line x1="0" x2={chartW} y1={yOf(targetMonthly)} y2={yOf(targetMonthly)}
+              stroke="#b91c1c" strokeDasharray="6 4" strokeWidth="1.5" opacity="0.75" />
+            <rect x={4} y={yOf(targetMonthly) - 16} width="110" height="14" rx="4" fill="#b91c1c" opacity="0.12" />
+            <text x={8} y={yOf(targetMonthly) - 5} fontSize="9" fill="#8B2E2E" fontWeight="800">
+              יעד · {fmtY(targetMonthly)}/חודש
+            </text>
+          </g>
+        )}
+
+        {/* Retirement age marker */}
+        {(() => {
+          const idx = points.findIndex(p => p.age === retirementAge);
+          if (idx < 0) return null;
+          const x = xOf(idx);
+          return (
+            <g>
+              <line x1={x} x2={x} y1={PAD_TOP} y2={CH} stroke="#f59e0b" strokeDasharray="4 3" strokeWidth="1.5" opacity="0.65" />
+              <rect x={x - 24} y={4} width="48" height="14" rx="4" fill="#f59e0b" opacity="0.15" />
+              <text x={x} y={14} textAnchor="middle" fontSize="9" fill="#b45309" fontWeight="800">פרישה</text>
+            </g>
+          );
+        })()}
+      </svg>
+      <div className="flex justify-between text-[9px] text-verdant-muted font-bold mt-2 px-1">
+        {points.length > 0 && (
+          <>
+            <span>גיל {points[0].age} ({points[0].year})</span>
+            <span>גיל {points[points.length - 1].age} ({points[points.length - 1].year})</span>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function EventTimeline({ events }: { events: ReturnType<typeof computeMonthlyIncomeTrajectory>["events"] }) {
+  const sorted = [...events].sort((a, b) => a.age - b.age);
+  const KIND_ICON: Record<string, string> = {
+    retirement: "elderly", btl_start: "account_balance",
+    hishtalmut: "school", mortgage_payoff: "home",
+  };
+  const KIND_COLOR: Record<string, string> = {
+    retirement: "#f59e0b", btl_start: "#1B4332",
+    hishtalmut: "#7a9a4a", mortgage_payoff: "#2B694D",
+  };
+  return (
+    <div className="relative pr-6">
+      <div className="absolute right-[10px] top-2 bottom-2 w-px" style={{ background: "#d8e0d0" }} />
+      {sorted.map((ev, i) => (
+        <div key={i} className="flex items-start gap-4 mb-4 relative">
+          <div
+            className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 relative z-10 mt-0.5"
+            style={{ background: KIND_COLOR[ev.kind], border: "2px solid #fafcf8" }}
+          >
+            <span className="material-symbols-outlined text-white" style={{ fontSize: 11 }}>
+              {KIND_ICON[ev.kind]}
+            </span>
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[10px] uppercase tracking-[0.25em] font-bold mb-2" style={{ color: "#58e1b0" }}>תובנת פרישה</div>
-            <h3 className="text-base md:text-lg font-extrabold mb-2">
-              שיעור החלפת הכנסה: {(simulation.replacementRate * 100).toFixed(0)}%
-            </h3>
-            <p className="text-xs md:text-sm opacity-90 leading-relaxed">
-              {simulation.replacementRate >= 0.8
-                ? "הפנסיה הצפויה שלכם מכסה 80%+ מההכנסה — מצוין! שמרו על קצב ההפקדות."
-                : simulation.replacementRate >= 0.7
-                  ? "הפנסיה הצפויה סבירה. שקלו הגדלת הפקדות או הפחתת דמי ניהול לשיפור."
-                  : "שיעור ההחלפה נמוך. מומלץ להגדיל הפקדות, להפחית דמי ניהול, או להוסיף קופת גמל להשקעה (תיקון 190)."}
-            </p>
+          <div className="flex-1">
+            <div className="text-[11px] font-bold text-verdant-ink">{ev.label}</div>
+            <div className="text-[10px] text-verdant-muted font-bold">גיל {ev.age} · {ev.year}</div>
           </div>
         </div>
-      </div>
+      ))}
     </div>
   );
 }

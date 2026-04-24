@@ -13,6 +13,7 @@ export function FreedomCalc() {
   const [annualReturn, setAnnualReturn] = useState(6.5);
   const [inflation, setInflation] = useState(2.5);
   const [mgmtFee, setMgmtFee] = useState(0.8);
+  const [currentAge, setCurrentAge] = useState(42);
 
   // Load from assumptions & listen for changes
   useEffect(() => {
@@ -23,6 +24,7 @@ export function FreedomCalc() {
       setInflation(parseFloat((a.inflationRate * 100).toFixed(2)));
       setMgmtFee(parseFloat((a.managementFeeInvest * 100).toFixed(2)));
       setAnnualReturn(parseFloat((a.expectedReturnInvest * 100).toFixed(2)));
+      setCurrentAge(a.currentAge);
     };
     load();
     const handler = () => load();
@@ -55,11 +57,11 @@ export function FreedomCalc() {
     const freedomYear = trajectory.findIndex(t => t.balance >= dynamic.freedomNumber);
     return {
       years: freedomYear > 0 ? freedomYear : 60,
-      age: 42 + (freedomYear > 0 ? freedomYear : 60),
+      age: currentAge + (freedomYear > 0 ? freedomYear : 60),
       finalBalance: trajectory[freedomYear > 0 ? freedomYear : trajectory.length - 1].balance,
       trajectory: trajectory.slice(0, 41), // Up to 40 years
     };
-  }, [monthlyExpense, currentAssets, monthlySavings, annualReturn, dynamic.freedomNumber]);
+  }, [monthlyExpense, currentAssets, monthlySavings, annualReturn, dynamic.freedomNumber, currentAge]);
 
   const pct = Math.min(100, (currentAssets / dynamic.freedomNumber) * 100);
 
@@ -70,12 +72,12 @@ export function FreedomCalc() {
   return (
     <div className="space-y-6">
       {/* Hero card — Dynamic Freedom Number */}
-      <div className="rounded-2xl p-6 relative overflow-hidden" style={{ background: "linear-gradient(135deg,#012d1d 0%,#064e32 50%,#0a7a4a 100%)", color: "#fff" }}>
-        <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "radial-gradient(circle at 20% 80%, #58e1b0 0%, transparent 50%)" }} />
+      <div className="rounded-2xl p-6 relative overflow-hidden" style={{ background: "linear-gradient(135deg,#012d1d 0%,#064e32 50%,#1B4332 100%)", color: "#fff" }}>
+        <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "radial-gradient(circle at 20% 80%, #2B694D 0%, transparent 50%)" }} />
         <div className="relative">
           <div className="flex items-center gap-2 mb-2">
-            <span className="material-symbols-outlined text-[22px]" style={{ color: "#58e1b0" }}>workspace_premium</span>
-            <span className="text-[10px] uppercase tracking-[0.25em] font-bold" style={{ color: "#58e1b0" }}>חוק ה-300 הדינמי</span>
+            <span className="material-symbols-outlined text-[22px]" style={{ color: "#2B694D" }}>workspace_premium</span>
+            <span className="text-[10px] uppercase tracking-[0.25em] font-bold" style={{ color: "#2B694D" }}>חוק ה-300 הדינמי</span>
           </div>
           <div className="flex items-baseline gap-3 mb-1">
             <div className="text-3xl font-extrabold tabular">{fmtILS(dynamic.freedomNumber)}</div>
@@ -109,7 +111,7 @@ export function FreedomCalc() {
           {/* Progress bar */}
           <div className="mt-4">
             <div className="w-full h-2.5 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }}>
-              <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: "linear-gradient(90deg,#58e1b0,#10b981)" }} />
+              <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: "linear-gradient(90deg,#2B694D,#2B694D)" }} />
             </div>
             <div className="flex justify-between mt-1.5 text-[10px] opacity-60">
               <span>הושג {pct.toFixed(1)}%</span>
@@ -120,7 +122,7 @@ export function FreedomCalc() {
       </div>
 
       {/* Trajectory mini chart */}
-      <div className="v-card p-5">
+      <div className="card-pad">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs font-extrabold text-verdant-ink flex items-center gap-2">
             <span className="material-symbols-outlined text-[16px] text-verdant-emerald">show_chart</span>
@@ -148,7 +150,7 @@ export function FreedomCalc() {
               const y = chartH - (t.balance / maxVal) * (chartH - 4);
               return `${x},${y}`;
             }).join(" ")}
-            fill="none" stroke="#0a7a4a" strokeWidth="2.5" strokeLinecap="round"
+            fill="none" stroke="#1B4332" strokeWidth="2.5" strokeLinecap="round"
           />
           {/* Freedom crossing dot */}
           {simulation.years <= 40 && (() => {
@@ -158,8 +160,8 @@ export function FreedomCalc() {
           })()}
           <defs>
             <linearGradient id="freedomGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#0a7a4a" />
-              <stop offset="100%" stopColor="#0a7a4a" stopOpacity="0" />
+              <stop offset="0%" stopColor="#1B4332" />
+              <stop offset="100%" stopColor="#1B4332" stopOpacity="0" />
             </linearGradient>
           </defs>
         </svg>
@@ -181,7 +183,7 @@ export function FreedomCalc() {
       </div>
 
       {/* Results */}
-      <div className="v-card p-5">
+      <div className="card-pad">
         <div className="flex items-center gap-3 mb-3">
           <span className="material-symbols-outlined text-verdant-emerald">emoji_events</span>
           <h3 className="text-sm font-extrabold text-verdant-ink">תוצאת הסימולציה</h3>
@@ -192,7 +194,7 @@ export function FreedomCalc() {
             <div className="text-[10px] text-verdant-muted font-bold">שנים לחופש</div>
           </div>
           <div>
-            <div className="text-2xl font-extrabold tabular" style={{ color: "#0a7a4a" }}>{simulation.age}</div>
+            <div className="text-2xl font-extrabold tabular" style={{ color: "#1B4332" }}>{simulation.age}</div>
             <div className="text-[10px] text-verdant-muted font-bold">גיל חופש כלכלי</div>
           </div>
           <div>

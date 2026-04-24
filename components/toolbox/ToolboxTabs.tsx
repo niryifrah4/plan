@@ -22,7 +22,7 @@ export function ToolboxTabs({ tabs, children }: Props) {
             onClick={() => setActive(t.id)}
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold whitespace-nowrap transition-colors border-b-2 -mb-px ${
               active === t.id
-                ? "border-verdant-accent text-verdant-accent"
+                ? "bg-botanical-forest text-botanical-cream border-botanical-forest"
                 : "border-transparent text-verdant-muted hover:text-verdant-ink"
             }`}
           >

@@ -1,7 +1,12 @@
 /**
- * Client journey navigation order (RTL sidebar).
- * Matches the canonical "Plan-Based" flow: onboarding → docs → dashboard → wealth →
- * cashflow → debt → retirement → investments → vision → tasks → toolbox.
+ * Sidebar navigation — Finav-inspired architecture.
+ *
+ * Layout:
+ *   • Top standalone items (always visible)
+ *   • 3 collapsible groups (תזרים / נכסים / תכנון)
+ *   • Bottom standalone items
+ *
+ * Group open/closed state persists in localStorage under `verdant:nav:groups`.
  */
 
 export interface NavItem {
@@ -9,18 +14,88 @@ export interface NavItem {
   label: string;
   href: string;
   icon: string; // Material Symbol name
+  badge?: string;
 }
 
-export const NAV_CLIENT: NavItem[] = [
-  { id: "onboarding",  label: "שאלון אפיון",          href: "/onboarding",    icon: "assignment" },
-  { id: "documents",   label: "תחנת אימות",           href: "/documents",     icon: "fact_check" },
-  { id: "dashboard",   label: "דשבורד",               href: "/dashboard",     icon: "dashboard" },
-  { id: "wealth",      label: "מפת נכסים",             href: "/wealth",        icon: "insights" },
-  { id: "cashflow",    label: "תזרים ובקרה",          href: "/cashflow-map",  icon: "account_balance" },
-  { id: "debt",        label: "הלוואות ומשכנתאות",    href: "/debt",          icon: "credit_score" },
-  { id: "retirement",  label: "פנסיה ופרישה",         href: "/retirement",    icon: "elderly" },
-  { id: "investments", label: "תיק השקעות ו-RSU",     href: "/investments",   icon: "candlestick_chart" },
-  { id: "vision",      label: "מטרות, יעדים וחופש כלכלי", href: "/vision",   icon: "flag" },
-  { id: "tasks",       label: "המלצות ומשימות",       href: "/tasks",         icon: "checklist" },
-  { id: "toolbox",     label: "מחשבונים וכלים",       href: "/toolbox",       icon: "calculate" },
+export interface NavGroup {
+  /** Unique id used for open/closed persistence. */
+  id: string;
+  /** Group header label. If null, group renders flat (no header, not collapsible). */
+  label: string | null;
+  /** Icon for group header (Material Symbol). Only used when label is set. */
+  icon?: string;
+  /** If true, group is collapsible. Flat groups ignore this. */
+  collapsible?: boolean;
+  /** Default open state for collapsible groups. */
+  defaultOpen?: boolean;
+  items: NavItem[];
+}
+
+export const NAV_SECTIONS: NavGroup[] = [
+  // ── Top: always visible ────────────────────────────────────────────
+  {
+    id: "top",
+    label: null,
+    items: [
+      { id: "onboarding", label: "אפיון הלקוח", href: "/onboarding", icon: "assignment" },
+      { id: "dashboard",  label: "תמונת מצב",   href: "/dashboard",  icon: "dashboard" },
+    ],
+  },
+
+  // ── Group 1: תזרים חודשי ──────────────────────────────────────────
+  {
+    id: "cashflow",
+    label: "תזרים חודשי",
+    icon: "trending_up",
+    collapsible: true,
+    defaultOpen: true,
+    items: [
+      { id: "budget",   label: "תזרים חודשי",   href: "/budget",   icon: "pie_chart" },
+      { id: "deposits", label: "הפקדות חודשיות", href: "/deposits", icon: "savings" },
+      { id: "balance",  label: "מאזן ומסמכים",   href: "/balance",  icon: "account_balance_wallet" },
+    ],
+  },
+
+  // ── Group 2: נכסים והלוואות ───────────────────────────────────────
+  {
+    id: "assets",
+    label: "נכסים והלוואות",
+    icon: "inventory_2",
+    collapsible: true,
+    defaultOpen: true,
+    items: [
+      { id: "investments", label: "שוק ההון",       href: "/investments", icon: "candlestick_chart" },
+      { id: "equity",      label: "Equity (RSU/ESPP)", href: "/equity",    icon: "stacked_bar_chart" },
+      { id: "pension",     label: "פנסיה ופרישה",   href: "/pension",     icon: "elderly" },
+      { id: "realestate",  label: "נדל״ן",          href: "/realestate",  icon: "home_work" },
+      { id: "debt",        label: "חובות והלוואות", href: "/debt",        icon: "credit_score" },
+      { id: "insurance",   label: "ניהול סיכונים",  href: "/insurance",   icon: "shield" },
+    ],
+  },
+
+  // ── Group 3: תכנון עתידי ───────────────────────────────────────────
+  {
+    id: "future",
+    label: "תכנון עתידי",
+    icon: "rocket_launch",
+    collapsible: true,
+    defaultOpen: true,
+    items: [
+      { id: "goals",      label: "מטרות וחזון",     href: "/goals",      icon: "flag" },
+      { id: "retirement", label: "תכנון פרישה",    href: "/retirement", icon: "beach_access" },
+      { id: "plan",       label: "תוכנית פעולה",   href: "/plan",       icon: "checklist" },
+    ],
+  },
+
+  // ── Bottom: כלים ──────────────────────────────────────────────────
+  {
+    id: "tools",
+    label: null,
+    items: [
+      { id: "tools", label: "מחשבונים", href: "/tools", icon: "calculate" },
+    ],
+  },
 ];
+
+/** Flat list for iteration (e.g. "next/prev" navigation). */
+export const NAV_CLIENT: NavItem[] = NAV_SECTIONS.flatMap(s => s.items);

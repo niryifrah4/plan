@@ -93,9 +93,9 @@ export function MiluimCalc() {
 
 function MetricBox({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="p-3 rounded-lg border v-divider text-right" style={accent ? { background: "#0a7a4a11", borderColor: "#0a7a4a" } : undefined}>
+    <div className="p-3 rounded-lg border v-divider text-right" style={accent ? { background: "#1B433211", borderColor: "#1B4332" } : undefined}>
       <div className="text-[10px] uppercase tracking-[0.15em] text-verdant-muted font-bold mb-1">{label}</div>
-      <div className="text-lg font-extrabold tabular" style={accent ? { color: "#0a7a4a" } : undefined}>{value}</div>
+      <div className="text-lg font-extrabold tabular" style={accent ? { color: "#1B4332" } : undefined}>{value}</div>
     </div>
   );
 }

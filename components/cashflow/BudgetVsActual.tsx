@@ -15,7 +15,7 @@ import { buildBudgetLines, totalBudget, updateBudgetAmount, type BudgetLine } fr
 import { computeImpact, loadImpactGoals } from "@/lib/impact-engine";
 
 const STATUS_COLOR = {
-  safe: "#0a7a4a",
+  safe: "#1B4332",
   warning: "#b45309",
   over: "#b91c1c",
 };
@@ -60,7 +60,7 @@ export function BudgetVsActual() {
         </div>
         <div className="text-left">
           <div className="text-[10px] uppercase tracking-[0.15em] font-bold text-verdant-muted">סה״כ נוצל</div>
-          <div className="text-2xl font-extrabold tabular" style={{ color: totalPct >= 1 ? "#b91c1c" : totalPct >= 0.8 ? "#b45309" : "#0a7a4a" }}>
+          <div className="text-2xl font-extrabold tabular" style={{ color: totalPct >= 1 ? "#b91c1c" : totalPct >= 0.8 ? "#b45309" : "#1B4332" }}>
             {fmtILS(totals.actual)}
           </div>
           <div className="text-[11px] font-bold text-verdant-muted">
@@ -78,7 +78,7 @@ export function BudgetVsActual() {
               width: `${Math.min(100, totalPct * 100)}%`,
               background: totalPct >= 1 ? "linear-gradient(90deg,#b91c1c,#dc2626)"
                 : totalPct >= 0.8 ? "linear-gradient(90deg,#b45309,#f59e0b)"
-                : "linear-gradient(90deg,#0a7a4a,#10b981)",
+                : "linear-gradient(90deg,#1B4332,#2B694D)",
             }}
           />
         </div>
@@ -143,7 +143,7 @@ export function BudgetVsActual() {
                   </div>
                   <div className="text-center">
                     <div className="text-[9px] uppercase tracking-[0.1em] text-verdant-muted">נותר</div>
-                    <div style={{ color: line.remaining >= 0 ? "#0a7a4a" : "#b91c1c" }}>
+                    <div style={{ color: line.remaining >= 0 ? "#1B4332" : "#b91c1c" }}>
                       {line.remaining >= 0 ? fmtILS(line.remaining) : `-${fmtILS(Math.abs(line.remaining))}`}
                     </div>
                   </div>
@@ -161,7 +161,7 @@ export function BudgetVsActual() {
               {/* Moral Compass: Impact on life goal */}
               {impact && impact.goal && (
                 <Link
-                  href={"/vision" as any}
+                  href={"/goals" as any}
                   className="flex items-center gap-2 mt-2.5 text-[10px] font-bold hover:opacity-80 transition-opacity"
                   style={{ color }}
                 >
@@ -177,7 +177,7 @@ export function BudgetVsActual() {
       {/* Moral compass footer */}
       {goals.length === 0 && (
         <div className="mt-5 text-[11px] font-bold text-verdant-muted text-center p-3 rounded-xl" style={{ background: "#f9faf2" }}>
-          הגדר יעדים ב-<Link href={"/vision" as any} className="underline" style={{ color: "#0a7a4a" }}>עמוד המטרות</Link> כדי לראות איך כל חריגה משפיעה על החלומות שלך
+          הגדר יעדים ב-<Link href={"/goals" as any} className="underline" style={{ color: "#1B4332" }}>עמוד המטרות</Link> כדי לראות איך כל חריגה משפיעה על החלומות שלך
         </div>
       )}
     </div>

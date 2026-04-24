@@ -92,10 +92,12 @@ export function computeImpact(
  * Read goals from localStorage (same key as vision page).
  * Returns empty array if not available (SSR-safe).
  */
+import { scopedKey } from "./client-scope";
+
 export function loadImpactGoals(): ImpactGoal[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem("verdant:vision_goals");
+    const raw = localStorage.getItem(scopedKey("verdant:vision_goals"));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
@@ -129,5 +131,7 @@ export const CATEGORY_LABELS_HE: Record<string, string> = {
   shopping: "קניות",
   dining_out: "אוכל בחוץ ובילויים",
   subscriptions: "מנויים",
+  home_maintenance: "תחזוקת בית",
+  misc: "שונות",
   other: "אחר",
 };

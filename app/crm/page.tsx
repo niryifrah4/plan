@@ -7,6 +7,7 @@ import { fmtILS } from "@/lib/format";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import { SaveIndicator } from "@/components/SaveIndicator";
+import { InviteClientButton } from "@/components/crm/InviteClientButton";
 
 /* ═══════════════════════════════════════════════════════════════════
    Types
@@ -45,25 +46,28 @@ interface Client {
   monthlyRevenue: number;
   riskProfile: string;
   convertedFromLead?: string;
+  householdId?: string; // Real Supabase household UUID (when synced from DB)
+  email?: string;  // Primary contact email — inherited from lead on conversion
+  phone?: string;  // Primary contact phone — inherited from lead on conversion
 }
 
 /* ═══════════════════════════════════════════════════════════════════
    Static maps
    ═══════════════════════════════════════════════════════════════════ */
 const STATUS_META: Record<LeadStatus, { label: string; color: string; bg: string; icon: string }> = {
-  new:           { label: "חדש",         color: "#10b981", bg: "#10b98118", icon: "fiber_new" },
+  new:           { label: "חדש",         color: "#2B694D", bg: "#2B694D18", icon: "fiber_new" },
   in_progress:   { label: "בטיפול",      color: "#3b82f6", bg: "#3b82f618", icon: "pending" },
   not_relevant:  { label: "לא רלוונטי", color: "#9ca3af", bg: "#9ca3af18", icon: "block" },
-  converted:     { label: "הומר ללקוח", color: "#0a7a4a", bg: "#0a7a4a18", icon: "check_circle" },
+  converted:     { label: "הומר ללקוח", color: "#1B4332", bg: "#1B433218", icon: "check_circle" },
 };
 
 const SOURCE_META: Record<string, { icon: string; color: string }> = {
   "פייסבוק":      { icon: "share",          color: "#1877F2" },
-  "הפניה":        { icon: "person",         color: "#0a7a4a" },
+  "הפניה":        { icon: "person",         color: "#1B4332" },
   "אתר":          { icon: "language",       color: "#5a7a6a" },
   "לינקדאין":     { icon: "work",           color: "#0A66C2" },
   "אינסטגרם":     { icon: "photo_camera",   color: "#E1306C" },
-  "דף נחיתה":     { icon: "web",            color: "#7c3aed" },
+  "דף נחיתה":     { icon: "web",            color: "#1B4332" },
   "שאלון פיננסי": { icon: "quiz",           color: "#f59e0b" },
 };
 
@@ -83,37 +87,11 @@ interface Meeting {
   date: string; time: string; client: string; type: string; duration: number; color: string;
 }
 
-const ALL_MEETINGS: Meeting[] = [
-  { date: "2026-04-06", time: "09:30", client: "משפחת כהן",    type: "בניית תוכנית", duration: 60, color: "#0a7a4a" },
-  { date: "2026-04-06", time: "11:00", client: "רונית כהן",    type: "אבחון",        duration: 45, color: "#10b981" },
-  { date: "2026-04-06", time: "14:00", client: "משפחת אברהם", type: "בניית תוכנית", duration: 90, color: "#0a7a4a" },
-  { date: "2026-04-06", time: "16:30", client: "משפחת לוי",    type: "פרישה",        duration: 60, color: "#012d1d" },
-  { date: "2026-04-07", time: "10:00", client: "שרה אלון",     type: "היכרות",       duration: 45, color: "#10b981" },
-  { date: "2026-04-07", time: "14:30", client: "משפחת גולן",   type: "סקירה רבעונית", duration: 60, color: "#0a7a4a" },
-  { date: "2026-04-09", time: "11:00", client: "דוד ברק",      type: "אבחון",        duration: 60, color: "#10b981" },
-  { date: "2026-04-11", time: "09:00", client: "משפחת יפרח",   type: "עדכון שנתי",   duration: 90, color: "#012d1d" },
-  { date: "2026-04-11", time: "13:00", client: "אבי לוי",      type: "היכרות",       duration: 45, color: "#10b981" },
-  { date: "2026-04-11", time: "16:00", client: "משפחת כהן",    type: "מעקב",         duration: 30, color: "#0a7a4a" },
-  { date: "2026-04-14", time: "10:00", client: "משפחת אברהם", type: "הגשת תוכנית",  duration: 90, color: "#012d1d" },
-  { date: "2026-04-16", time: "11:00", client: "נועה פרידמן",  type: "אפיון ראשוני", duration: 60, color: "#10b981" },
-  { date: "2026-04-20", time: "09:30", client: "משפחת גולן",   type: "סגירת רבעון",  duration: 60, color: "#0a7a4a" },
-  { date: "2026-04-23", time: "14:00", client: "משפחת לוי",    type: "מעקב",         duration: 45, color: "#0a7a4a" },
-  { date: "2026-04-28", time: "10:00", client: "משפחת יפרח",   type: "בקרה חודשית",  duration: 60, color: "#012d1d" },
-];
+const ALL_MEETINGS: Meeting[] = [];
 
 interface AdvisorTask { id: number; text: string; client: string | null; dueDate: string; urgent: boolean; done: boolean; }
 
-const INITIAL_ADVISOR_TASKS: AdvisorTask[] = [
-  { id: 1, text: "הפקת דוח מסלקה",                client: "משפחת כהן",    dueDate: "2026-04-06", urgent: true,  done: false },
-  { id: 2, text: "פולואו-אפ: ליד חדש מפייסבוק",   client: "רונית כהן",    dueDate: "2026-04-06", urgent: true,  done: false },
-  { id: 3, text: "הכנת תוכנית עבודה",              client: "משפחת אברהם", dueDate: "2026-04-06", urgent: false, done: false },
-  { id: 4, text: "עדכון דוחות חודשיים",             client: null,           dueDate: "2026-04-06", urgent: false, done: true },
-  { id: 5, text: "תגובה ללידים של סוף שבוע",       client: null,           dueDate: "2026-04-06", urgent: false, done: false },
-  { id: 6, text: "הכנת מצגת סקירה רבעונית",        client: "משפחת גולן",   dueDate: "2026-04-07", urgent: false, done: false },
-  { id: 7, text: "בדיקת פוליסות ביטוח",             client: "משפחת יפרח",   dueDate: "2026-04-08", urgent: true,  done: false },
-  { id: 8, text: "שליחת הצעת מחיר",                client: "דוד ברק",      dueDate: "2026-04-09", urgent: false, done: false },
-  { id: 9, text: "עדכון CRM — סטטוסים שבועיים",    client: null,           dueDate: "2026-04-11", urgent: false, done: false },
-];
+const INITIAL_ADVISOR_TASKS: AdvisorTask[] = [];
 
 const HE_DAY_SHORT = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
 const HE_MONTHS_FULL = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"];
@@ -162,6 +140,8 @@ export default function CrmPage() {
 
   /* ── Persisted State (survives refresh) ── */
   const [tab, setTab] = useState<CrmTab>("leads");
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
   const [leads, setLeads, leadsSaving] = usePersistedState<Lead[]>("verdant:leads", INITIAL_LEADS);
   const [clients, setClients, clientsSaving] = usePersistedState<Client[]>("verdant:clients", INITIAL_CLIENTS);
   const [filterStatus, setFilterStatus] = useState<LeadStatus | "all">("all");
@@ -225,10 +205,14 @@ export default function CrmPage() {
   const tasksTotal = todayTasks.length;
   function toggleAdvisorTask(id: number) { setAdvisorTasks((p) => p.map((t) => (t.id === id ? { ...t, done: !t.done } : t))); }
 
-  /* ── Greeting ── */
-  const hour = new Date().getHours();
-  const greet = hour < 12 ? "בוקר טוב" : hour < 17 ? "צהריים טובים" : hour < 20 ? "ערב טוב" : "לילה טוב";
-  const today = new Date().toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  /* ── Greeting (client-only to avoid hydration mismatch) ── */
+  const [greet, setGreet] = useState("");
+  const [today, setToday] = useState("");
+  useEffect(() => {
+    const h = new Date().getHours();
+    setGreet(h < 12 ? "בוקר טוב" : h < 17 ? "צהריים טובים" : h < 20 ? "ערב טוב" : "לילה טוב");
+    setToday(new Date().toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
+  }, []);
 
   /* ── KPI Calculations ── */
   const newLeadsThisMonth = useMemo(() => leads.filter((l) => isWithinDays(l.createdAt, 30)).length, [leads]);
@@ -402,6 +386,55 @@ export default function CrmPage() {
         }).catch(() => {});
       }
     }).catch(() => {});
+
+    // Refetch trigger — dispatched by InviteClientButton after a successful invite
+    // so the new household appears immediately.
+    const onRefetch = () => {
+      fetch("/api/crm/clients").then((r) => r.json()).then((data) => {
+        if (!Array.isArray(data.households)) return;
+        const monthStr = (iso: string) => {
+          const d = new Date(iso);
+          return `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+        };
+        const rows: Client[] = (data.households as Array<{ id: string; family_name: string; members_count: number; stage: string; created_at: string }>).map((h, i) => ({
+          id: i + 1, family: h.family_name || "משפחה", step: h.stage === "onboarding" ? 0 : 3,
+          totalSteps: 3, netWorth: 0, trend: "—", members: h.members_count || 1,
+          joined: monthStr(h.created_at), docsUploaded: 0, docsTotal: 10,
+          monthlyRevenue: 0, riskProfile: "—", householdId: h.id,
+        }));
+        setClients(rows);
+      }).catch(() => {});
+    };
+    window.addEventListener("verdant:clients:refetch", onRefetch);
+
+    // Load real client households from Supabase — REPLACE the clients list entirely.
+    // No merging with legacy localStorage rows (those have no householdId and would
+    // break "כניסה לתיק" impersonation). Only DB households are the source of truth.
+    fetch("/api/crm/clients").then((r) => r.json()).then((data) => {
+      if (!Array.isArray(data.households)) return;
+      const monthStr = (iso: string) => {
+        const d = new Date(iso);
+        return `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+      };
+      const rows: Client[] = (data.households as Array<{ id: string; family_name: string; members_count: number; stage: string; created_at: string }>).map((h, i) => ({
+        id: i + 1,
+        family: h.family_name || "משפחה",
+        step: h.stage === "onboarding" ? 0 : 3,
+        totalSteps: 3,
+        netWorth: 0,
+        trend: "—",
+        members: h.members_count || 1,
+        joined: monthStr(h.created_at),
+        docsUploaded: 0,
+        docsTotal: 10,
+        monthlyRevenue: 0,
+        riskProfile: "—",
+        householdId: h.id,
+      }));
+      setClients(rows);
+    }).catch(() => {});
+
+    return () => { window.removeEventListener("verdant:clients:refetch", onRefetch); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -414,6 +447,7 @@ export default function CrmPage() {
       id: newId, family: selectedLead.name, step: 0, totalSteps: 3, netWorth: 0,
       trend: "—", members: 1, joined: monthStr, docsUploaded: 0, docsTotal: 10,
       monthlyRevenue: 0, riskProfile: "—", convertedFromLead: selectedLead.name,
+      email: selectedLead.email, phone: selectedLead.phone,
     };
     setClients((prev) => [...prev, newClient]);
     // Also persist current client ID for the client layout to pick up
@@ -427,112 +461,129 @@ export default function CrmPage() {
      RENDER
      ═══════════════════════════════════════════════════════════════════ */
   return (
-    <main className="min-h-screen px-6 py-8 relative" style={{ background: "var(--verdant-bg)" }}>
+    <main dir="rtl" className="min-h-screen px-6 py-8 relative" style={{ background: "var(--verdant-bg)" }}>
       <div className="max-w-7xl mx-auto">
 
         {/* ═══════ Header ═══════ */}
-        <header className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.push("/login")}
-              className="flex items-center gap-1.5 text-sm font-bold text-verdant-muted hover:text-red-600 transition-colors"
-            >
-              <span className="material-symbols-outlined text-[18px]">logout</span>
-              התנתקות
-            </button>
-          </div>
+        <header className="flex items-start justify-between mb-8 gap-4">
           <div className="text-right">
             <div className="flex items-baseline gap-2 justify-end">
-              <span className="text-[10px] uppercase tracking-[0.25em] text-verdant-muted font-bold">CRM · מרכז ניהול</span>
-              <span className="text-xl font-extrabold text-verdant-ink">plan</span>
-              <span className="text-[10px] uppercase tracking-[0.2em] text-verdant-emerald font-bold">Verdant</span>
+              <span className="text-[11px] uppercase tracking-[0.2em] text-verdant-emerald font-bold">CRM · מרכז ניהול</span>
+              <span className="text-2xl font-extrabold text-verdant-ink">פלאן</span>
             </div>
-            <h1 className="text-2xl font-extrabold text-verdant-ink mt-1">שלום, ניר — {greet}</h1>
-            <p className="text-xs text-verdant-muted mt-0.5">{today}</p>
+            <h1 className="text-3xl font-extrabold text-verdant-ink mt-1">שלום, ניר — {greet}</h1>
+            <p className="text-sm text-verdant-muted mt-0.5">{today}</p>
+          </div>
+          {/* Actions cluster — top-left */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {!gcalConnected ? (
+              <button
+                onClick={handleGcalConnect}
+                disabled={gcalLoading}
+                title="חבר יומן גוגל"
+                className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-2xl text-[12px] font-bold transition-all disabled:opacity-60"
+                style={{ background: "#F3F4EC", color: "#1B4332" }}
+              >
+                <span className={`material-symbols-outlined text-[16px] ${gcalLoading ? "animate-spin" : ""}`} style={{ color: "#2B694D" }}>
+                  {gcalLoading ? "progress_activity" : "calendar_month"}
+                </span>
+                {gcalLoading ? "מתחבר..." : "חבר יומן"}
+              </button>
+            ) : (
+              <button
+                onClick={handleGcalDisconnect}
+                title={`יומן מחובר${gcalEvents.length ? ` · ${gcalEvents.length} אירועים` : ""} · לחץ לניתוק`}
+                className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-2xl text-[12px] font-bold transition-all"
+                style={{ background: "#ECF7EF", color: "#1B4332" }}
+              >
+                <span className="material-symbols-outlined text-[16px]" style={{ color: "#2B694D" }}>check_circle</span>
+                יומן מחובר
+                {gcalEvents.length > 0 && (
+                  <span className="tabular text-[10px] opacity-70">· {gcalEvents.length}</span>
+                )}
+              </button>
+            )}
+            <button
+              onClick={() => router.push("/login")}
+              title="התנתקות"
+              className="w-10 h-10 rounded-2xl flex items-center justify-center transition-all hover:bg-red-50 hover:text-red-600 text-verdant-muted"
+              style={{ background: "#F3F4EC" }}
+            >
+              <span className="material-symbols-outlined text-[20px]">logout</span>
+            </button>
           </div>
         </header>
 
-        {/* ═══════ Google Calendar Connect Banner ═══════ */}
-        <section className="mb-6">
-          {!gcalConnected ? (
-            <button
-              onClick={handleGcalConnect}
-              disabled={gcalLoading}
-              className="w-full v-card p-4 flex items-center justify-between gap-4 hover:border-verdant-emerald transition-all group"
-            >
-              <div className="flex items-center gap-3">
-                {gcalLoading ? (
-                  <span className="material-symbols-outlined text-[22px] text-verdant-emerald animate-spin">progress_activity</span>
-                ) : (
-                  <span className="material-symbols-outlined text-[22px] text-verdant-emerald opacity-60 group-hover:opacity-100 transition-opacity">calendar_month</span>
-                )}
-                <span className="text-sm font-bold text-verdant-muted">
-                  {gcalLoading ? "מתחבר ליומן גוגל..." : "חבר יומן גוגל"}
-                </span>
-              </div>
-              <div className="text-right">
-                <span className="text-[10px] uppercase tracking-[0.2em] text-verdant-muted font-bold">Google Calendar · סנכרון</span>
-              </div>
-            </button>
-          ) : (
-            <div className="w-full v-card p-4 flex items-center justify-between gap-4" style={{ borderColor: "#10b981" }}>
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-[22px] text-verdant-emerald">check_circle</span>
-                <span className="text-sm font-bold text-verdant-accent">יומן מחובר</span>
-                {gcalEvents.length > 0 && (
-                  <span className="text-[10px] font-bold text-verdant-muted tabular">· {gcalEvents.length} אירועים מסונכרנים</span>
-                )}
-                <button
-                  onClick={handleGcalDisconnect}
-                  className="text-[10px] font-bold text-verdant-muted hover:text-red-500 transition-colors mr-2"
-                >
-                  נתק
-                </button>
-              </div>
-              <div className="text-right">
-                <span className="text-[10px] uppercase tracking-[0.2em] text-verdant-muted font-bold">Google Calendar · מסונכרן</span>
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* ═══════ KPI Row — 3 equal cards ═══════ */}
+        {/* ═══════ KPI Row — 3 colored tiles ═══════ */}
         <section className="grid grid-cols-3 gap-5 mb-8">
-          <div className="v-card p-6 flex flex-col justify-between min-h-[140px] group hover:border-verdant-emerald transition-all">
+          {/* Leads — mint */}
+          <div
+            className="p-5 flex flex-col justify-between min-h-[140px] transition-all hover:-translate-y-0.5"
+            style={{
+              background: "#D6EFDC",
+              color: "#012D1D",
+              borderRadius: "1rem",
+              boxShadow: "0 1px 2px rgba(27,67,50,0.06)",
+            }}
+          >
             <div className="flex items-center justify-between">
-              <span className="material-symbols-outlined text-verdant-emerald text-[22px] opacity-50 group-hover:opacity-100 transition-opacity">person_add</span>
-              <div className="text-[10px] uppercase tracking-[0.2em] text-verdant-muted font-bold text-right">מתעניינים חדשים החודש</div>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(27,67,50,0.12)", color: "#1B4332" }}>
+                <span className="material-symbols-outlined text-[22px]">person_add</span>
+              </div>
+              <div className="text-[10px] uppercase tracking-[0.2em] font-bold text-right" style={{ color: "rgba(1,45,29,0.55)" }}>מתעניינים חדשים החודש</div>
             </div>
             <div className="flex items-baseline gap-2 justify-end mt-auto pt-3">
-              <span className="text-[11px] font-bold text-verdant-muted">ב-30 יום</span>
-              <span className="text-4xl font-extrabold text-verdant-ink tabular">{newLeadsThisMonth}</span>
+              <span className="text-[11px] font-bold" style={{ color: "rgba(1,45,29,0.65)" }}>ב-30 יום</span>
+              <span className="text-4xl font-extrabold tabular" style={{ color: "#012D1D" }}>{newLeadsThisMonth}</span>
             </div>
           </div>
 
-          <div className="v-card p-6 flex flex-col justify-between min-h-[140px] group hover:border-verdant-emerald transition-all">
+          {/* Conversions — sage-cream tint */}
+          <div
+            className="p-5 flex flex-col justify-between min-h-[140px] transition-all hover:-translate-y-0.5"
+            style={{
+              background: "#E7EFDD",
+              color: "#012D1D",
+              borderRadius: "1rem",
+              boxShadow: "0 1px 2px rgba(27,67,50,0.06)",
+            }}
+          >
             <div className="flex items-center justify-between">
-              <span className="material-symbols-outlined text-verdant-emerald text-[22px] opacity-50 group-hover:opacity-100 transition-opacity">how_to_reg</span>
-              <div className="text-[10px] uppercase tracking-[0.2em] text-verdant-muted font-bold text-right">סגירות (המרה ללקוח)</div>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(27,67,50,0.12)", color: "#1B4332" }}>
+                <span className="material-symbols-outlined text-[22px]">how_to_reg</span>
+              </div>
+              <div className="text-[10px] uppercase tracking-[0.2em] font-bold text-right" style={{ color: "rgba(1,45,29,0.55)" }}>סגירות (המרה ללקוח)</div>
             </div>
             <div className="flex items-baseline gap-2 justify-end mt-auto pt-3">
-              <span className="text-[11px] font-bold text-verdant-muted">החודש</span>
-              <span className="text-4xl font-extrabold text-verdant-ink tabular">{conversionsThisMonth}</span>
+              <span className="text-[11px] font-bold" style={{ color: "rgba(1,45,29,0.65)" }}>החודש</span>
+              <span className="text-4xl font-extrabold tabular" style={{ color: "#012D1D" }}>{conversionsThisMonth}</span>
             </div>
           </div>
 
-          <div className="v-card p-6 flex flex-col justify-between min-h-[140px] group hover:border-verdant-emerald transition-all">
+          {/* Conversion rate — forest hero */}
+          <div
+            className="p-5 flex flex-col justify-between min-h-[140px] transition-all hover:-translate-y-0.5"
+            style={{
+              background: "#012D1D",
+              color: "#FFFFFF",
+              borderRadius: "1rem",
+              boxShadow: "0 1px 2px rgba(27,67,50,0.12)",
+            }}
+          >
             <div className="flex items-center justify-between">
-              <span className="material-symbols-outlined text-verdant-emerald text-[22px] opacity-50 group-hover:opacity-100 transition-opacity">trending_up</span>
-              <div className="text-[10px] uppercase tracking-[0.2em] text-verdant-muted font-bold text-right">אחוז סגירה</div>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(193,236,212,0.18)", color: "#C1ECD4" }}>
+                <span className="material-symbols-outlined text-[22px]">trending_up</span>
+              </div>
+              <div className="text-[10px] uppercase tracking-[0.2em] font-bold text-right" style={{ color: "rgba(255,255,255,0.60)" }}>אחוז סגירה</div>
             </div>
             <div className="flex items-baseline gap-2 justify-end mt-auto pt-3">
-              <span className="text-[11px] font-bold text-verdant-muted">Converted / Total</span>
-              <span className="text-4xl font-extrabold tabular" style={{ color: conversionRate >= 20 ? "#0a7a4a" : conversionRate >= 10 ? "#f59e0b" : "#b91c1c" }}>
+              <span className="text-[11px] font-bold" style={{ color: "rgba(255,255,255,0.65)" }}>Converted / Total</span>
+              <span className="text-4xl font-extrabold tabular" style={{ color: conversionRate >= 20 ? "#C1ECD4" : conversionRate >= 10 ? "#FCD34D" : "#FCA5A5" }}>
                 {conversionRate}%
               </span>
             </div>
-            <div className="h-1.5 rounded-full overflow-hidden mt-2" style={{ background: "#eef2e8" }}>
-              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(conversionRate, 100)}%`, background: conversionRate >= 20 ? "#0a7a4a" : conversionRate >= 10 ? "#f59e0b" : "#b91c1c" }} />
+            <div className="h-1.5 rounded-full overflow-hidden mt-2" style={{ background: "rgba(255,255,255,0.15)" }}>
+              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(conversionRate, 100)}%`, background: conversionRate >= 20 ? "#C1ECD4" : conversionRate >= 10 ? "#FCD34D" : "#FCA5A5" }} />
             </div>
           </div>
         </section>
@@ -540,7 +591,7 @@ export default function CrmPage() {
         {/* ═══════ Command Center: Calendar + Daily Tasks ═══════ */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8 items-stretch">
           {/* ── Calendar Card ── */}
-          <div className="v-card p-6 flex flex-col">
+          <div className="card-pad flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <div className="text-right">
                 <div className="text-[10px] uppercase tracking-[0.2em] text-verdant-muted font-bold mb-0.5">Calendar · יומן פגישות</div>
@@ -597,7 +648,7 @@ export default function CrmPage() {
                             ))}</div>
                         }
                       </div>
-                      {dm.length > 0 && <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full tabular" style={{ background: isT ? "rgba(16,185,129,0.3)" : "#0a7a4a18", color: isT ? "#10b981" : "#0a7a4a" }}>{dm.length}</span>}
+                      {dm.length > 0 && <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full tabular" style={{ background: isT ? "rgba(16,185,129,0.3)" : "#1B433218", color: isT ? "#2B694D" : "#1B4332" }}>{dm.length}</span>}
                     </div>
                   );
                 })}
@@ -615,7 +666,7 @@ export default function CrmPage() {
                     return (
                       <div key={iso} className="flex flex-col items-center py-1 rounded-md" style={{ background: isT ? "#012d1d" : cnt > 0 ? "#f4f7ed" : "transparent" }}>
                         <span className={`text-[11px] font-extrabold tabular ${isT ? "text-white" : "text-verdant-ink"}`}>{cell.getDate()}</span>
-                        {cnt > 0 && <div className="flex gap-0.5 mt-0.5">{Array.from({ length: Math.min(cnt, 3) }).map((_, j) => <span key={j} className="w-1 h-1 rounded-full" style={{ background: isT ? "#10b981" : "#0a7a4a" }} />)}{cnt > 3 && <span className="text-[7px] font-bold" style={{ color: isT ? "#10b981" : "#0a7a4a" }}>+</span>}</div>}
+                        {cnt > 0 && <div className="flex gap-0.5 mt-0.5">{Array.from({ length: Math.min(cnt, 3) }).map((_, j) => <span key={j} className="w-1 h-1 rounded-full" style={{ background: isT ? "#2B694D" : "#1B4332" }} />)}{cnt > 3 && <span className="text-[7px] font-bold" style={{ color: isT ? "#2B694D" : "#1B4332" }}>+</span>}</div>}
                       </div>
                     );
                   })}
@@ -629,35 +680,41 @@ export default function CrmPage() {
           </div>
 
           {/* ── Daily Tasks Card ── */}
-          <div className="v-card p-6 flex flex-col">
+          <div className="card-pad flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <div className="text-right">
                 <div className="text-[10px] uppercase tracking-[0.2em] text-verdant-muted font-bold mb-0.5">Daily Tasks · סדר יום</div>
                 <h3 className="text-base font-extrabold text-verdant-ink">משימות להיום</h3>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-extrabold tabular" style={{ color: tasksDone === tasksTotal ? "#10b981" : "#5a7a6a" }}>{tasksDone}/{tasksTotal}</span>
+                <span className="text-xs font-extrabold tabular" style={{ color: tasksDone === tasksTotal ? "#2B694D" : "#5a7a6a" }}>{tasksDone}/{tasksTotal}</span>
                 <span className="material-symbols-outlined text-verdant-emerald text-[20px]">task_alt</span>
               </div>
             </div>
 
             <div className="h-1.5 rounded-full overflow-hidden mb-4" style={{ background: "#eef2e8" }}>
-              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${tasksTotal > 0 ? Math.round((tasksDone / tasksTotal) * 100) : 0}%`, background: "#10b981" }} />
+              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${tasksTotal > 0 ? Math.round((tasksDone / tasksTotal) * 100) : 0}%`, background: "#2B694D" }} />
             </div>
 
             <ul className="flex-1 divide-y v-divider">
-              {todayTasks.map((t) => (
-                <li key={t.id} className={`flex items-center gap-3 py-2.5 first:pt-0 last:pb-0 transition-opacity ${t.done ? "opacity-40" : ""}`}>
+              {todayTasks.filter(t => !t.done).map((t) => (
+                <li key={t.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
                   <button onClick={() => toggleAdvisorTask(t.id)} className="flex-shrink-0">
-                    <span className="material-symbols-outlined text-[18px]" style={{ color: t.done ? "#10b981" : "#d8e0d0" }}>{t.done ? "check_circle" : "radio_button_unchecked"}</span>
+                    <span className="material-symbols-outlined text-[18px]" style={{ color: "#d8e0d0" }}>radio_button_unchecked</span>
                   </button>
                   <div className="flex-1 text-right min-w-0">
-                    <span className={`text-sm block truncate ${t.done ? "line-through text-verdant-muted" : "text-verdant-ink"}`}>{t.text}</span>
+                    <span className="text-sm block truncate text-verdant-ink">{t.text}</span>
                     {t.client && <span className="text-[10px] font-bold text-verdant-accent inline-flex items-center gap-1 mt-0.5"><span className="material-symbols-outlined text-[11px]">person</span>{t.client}</span>}
                   </div>
-                  {t.urgent && !t.done && <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: "#b91c1c18", color: "#b91c1c" }}>דחוף</span>}
+                  {t.urgent && <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: "#b91c1c18", color: "#b91c1c" }}>דחוף</span>}
                 </li>
               ))}
+              {todayTasks.filter(t => !t.done).length === 0 && (
+                <li className="py-6 text-center text-sm text-verdant-muted">
+                  <span className="material-symbols-outlined text-[22px] block mx-auto mb-1" style={{ color: "#2B694D" }}>check_circle</span>
+                  כל המשימות הושלמו — כל הכבוד!
+                </li>
+              )}
             </ul>
           </div>
         </section>
@@ -665,8 +722,8 @@ export default function CrmPage() {
         {/* ═══════ Tab Switcher ═══════ */}
         <div className="flex items-center gap-0 mb-0 border-b v-divider">
           {([
-            { key: "leads"   as CrmTab, label: "מתעניינים",      icon: "person_search", count: activeLeads.length },
-            { key: "clients" as CrmTab, label: "לקוחות פעילים", icon: "folder_shared",  count: filteredClients.length },
+            { key: "leads"   as CrmTab, label: "מתעניינים",      icon: "person_search" },
+            { key: "clients" as CrmTab, label: "לקוחות פעילים", icon: "folder_shared" },
           ]).map((t) => (
             <button
               key={t.key}
@@ -679,15 +736,17 @@ export default function CrmPage() {
             >
               <span className="material-symbols-outlined text-[18px]">{t.icon}</span>
               {t.label}
-              <span
-                className="text-[10px] font-extrabold px-2 py-0.5 rounded-full tabular"
-                style={{
-                  background: tab === t.key ? "#0a7a4a18" : "#f4f7ed",
-                  color: tab === t.key ? "#0a7a4a" : "#5a7a6a",
-                }}
-              >
-                {t.count}
-              </span>
+              {mounted && (
+                <span
+                  className="text-[10px] font-extrabold px-2 py-0.5 rounded-full tabular"
+                  style={{
+                    background: tab === t.key ? "#1B433218" : "#f4f7ed",
+                    color: tab === t.key ? "#1B4332" : "#5a7a6a",
+                  }}
+                >
+                  {t.key === "leads" ? activeLeads.length : filteredClients.length}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -726,8 +785,7 @@ export default function CrmPage() {
                 </select>
                 <button
                   onClick={() => setShowNewLead(true)}
-                  className="text-white font-bold text-xs py-1.5 px-4 rounded-lg flex items-center gap-1.5 transition-transform hover:scale-[0.98]"
-                  style={{ background: "linear-gradient(135deg,#012d1d 0%,#0a7a4a 100%)" }}
+                  className="btn-botanical text-xs py-1.5 px-4 flex items-center gap-1.5"
                 >
                   <span className="material-symbols-outlined text-[14px]">add</span>
                   מתעניין חדש
@@ -819,9 +877,9 @@ export default function CrmPage() {
                 );
               })}
               <div className="flex items-center gap-2 mr-auto">
-                <span className="w-2 h-2 rounded-full" style={{ background: "#0a7a4a" }} />
+                <span className="w-2 h-2 rounded-full" style={{ background: "#1B4332" }} />
                 <span className="text-[11px] font-bold text-verdant-muted">הומרו</span>
-                <span className="text-[11px] font-extrabold tabular" style={{ color: "#0a7a4a" }}>{leads.filter((l) => l.status === "converted").length}</span>
+                <span className="text-[11px] font-extrabold tabular" style={{ color: "#1B4332" }}>{leads.filter((l) => l.status === "converted").length}</span>
               </div>
             </div>
           </div>
@@ -849,7 +907,8 @@ export default function CrmPage() {
                     </button>
                   )}
                 </div>
-                <span className="text-xs text-verdant-muted font-bold tabular">{filteredClients.length} תיקים פעילים</span>
+                {mounted && <span className="text-xs text-verdant-muted font-bold tabular">{filteredClients.length} תיקים פעילים</span>}
+                <InviteClientButton />
               </div>
               <div className="text-right">
                 <div className="text-[10px] uppercase tracking-[0.2em] text-verdant-muted font-bold">Client Portfolio</div>
@@ -883,7 +942,7 @@ export default function CrmPage() {
                   {filteredClients.map((c) => {
                     const docPct = c.docsTotal > 0 ? Math.round((c.docsUploaded / c.docsTotal) * 100) : 0;
                     const stepLabel = c.step === 0 ? "חדש" : `שלב ${c.step}/${c.totalSteps}`;
-                    const stepColor = c.step === 0 ? "#f59e0b" : c.step >= c.totalSteps ? "#10b981" : "#0a7a4a";
+                    const stepColor = c.step === 0 ? "#f59e0b" : c.step >= c.totalSteps ? "#2B694D" : "#1B4332";
                     return (
                       <tr key={c.id} className="border-b v-divider hover:bg-[#f9faf2] transition-colors">
                         <td className="px-5 py-3.5 text-right">
@@ -899,7 +958,7 @@ export default function CrmPage() {
                           <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full" style={{ background: `${stepColor}18`, color: stepColor }}>{stepLabel}</span>
                         </td>
                         <td className="px-4 py-3.5 tabular font-bold text-verdant-ink text-right">{c.netWorth > 0 ? fmtILS(c.netWorth) : "—"}</td>
-                        <td className="px-4 py-3.5 font-bold tabular text-right" style={{ color: c.trend.startsWith("+") ? "#0a7a4a" : c.trend.startsWith("-") ? "#b91c1c" : "#9ca3af" }}>{c.trend}</td>
+                        <td className="px-4 py-3.5 font-bold tabular text-right" style={{ color: c.trend.startsWith("+") ? "#1B4332" : c.trend.startsWith("-") ? "#b91c1c" : "#9ca3af" }}>{c.trend}</td>
                         <td className="px-4 py-3.5 text-right">
                           <span className="text-xs font-bold text-verdant-muted">{c.riskProfile}</span>
                         </td>
@@ -907,7 +966,7 @@ export default function CrmPage() {
                           <div className="flex items-center gap-2 justify-end">
                             <span className="text-[10px] font-bold text-verdant-muted tabular">{c.docsUploaded}/{c.docsTotal}</span>
                             <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: "#eef2e8" }}>
-                              <div className="h-full rounded-full" style={{ width: `${docPct}%`, background: docPct === 100 ? "#10b981" : "#f59e0b" }} />
+                              <div className="h-full rounded-full" style={{ width: `${docPct}%`, background: docPct === 100 ? "#2B694D" : "#f59e0b" }} />
                             </div>
                           </div>
                         </td>
@@ -917,13 +976,36 @@ export default function CrmPage() {
                             <Link href={`/onboarding?hh=${c.id}`} className="text-[11px] font-bold text-verdant-muted hover:text-verdant-accent transition-colors whitespace-nowrap">
                               שאלון אפיון
                             </Link>
-                            <Link
-                              href={`/dashboard?hh=${c.id}`}
-                              className="text-[11px] font-extrabold text-white px-3.5 py-1.5 rounded-lg whitespace-nowrap transition-transform hover:scale-[0.97]"
-                              style={{ background: "linear-gradient(135deg,#012d1d 0%,#0a7a4a 100%)" }}
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (c.householdId) {
+                                  try {
+                                    const res = await fetch("/api/crm/impersonate", {
+                                      method: "POST",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ householdId: c.householdId }),
+                                    });
+                                    if (!res.ok) {
+                                      setToast("❌ לא ניתן להיכנס לתיק — בדוק הרשאות");
+                                      return;
+                                    }
+                                    const target = c.step === 0 ? "/onboarding" : "/dashboard";
+                                    window.location.href = target;
+                                  } catch {
+                                    setToast("❌ שגיאת רשת בכניסה לתיק");
+                                  }
+                                } else {
+                                  // Legacy demo client without real household — open with old ?hh= param
+                                  window.location.href = `/dashboard?hh=${c.id}`;
+                                }
+                              }}
+                              className="inline-flex items-center gap-1.5 text-[11px] font-extrabold px-4 py-2 rounded-full whitespace-nowrap transition-all hover:shadow-soft active:scale-95"
+                              style={{ background: "#1B4332", color: "#F9FAF2" }}
                             >
-                              כניסה לתיק ←
-                            </Link>
+                              כניסה לתיק
+                              <span className="material-symbols-outlined text-[14px]">arrow_back</span>
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -1020,7 +1102,7 @@ export default function CrmPage() {
                 <button
                   onClick={saveDrawerEdits}
                   className="w-full text-sm font-bold py-2 rounded-lg transition-colors"
-                  style={{ background: "#0a7a4a18", color: "#0a7a4a" }}
+                  style={{ background: "#1B433218", color: "#1B4332" }}
                 >
                   שמור שינויים
                 </button>
@@ -1044,7 +1126,7 @@ export default function CrmPage() {
                       <div key={fu.id} className="flex gap-3 pb-4 last:pb-0 relative">
                         <div
                           className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center z-10 mt-0.5"
-                          style={{ background: idx === selectedLead.followUps.length - 1 ? "#0a7a4a" : "#d8e0d0" }}
+                          style={{ background: idx === selectedLead.followUps.length - 1 ? "#1B4332" : "#d8e0d0" }}
                         >
                           <span className="w-2 h-2 rounded-full" style={{ background: idx === selectedLead.followUps.length - 1 ? "#fff" : "#5a7a6a" }} />
                         </div>
@@ -1064,7 +1146,7 @@ export default function CrmPage() {
                   <button
                     type="submit"
                     className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-colors"
-                    style={{ background: "#0a7a4a18", color: "#0a7a4a" }}
+                    style={{ background: "#1B433218", color: "#1B4332" }}
                   >
                     <span className="material-symbols-outlined text-[18px]">send</span>
                   </button>
@@ -1182,8 +1264,7 @@ export default function CrmPage() {
               ) : (
                 <button
                   onClick={convertToClient}
-                  className="w-full text-white font-bold text-sm py-3 rounded-lg transition-transform hover:scale-[0.99] flex items-center justify-center gap-2"
-                  style={{ background: "linear-gradient(135deg,#012d1d 0%,#0a7a4a 100%)", boxShadow: "0 4px 15px -5px rgba(1,45,29,0.3)" }}
+                  className="btn-botanical w-full text-sm flex items-center justify-center gap-2"
                 >
                   <span className="material-symbols-outlined text-[18px]">person_add</span>
                   המר ללקוח ופתח אפיון
@@ -1201,7 +1282,7 @@ export default function CrmPage() {
       {toast && (
         <div
           className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-6 py-3 rounded-xl shadow-lg text-sm font-bold text-white animate-[fadeInUp_0.3s_ease-out]"
-          style={{ background: "linear-gradient(135deg,#012d1d 0%,#0a7a4a 100%)" }}
+          style={{ background: "linear-gradient(135deg,#012d1d 0%,#1B4332 100%)" }}
         >
           {toast}
         </div>
@@ -1211,7 +1292,7 @@ export default function CrmPage() {
       {showNewLead && (
         <>
           <div className="fixed inset-0 bg-black/30 z-[55]" onClick={() => setShowNewLead(false)} />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[56] w-[460px] max-w-[92vw] bg-white rounded-2xl shadow-2xl overflow-hidden" dir="rtl">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[56] w-[460px] max-w-[92vw] bg-white rounded-organic shadow-soft overflow-hidden" dir="rtl">
             {/* Modal Header */}
             <div className="px-6 py-5 border-b v-divider flex items-center justify-between" style={{ background: "#f4f7ed" }}>
               <h3 className="text-lg font-extrabold text-verdant-ink">מתעניין חדש</h3>
@@ -1285,8 +1366,7 @@ export default function CrmPage() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 text-white font-bold text-sm py-3 rounded-lg flex items-center justify-center gap-2 transition-transform hover:scale-[0.99]"
-                  style={{ background: "linear-gradient(135deg,#012d1d 0%,#0a7a4a 100%)", boxShadow: "0 4px 15px -5px rgba(1,45,29,0.3)" }}
+                  className="btn-botanical flex-1 text-sm flex items-center justify-center gap-2"
                 >
                   <span className="material-symbols-outlined text-[18px]">person_add</span>
                   הוסף מתעניין
@@ -1294,8 +1374,7 @@ export default function CrmPage() {
                 <button
                   type="button"
                   onClick={() => setShowNewLead(false)}
-                  className="px-5 text-sm font-bold py-3 rounded-lg text-verdant-muted transition-colors hover:bg-gray-100"
-                  style={{ background: "#f4f7ed" }}
+                  className="btn-botanical-ghost text-sm"
                 >
                   ביטול
                 </button>

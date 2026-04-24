@@ -47,7 +47,7 @@ export function GrowthChart({ currentNetWorth, growthRate = 0.06, histDecayRate 
             const x = i * (bw + gap);
             const h = Math.max(2, (Math.abs(b.value) / maxV) * (H - 10));
             const y = H - h;
-            const fill = b.type === "hist" ? "#a7c5b5" : b.type === "now" ? "#012d1d" : "#10b981";
+            const fill = b.type === "hist" ? "#a7c5b5" : b.type === "now" ? "#012d1d" : "#2B694D";
             const opacity = b.type === "fwd" ? 0.55 : 1;
             return <rect key={i} x={x} y={y} width={bw} height={h} fill={fill} opacity={opacity} rx={3} />;
           })}

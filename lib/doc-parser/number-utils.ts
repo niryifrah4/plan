@@ -119,17 +119,33 @@ export function parseILDate(raw: string): string {
   // Already ISO
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
 
-  // dd/mm/yyyy or dd-mm-yyyy or dd.mm.yyyy
+  // dd/mm/yyyy or dd-mm-yyyy or dd.mm.yyyy (also handles M/D/YY from Discount)
   const match = s.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})$/);
   if (match) {
-    const day = match[1].padStart(2, "0");
-    const month = match[2].padStart(2, "0");
+    let day = match[1].padStart(2, "0");
+    let month = match[2].padStart(2, "0");
     let year = match[3];
+
+    // If second number > 12, it can't be a month → assume M/D/YY format
+    if (parseInt(month) > 12 && parseInt(day) <= 12) {
+      [day, month] = [month, day];
+    }
     if (year.length === 2) {
       const y = parseInt(year);
       year = (y >= 50 ? "19" : "20") + year;
     }
     return `${year}-${month}-${day}`;
+  }
+
+  // Excel serial date number (e.g., 45358 = 2024-03-15)
+  const numVal = parseFloat(s);
+  if (!isNaN(numVal) && numVal > 30000 && numVal < 60000) {
+    const epoch = new Date(1899, 11, 30);
+    const date = new Date(epoch.getTime() + numVal * 86400000);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
   }
 
   return s; // fallback: return as-is

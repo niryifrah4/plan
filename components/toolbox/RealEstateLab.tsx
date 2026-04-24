@@ -20,7 +20,7 @@ export function RealEstateLab() {
     <div style={{ fontFamily: "'Assistant', sans-serif" }}>
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
-        <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg,#012d1d,#0a7a4a)" }}>
+        <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg,#012d1d,#1B4332)" }}>
           <span className="material-symbols-outlined text-[24px] text-white">home_work</span>
         </div>
         <div>
@@ -39,13 +39,13 @@ export function RealEstateLab() {
               onClick={() => setActiveTab(tab.id)}
               className="rounded-xl p-4 text-right transition-all duration-200"
               style={{
-                background: isActive ? "linear-gradient(135deg,#012d1d,#0a7a4a)" : "#fff",
-                border: `1.5px solid ${isActive ? "#0a7a4a" : "#d8e0d0"}`,
+                background: isActive ? "linear-gradient(135deg,#012d1d,#1B4332)" : "#fff",
+                border: `1.5px solid ${isActive ? "#1B4332" : "#d8e0d0"}`,
                 color: isActive ? "#fff" : "#012d1d",
               }}
             >
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="material-symbols-outlined text-[20px]" style={{ color: isActive ? "#58e1b0" : "#0a7a4a" }}>{tab.icon}</span>
+                <span className="material-symbols-outlined text-[20px]" style={{ color: isActive ? "#2B694D" : "#1B4332" }}>{tab.icon}</span>
                 <span className="text-[12px] font-extrabold">{tab.label}</span>
               </div>
               <div className="text-[10px] font-bold" style={{ opacity: isActive ? 0.7 : 0.5 }}>{tab.description}</div>

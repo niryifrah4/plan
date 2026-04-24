@@ -59,14 +59,14 @@ export function RealEstateCalc() {
           <Metric label="הון עצמי מושקע" value={fmtILS(result.equityInvested)} />
           <Metric label="החזר חודשי (PMT)" value={fmtILS(result.monthlyPMT)} />
           <Metric label="NOI שנתי" value={fmtILS(result.annualNOI)} />
-          <Metric label="תזרים חודשי נטו" value={fmtILS(result.monthlyCashflow)} color={result.monthlyCashflow >= 0 ? "#0a7a4a" : "#b91c1c"} />
+          <Metric label="תזרים חודשי נטו" value={fmtILS(result.monthlyCashflow)} color={result.monthlyCashflow >= 0 ? "#1B4332" : "#b91c1c"} />
         </div>
 
         <div className="h-px bg-verdant-line my-4" />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Metric label="Cap Rate" value={`${(result.capRate * 100).toFixed(2)}%`} />
-          <Metric label="Cash-on-Cash" value={`${(result.cashOnCash * 100).toFixed(2)}%`} color={result.cashOnCash >= 0 ? "#0a7a4a" : "#b91c1c"} />
+          <Metric label="Cash-on-Cash" value={`${(result.cashOnCash * 100).toFixed(2)}%`} color={result.cashOnCash >= 0 ? "#1B4332" : "#b91c1c"} />
           <Metric label="תשואה ברוטו" value={`${(result.grossYield * 100).toFixed(2)}%`} />
           <Metric label="תשואה נטו" value={`${(result.netYield * 100).toFixed(2)}%`} />
         </div>
@@ -76,14 +76,14 @@ export function RealEstateCalc() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Metric label="שווי ביציאה" value={fmtILS(result.exitValue)} />
           <Metric label="תמורה נטו ביציאה" value={fmtILS(result.netProceedsOnExit)} />
-          <Metric label="רווח כולל" value={fmtILS(result.totalProfit)} color={result.totalProfit >= 0 ? "#0a7a4a" : "#b91c1c"} />
+          <Metric label="רווח כולל" value={fmtILS(result.totalProfit)} color={result.totalProfit >= 0 ? "#1B4332" : "#b91c1c"} />
           <Metric label="מכפיל הון (EM)" value={`×${result.equityMultiple.toFixed(2)}`} />
         </div>
 
         <div className="h-px bg-verdant-line my-4" />
 
-        <div className="flex items-center justify-between p-4 rounded-lg" style={{ background: "#0a7a4a11" }}>
-          <span className="text-3xl font-extrabold tabular" style={{ color: result.irr >= 0 ? "#0a7a4a" : "#b91c1c" }}>
+        <div className="flex items-center justify-between p-4 rounded-lg" style={{ background: "#1B433211" }}>
+          <span className="text-3xl font-extrabold tabular" style={{ color: result.irr >= 0 ? "#1B4332" : "#b91c1c" }}>
             {Number.isNaN(result.irr) ? "N/A" : `${(result.irr * 100).toFixed(2)}%`}
           </span>
           <div className="text-right">

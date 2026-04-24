@@ -22,7 +22,8 @@ export type SyncEvent =
   | "verdant:goals:updated"
   | "verdant:assumptions"
   | "verdant:investments:updated"
-  | "verdant:networth:updated";
+  | "verdant:networth:updated"
+  | "verdant:kids_savings:updated";
 
 /** Fire a sync event with optional detail payload. */
 export function fireSync(event: SyncEvent, detail?: Record<string, unknown>) {

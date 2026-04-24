@@ -2,34 +2,75 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Botanical Wealth — Manrope (headings) + Inter (body). Hebrew falls through to Assistant. */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
+
 :root {
-  --verdant-bg: #f9faf2;
-  --verdant-ink: #012d1d;
-  --verdant-muted: #5a7a6a;
-  --verdant-accent: #0a7a4a;
-  --verdant-emerald: #10b981;
-  --verdant-line: #d8e0d0;
-  --verdant-red: #b91c1c;
-  --verdant-amber: #f59e0b;
+  /* ─── Botanical Wealth — Single Source of Truth ─── */
+  --botanical-forest:     #1B4332;
+  --botanical-secondary:  #2B694D;
+  --botanical-deep:       #012D1D;
+  --botanical-cream:      #EDF0E2;
+  --botanical-surface:    #FFFFFF;
+  --botanical-line:       #E8E9E1;
+  --botanical-ink:        #414844;
+  --botanical-sage:       #5C6058;
+  --botanical-light-sage: #F3F4EC;
+  --botanical-accent:     #C1ECD4;
+
+  /* Extended green scale — use for tonal variety */
+  --botanical-mint-bg:    #D6EFDC;  /* gardener-tip card bg */
+  --botanical-mint-soft:  #EAF5EB;  /* subtle mint tint */
+  --botanical-emerald:    #38876C;  /* mid tone — growing/positive */
+  --botanical-moss:       #4A7C59;  /* softer forest */
+  --botanical-sage-tint:  #E7EFDD;  /* warm sage wash */
+
+  /* Legacy aliases — map old verdant-* to botanical values */
+  --verdant-bg:      var(--botanical-cream);
+  --verdant-ink:     var(--botanical-deep);
+  --verdant-muted:   var(--botanical-sage);
+  --verdant-accent:  var(--botanical-forest);
+  --verdant-emerald: var(--botanical-secondary);
+  --verdant-line:    var(--botanical-line);
+  --verdant-red:     #b91c1c;
+  --verdant-amber:   #f59e0b;
 }
 
 html, body {
-  background-color: var(--verdant-bg);
-  color: var(--verdant-ink);
-  font-family: "Assistant", system-ui, sans-serif;
-  font-feature-settings: "tnum" 1;
+  background-color: var(--botanical-cream);
+  color: var(--botanical-ink);
+  /* Inter for body (Latin), Assistant fallback for Hebrew */
+  font-family: "Inter", "Assistant", system-ui, sans-serif;
+  font-feature-settings: "tnum" 1, "cv11" 1;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Uniform card primitive */
+/* Headings use Manrope (Botanical spec) */
+h1, h2, h3, h4, h5, h6,
+.heading-botanical, .font-manrope {
+  font-family: "Manrope", "Assistant", system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+/* Global content zoom — tiny bump to make text more comfortable
+   without rewriting every text-[Npx] class across the app. */
+body {
+  zoom: 1.06;
+}
+
+/* Uniform card primitive — Botanical Wealth spec */
 @layer components {
   .v-card {
-    @apply bg-white border border-verdant-line rounded-card shadow-card;
+    /* Surface card: white fill, 1rem radius, sage-line border, gentle shadow */
+    @apply bg-white border shadow-sm;
+    border-color: var(--botanical-line);
+    border-radius: 1rem;
   }
   .v-card-pad {
     @apply v-card p-5 md:p-6;
   }
   .v-divider {
-    @apply border-verdant-line;
+    border-color: var(--botanical-line);
   }
   .eq-row {
     @apply grid gap-5;
@@ -38,11 +79,17 @@ html, body {
   .tabular {
     font-variant-numeric: tabular-nums;
   }
-  /* Form inputs used by onboarding & CRM */
+  /* Form inputs — Botanical spec */
   .inp {
-    @apply w-full bg-white border border-verdant-line rounded-lg px-3 py-2 text-sm text-verdant-ink
-           outline-none transition-all placeholder:text-verdant-muted
-           focus:ring-2 focus:ring-verdant-accent/30 focus:border-verdant-accent;
+    @apply w-full bg-white border px-3 py-2 text-sm outline-none transition-all;
+    border-color: var(--botanical-line);
+    color: var(--botanical-deep);
+    border-radius: 0.75rem;
+  }
+  .inp::placeholder { color: var(--botanical-sage); }
+  .inp:focus {
+    border-color: var(--botanical-forest);
+    box-shadow: 0 0 0 3px rgba(27, 67, 50, 0.15);
   }
   select.inp {
     @apply appearance-none;
@@ -56,10 +103,267 @@ html, body {
     @apply resize-y;
     min-height: 80px;
   }
+
+  /* ───────────────────────────────────────────────────────────
+     Botanical Wealth — rollout primitives
+     Use these everywhere to keep the system cohesive.
+     ─────────────────────────────────────────────────────────── */
+
+  /* Primary CTA — pill with forest fill + cream text */
+  .btn-botanical {
+    @apply inline-flex items-center justify-center gap-2 font-bold
+           rounded-full px-6 py-3 transition-all duration-150
+           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+    background: var(--botanical-forest);
+    color: var(--botanical-cream);
+  }
+  .btn-botanical:hover:not(:disabled) {
+    box-shadow: 0 20px 50px rgba(27, 67, 50, 0.08);
+  }
+
+  /* Secondary outline pill */
+  .btn-botanical-ghost {
+    @apply inline-flex items-center justify-center gap-2 font-semibold
+           bg-white rounded-full px-6 py-3 border
+           transition-all duration-150 active:scale-95;
+    color: var(--botanical-deep);
+    border-color: var(--botanical-light-sage);
+  }
+  .btn-botanical-ghost:hover {
+    background: var(--botanical-light-sage);
+  }
+
+  /* Hero card — the big 48px-rounded surface */
+  .card-botanical {
+    @apply bg-white p-8 md:p-10;
+    border-radius: 3rem;
+    box-shadow: 0 20px 50px rgba(27, 67, 50, 0.08);
+  }
+
+  /* Subtle card — smaller rounding (24px), same shadow */
+  .card-botanical-sm {
+    @apply bg-white p-6;
+    border-radius: 1.5rem;
+    box-shadow: 0 20px 50px rgba(27, 67, 50, 0.08);
+  }
+
+  /* Input in botanical flavor — soft sage fill, pill-ish */
+  .input-botanical {
+    @apply w-full px-5 py-3 text-[15px]
+           border-none outline-none transition-all;
+    background: var(--botanical-light-sage);
+    color: var(--botanical-deep);
+    border-radius: 0.75rem;
+  }
+  .input-botanical::placeholder { color: rgba(92, 96, 88, 0.7); }
+  .input-botanical:focus {
+    box-shadow: 0 0 0 3px rgba(27, 67, 50, 0.3);
+  }
+
+  /* Section label — small uppercase tracking */
+  .label-botanical {
+    @apply text-[11px] font-semibold uppercase tracking-[0.18em];
+    color: var(--botanical-sage);
+  }
+
+  /* Heading style */
+  .heading-botanical {
+    @apply font-bold tracking-tight;
+    color: var(--botanical-deep);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     CANONICAL DESIGN TOKENS — Phase A (Tokens Lock)
+     Use THESE everywhere going forward. Legacy tokens above stay
+     for backwards-compat but are deprecated.
+     ═══════════════════════════════════════════════════════════════ */
+
+  /* ─── Buttons (4 variants × 2 sizes) ─── */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 font-bold
+           rounded-full transition-all duration-150
+           active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed;
+    font-family: "Inter", "Assistant", system-ui, sans-serif;
+  }
+  .btn-md { @apply px-5 py-2.5 text-[13px]; }
+  .btn-sm { @apply px-4 py-2 text-[12px]; }
+
+  .btn-primary {
+    background: var(--botanical-forest);
+    color: #FFFFFF;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--botanical-deep);
+    box-shadow: 0 4px 12px rgba(27, 67, 50, 0.18);
+  }
+
+  .btn-secondary {
+    background: #FFFFFF;
+    color: var(--botanical-forest);
+    border: 1px solid var(--botanical-line);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--botanical-light-sage);
+    border-color: var(--botanical-forest);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--botanical-ink);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--botanical-light-sage);
+    color: var(--botanical-forest);
+  }
+
+  .btn-danger {
+    background: #FFFFFF;
+    color: #b91c1c;
+    border: 1px solid rgba(185, 28, 28, 0.2);
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: #fef2f2;
+    border-color: #b91c1c;
+  }
+
+  /* ─── Card (one true card) ─── */
+  .card {
+    @apply bg-white border;
+    border-color: var(--botanical-line);
+    border-radius: 1rem;
+    box-shadow: 0 1px 2px rgba(27, 67, 50, 0.04);
+  }
+  .card-pad    { @apply card p-5; }
+  .card-pad-lg { @apply card p-6 md:p-8; }
+
+  /* ─── Forest card — hero / dark zones ─── */
+  .card-forest {
+    background: var(--botanical-deep);
+    color: #F9FAF2;
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+  .card-forest .caption {
+    color: rgba(249,250,242,0.55);
+  }
+  .card-forest .kpi-value {
+    color: #FFFFFF;
+  }
+  .card-forest .pill-inner {
+    background: rgba(255,255,255,0.06);
+    border-radius: 1rem;
+    padding: 0.875rem 1rem;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+
+  /* ─── Mint card — tips / insights / "gardener's tip" ─── */
+  .card-mint {
+    background: var(--botanical-mint-bg);
+    color: var(--botanical-deep);
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    border: 1px solid rgba(27,67,50,0.06);
+  }
+  .card-mint .kpi-value {
+    color: var(--botanical-deep);
+  }
+
+  /* ─── Subtle tint cards — section backgrounds ─── */
+  .card-tint-mint  { @apply card; background: var(--botanical-mint-soft); border-color: rgba(27,67,50,0.06); }
+  .card-tint-sage  { @apply card; background: var(--botanical-sage-tint); border-color: rgba(27,67,50,0.06); }
+  .card-tint-cream { @apply card; background: var(--botanical-cream);     border-color: var(--botanical-line); }
+
+  /* ─── Status pills (variety of greens) ─── */
+  .pill {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-bold;
+    font-size: 11px;
+    line-height: 14px;
+  }
+  .pill-mint    { background: var(--botanical-accent);    color: var(--botanical-deep); }
+  .pill-emerald { background: var(--botanical-emerald);   color: #FFFFFF; }
+  .pill-forest  { background: var(--botanical-forest);    color: #FFFFFF; }
+  .pill-sage    { background: var(--botanical-sage-tint); color: var(--botanical-forest); }
+  .pill-danger  { background: #fee2e2;                    color: #b91c1c; }
+  .pill-amber   { background: #fef3c7;                    color: #92400e; }
+
+  /* ─── Icon containers (2 sizes) ─── */
+  .icon-sm {
+    @apply w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0;
+  }
+  .icon-lg {
+    @apply w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0;
+  }
+  /* Variants */
+  .icon-forest  { background: var(--botanical-forest); color: #FFFFFF; }
+  .icon-soft    { background: var(--botanical-light-sage); color: var(--botanical-forest); }
+  .icon-outline { background: #FFFFFF; border: 1px solid var(--botanical-line); color: var(--botanical-forest); }
+
+  /* ─── Typography scale (5 sizes, locked) ─── */
+  .t-xs   { font-size: 11px; line-height: 16px; }
+  .t-sm   { font-size: 13px; line-height: 18px; }
+  .t-base { font-size: 14px; line-height: 20px; }
+  .t-lg   { font-size: 16px; line-height: 22px; }
+  .t-xl   { font-size: 20px; line-height: 26px; }
+
+  /* Section label (standard UPPERCASE caption) */
+  .caption {
+    @apply uppercase font-bold;
+    font-size: 11px;
+    line-height: 14px;
+    letter-spacing: 0.14em;
+    color: var(--botanical-sage);
+  }
+
+  /* ─── KPI tile (the one true KPI) ─── */
+  .kpi {
+    @apply card p-5 flex flex-col gap-1;
+  }
+  .kpi-label {
+    @apply caption;
+  }
+  .kpi-value {
+    font-family: "Manrope", "Assistant", system-ui, sans-serif;
+    font-size: 22px;
+    line-height: 28px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--botanical-deep);
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-hint {
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--botanical-sage);
+  }
+
+  /* ─── Page shell ─── */
+  .page-title {
+    font-family: "Manrope", "Assistant", system-ui, sans-serif;
+    font-size: 24px;
+    line-height: 30px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--botanical-deep);
+  }
+  .page-subtitle {
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--botanical-sage);
+  }
 }
 
 /* Smooth global transitions */
 * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+/* ────────────────────────────────────────────────────────────
+   Global font-size accessibility — bump tiny text up slightly.
+   Nir complained that text-[9px]/[10px]/[11px] were too small.
+   These override the arbitrary Tailwind values everywhere.
+   ──────────────────────────────────────────────────────────── */
+.text-\[9px\]  { font-size: 11px !important; line-height: 14px !important; }
+.text-\[10px\] { font-size: 12px !important; line-height: 16px !important; }
+.text-\[11px\] { font-size: 13px !important; line-height: 18px !important; }
 
 ::selection { background: rgba(10,122,74,0.15); color: var(--verdant-ink); }
 

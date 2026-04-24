@@ -21,7 +21,14 @@ export type RepaymentMethod = "שפיצר" | "קרן שווה" | "בלון" | "�
 export interface MortgageTrack {
   id: string;
   name: string;
+  /** Absolute interest rate (e.g. 0.048). Ignored if `margin` is set — effective rate = primeRate + margin. */
   interestRate: number;
+  /**
+   * Optional margin over Prime (e.g. 0.005 = +0.5%). When present, effective
+   * rate is derived as `primeRate + margin` so Prime tracks auto-update when
+   * BoI rate changes. Leave undefined for fixed-rate tracks.
+   */
+  margin?: number;
   indexation: IndexationType;
   repaymentMethod: RepaymentMethod;
   originalAmount: number;
@@ -31,6 +38,18 @@ export interface MortgageTrack {
   endDate: string;
   totalPayments: number;
   [key: string]: any;
+}
+
+/**
+ * Returns the effective interest rate for a track. If `margin` is set,
+ * returns `primeRate + margin` (for Prime-linked tracks). Otherwise returns
+ * the absolute `interestRate`.
+ */
+export function effectiveTrackRate(track: MortgageTrack, primeRate: number): number {
+  if (typeof track.margin === "number") {
+    return primeRate + track.margin;
+  }
+  return track.interestRate || 0;
 }
 
 export interface MortgageData {
@@ -62,13 +81,17 @@ export interface DebtData {
   mortgage?: MortgageData;
 }
 
+import { scopedKey } from "./client-scope";
+import { pushBlobInBackground, pullBlob } from "./sync/blob-sync";
+
 const STORAGE_KEY = "verdant:debt_data";
+const BLOB_KEY = "debt_data";
 
 /* ── Read / Write ── */
 
 export function loadDebtData(): DebtData {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(scopedKey(STORAGE_KEY));
     if (raw) return JSON.parse(raw);
   } catch {}
   return { loans: [], installments: [] };
@@ -76,9 +99,28 @@ export function loadDebtData(): DebtData {
 
 export function saveDebtData(data: DebtData): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(data));
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("verdant:debt:updated"));
+    }
+    pushBlobInBackground(BLOB_KEY, data);
   } catch (e) {
     console.warn("[DebtStore] save failed:", e);
+  }
+}
+
+/** Pull from Supabase and overwrite local. Call on boot / household switch. */
+export async function hydrateDebtFromRemote(): Promise<boolean> {
+  const remote = await pullBlob<DebtData>(BLOB_KEY);
+  if (!remote) return false;
+  try {
+    localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(remote));
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("verdant:debt:updated"));
+    }
+    return true;
+  } catch {
+    return false;
   }
 }
 

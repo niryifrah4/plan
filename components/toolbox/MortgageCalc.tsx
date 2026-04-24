@@ -39,7 +39,7 @@ export function MortgageCalc() {
 
   return (
     <div className="space-y-6">
-      <div className="v-card p-5">
+      <div className="card-pad">
         <div className="flex items-center gap-2 mb-4">
           <span className="material-symbols-outlined text-verdant-emerald">home</span>
           <h3 className="text-sm font-extrabold text-verdant-ink">מחשבון משכנתא</h3>
@@ -56,7 +56,7 @@ export function MortgageCalc() {
 
         {/* Results */}
         <div className="grid grid-cols-3 gap-3 mb-4">
-          <ResultCard label="תשלום חודשי" value={fmtILS(Math.round(monthly))} color="#0a7a4a" />
+          <ResultCard label="תשלום חודשי" value={fmtILS(Math.round(monthly))} color="#1B4332" />
           <ResultCard label="סה״כ ריבית" value={fmtILS(Math.round(totalInterest))} color="#b91c1c" />
           <ResultCard label="סה״כ תשלום" value={fmtILS(Math.round(totalPaid))} color="#012d1d" />
         </div>
@@ -65,11 +65,11 @@ export function MortgageCalc() {
         <div className="mb-4">
           <div className="text-[9px] font-bold text-verdant-muted mb-1">יחס קרן / ריבית</div>
           <div className="h-4 rounded-full overflow-hidden flex" style={{ background: "#eef2e8" }}>
-            <div className="h-full" style={{ width: `${(principal / totalPaid) * 100}%`, background: "#0a7a4a" }} />
+            <div className="h-full" style={{ width: `${(principal / totalPaid) * 100}%`, background: "#1B4332" }} />
             <div className="h-full" style={{ width: `${(totalInterest / totalPaid) * 100}%`, background: "#b91c1c" }} />
           </div>
           <div className="flex justify-between text-[9px] font-bold mt-1">
-            <span style={{ color: "#0a7a4a" }}>קרן {Math.round((principal / totalPaid) * 100)}%</span>
+            <span style={{ color: "#1B4332" }}>קרן {Math.round((principal / totalPaid) * 100)}%</span>
             <span style={{ color: "#b91c1c" }}>ריבית {Math.round((totalInterest / totalPaid) * 100)}%</span>
           </div>
         </div>
@@ -77,7 +77,7 @@ export function MortgageCalc() {
         <button
           onClick={() => setShowSchedule(!showSchedule)}
           className="text-[11px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1"
-          style={{ background: "#0a7a4a12", color: "#0a7a4a" }}
+          style={{ background: "#1B433212", color: "#1B4332" }}
         >
           <span className="material-symbols-outlined text-[14px]">{showSchedule ? "visibility_off" : "visibility"}</span>
           {showSchedule ? "הסתר לוח סילוקין" : "הצג לוח סילוקין"}
@@ -86,7 +86,7 @@ export function MortgageCalc() {
 
       {/* Amortization Schedule */}
       {showSchedule && yearlySummary.length > 0 && (
-        <div className="v-card p-5 overflow-x-auto">
+        <div className="card-pad overflow-x-auto">
           <h4 className="text-sm font-extrabold text-verdant-ink mb-3">לוח סילוקין שנתי</h4>
           <table className="w-full text-[10px]">
             <thead>
@@ -104,7 +104,7 @@ export function MortgageCalc() {
                   <td className="py-1.5 font-bold text-verdant-ink">{row.year}</td>
                   <td className="py-1.5 tabular">{fmtILS(Math.round(row.totalPayment))}</td>
                   <td className="py-1.5 tabular" style={{ color: "#b91c1c" }}>{fmtILS(Math.round(row.totalInterest))}</td>
-                  <td className="py-1.5 tabular" style={{ color: "#0a7a4a" }}>{fmtILS(Math.round(row.totalPrincipal))}</td>
+                  <td className="py-1.5 tabular" style={{ color: "#1B4332" }}>{fmtILS(Math.round(row.totalPrincipal))}</td>
                   <td className="py-1.5 tabular font-bold">{fmtILS(Math.round(row.endBalance))}</td>
                 </tr>
               ))}

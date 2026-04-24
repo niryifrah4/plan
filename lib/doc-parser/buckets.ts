@@ -20,7 +20,7 @@ export interface BucketInfo {
 }
 
 export const BUCKET_META: Record<Bucket, BucketInfo> = {
-  fixed:        { key: "fixed",        label: "הוצאות קבועות",   icon: "lock",           color: "#0a7a4a", bgLight: "#eef7f1" },
+  fixed:        { key: "fixed",        label: "הוצאות קבועות",   icon: "lock",           color: "#1B4332", bgLight: "#eef7f1" },
   variable:     { key: "variable",     label: "הוצאות משתנות",   icon: "shuffle",        color: "#f59e0b", bgLight: "#fffbeb" },
   installments: { key: "installments", label: "תשלומים",         icon: "credit_score",   color: "#3b82f6", bgLight: "#eff6ff" },
   loans:        { key: "loans",        label: "הלוואות",         icon: "account_balance", color: "#b91c1c", bgLight: "#fef2f2" },
@@ -42,8 +42,10 @@ const CAT_TO_BUCKET: Record<string, Bucket> = {
   health:        "variable",
   leisure:       "variable",
   shopping:      "variable",
-  cash:          "variable",
-  dining_out:    "variable",
+  cash:           "variable",
+  dining_out:     "variable",
+  home_maintenance: "variable",
+  misc:           "variable",
 
   // Fixed — fees & pension
   fees:          "fixed",      // bank fees/interest are recurring fixed costs

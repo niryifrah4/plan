@@ -4,14 +4,30 @@ import { useState, useCallback, useEffect, useRef, type ChangeEvent } from "reac
 import { useRouter } from "next/navigation";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { SaveIndicator } from "@/components/SaveIndicator";
+import { syncOnboardingToStores } from "@/lib/onboarding-sync";
+import { pushOnboardingSnapshot, hydrateOnboardingFromRemote } from "@/lib/onboarding-remote";
+import { notifyBusinessScopeChanged } from "@/lib/business-scope";
+import { scopedKey } from "@/lib/client-scope";
+import { KIDS_TRACKS, KIDS_PROVIDERS, GOV_MONTHLY_DEPOSIT, PARENT_MONTHLY_MAX } from "@/lib/kids-savings-store";
+import { useClient } from "@/lib/client-context";
 
 /* ===== Types ===== */
-interface Child { [key: string]: string; name: string; age: string; framework: string; special: string }
+interface Child { [key: string]: string; name: string; dob: string; age: string; framework: string; special: string; savings_provider: string; savings_track: string; savings_balance: string; savings_parent_deposit: string }
 interface AssetRow { [key: string]: string; type: string; desc: string; value: string }
 interface LiabRow { [key: string]: string; type: string; lender: string; balance: string; rate: string; monthly: string }
-interface InsRow { [key: string]: string; type: string; has: string; company: string; coverage: string; premium: string }
+interface InsRow { [key: string]: string | undefined; type: string; has: string; company: string; coverage: string; premium: string; for?: string; isCustom?: string }
 interface GoalRow { [key: string]: string; name: string; cost: string; horizon: string; priority: string }
+interface IncomeRow { [key: string]: string; label: string; value: string }
 interface Fields { [key: string]: string }
+
+/* Default income rows shown to every new client — can be edited or deleted. */
+const INCOME_DEFAULTS: IncomeRow[] = [
+  { label: "שכר בן/בת זוג 1 (נטו)", value: "" },
+  { label: "שכר בן/בת זוג 2 (נטו)", value: "" },
+  { label: "הכנסה מנכסים מניבים", value: "" },
+  { label: "קצבאות", value: "" },
+  { label: "עזרה מההורים", value: "" },
+];
 
 const ASSET_TYPES = ["נדל\"ן למגורים","נדל\"ן להשקעה","רכב","רכב יוקרה","תיק השקעות","פיקדון / חיסכון","קופת גמל","קרן השתלמות","אחר"];
 const LIAB_TYPES = ["משכנתא","הלוואה בנקאית","הלוואה חוץ-בנקאית","מסגרת אוברדרפט","אחר"];
@@ -28,6 +44,30 @@ const fmt = (v: number) => "₪" + Math.round(v).toLocaleString("he-IL");
 
 export default function OnboardingPage() {
   const router = useRouter();
+
+  /* ── Hydrate from Supabase BEFORE rendering the form ──
+   * Prevents usePersistedState from initializing with a stale empty state
+   * when the user re-opens the page on a different browser. */
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const wrote = await hydrateOnboardingFromRemote();
+        if (!alive) return;
+        // If we wrote new data, force a full remount so usePersistedState re-reads
+        // from localStorage. Otherwise just proceed — local already matches.
+        if (wrote) {
+          // Re-render with remounted hooks; simplest approach: reload.
+          window.location.reload();
+          return;
+        }
+      } catch {}
+      if (alive) setHydrated(true);
+    })();
+    return () => { alive = false; };
+  }, []);
+
   /* ── Step navigation (5 steps) ── */
   const [step, setStep] = usePersistedState<number>("verdant:onboarding:step", 1);
   const TOTAL_STEPS = 5;
@@ -35,33 +75,114 @@ export default function OnboardingPage() {
 
   /* ── Persisted state — auto-saves to localStorage (1.5s debounce) ── */
   const [fields, setFields, fieldsSaving] = usePersistedState<Fields>("verdant:onboarding:fields", {}, 1500);
-  const [children, setChildren, childrenSaving] = usePersistedState<Child[]>("verdant:onboarding:children", [{ name:"", age:"", framework:"", special:"" }], 1500);
+  const emptyChild: Child = { name:"", dob:"", age:"", framework:"", special:"", savings_provider:"", savings_track:"medium", savings_balance:"", savings_parent_deposit:"57" };
+  const [children, setChildren, childrenSaving] = usePersistedState<Child[]>("verdant:onboarding:children", [emptyChild], 1500);
   const [assets, setAssets, assetsSaving] = usePersistedState<AssetRow[]>("verdant:onboarding:assets", [{ type:"נדל\"ן למגורים", desc:"", value:"" }], 1500);
   const [liabilities, setLiabilities, liabSaving] = usePersistedState<LiabRow[]>("verdant:onboarding:liabilities", [{ type:"משכנתא", lender:"", balance:"", rate:"", monthly:"" }], 1500);
   const [insurance, setInsurance, insSaving] = usePersistedState<InsRow[]>("verdant:onboarding:insurance", INS_DEFAULTS, 1500);
   const [goals, setGoals, goalsSaving] = usePersistedState<GoalRow[]>("verdant:onboarding:goals", [{ name:"", cost:"", horizon:"", priority:"" }], 1500);
-  const [plannerNotes, setPlannerNotes, notesSaving] = usePersistedState<Record<string, string>>("verdant:onboarding:planner_notes", {}, 1500);
+  const [incomes, setIncomes, incomesSaving] = usePersistedState<IncomeRow[]>("verdant:onboarding:incomes", INCOME_DEFAULTS, 1500);
 
-  const isSaving = fieldsSaving || childrenSaving || assetsSaving || liabSaving || insSaving || goalsSaving || notesSaving;
+  const isSaving = fieldsSaving || childrenSaving || assetsSaving || liabSaving || insSaving || goalsSaving || incomesSaving;
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   useEffect(() => {
     if (isSaving) { setSaveStatus("saving"); }
     else if (saveStatus === "saving") { setSaveStatus("saved"); const t = setTimeout(() => setSaveStatus("idle"), 2000); return () => clearTimeout(t); }
   }, [isSaving, saveStatus]);
 
-  const setField = useCallback((name: string, value: string) => setFields(p => ({ ...p, [name]: value })), []);
+  /* ── Push to Supabase when local debounced saves settle ──
+   * Triggers on the "saving → idle" transition, not on every keystroke,
+   * so we upload one snapshot per ~1.5s of typing instead of per char. */
+  useEffect(() => {
+    if (!hydrated) return;
+    if (!isSaving) {
+      pushOnboardingSnapshot();
+    }
+  }, [hydrated, isSaving, fields, children, assets, liabilities, insurance, goals, incomes]);
 
-  /* Derived */
-  const income = n(fields.inc_salary1)+n(fields.inc_salary2)+n(fields.inc_rental)+n(fields.inc_pension)+n(fields.inc_parents)+n(fields.inc_other);
-  const expense = n(fields.exp_housing)+n(fields.exp_property_tax)+n(fields.exp_utilities)+n(fields.exp_telecom)+n(fields.exp_education)+n(fields.exp_insurance)+n(fields.exp_food)+n(fields.exp_car)+n(fields.exp_leisure)+n(fields.exp_health)+n(fields.exp_vacation)+n(fields.exp_other);
+  /* ── One-shot migration: legacy inc_* fields → incomes[] list ──
+   * Runs once per client after hydration. If the user already has any
+   * non-zero income recorded in the old fixed-field model, we pull those
+   * values into the new dynamic list. After migration, the inc_* keys
+   * are cleared so the legacy sum logic in onboarding-sync stops firing. */
+  const incomesMigratedRef = useRef(false);
+  useEffect(() => {
+    if (!hydrated || incomesMigratedRef.current) return;
+    const legacyKeys: [string, string][] = [
+      ["inc_salary1", "שכר בן/בת זוג 1 (נטו)"],
+      ["inc_salary2", "שכר בן/בת זוג 2 (נטו)"],
+      ["inc_rental",  "הכנסה מנכסים מניבים"],
+      ["inc_pension", "קצבאות"],
+      ["inc_parents", "עזרה מההורים"],
+      ["inc_other",   "אחר"],
+    ];
+    const hasLegacy = legacyKeys.some(([k]) => n(fields[k] || "0") > 0);
+    const listIsDefault = incomes.every(r => !r.value);
+    if (hasLegacy && listIsDefault) {
+      const migrated: IncomeRow[] = legacyKeys
+        .filter(([k]) => n(fields[k] || "0") > 0)
+        .map(([k, label]) => ({ label, value: fields[k] || "" }));
+      if (migrated.length > 0) setIncomes(migrated);
+      // Clear legacy keys so they don't double-count via onboarding-sync.
+      setFields(p => {
+        const next = { ...p };
+        legacyKeys.forEach(([k]) => delete next[k]);
+        return next;
+      });
+    }
+    incomesMigratedRef.current = true;
+  }, [hydrated, fields, incomes, setIncomes, setFields]);
+
+  /* ── Pre-fill primary contact from CRM client card ──
+   * When the advisor converts a lead to a client, the lead's email/phone
+   * are copied onto the client record. On first visit to the questionnaire,
+   * seed p1_email / p1_phone so the advisor doesn't re-type them.
+   * Only seeds empty fields — never overwrites user edits. Partner (p2) is
+   * intentionally left blank; the advisor captures it during intake. */
+  const { client } = useClient();
+  const prefilledRef = useRef(false);
+  useEffect(() => {
+    if (!hydrated || prefilledRef.current || !client) return;
+    const patch: Record<string, string> = {};
+    if (!fields.p1_email && client.email) patch.p1_email = client.email;
+    if (!fields.p1_phone && client.phone) patch.p1_phone = client.phone;
+    if (!fields.p1_name && client.family) patch.p1_name = client.family;
+    if (Object.keys(patch).length > 0) {
+      setFields(p => ({ ...p, ...patch }));
+    }
+    prefilledRef.current = true;
+  }, [hydrated, client, fields.p1_email, fields.p1_phone, fields.p1_name, setFields]);
+
+  const setField = useCallback((name: string, value: string) => {
+    setFields(p => ({ ...p, [name]: value }));
+    // When employment type changes, notify business-scope gate
+    if (name === "p1_emp_type" || name === "p2_emp_type") {
+      // Small delay so persisted state writes first
+      setTimeout(notifyBusinessScopeChanged, 200);
+    }
+  }, []);
+
+  /* Derived — table footers still show scoped totals */
   const assetsTotal = assets.reduce((s,a) => s+n(a.value), 0);
   const liabTotal = liabilities.reduce((s,l) => s+n(l.balance), 0);
-  const cashflow = income - expense;
-  const netWorth = assetsTotal - liabTotal;
 
   function goNext() { setStep((s: number) => Math.min(s + 1, TOTAL_STEPS)); window.scrollTo({ top: 0, behavior: "smooth" }); }
   function goPrev() { setStep((s: number) => Math.max(s - 1, 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }
   function goToStep(n: number) { setStep(n); window.scrollTo({ top: 0, behavior: "smooth" }); }
+
+  // Guard: don't render the form until remote hydration has resolved.
+  // Otherwise usePersistedState initializes with localStorage defaults
+  // and the effect's window.location.reload() yanks the page mid-render.
+  if (!hydrated) {
+    return (
+      <div className="max-w-5xl mx-auto">
+        <div className="card-pad flex items-center gap-3 text-verdant-muted text-[13px]">
+          <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+          טוען שאלון...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -73,14 +194,14 @@ export default function OnboardingPage() {
             <h1 className="text-4xl font-extrabold text-verdant-ink tracking-tight leading-tight">איסוף פרטי המשפחה או היחיד</h1>
             <p className="text-sm text-verdant-muted mt-2">{TOTAL_STEPS} שלבים · שמירה אוטומטית · הנתונים מעדכנים את מפת העושר והתקציב</p>
           </div>
-          <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: saveStatus === "saved" ? "#10b981" : "#5a7a6a" }}>
+          <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: saveStatus === "saved" ? "#2B694D" : "#5a7a6a" }}>
             <span className="material-symbols-outlined text-[16px]">{saveStatus === "saving" ? "cloud_sync" : "cloud_done"}</span>
             <span>{saveStatus === "saving" ? "שומר..." : saveStatus === "saved" ? "נשמר" : "אוטומטי"}</span>
           </div>
         </div>
 
         {/* ═══ Progress Bar ═══ */}
-        <div className="v-card p-4">
+        <div className="card-pad">
           <div className="flex items-center justify-between mb-3">
             {STEP_LABELS.map((label, i) => {
               const num = i + 1;
@@ -96,7 +217,7 @@ export default function OnboardingPage() {
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold transition-all"
                     style={{
-                      background: done ? "#10b981" : active ? "#012d1d" : "#eef2e8",
+                      background: done ? "#2B694D" : active ? "#012d1d" : "#eef2e8",
                       color: done || active ? "#fff" : "#5a7a6a",
                     }}
                   >
@@ -108,7 +229,7 @@ export default function OnboardingPage() {
             })}
           </div>
           <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: "#eef2e8" }}>
-            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${((step - 1) / (TOTAL_STEPS - 1)) * 100}%`, background: "#10b981" }} />
+            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${((step - 1) / (TOTAL_STEPS - 1)) * 100}%`, background: "#2B694D" }} />
           </div>
         </div>
       </header>
@@ -122,7 +243,7 @@ export default function OnboardingPage() {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div className="space-y-2">
-              <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">בן/בת זוג 1</div>
+              <div className="caption">בן/בת זוג 1</div>
               <Fld label="שם מלא" name="p1_name" fields={fields} onChange={setField} />
               <div className="grid grid-cols-2 gap-2">
                 <Fld label="ת.ז" name="p1_id" fields={fields} onChange={setField} dir="ltr" />
@@ -134,7 +255,7 @@ export default function OnboardingPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">בן/בת זוג 2</div>
+              <div className="caption">בן/בת זוג 2</div>
               <Fld label="שם מלא" name="p2_name" fields={fields} onChange={setField} />
               <div className="grid grid-cols-2 gap-2">
                 <Fld label="ת.ז" name="p2_id" fields={fields} onChange={setField} dir="ltr" />
@@ -158,29 +279,119 @@ export default function OnboardingPage() {
               <h3 className="text-sm font-extrabold text-verdant-ink flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px] text-verdant-emerald">child_care</span>ילדים
               </h3>
-              <button type="button" onClick={() => setChildren(p => [...p, { name:"",age:"",framework:"",special:"" }])} className="text-[11px] font-bold text-verdant-emerald hover:underline flex items-center gap-1">
+              <button type="button" onClick={() => setChildren(p => [...p, { ...emptyChild }])} className="text-[11px] font-bold text-verdant-emerald hover:underline flex items-center gap-1">
                 <span className="material-symbols-outlined text-[14px]">add</span>הוסף ילד/ה
               </button>
             </div>
-            <DynTable
-              headers={["שם","גיל","מסגרת","צרכים מיוחדים"]}
-              rows={children}
-              onUpdate={(i,k,v) => setChildren(p => p.map((c,j)=> j===i ? {...c,[k]:v} : c))}
-              onRemove={(i) => setChildren(p => p.filter((_,j)=>j!==i))}
-              renderRow={(c,i,onUpdate) => (
-                <>
-                  <td className="px-2"><input className="inp" value={c.name} onChange={e=>onUpdate(i,"name",e.target.value)} placeholder="שם" /></td>
-                  <td className="px-2"><input className="inp" type="number" min="0" value={c.age} onChange={e=>onUpdate(i,"age",e.target.value)} /></td>
-                  <td className="px-2">
-                    <select className="inp" value={c.framework} onChange={e=>onUpdate(i,"framework",e.target.value)}>
-                      <option value="">—</option>
-                      {FRAMEWORKS.map(f=><option key={f}>{f}</option>)}
-                    </select>
-                  </td>
-                  <td className="px-2"><input className="inp" value={c.special} onChange={e=>onUpdate(i,"special",e.target.value)} placeholder="—" /></td>
-                </>
-              )}
-            />
+            <div className="space-y-3">
+              {children.map((c, i) => {
+                const updateChild = (k: string, v: string) => {
+                  setChildren(p => p.map((ch, j) => {
+                    if (j !== i) return ch;
+                    const updated = { ...ch, [k]: v };
+                    if (k === "dob" && v) {
+                      const birth = new Date(v);
+                      const diff = Date.now() - birth.getTime();
+                      const ageYears = Math.floor(diff / (365.25 * 24 * 3600 * 1000));
+                      updated.age = ageYears >= 0 ? String(ageYears) : "";
+                    }
+                    return updated;
+                  }));
+                };
+                return (
+                  <div key={i} className="rounded-lg border v-divider bg-white p-4">
+                    {/* Row 1: basic info */}
+                    <div className="flex items-center justify-between mb-3">
+                      <button type="button" onClick={() => setChildren(p => p.filter((_, j) => j !== i))}
+                        className="text-[11px] text-red-400 hover:text-red-600 font-bold flex items-center gap-0.5">
+                        <span className="material-symbols-outlined text-[14px]">close</span>הסר
+                      </button>
+                      <span className="text-[12px] font-extrabold text-verdant-ink">
+                        {c.name || `ילד/ה ${i + 1}`}
+                        {c.age && <span className="text-verdant-muted font-bold mr-2">(גיל {c.age})</span>}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                      <div>
+                        <label className="text-[10px] font-bold text-verdant-muted block mb-1">שם</label>
+                        <input className="inp w-full" value={c.name} onChange={e => updateChild("name", e.target.value)} placeholder="שם הילד/ה" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-verdant-muted block mb-1">תאריך לידה</label>
+                        <input className="inp w-full" type="date" value={c.dob} onChange={e => updateChild("dob", e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-verdant-muted block mb-1">מסגרת</label>
+                        <select className="inp w-full" value={c.framework} onChange={e => updateChild("framework", e.target.value)}>
+                          <option value="">—</option>
+                          {FRAMEWORKS.map(f => <option key={f}>{f}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-verdant-muted block mb-1">צרכים מיוחדים</label>
+                        <input className="inp w-full" value={c.special} onChange={e => updateChild("special", e.target.value)} placeholder="—" />
+                      </div>
+                    </div>
+
+                    {/* Row 2: חיסכון לכל ילד */}
+                    <div className="pt-3 border-t v-divider">
+                      <div className="text-[10px] font-extrabold text-verdant-ink mb-2 flex items-center gap-1.5 justify-end">
+                        <span>חיסכון לכל ילד</span>
+                        <span className="material-symbols-outlined text-[14px] text-verdant-emerald">savings</span>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div>
+                          <label className="text-[10px] font-bold text-verdant-muted block mb-1">בית השקעות</label>
+                          <select className="inp w-full" value={c.savings_provider} onChange={e => updateChild("savings_provider", e.target.value)}>
+                            <option value="">בחר...</option>
+                            {KIDS_PROVIDERS.map(p => <option key={p}>{p}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-verdant-muted block mb-1">מסלול</label>
+                          <select className="inp w-full" value={c.savings_track || "medium"} onChange={e => updateChild("savings_track", e.target.value)}>
+                            {KIDS_TRACKS.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-verdant-muted block mb-1">יתרה נוכחית ₪</label>
+                          <input className="inp w-full" type="number" min="0" value={c.savings_balance}
+                            onChange={e => updateChild("savings_balance", e.target.value)} placeholder="0" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-verdant-muted block mb-1">הורים מפקידים?</label>
+                          <div className="flex gap-1 rounded-xl p-0.5" style={{ background:"#eef2e8" }}>
+                            <button type="button"
+                              onClick={() => updateChild("savings_parent_deposit", String(PARENT_MONTHLY_MAX))}
+                              className="flex-1 py-1.5 rounded-lg text-[12px] font-bold transition-colors"
+                              style={{
+                                background: (Number(c.savings_parent_deposit) || 0) > 0 ? "#2B694D" : "transparent",
+                                color:      (Number(c.savings_parent_deposit) || 0) > 0 ? "#F9FAF2" : "#5C6058",
+                              }}>
+                              כן
+                            </button>
+                            <button type="button"
+                              onClick={() => updateChild("savings_parent_deposit", "0")}
+                              className="flex-1 py-1.5 rounded-lg text-[12px] font-bold transition-colors"
+                              style={{
+                                background: (Number(c.savings_parent_deposit) || 0) === 0 ? "#2B694D" : "transparent",
+                                color:      (Number(c.savings_parent_deposit) || 0) === 0 ? "#F9FAF2" : "#5C6058",
+                              }}>
+                              לא
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-[9px] text-verdant-muted mt-1.5 text-right">
+                        {(Number(c.savings_parent_deposit) || 0) > 0
+                          ? `ביט״ל ₪${GOV_MONTHLY_DEPOSIT}/ח + הורים ₪${PARENT_MONTHLY_MAX}/ח = ₪${GOV_MONTHLY_DEPOSIT + PARENT_MONTHLY_MAX}/חודש`
+                          : `ביט״ל בלבד — ₪${GOV_MONTHLY_DEPOSIT}/חודש`}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {/* Employment */}
@@ -189,74 +400,112 @@ export default function OnboardingPage() {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">בן/בת זוג 1</div>
-              <Fld label="מעסיק" name="p1_employer" fields={fields} onChange={setField} />
+              <div className="caption">בן/בת זוג 1</div>
+              <FldSelect label="סוג תעסוקה" name="p1_emp_type" fields={fields} onChange={setField} options={["שכיר/ה","עצמאי/ת","שכיר/ה + עצמאי/ת"]} />
+              <Fld label="מעסיק / שם העסק" name="p1_employer" fields={fields} onChange={setField} />
               <div className="grid grid-cols-2 gap-2">
                 <Fld label="תפקיד" name="p1_role" fields={fields} onChange={setField} />
                 <Fld label="ותק (שנים)" name="p1_tenure" fields={fields} onChange={setField} type="number" />
               </div>
             </div>
             <div className="space-y-2">
-              <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">בן/בת זוג 2</div>
-              <Fld label="מעסיק" name="p2_employer" fields={fields} onChange={setField} />
+              <div className="caption">בן/בת זוג 2</div>
+              <FldSelect label="סוג תעסוקה" name="p2_emp_type" fields={fields} onChange={setField} options={["שכיר/ה","עצמאי/ת","שכיר/ה + עצמאי/ת"]} />
+              <Fld label="מעסיק / שם העסק" name="p2_employer" fields={fields} onChange={setField} />
               <div className="grid grid-cols-2 gap-2">
                 <Fld label="תפקיד" name="p2_role" fields={fields} onChange={setField} />
                 <Fld label="ותק (שנים)" name="p2_tenure" fields={fields} onChange={setField} type="number" />
               </div>
             </div>
           </div>
-          <PlannerNotes stepKey="step1" notes={plannerNotes} onChange={(k,v) => setPlannerNotes(p => ({...p,[k]:v}))} />
         </StepCard>}
 
         {/* ===== STEP 2 · Financial Picture ===== */}
         {step === 2 && <StepCard num={2} title="תמונה כספית" icon="payments">
 
-          {/* Income */}
-          <h3 className="text-sm font-extrabold text-verdant-ink mb-3 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px] text-verdant-emerald">payments</span>הכנסות חודשיות <span className="text-[10px] text-verdant-muted font-semibold">(₪)</span>
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-            <Fld label="שכר בן/בת זוג 1 (נטו)" name="inc_salary1" fields={fields} onChange={setField} type="number" />
-            <Fld label="שכר בן/בת זוג 2 (נטו)" name="inc_salary2" fields={fields} onChange={setField} type="number" />
-            <Fld label="הכנסה מנכסים מניבים" name="inc_rental" fields={fields} onChange={setField} type="number" />
-            <Fld label="קצבאות" name="inc_pension" fields={fields} onChange={setField} type="number" />
-            <Fld label="עזרה מההורים" name="inc_parents" fields={fields} onChange={setField} type="number" />
-            <Fld label="אחר" name="inc_other" fields={fields} onChange={setField} type="number" />
+          {/* Income — dynamic list */}
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-extrabold text-verdant-ink flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px] text-verdant-emerald">payments</span>
+              הכנסות חודשיות <span className="text-[10px] text-verdant-muted font-semibold">(₪)</span>
+            </h3>
+            <button
+              type="button"
+              onClick={() => setIncomes(p => [...p, { label: "", value: "" }])}
+              className="text-[11px] font-bold text-verdant-emerald hover:underline flex items-center gap-1"
+            >
+              <span className="material-symbols-outlined text-[14px]">add</span>
+              הוסף הכנסה
+            </button>
           </div>
-          <SummaryBar label="סה״כ הכנסה חודשית" value={fmt(income)} bg="#eef7f1" />
+          <div className="card overflow-hidden mb-3" style={{ borderRadius: 8 }}>
+            <ul className="divide-y v-divider">
+              {incomes.map((row, i) => (
+                <li key={i} className="flex items-center gap-2 px-3 py-2" style={{ background: i % 2 ? "#fbfcf6" : "#fff" }}>
+                  <input
+                    className="inp flex-1"
+                    value={row.label}
+                    onChange={e => setIncomes(p => p.map((r, j) => j === i ? { ...r, label: e.target.value } : r))}
+                    placeholder="תיאור ההכנסה (למשל: שכר, שכ״ד, הרצאות...)"
+                  />
+                  <input
+                    className="inp tabular w-36 text-left"
+                    type="number"
+                    min="0"
+                    value={row.value}
+                    onChange={e => setIncomes(p => p.map((r, j) => j === i ? { ...r, value: e.target.value } : r))}
+                    placeholder="0"
+                    dir="ltr"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIncomes(p => p.filter((_, j) => j !== i))}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-red-50 transition-colors flex-shrink-0"
+                    title="הסר שורה"
+                  >
+                    <span className="material-symbols-outlined text-[18px] text-verdant-muted hover:text-red-600">close</span>
+                  </button>
+                </li>
+              ))}
+              <li className="flex items-center justify-between px-3 py-2 border-t-2" style={{ background: "#f4f8f0", borderColor: "#c9e3d4" }}>
+                <span className="text-[12px] font-bold text-verdant-ink">סה&quot;כ הכנסות חודשיות</span>
+                <span className="text-[13px] font-extrabold text-verdant-ink tabular" dir="ltr">
+                  {fmt(incomes.reduce((s, r) => s + n(r.value), 0))}
+                </span>
+              </li>
+            </ul>
+          </div>
 
-          {/* Expenses */}
-          <h3 className="text-sm font-extrabold text-verdant-ink mb-3 mt-6 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px] text-verdant-emerald">shopping_cart</span>הוצאות חודשיות <span className="text-[10px] text-verdant-muted font-semibold">(₪)</span>
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-            <div>
-              <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted mb-2">קבועות</div>
-              <div className="space-y-2">
-                {[["דיור/משכנתא","exp_housing"],["ארנונה ועד","exp_property_tax"],["חשמל/מים/גז","exp_utilities"],["תקשורת","exp_telecom"],["חינוך/חוגים","exp_education"],["ביטוחים","exp_insurance"]].map(([l,k])=>(
-                  <div key={k} className="flex items-center gap-2">
-                    <span className="text-xs text-verdant-muted w-28">{l}</span>
-                    <input className="inp tabular" type="number" min="0" value={fields[k]||""} onChange={e=>setField(k,e.target.value)} />
-                  </div>
-                ))}
-              </div>
+          {/* Gross salary breakdown — feeds salary-engine (tax & pension calculators) */}
+          <details className="mb-4 rounded-xl bg-[#f9faf2] border border-verdant-line p-3">
+            <summary className="text-[11px] font-bold text-verdant-muted cursor-pointer select-none flex items-center gap-2">
+              <span className="material-symbols-outlined text-[14px]">tune</span>
+              פירוט שכר ברוטו (אופציונלי — לדיוק חישובי המס)
+              <span className="text-[10px] font-medium opacity-75">מופיע בתלוש — משמש לחישוב נטו, פנסיה וקה"ש</span>
+            </summary>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+              <Fld label="ברוטו חודשי בן/בת זוג 1 (₪)" name="p1_gross" fields={fields} onChange={setField} type="number" />
+              <Fld label="בונוס שנתי בן/בת זוג 1 (₪)" name="p1_annual_bonus" fields={fields} onChange={setField} type="number" />
+              <Fld label="נקודות זיכוי בן/בת זוג 1" name="p1_credit_points" fields={fields} onChange={setField} type="number" />
+              <Fld label="ברוטו חודשי בן/בת זוג 2 (₪)" name="p2_gross" fields={fields} onChange={setField} type="number" />
+              <Fld label="בונוס שנתי בן/בת זוג 2 (₪)" name="p2_annual_bonus" fields={fields} onChange={setField} type="number" />
+              <Fld label="נקודות זיכוי בן/בת זוג 2" name="p2_credit_points" fields={fields} onChange={setField} type="number" />
             </div>
-            <div>
-              <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted mb-2">משתנות</div>
-              <div className="space-y-2">
-                {[["מזון וצריכה","exp_food"],["רכב ודלק","exp_car"],["פנאי ובידור","exp_leisure"],["בריאות","exp_health"],["חופשות","exp_vacation"],["אחר","exp_other"]].map(([l,k])=>(
-                  <div key={k} className="flex items-center gap-2">
-                    <span className="text-xs text-verdant-muted w-28">{l}</span>
-                    <input className="inp tabular" type="number" min="0" value={fields[k]||""} onChange={e=>setField(k,e.target.value)} />
-                  </div>
-                ))}
-              </div>
+            <div className="text-[10px] text-verdant-muted mt-2 leading-relaxed">
+              ברירות מחדל: פנסיה 6% עובד / 6.5% מעסיק / 6% פיצויים · קה"ש 2.5% / 7.5% · נקודות זיכוי 2.25.
+              נשמר בפרופיל השכר ומשפיע על דוחות התזרים והפרישה.
             </div>
-          </div>
-          <SummaryBar label="סה״כ הוצאה חודשית" value={fmt(expense)} bg="#fffbeb" />
-          <div className="mt-2 flex items-center justify-between p-3 rounded-lg" style={{ background:"#012d1d" }}>
-            <span className="text-xs font-bold text-white">תזרים חודשי פנוי</span>
-            <span className="text-lg font-extrabold tabular" style={{ color:"#58e1b0" }}>{fmt(cashflow)}</span>
+          </details>
+
+          {/* ── Expenses section removed ──
+           * ההוצאות נאספות דרך מיפוי אמיתי של עסקאות (עו"ש + כרטיסי אשראי)
+           * בדף "תקציב" / "תזרים". אין טעם לבקש מהמשתמש לנחש "בערך" — זה
+           * מייצר נתון מזויף שמתחרה עם הנתון האמיתי מהמיפוי. */}
+          <div className="rounded-xl p-3 mt-6 mb-3 flex items-start gap-2" style={{ background:"#eef7f1", border:"1px solid #c9e3d4" }}>
+            <span className="material-symbols-outlined text-[18px] text-verdant-emerald mt-0.5">info</span>
+            <div className="text-[12px] text-verdant-ink leading-relaxed">
+              הוצאות נשאבות אוטומטית ממיפוי עסקאות בדף <b>תקציב</b> ו-<b>תזרים</b>. הכנסות הן נתון קשה-לשינוי — כדאי לתעד כאן. הוצאות הן כלי חינוכי — נלמד אותן מהנתון האמיתי, לא מהערכה.
+            </div>
           </div>
 
           {/* Assets */}
@@ -306,49 +555,108 @@ export default function OnboardingPage() {
                   <td className="px-2"><select className="inp" value={l.type} onChange={e=>onUpdate(i,"type",e.target.value)}>{LIAB_TYPES.map(t=><option key={t}>{t}</option>)}</select></td>
                   <td className="px-2"><input className="inp" value={l.lender} onChange={e=>onUpdate(i,"lender",e.target.value)} placeholder="בנק/גוף" /></td>
                   <td className="px-2"><input className="inp tabular" type="number" min="0" value={l.balance} onChange={e=>onUpdate(i,"balance",e.target.value)} /></td>
-                  <td className="px-2"><input className="inp tabular" type="number" step="0.1" min="0" value={l.rate} onChange={e=>onUpdate(i,"rate",e.target.value)} /></td>
+                  <td className="px-2">
+                    {l.type === "משכנתא" ? (
+                      <input
+                        className="inp tabular"
+                        disabled
+                        value=""
+                        placeholder="מלוח סילוקין"
+                        title='במשכנתא יש בד"כ כמה מסלולים עם ריביות שונות. הריבית המדויקת תיטען מלוח הסילוקין שתעלה בדף "נדל״ן" — לכל נכס בנפרד.'
+                        style={{ background: "#f4f5ed", color: "#7a8a7e", cursor: "help" }}
+                      />
+                    ) : (
+                      <input className="inp tabular" type="number" step="0.1" min="0" value={l.rate} onChange={e=>onUpdate(i,"rate",e.target.value)} />
+                    )}
+                  </td>
                   <td className="px-2"><input className="inp tabular" type="number" min="0" value={l.monthly} onChange={e=>onUpdate(i,"monthly",e.target.value)} /></td>
                 </>
               )}
             />
+            <div className="rounded-xl p-3 mt-3 flex items-start gap-2" style={{ background:"#eef7f1", border:"1px solid #c9e3d4" }}>
+              <span className="material-symbols-outlined text-[18px] text-verdant-emerald mt-0.5">info</span>
+              <div className="text-[12px] text-verdant-ink leading-relaxed">
+                במשכנתא יש לרוב כמה מסלולים עם ריביות שונות. את הריבית המדויקת וחלוקת המסלולים נטען מלוח הסילוקין בדף <b>נדל״ן</b> — לכל נכס בנפרד. כאן די להזין יתרה והחזר חודשי כולל.
+              </div>
+            </div>
           </div>
 
-          {/* Net Worth */}
-          <div className="mt-4 flex items-center justify-between p-4 rounded-lg" style={{ background:"linear-gradient(135deg,#012d1d 0%,#0a7a4a 100%)" }}>
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.2em] font-bold" style={{ color:"#58e1b0" }}>שווי נקי מחושב</div>
-              <div className="text-[10px] opacity-70 mt-0.5" style={{ color:"#a7c5b5" }}>נכסים פחות התחייבויות</div>
-            </div>
-            <div className="text-2xl font-extrabold tabular text-white">{fmt(netWorth)}</div>
-          </div>
-          <PlannerNotes stepKey="step2" notes={plannerNotes} onChange={(k,v) => setPlannerNotes(p => ({...p,[k]:v}))} />
         </StepCard>}
 
         {/* ===== STEP 3 · Risk & Legal ===== */}
         {step === 3 && <StepCard num={3} title="ניהול סיכונים ומשפט" icon="health_and_safety">
 
-          <h3 className="text-sm font-extrabold text-verdant-ink mb-3 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px] text-verdant-emerald">health_and_safety</span>כיסויים ביטוחיים
-          </h3>
-          <div className="v-card overflow-hidden mb-6" style={{ borderRadius:8 }}>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-extrabold text-verdant-ink flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px] text-verdant-emerald">health_and_safety</span>כיסויים ביטוחיים
+            </h3>
+            <button
+              type="button"
+              onClick={() => setInsurance(p => {
+                // Insert the new row right after the LAST occurrence of the
+                // same type so related coverages stay grouped. New custom
+                // rows default to "ביטוח חיים" so a new life-insurance entry
+                // lands next to the existing one.
+                const newRow: InsRow = { type:"ביטוח חיים", has:"", company:"", coverage:"", premium:"", for:"", isCustom:"1" };
+                const lastIdx = (() => {
+                  for (let i = p.length - 1; i >= 0; i--) {
+                    if (p[i].type === newRow.type) return i;
+                  }
+                  return p.length - 1;
+                })();
+                return [...p.slice(0, lastIdx + 1), newRow, ...p.slice(lastIdx + 1)];
+              })}
+              className="text-[11px] font-bold text-verdant-emerald hover:underline flex items-center gap-1"
+            >
+              <span className="material-symbols-outlined text-[14px]">add</span>הוסף ביטוח
+            </button>
+          </div>
+          <div className="card overflow-hidden mb-6" style={{ borderRadius:8 }}>
             <table className="w-full text-sm">
               <thead className="border-b v-divider" style={{ background:"#f9faf2" }}>
                 <tr className="text-right">
                   <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted">סוג כיסוי</th>
+                  <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted w-24">עבור</th>
                   <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted w-28">קיים?</th>
                   <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted">חברה</th>
                   <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted w-32">סכום כיסוי</th>
                   <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted w-28">פרמיה חודשית</th>
+                  <th className="w-8" />
                 </tr>
               </thead>
               <tbody className="divide-y v-divider">
                 {insurance.map((ins,i)=>(
                   <tr key={i} className="h-[30px]">
-                    <td className="text-xs font-bold text-verdant-ink px-3">{ins.type}</td>
+                    {/* Type cell: fixed label for defaults, dropdown for custom rows */}
+                    {ins.isCustom === "1" ? (
+                      <td className="px-2">
+                        <select className="inp" value={ins.type} onChange={e=>setInsurance(p=>p.map((x,j)=>j===i?{...x,type:e.target.value}:x))}>
+                          <option>ביטוח חיים</option>
+                          <option>בריאות</option>
+                          <option>סיעוד</option>
+                          <option>אובדן כושר עבודה</option>
+                          <option>ביטוח אחר</option>
+                        </select>
+                      </td>
+                    ) : (
+                      <td className="text-xs font-bold text-verdant-ink px-3">{ins.type}</td>
+                    )}
+                    {/* For whom — editable on every row (not just custom additions) */}
+                    <td className="px-2">
+                      <input className="inp" value={ins.for||""} onChange={e=>setInsurance(p=>p.map((x,j)=>j===i?{...x,for:e.target.value}:x))} placeholder="בן זוג / שם" />
+                    </td>
                     <td className="px-2"><select className="inp" value={ins.has} onChange={e=>setInsurance(p=>p.map((x,j)=>j===i?{...x,has:e.target.value}:x))}><option value="">—</option><option>כן</option><option>לא</option><option>לא יודע</option></select></td>
                     <td className="px-2"><input className="inp" value={ins.company} onChange={e=>setInsurance(p=>p.map((x,j)=>j===i?{...x,company:e.target.value}:x))} placeholder="חברה" /></td>
                     <td className="px-2"><input className="inp tabular" type="number" min="0" value={ins.coverage} onChange={e=>setInsurance(p=>p.map((x,j)=>j===i?{...x,coverage:e.target.value}:x))} /></td>
                     <td className="px-2"><input className="inp tabular" type="number" min="0" value={ins.premium} onChange={e=>setInsurance(p=>p.map((x,j)=>j===i?{...x,premium:e.target.value}:x))} /></td>
+                    {/* Delete button — only on custom rows */}
+                    <td className="px-1">
+                      {ins.isCustom === "1" && (
+                        <button type="button" onClick={()=>setInsurance(p=>p.filter((_,j)=>j!==i))} className="text-verdant-muted hover:text-red-600 transition-colors">
+                          <span className="material-symbols-outlined text-[16px]">close</span>
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -364,7 +672,6 @@ export default function OnboardingPage() {
             <FldSelect label="הסכם ממון" name="prenup" fields={fields} onChange={setField} options={["קיים","לא קיים","לא רלוונטי"]} />
             <FldSelect label="ייפוי כוח מתמשך" name="poa" fields={fields} onChange={setField} options={["קיים","לא קיים"]} />
           </div>
-          <PlannerNotes stepKey="step3" notes={plannerNotes} onChange={(k,v) => setPlannerNotes(p => ({...p,[k]:v}))} />
         </StepCard>}
 
         {/* ===== STEP 4 · Vision & Goals ===== */}
@@ -409,23 +716,14 @@ export default function OnboardingPage() {
               </>
             )}
           />
-          <PlannerNotes stepKey="step4" notes={plannerNotes} onChange={(k,v) => setPlannerNotes(p => ({...p,[k]:v}))} />
         </StepCard>}
 
-        {/* ===== STEP 5 · Pension & Retirement ===== */}
+        {/* ===== STEP 5 · Pension & Retirement =====
+         * "חיסכון פנסיוני" (pension savings) was removed — the מסלקה upload
+         * on the pension page is the authoritative source. We keep only
+         * the retirement plan + study-fund status (for both partners).
+         */}
         {step === 5 && <StepCard num={5} title="פנסיה ופרישה" icon="elderly">
-          <h3 className="text-sm font-extrabold text-verdant-ink mb-3 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px] text-verdant-emerald">savings</span>חיסכון פנסיוני
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-            <FldSelect label="סוג תוכנית — בן/בת זוג 1" name="pension_type_1" fields={fields} onChange={setField} options={["קרן פנסיה מקיפה","ביטוח מנהלים","קרן פנסיה כללית","קופת גמל","אין","לא יודע/ת"]} />
-            <FldSelect label="סוג תוכנית — בן/בת זוג 2" name="pension_type_2" fields={fields} onChange={setField} options={["קרן פנסיה מקיפה","ביטוח מנהלים","קרן פנסיה כללית","קופת גמל","אין","לא יודע/ת"]} />
-            <Fld label="צבירה נוכחית — בן/בת זוג 1 (₪)" name="pension_balance_1" fields={fields} onChange={setField} type="number" />
-            <Fld label="צבירה נוכחית — בן/בת זוג 2 (₪)" name="pension_balance_2" fields={fields} onChange={setField} type="number" />
-            <Fld label="הפרשה חודשית עובד (₪)" name="pension_monthly_emp" fields={fields} onChange={setField} type="number" />
-            <Fld label="הפרשה חודשית מעסיק (₪)" name="pension_monthly_er" fields={fields} onChange={setField} type="number" />
-          </div>
-
           <h3 className="text-sm font-extrabold text-verdant-ink mb-3 flex items-center gap-2">
             <span className="material-symbols-outlined text-[18px] text-verdant-emerald">beach_access</span>תכנון פרישה
           </h3>
@@ -433,37 +731,46 @@ export default function OnboardingPage() {
             <Fld label="גיל פרישה רצוי" name="retire_age" fields={fields} onChange={setField} type="number" placeholder="67" />
             <Fld label="הכנסה חודשית רצויה בפרישה (₪)" name="retire_income" fields={fields} onChange={setField} type="number" />
             <FldSelect label="מוכנות לסיכון בתיק פנסיוני" name="pension_risk" fields={fields} onChange={setField} options={["שמרני מאוד","שמרני","מאוזן","צמיחה","אגרסיבי"]} />
-            <FldSelect label="קרן השתלמות" name="hishtalmut" fields={fields} onChange={setField} options={["קיימת ופעילה","קיימת ולא פעילה","לא קיימת"]} />
           </div>
 
-          <h3 className="text-sm font-extrabold text-verdant-ink mb-3 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px] text-verdant-emerald">military_tech</span>שירות צבאי ומילואים
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-            <FldSelect label="סטטוס מילואים — בן/בת זוג 1" name="miluim_1" fields={fields} onChange={setField} options={["משרת/ת פעיל","משוחרר/ת","לא שירתתי","נ/ר"]} />
-            <FldSelect label="סטטוס מילואים — בן/בת זוג 2" name="miluim_2" fields={fields} onChange={setField} options={["משרת/ת פעיל","משוחרר/ת","לא שירתתי","נ/ר"]} />
-            <Fld label="ימי מילואים שנתיים (ממוצע)" name="miluim_days" fields={fields} onChange={setField} type="number" />
+          <div className="rounded-xl p-3 mb-4 flex items-start gap-2" style={{ background:"#eef7f1", border:"1px solid #c9e3d4" }}>
+            <span className="material-symbols-outlined text-[18px] text-verdant-emerald mt-0.5">info</span>
+            <div className="text-[12px] text-verdant-ink leading-relaxed">
+              נתוני החסכון הפנסיוני — קרנות פנסיה, ביטוחי מנהלים, גמל וקרנות השתלמות — נטענים אוטומטית מהמסלקה בעמוד "פנסיה ופרישה". אין צורך להזין אותם כאן.
+            </div>
           </div>
-
-          <PlannerNotes stepKey="step5" notes={plannerNotes} onChange={(k,v) => setPlannerNotes(p => ({...p,[k]:v}))} />
         </StepCard>}
 
         {/* ═══ Step Navigation ═══ */}
         <div className="flex items-center justify-between gap-3 pt-2">
           <div className="flex items-center gap-2">
             {step > 1 && (
-              <button type="button" onClick={goPrev} className="text-sm font-bold text-verdant-muted hover:text-verdant-ink transition-colors flex items-center gap-1 px-4 py-2.5 rounded-lg" style={{ background: "#f4f7ed" }}>
+              <button type="button" onClick={goPrev} className="btn-botanical-ghost flex items-center gap-1">
                 <span className="material-symbols-outlined text-[16px]">arrow_forward</span>שלב קודם
               </button>
             )}
           </div>
           <div className="flex items-center gap-2">
             {step < TOTAL_STEPS ? (
-              <button type="button" onClick={goNext} className="text-white font-bold text-sm py-2.5 px-6 rounded-lg transition-transform hover:scale-[0.98] flex items-center gap-2" style={{ background:"linear-gradient(135deg,#012d1d 0%,#0a7a4a 100%)" }}>
+              <button type="button" onClick={goNext} className="btn-botanical flex items-center gap-2">
                 שלב הבא<span className="material-symbols-outlined text-[16px]">arrow_back</span>
               </button>
             ) : (
-              <button type="button" onClick={() => router.push("/dashboard")} className="text-white font-bold text-sm py-3 px-6 rounded-lg transition-transform hover:scale-[0.98] flex items-center gap-2" style={{ background:"linear-gradient(135deg,#012d1d 0%,#0a7a4a 100%)" }}>
+              <button type="button" onClick={() => {
+                // Flush all persisted state to localStorage immediately before sync.
+                // Must use scopedKey() so the sync engine and store migrations read
+                // from the same client-scoped namespace (verdant:c:{id}:...).
+                try {
+                  localStorage.setItem(scopedKey("verdant:onboarding:fields"), JSON.stringify(fields));
+                  localStorage.setItem(scopedKey("verdant:onboarding:children"), JSON.stringify(children));
+                  localStorage.setItem(scopedKey("verdant:onboarding:assets"), JSON.stringify(assets));
+                  localStorage.setItem(scopedKey("verdant:onboarding:liabilities"), JSON.stringify(liabilities));
+                  localStorage.setItem(scopedKey("verdant:onboarding:insurance"), JSON.stringify(insurance));
+                  localStorage.setItem(scopedKey("verdant:onboarding:goals"), JSON.stringify(goals));
+                } catch {}
+                syncOnboardingToStores();
+                router.push("/dashboard");
+              }} className="btn-botanical flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px]">check_circle</span>סיום ומעבר לדשבורד
               </button>
             )}
@@ -480,7 +787,7 @@ export default function OnboardingPage() {
 /* ===== Reusable sub-components ===== */
 function StepCard({ num, title, icon, children }: { num: number; title: string; icon: string; children: React.ReactNode }) {
   return (
-    <section className="v-card overflow-hidden">
+    <section className="card overflow-hidden">
       <div className="px-5 py-4 text-white" style={{ background: "#012d1d" }}>
         <div className="flex items-center gap-3">
           <span className="material-symbols-outlined text-[20px] opacity-70">{icon}</span>
@@ -490,24 +797,6 @@ function StepCard({ num, title, icon, children }: { num: number; title: string; 
       </div>
       <div className="p-6 space-y-6">{children}</div>
     </section>
-  );
-}
-
-function PlannerNotes({ stepKey, notes, onChange }: { stepKey: string; notes: Record<string, string>; onChange: (k: string, v: string) => void }) {
-  return (
-    <div className="mt-6 pt-6 border-t v-divider">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="material-symbols-outlined text-[16px] text-verdant-emerald">edit_note</span>
-        <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-verdant-muted">הערות מתכנן</span>
-      </div>
-      <textarea
-        className="inp resize-none text-right"
-        rows={3}
-        placeholder="תובנות ראשוניות, נקודות לבדיקה, הנחיות לשלבים הבאים..."
-        value={notes[stepKey] || ""}
-        onChange={e => onChange(stepKey, e.target.value)}
-      />
-    </div>
   );
 }
 
@@ -541,14 +830,6 @@ function FldTextarea({ label, name, fields, onChange }: { label:string; name:str
   );
 }
 
-function SummaryBar({ label, value, bg }: { label:string; value:string; bg:string }) {
-  return (
-    <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: bg }}>
-      <span className="text-xs font-bold text-verdant-ink">{label}</span>
-      <span className="text-lg font-extrabold text-verdant-ink tabular">{value}</span>
-    </div>
-  );
-}
 
 function DynTable<T extends Record<string,string>>({ headers, rows, onUpdate, onRemove, renderRow, footer }: {
   headers: string[];
@@ -559,7 +840,7 @@ function DynTable<T extends Record<string,string>>({ headers, rows, onUpdate, on
   footer?: React.ReactNode;
 }) {
   return (
-    <div className="v-card overflow-hidden" style={{ borderRadius:8 }}>
+    <div className="card overflow-hidden" style={{ borderRadius:8 }}>
       <table className="w-full text-sm">
         <thead className="border-b v-divider" style={{ background:"#f9faf2" }}>
           <tr className="text-right">

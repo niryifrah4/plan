@@ -1,6 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import { rateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
+import { requireUser } from "@/lib/supabase/require-user";
+
+/** Allowed file types + size limits (anti-abuse) */
+const ALLOWED_MIMES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "text/csv",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+]);
+const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
 
 /**
  * POST /api/upload
@@ -12,12 +26,42 @@ import path from "path";
  */
 export async function POST(req: NextRequest) {
   try {
+    // ── Auth guard (defense in depth; middleware also enforces) ──
+    const auth = await requireUser();
+    if ("response" in auth) return auth.response;
+
+    // ── Rate limit ──
+    const ip = getClientIp(req.headers);
+    const rl = rateLimit({ key: `upload:${ip}`, ...RATE_LIMITS.UPLOAD });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Too many uploads. Try again later." },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": String(RATE_LIMITS.UPLOAD.limit),
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": String(Math.ceil(rl.resetAt / 1000)),
+            "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+          },
+        }
+      );
+    }
+
     const formData = await req.formData();
     const file = formData.get("file") as File;
     const docType = (formData.get("docType") as string) || "other";
 
     if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+      return NextResponse.json({ error: "לא הועלה קובץ", code: "NO_FILE" }, { status: 400 });
+    }
+
+    // ── Validation: file size + MIME type ──
+    if (file.size > MAX_FILE_BYTES) {
+      return NextResponse.json({ error: "הקובץ גדול מדי — מקסימום 10MB", code: "FILE_TOO_LARGE" }, { status: 413 });
+    }
+    if (file.type && !ALLOWED_MIMES.has(file.type)) {
+      return NextResponse.json({ error: "סוג קובץ לא נתמך — ניתן להעלות PDF, תמונה, Excel או CSV", code: "INVALID_TYPE" }, { status: 415 });
     }
 
     // Ensure uploads directory exists
@@ -50,6 +94,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Upload error:", error);
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+    return NextResponse.json({ error: "שגיאה בהעלאת הקובץ — נסה שוב", code: "UPLOAD_FAILED" }, { status: 500 });
   }
 }

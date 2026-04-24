@@ -1,12 +1,28 @@
 /**
  * Market Value Sync — Wealth Auto-Sync
  *
- * Keeps the portfolio's live prices in sync with public market data
- * (Yahoo Finance). Provides:
- *   • refreshAllPrices(securities) — batch price refresh for all tickers
+ * Keeps the portfolio's live prices in sync with public market data.
+ * Providers:
+ *   • Yahoo Finance — stocks, ETFs, bonds, funds (incl. .TA Israeli tickers)
+ *   • CoinGecko — crypto prices
+ *   • Bank of Israel — FX rates
+ *
+ * Provides:
+ *   • fetchPrice(symbol, kind) — universal price fetch by asset kind
+ *   • fetchFXRates() — Bank of Israel FX rates
+ *   • fetchQuotesBulk(symbols) — batch Yahoo price refresh
  *   • computePerformance(...) — actual vs assumption delta
  *   • recordSnapshot / getSnapshots — history for return analysis
  */
+
+import {
+  fetchCryptoPrice,
+  fetchCryptoPricesBulk,
+  fetchAllFXRates,
+  toYahooTicker,
+} from "./market-providers";
+import type { PriceQuote } from "./market-providers";
+import { scopedKey } from "./client-scope";
 
 export interface TickerQuote {
   symbol: string;
@@ -110,6 +126,36 @@ export function computePerformance(
   return { actualPct, expectedPct, deltaPct, summary, severity };
 }
 
+/* ── Universal fetch by asset kind ── */
+
+export type SecurityKind = "stock" | "etf" | "crypto" | "rsu" | "option" | "bond" | "fund";
+
+export async function fetchPrice(symbol: string, kind: SecurityKind): Promise<PriceQuote | null> {
+  switch (kind) {
+    case "crypto":
+      return fetchCryptoPrice(symbol);
+    case "stock":
+    case "etf":
+    case "bond":
+    case "fund": {
+      const q = await fetchQuote(symbol);
+      if (!q) return null;
+      return { ...q, source: "yahoo" as const, lastUpdate: new Date() };
+    }
+    default: {
+      const q = await fetchQuote(symbol);
+      if (!q) return null;
+      return { ...q, source: "yahoo" as const, lastUpdate: new Date() };
+    }
+  }
+}
+
+export async function fetchFXRates(): Promise<Record<string, number>> {
+  return fetchAllFXRates();
+}
+
+export { fetchCryptoPricesBulk, toYahooTicker };
+
 // ─── Snapshot storage: keeps a daily net-worth trail for performance charting ───
 
 interface Snapshot {
@@ -123,21 +169,21 @@ export function recordSnapshot(totalValue: number) {
   if (typeof window === "undefined") return;
   try {
     const today = new Date().toISOString().slice(0, 10);
-    const raw = localStorage.getItem(SNAPSHOT_KEY);
+    const raw = localStorage.getItem(scopedKey(SNAPSHOT_KEY));
     const snaps: Snapshot[] = raw ? JSON.parse(raw) : [];
     // Replace today's entry if exists
     const filtered = snaps.filter(s => s.date !== today);
     filtered.push({ date: today, totalValue });
     // Keep last 365 entries
     const trimmed = filtered.slice(-365);
-    localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(trimmed));
+    localStorage.setItem(scopedKey(SNAPSHOT_KEY), JSON.stringify(trimmed));
   } catch {}
 }
 
 export function getSnapshots(): Snapshot[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(SNAPSHOT_KEY);
+    const raw = localStorage.getItem(scopedKey(SNAPSHOT_KEY));
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];

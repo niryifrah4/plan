@@ -4,6 +4,7 @@
  */
 
 import type { ParsedTransaction } from "./types";
+import { savingsRate as calcSavingsRate, monthlyNetSavings } from "@/lib/financial-math";
 
 export interface MonthlyBreakdown {
   month: string;        // yyyy-mm
@@ -70,8 +71,8 @@ export function analyzeBurnRate(transactions: ParsedTransaction[]): BurnRateAnal
       month,
       totalIncome: income,
       totalExpense: expense,
-      netCashflow: income - expense,
-      savingRate: income > 0 ? Math.max(0, (income - expense) / income) : 0,
+      netCashflow: monthlyNetSavings(income, expense),
+      savingRate: calcSavingsRate(income, expense),
     }));
 
   if (months.length === 0) {
@@ -82,9 +83,7 @@ export function analyzeBurnRate(transactions: ParsedTransaction[]): BurnRateAnal
   const recentMonths = months.slice(-3);
   const avgMonthlyExpense = recentMonths.reduce((s, m) => s + m.totalExpense, 0) / recentMonths.length;
   const avgMonthlyIncome = recentMonths.reduce((s, m) => s + m.totalIncome, 0) / recentMonths.length;
-  const avgSavingRate = avgMonthlyIncome > 0
-    ? Math.max(0, (avgMonthlyIncome - avgMonthlyExpense) / avgMonthlyIncome)
-    : 0;
+  const avgSavingRate = calcSavingsRate(avgMonthlyIncome, avgMonthlyExpense);
 
   const latestMonth = months[months.length - 1];
 

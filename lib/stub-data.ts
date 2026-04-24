@@ -43,13 +43,13 @@ export const demoGoals: Goal[] = [
 export const demoTasks: Task[] = [
   { id: "t1", household_id: HH_ID, rule_id: "low_emergency_fund", title: "קרן חירום מתחת ל-3 חודשים",
     detail: "יש לך נזילות של 1.8 חודשי הוצאה. מומלץ להגיע ל-3-6.",
-    severity: "medium", status: "open", cta_href: "/wealth", done_at: null, created_at: ISO },
+    severity: "medium", status: "open", cta_href: "/balance", done_at: null, created_at: ISO },
   { id: "t2", household_id: HH_ID, rule_id: "expensive_loan", title: "הלוואה יקרה (1)",
     detail: "זוהתה הלוואה בריבית 9.2%. שקול מיחזור ב'ארגז כלים'.",
-    severity: "medium", status: "open", cta_href: "/toolbox", done_at: null, created_at: ISO },
+    severity: "medium", status: "open", cta_href: "/tools", done_at: null, created_at: ISO },
   { id: "t3", household_id: HH_ID, rule_id: "goal_at_risk", title: "מטרה בסיכון (1)",
     detail: "חינוך ילדים — פער בין FV צפוי ליעד.",
-    severity: "medium", status: "open", cta_href: "/vision", done_at: null, created_at: ISO },
+    severity: "medium", status: "open", cta_href: "/goals", done_at: null, created_at: ISO },
 ];
 
 export const demoAssets: Asset[] = [
@@ -125,9 +125,9 @@ export const demoBenchmarks: BenchmarkModel[] = [
     name: "סולידי 20/80",
     description: "20% מניות, 80% אג\"ח — מתאים לשמרנים",
     allocation: [
-      { label: "מניות", pct: 20, color: "#0a7a4a" },
-      { label: "אג\"ח ממשלתי", pct: 50, color: "#10b981" },
-      { label: "אג\"ח קונצרני", pct: 20, color: "#58e1b0" },
+      { label: "מניות", pct: 20, color: "#1B4332" },
+      { label: "אג\"ח ממשלתי", pct: 50, color: "#2B694D" },
+      { label: "אג\"ח קונצרני", pct: 20, color: "#2B694D" },
       { label: "מזומן", pct: 10, color: "#d8e0d0" },
     ],
     expectedReturn: 0.045,
@@ -138,9 +138,9 @@ export const demoBenchmarks: BenchmarkModel[] = [
     name: "מאוזן 60/40",
     description: "60% מניות, 40% אג\"ח — קלאסי",
     allocation: [
-      { label: "מניות ארה\"ב", pct: 35, color: "#0a7a4a" },
+      { label: "מניות ארה\"ב", pct: 35, color: "#1B4332" },
       { label: "מניות בינלאומי", pct: 25, color: "#1a6b42" },
-      { label: "אג\"ח", pct: 30, color: "#10b981" },
+      { label: "אג\"ח", pct: 30, color: "#2B694D" },
       { label: "מזומן", pct: 10, color: "#d8e0d0" },
     ],
     expectedReturn: 0.07,
@@ -151,7 +151,7 @@ export const demoBenchmarks: BenchmarkModel[] = [
     name: "אגרסיבי S&P 500",
     description: "100% מניות — מבוסס S&P 500",
     allocation: [
-      { label: "S&P 500", pct: 80, color: "#0a7a4a" },
+      { label: "S&P 500", pct: 80, color: "#1B4332" },
       { label: "מניות צמיחה", pct: 15, color: "#1a6b42" },
       { label: "קריפטו", pct: 5, color: "#f59e0b" },
     ],

@@ -138,7 +138,7 @@ const TIER_MAP: Record<string, ExpenseTier> = {
 };
 
 export const TIER_INFO: Record<ExpenseTier, TierInfo> = {
-  essential: { tier: "essential", label: "הכרחיות", icon: "verified", color: "#0a7a4a" },
+  essential: { tier: "essential", label: "הכרחיות", icon: "verified", color: "#1B4332" },
   lifestyle: { tier: "lifestyle", label: "איכות חיים", icon: "spa", color: "#f59e0b" },
   growth:    { tier: "growth",    label: "צמיחה וחיסכון", icon: "trending_up", color: "#3b82f6" },
 };

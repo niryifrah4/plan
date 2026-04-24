@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { logEnvStatus } from "@/lib/env";
+
+// server-only boot log
+if (typeof window === "undefined") logEnvStatus();
 
 export const metadata: Metadata = {
-  title: "Verdant Ledger · plan",
-  description: "מערכת תכנון פיננסי ללקוח — Hebrew RTL financial planning suite",
+  title: "פלאן · מערכת לתכנון פיננסי",
+  description: "פלאן — מערכת לתכנון פיננסי ללקוח",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

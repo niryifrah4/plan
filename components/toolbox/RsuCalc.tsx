@@ -74,7 +74,7 @@ export function RsuCalc() {
 
   return (
     <div className="space-y-6">
-      <div className="v-card p-5">
+      <div className="card-pad">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-verdant-emerald">inventory_2</span>
@@ -84,7 +84,7 @@ export function RsuCalc() {
           <button
             onClick={() => setShowNominal(!showNominal)}
             className="text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1"
-            style={{ background: showNominal ? "#0a7a4a12" : "#7c3aed12", color: showNominal ? "#0a7a4a" : "#7c3aed" }}
+            style={{ background: showNominal ? "#1B433212" : "#1B433212", color: showNominal ? "#1B4332" : "#1B4332" }}
           >
             <span className="material-symbols-outlined text-[12px]">swap_horiz</span>
             {showNominal ? "ברוטו" : "נטו (אחרי מס)"}
@@ -107,10 +107,10 @@ export function RsuCalc() {
         <div className="mb-5">
           <div className="flex items-center justify-between text-[10px] font-bold mb-1">
             <span className="text-verdant-muted">התקדמות הבשלה</span>
-            <span style={{ color: "#0a7a4a" }}>{Math.round(analysis.vestedPct)}% הבשילו</span>
+            <span style={{ color: "#1B4332" }}>{Math.round(analysis.vestedPct)}% הבשילו</span>
           </div>
           <div className="h-3 rounded-full overflow-hidden" style={{ background: "#eef2e8" }}>
-            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${analysis.vestedPct}%`, background: "linear-gradient(90deg, #012d1d, #0a7a4a)" }} />
+            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${analysis.vestedPct}%`, background: "linear-gradient(90deg, #012d1d, #1B4332)" }} />
           </div>
           <div className="flex justify-between text-[9px] font-bold text-verdant-muted mt-1">
             <span>{analysis.vestedUnits} הבשילו</span>
@@ -120,12 +120,12 @@ export function RsuCalc() {
 
         {/* Results grid */}
         <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="p-4 rounded-xl" style={{ background: "#f0fdf4", border: "1px solid #0a7a4a22" }}>
+          <div className="p-4 rounded-xl" style={{ background: "#f0fdf4", border: "1px solid #1B433222" }}>
             <div className="text-[9px] font-bold text-verdant-muted uppercase tracking-[0.1em] mb-1">יחידות שהבשילו</div>
             <div className="text-lg font-extrabold text-verdant-ink tabular">
               {showNominal ? fmtILS(Math.round(analysis.grossValueVested)) : fmtILS(Math.round(analysis.netVested))}
             </div>
-            <div className="text-[9px] font-bold mt-1" style={{ color: "#0a7a4a" }}>
+            <div className="text-[9px] font-bold mt-1" style={{ color: "#1B4332" }}>
               {analysis.vestedUnits} יחידות × ${currentPrice}
             </div>
             {!showNominal && analysis.taxVested > 0 && (
@@ -158,14 +158,14 @@ export function RsuCalc() {
           <Row label="רווח חייב במס" value={fmtILS(Math.round(analysis.gainVested))} color="#f59e0b" />
           <Row label={`מס רווח הון (${CGT_RATE * 100}%)`} value={fmtILS(Math.round(analysis.taxVested))} color="#b91c1c" />
           <div className="border-t v-divider pt-2">
-            <Row label="נטו בכיס" value={fmtILS(Math.round(analysis.netVested))} color="#0a7a4a" bold />
+            <Row label="נטו בכיס" value={fmtILS(Math.round(analysis.netVested))} color="#1B4332" bold />
           </div>
         </div>
       </div>
 
       {/* Vesting Schedule */}
       {analysis.tranches.length > 0 && (
-        <div className="v-card p-5">
+        <div className="card-pad">
           <h4 className="text-sm font-extrabold text-verdant-ink mb-3">לוח הבשלה</h4>
           <div className="grid grid-cols-4 md:grid-cols-6 gap-1.5">
             {analysis.tranches.map((t, i) => (
@@ -173,9 +173,9 @@ export function RsuCalc() {
                 key={i}
                 className="p-2 rounded-lg text-center text-[9px] font-bold transition-all"
                 style={{
-                  background: t.vested ? "#0a7a4a15" : "#f4f7ed",
-                  color: t.vested ? "#0a7a4a" : "#999",
-                  border: t.vested ? "1px solid #0a7a4a30" : "1px solid transparent",
+                  background: t.vested ? "#1B433215" : "#f4f7ed",
+                  color: t.vested ? "#1B4332" : "#999",
+                  border: t.vested ? "1px solid #1B433230" : "1px solid transparent",
                 }}
               >
                 <div>{t.date}</div>

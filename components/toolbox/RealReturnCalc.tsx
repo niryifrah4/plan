@@ -26,7 +26,7 @@ export function RealReturnCalc() {
 
   return (
     <div className="space-y-6">
-      <div className="v-card p-5">
+      <div className="card-pad">
         <div className="flex items-center gap-2 mb-4">
           <span className="material-symbols-outlined text-verdant-emerald">analytics</span>
           <h3 className="text-sm font-extrabold text-verdant-ink">תשואה ריאלית vs נומינלית</h3>
@@ -52,7 +52,7 @@ export function RealReturnCalc() {
             </div>
             <div>
               <div className="text-[10px] font-bold text-verdant-muted mb-1">תשואה ריאלית נטו</div>
-              <div className="text-lg font-extrabold tabular" style={{ color: realRate > 0 ? "#0a7a4a" : "#b91c1c" }}>{fmtPct(realRate * 100, 2)}</div>
+              <div className="text-lg font-extrabold tabular" style={{ color: realRate > 0 ? "#1B4332" : "#b91c1c" }}>{fmtPct(realRate * 100, 2)}</div>
             </div>
             <div>
               <div className="text-[10px] font-bold text-verdant-muted mb-1">הפסד לאינפלציה+דמ״נ</div>
@@ -63,7 +63,7 @@ export function RealReturnCalc() {
           {/* Bars */}
           <div className="space-y-3">
             <Bar label={`נומינלי (${years} שנים)`} value={nominalFV} max={nominalFV} color="#012d1d" />
-            <Bar label={`ריאלי נטו (${years} שנים)`} value={realFV} max={nominalFV} color="#0a7a4a" />
+            <Bar label={`ריאלי נטו (${years} שנים)`} value={realFV} max={nominalFV} color="#1B4332" />
           </div>
 
           <div className="mt-4 pt-3 border-t" style={{ borderColor: "#d8e0d0" }}>

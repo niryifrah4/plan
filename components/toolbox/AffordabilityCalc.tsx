@@ -4,6 +4,9 @@ import { useState, useEffect, useMemo } from "react";
 import { pmt } from "@/lib/financial-math";
 import { loadAssumptions } from "@/lib/assumptions";
 import { fmtILS } from "@/lib/format";
+import { scopedKey } from "@/lib/client-scope";
+
+const TASK_INSIGHTS_KEY = "verdant:task_insights";
 
 /**
  * Affordability Calculator — מחשבון יכולת רכישה
@@ -82,14 +85,14 @@ export function AffordabilityCalc() {
 
   const handleExport = () => {
     try {
-      const existing = JSON.parse(localStorage.getItem("verdant:task_insights") || "[]");
+      const existing = JSON.parse(localStorage.getItem(scopedKey(TASK_INSIGHTS_KEY)) || "[]");
       existing.push({
         id: `afford-${Date.now()}`,
         source: "מחשבון יכולת רכישה",
         date: new Date().toISOString(),
         text: `יכולת רכישה מקסימלית: ${fmtILS(Math.round(results.effectiveMax))}. משכנתא: ${fmtILS(Math.round(results.effectiveMortgage))}. החזר חודשי: ${fmtILS(Math.round(results.effectivePayment))}. יחס החזר/הכנסה: ${results.paymentToIncomeRatio.toFixed(1)}%.`,
       });
-      localStorage.setItem("verdant:task_insights", JSON.stringify(existing));
+      localStorage.setItem(scopedKey(TASK_INSIGHTS_KEY), JSON.stringify(existing));
       window.dispatchEvent(new Event("verdant:insights:updated"));
       setExported(true);
       setTimeout(() => setExported(false), 2500);
@@ -127,7 +130,7 @@ export function AffordabilityCalc() {
           label="מחיר דירה מקסימלי"
           value={fmtILS(Math.round(results.effectiveMax))}
           icon="home"
-          color="#0a7a4a"
+          color="#1B4332"
           highlight
         />
         <ResultCard
@@ -140,18 +143,18 @@ export function AffordabilityCalc() {
           label="החזר חודשי משוער"
           value={fmtILS(Math.round(results.effectivePayment))}
           icon="payments"
-          color={results.paymentToIncomeRatio > 35 ? "#b91c1c" : "#0a7a4a"}
+          color={results.paymentToIncomeRatio > 35 ? "#b91c1c" : "#1B4332"}
         />
       </div>
 
       {/* Details */}
       <div className="rounded-xl p-6 space-y-4" style={{ background: "#f9faf2", border: "1px solid #d8e0d0" }}>
-        <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">פירוט</div>
+        <div className="caption">פירוט</div>
         <div className="grid grid-cols-2 gap-y-3 gap-x-8">
           <DetailRow label="הכנסה פנויה (נטו - חובות)" value={fmtILS(Math.round(results.disposable))} />
           <DetailRow label="תקרת החזר (35%)" value={fmtILS(Math.round(results.maxPaymentAllowed))} />
           <DetailRow label="יחס החזר/הכנסה" value={`${results.paymentToIncomeRatio.toFixed(1)}%`}
-            color={results.paymentToIncomeRatio > 35 ? "#b91c1c" : results.paymentToIncomeRatio > 30 ? "#f59e0b" : "#0a7a4a"} />
+            color={results.paymentToIncomeRatio > 35 ? "#b91c1c" : results.paymentToIncomeRatio > 30 ? "#f59e0b" : "#1B4332"} />
           <DetailRow label="סה״כ ריבית לתקופה" value={fmtILS(Math.round(results.totalInterest))} />
           <DetailRow label="LTV (אחוז מימון)" value="75%" />
           <DetailRow label="ריבית שוק (מהנחות יסוד)" value={`${mortgageRate}%`} />
@@ -166,7 +169,7 @@ export function AffordabilityCalc() {
           <div className="h-3 rounded-full overflow-hidden" style={{ background: "#eef2e8" }}>
             <div className="h-full rounded-full transition-all duration-500" style={{
               width: `${Math.min(100, (results.paymentToIncomeRatio / 35) * 100)}%`,
-              background: results.paymentToIncomeRatio > 35 ? "#ef4444" : results.paymentToIncomeRatio > 30 ? "#f59e0b" : "#0a7a4a",
+              background: results.paymentToIncomeRatio > 35 ? "#ef4444" : results.paymentToIncomeRatio > 30 ? "#f59e0b" : "#1B4332",
             }} />
           </div>
           <div className="flex justify-between text-[9px] font-bold text-verdant-muted mt-1">
@@ -178,9 +181,7 @@ export function AffordabilityCalc() {
       </div>
 
       {/* Export button */}
-      <button onClick={handleExport}
-        className="text-[12px] font-bold px-5 py-2.5 rounded-xl text-white flex items-center gap-2 shadow-sm hover:shadow-md transition-shadow"
-        style={{ background: exported ? "#0a7a4a" : "linear-gradient(135deg,#012d1d,#0a7a4a)" }}>
+      <button onClick={handleExport} className="btn-botanical flex items-center gap-2">
         <span className="material-symbols-outlined text-[18px]">{exported ? "check" : "file_export"}</span>
         {exported ? "נשמר בהמלצות" : "ייצא לסיכום"}
       </button>

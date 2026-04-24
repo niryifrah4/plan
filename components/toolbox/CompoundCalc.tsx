@@ -39,8 +39,8 @@ export function CompoundCalc() {
             onClick={() => setShowReal(!showReal)}
             className="text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1 transition-colors"
             style={{
-              background: showReal ? "#7c3aed12" : "#0a7a4a12",
-              color: showReal ? "#7c3aed" : "#0a7a4a",
+              background: showReal ? "#1B433212" : "#1B433212",
+              color: showReal ? "#1B4332" : "#1B4332",
             }}
           >
             <span className="material-symbols-outlined text-[12px]">swap_horiz</span>
@@ -73,7 +73,7 @@ export function CompoundCalc() {
 
       <Card>
         <h3 className="text-lg font-extrabold text-verdant-ink mb-4 text-right">
-          תוצאות {showReal && <span className="text-xs font-bold" style={{ color: "#7c3aed" }}>(ערכים ריאליים)</span>}
+          תוצאות {showReal && <span className="text-xs font-bold" style={{ color: "#1B4332" }}>(ערכים ריאליים)</span>}
         </h3>
         <div className="grid grid-cols-3 gap-3">
           <div className="p-4 rounded-lg border v-divider text-right">
@@ -84,13 +84,13 @@ export function CompoundCalc() {
             <div className="text-[10px] uppercase tracking-[0.15em] text-verdant-muted font-bold mb-1">
               {showReal ? "ריבית ריאלית" : "ריבית מצטברת"}
             </div>
-            <div className="text-xl font-extrabold tabular" style={{ color: "#0a7a4a" }}>{fmtILS(interest)}</div>
+            <div className="text-xl font-extrabold tabular" style={{ color: "#1B4332" }}>{fmtILS(interest)}</div>
           </div>
-          <div className="p-4 rounded-lg text-right" style={{ background: showReal ? "#7c3aed08" : "#0a7a4a11", border: `1px solid ${showReal ? "#7c3aed" : "#0a7a4a"}` }}>
+          <div className="p-4 rounded-lg text-right" style={{ background: showReal ? "#1B433208" : "#1B433211", border: `1px solid ${showReal ? "#1B4332" : "#1B4332"}` }}>
             <div className="text-[10px] uppercase tracking-[0.15em] text-verdant-muted font-bold mb-1">
               {showReal ? "שווי עתידי ריאלי" : "שווי עתידי (FV)"}
             </div>
-            <div className="text-2xl font-extrabold tabular" style={{ color: showReal ? "#7c3aed" : "#0a7a4a" }}>{fmtILS(fv)}</div>
+            <div className="text-2xl font-extrabold tabular" style={{ color: showReal ? "#1B4332" : "#1B4332" }}>{fmtILS(fv)}</div>
           </div>
         </div>
       </Card>

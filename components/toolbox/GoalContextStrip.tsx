@@ -74,12 +74,12 @@ export function GoalContextStrip({ domain, title }: Props) {
     >
       <div
         className="absolute inset-0 opacity-[0.04]"
-        style={{ backgroundImage: "radial-gradient(circle at 85% 20%, #58e1b0 0%, transparent 60%)" }}
+        style={{ backgroundImage: "radial-gradient(circle at 85% 20%, #2B694D 0%, transparent 60%)" }}
       />
       <div className="relative">
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] font-bold mb-1" style={{ color: "#58e1b0" }}>
+            <div className="text-[10px] uppercase tracking-[0.2em] font-bold mb-1" style={{ color: "#2B694D" }}>
               Wealth Architecture · הכלי ביחס לחיים
             </div>
             <h4 className="text-[14px] font-extrabold leading-snug">
@@ -87,9 +87,9 @@ export function GoalContextStrip({ domain, title }: Props) {
             </h4>
           </div>
           <Link
-            href={"/vision" as any}
+            href={"/goals" as any}
             className="text-[10px] font-bold px-3 py-1.5 rounded-full whitespace-nowrap transition-colors hover:bg-white/10"
-            style={{ background: "rgba(88,225,176,0.12)", color: "#58e1b0", border: "1px solid rgba(88,225,176,0.25)" }}
+            style={{ background: "rgba(88,225,176,0.12)", color: "#2B694D", border: "1px solid rgba(88,225,176,0.25)" }}
           >
             כל היעדים →
           </Link>
@@ -109,7 +109,7 @@ export function GoalContextStrip({ domain, title }: Props) {
                     className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
                     style={{ background: "rgba(88,225,176,0.15)" }}
                   >
-                    <span className="material-symbols-outlined text-[18px]" style={{ color: "#58e1b0" }}>
+                    <span className="material-symbols-outlined text-[18px]" style={{ color: "#2B694D" }}>
                       {g.icon}
                     </span>
                   </div>
@@ -129,7 +129,7 @@ export function GoalContextStrip({ domain, title }: Props) {
             style={{ background: "rgba(255,255,255,0.06)", color: "#9ec9b7" }}
           >
             עדיין לא הוגדרו יעדים.{" "}
-            <Link href={"/vision" as any} className="underline font-extrabold" style={{ color: "#58e1b0" }}>
+            <Link href={"/goals" as any} className="underline font-extrabold" style={{ color: "#2B694D" }}>
               הגדר יעדים
             </Link>{" "}
             כדי שהכלי הזה יקבל משמעות אמיתית.

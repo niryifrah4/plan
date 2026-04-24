@@ -8,12 +8,34 @@ import { NextRequest, NextResponse } from "next/server";
 import { parseDocument } from "@/lib/doc-parser";
 import { deduplicateTransactions } from "@/lib/doc-parser/dedup";
 import type { ParsedDocument } from "@/lib/doc-parser/types";
+import { rateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
+import { requireUser } from "@/lib/supabase/require-user";
 
 const ALLOWED_EXTS = ["pdf", "xlsx", "xls", "csv"];
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB per file
+const PDF_MAGIC = Buffer.from([0x25, 0x50, 0x44, 0x46]); // %PDF
 
 export async function POST(req: NextRequest) {
   try {
+    // ── Auth guard ──
+    const auth = await requireUser();
+    if ("response" in auth) return auth.response;
+
+    // ── Rate limit ──
+    const ip = getClientIp(req.headers);
+    const rl = rateLimit({ key: `parse:${ip}`, ...RATE_LIMITS.PARSE });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "יותר מדי בקשות. נסה שוב בעוד דקה." },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+          },
+        }
+      );
+    }
+
     const formData = await req.formData();
 
     // Collect all files (support both "file" and "files" field names)
@@ -45,12 +67,34 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Validate PDF magic bytes for PDF files
+    for (const file of files) {
+      const ext = file.name.toLowerCase().split(".").pop();
+      if (ext === "pdf") {
+        const header = Buffer.from(await file.slice(0, 4).arrayBuffer());
+        if (header.length < 4 || !header.equals(PDF_MAGIC)) {
+          return NextResponse.json(
+            { error: `הקובץ ${file.name} אינו PDF תקין — בדוק את המקור`, code: "INVALID_PDF" },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     // Parse all files
     const parsedDocs: ParsedDocument[] = [];
     for (const file of files) {
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
-      const result = await parseDocument(buffer, file.name);
+      let result: ParsedDocument;
+      try {
+        result = await parseDocument(buffer, file.name);
+      } catch {
+        return NextResponse.json(
+          { error: `לא ניתן לקרוא את הקובץ ${file.name} — ייתכן שהוא פגום או מוצפן`, code: "CORRUPT_FILE" },
+          { status: 422 }
+        );
+      }
       parsedDocs.push(result);
     }
 
@@ -113,7 +157,7 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     console.error("Document parse error:", err);
     return NextResponse.json(
-      { error: "שגיאה בעיבוד הקובץ: " + (err?.message || "unknown") },
+      { error: "שגיאה בעיבוד הקובץ — נסה שוב", code: "UNEXPECTED_ERROR" },
       { status: 500 }
     );
   }

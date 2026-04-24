@@ -1,0 +1,116 @@
+"use client";
+
+/**
+ * ═══════════════════════════════════════════════════════════
+ *  Investments — Coming Soon
+ * ═══════════════════════════════════════════════════════════
+ *
+ * עמוד "שוק ההון" מוסתר לעת עתה. החלטה מוצרית (אפריל 2026):
+ * במרכז המערכת עומדות "הקופות" (צביעת הכסף) — שם מוצגת תמונת
+ * ההשקעה ברמת המטרה, כולל תשואה בפועל מול צפויה, לפי fundingSource.
+ *
+ * בשלב הבא נחזיר את העמוד עם חיבור למסלקה + שערי שוק אמיתיים.
+ * הקוד המלא שמור ב- _page.full.tsx.bak.
+ */
+
+import Link from "next/link";
+import { PageHeader } from "@/components/ui/PageHeader";
+
+export default function InvestmentsPage() {
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="שוק ההון"
+        eyebrow="Capital Markets · בקרוב"
+        subtitle="מעקב מפורט אחרי ניירות ערך — חלק מהמפה השלמה"
+      />
+
+      <section
+        className="v-card p-12 text-center"
+        style={{ background: "#fff", border: "1px solid #eef2e8" }}
+      >
+        <div
+          className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6"
+          style={{ background: "#0a7a4a15" }}
+        >
+          <span
+            className="material-symbols-outlined text-[42px]"
+            style={{ color: "#0a7a4a" }}
+          >
+            candlestick_chart
+          </span>
+        </div>
+
+        <div className="text-[10px] uppercase tracking-[0.25em] font-bold mb-2" style={{ color: "#0a7a4a" }}>
+          Coming Soon
+        </div>
+        <h2 className="text-2xl font-extrabold text-verdant-ink mb-3">
+          שוק ההון — בעבודה
+        </h2>
+        <p className="text-[14px] text-verdant-muted max-w-xl mx-auto leading-relaxed">
+          בינתיים, כל מה שקשור לתשואות ולמטרות ההשקעה שלך מנוהל דרך{" "}
+          <b className="text-verdant-ink">הקופות</b> — שם כל שקל צבוע לייעוד אמיתי,
+          ורואים תשואה בפועל מול צפויה ברמת המטרה. החזרה של עמוד "שוק ההון" המפורט
+          תתבצע יחד עם חיבור מסלקה ושערי שוק חיים.
+        </p>
+
+        <div className="flex items-center justify-center gap-3 mt-7">
+          <Link
+            href={"/goals" as any}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-colors hover:opacity-90"
+            style={{ background: "#0a7a4a" }}
+          >
+            <span className="material-symbols-outlined text-[18px]">palette</span>
+            צפה בקופות
+          </Link>
+          <Link
+            href={"/dashboard" as any}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors hover:shadow-sm"
+            style={{ background: "#0a7a4a10", color: "#0a7a4a" }}
+          >
+            <span className="material-symbols-outlined text-[18px]">dashboard</span>
+            תמונת מצב
+          </Link>
+        </div>
+      </section>
+
+      {/* Preview of what's coming */}
+      <section className="v-card p-8" style={{ background: "#fff", border: "1px solid #eef2e8" }}>
+        <div className="text-[10px] uppercase tracking-[0.2em] text-verdant-muted font-bold mb-4">
+          מה יחזור כאן
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            {
+              icon: "sync_alt",
+              title: "סנכרון מסלקה",
+              desc: "משיכה אוטומטית של יתרות, עמלות ותשואות חודשיות.",
+            },
+            {
+              icon: "show_chart",
+              title: "שערים חיים",
+              desc: "ערכי מניות, קרנות סל וקריפטו מתעדכנים אוטומטית.",
+            },
+            {
+              icon: "insights",
+              title: "השוואה לבנצ'מארק",
+              desc: "ביצועים מול S&P 500, MSCI World ומדד ת״א 125.",
+            },
+          ].map((item, i) => (
+            <div
+              key={i}
+              className="p-5 rounded-xl"
+              style={{ background: "#f8faf6", border: "1px solid #eef2e8" }}
+            >
+              <span className="material-symbols-outlined text-[24px]" style={{ color: "#0a7a4a" }}>
+                {item.icon}
+              </span>
+              <div className="text-[14px] font-extrabold text-verdant-ink mt-2">{item.title}</div>
+              <div className="text-[11px] text-verdant-muted mt-1 leading-relaxed">{item.desc}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}

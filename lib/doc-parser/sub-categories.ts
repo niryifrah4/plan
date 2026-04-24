@@ -299,6 +299,8 @@ for (const sc of SUB_CATEGORIES) {
   SUB_CATEGORIES_BY_BUCKET[sc.bucket].push(sc);
 }
 
+import { scopedKey } from "../client-scope";
+
 /** Persistent user sub-category rules key */
 const SUB_RULES_KEY = "verdant:sub_category_rules";
 
@@ -311,7 +313,7 @@ export interface SubCategoryRule {
 /** Load persistent sub-category rules */
 export function loadSubRules(): SubCategoryRule[] {
   if (typeof window === "undefined") return [];
-  try { return JSON.parse(localStorage.getItem(SUB_RULES_KEY) || "[]"); }
+  try { return JSON.parse(localStorage.getItem(scopedKey(SUB_RULES_KEY)) || "[]"); }
   catch { return []; }
 }
 
@@ -341,7 +343,7 @@ export function learnSubRule(description: string, subCategoryKey: string) {
   }
 
   if (typeof window !== "undefined") {
-    localStorage.setItem(SUB_RULES_KEY, JSON.stringify(rules));
+    localStorage.setItem(scopedKey(SUB_RULES_KEY), JSON.stringify(rules));
   }
 }
 

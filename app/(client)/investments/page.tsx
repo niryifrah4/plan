@@ -2,23 +2,28 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { SolidKpi } from "@/components/ui/SolidKpi";
 import { fmtILS, fmtPct } from "@/lib/format";
 import { capitalGainsTax, futureValue } from "@/lib/financial-math";
-import { demoSecurities, demoExposure, demoBenchmarks, demoGoals } from "@/lib/stub-data";
+import { demoSecurities, demoBenchmarks } from "@/lib/stub-data";
 import { loadAssumptions } from "@/lib/assumptions";
 import { netAfterTaxValue } from "@/lib/intelligence-engine";
 import { triggerInvestmentSync } from "@/lib/sync-engine";
-import { fetchQuotesBulk, computePerformance, recordSnapshot } from "@/lib/market-sync";
+import { removeLinksForAsset } from "@/lib/asset-goal-linking";
+import { GoalLinker } from "@/components/GoalLinker";
+import { fetchQuotesBulk, computePerformance, recordSnapshot, fetchFXRates, fetchCryptoPricesBulk } from "@/lib/market-sync";
 import type { Assumptions } from "@/lib/assumptions";
+import { scopedKey } from "@/lib/client-scope";
+import { pushBlobInBackground } from "@/lib/sync/blob-sync";
+import { PortfolioImport, type ImportedRow } from "@/components/investments/PortfolioImport";
 
 /* ─── Constants ─── */
 const KIND_LABELS: Record<string, string> = {
   stock: "מניה", etf: "קרן סל", crypto: "קריפטו", rsu: "RSU", option: "אופציה", bond: "אג\"ח", fund: "קרן",
 };
 const KIND_COLORS: Record<string, string> = {
-  stock: "#0a7a4a", etf: "#10b981", crypto: "#f59e0b", rsu: "#8b5cf6", option: "#3b82f6", bond: "#06b6d4", fund: "#1a6b42",
+  stock: "#1B4332", etf: "#2B694D", crypto: "#f59e0b", rsu: "#2B694D", option: "#3b82f6", bond: "#06b6d4", fund: "#1a6b42",
 };
-const EXPOSURE_COLORS = ["#0a7a4a", "#10b981", "#1a6b42", "#58e1b0", "#f59e0b", "#8b5cf6", "#3b82f6"];
 
 type SortField = "symbol" | "market_value_ils" | "unrealized_pnl_ils" | "unrealized_pnl_pct";
 type SortDir = "asc" | "desc";
@@ -46,18 +51,23 @@ interface SecurityRow {
 }
 
 function loadSecurities(): SecurityRow[] {
+  // No demo fallback — factory reset clears this key; an empty array is a
+  // valid user state (means "I deleted everything") and must be respected.
   try {
-    const raw = localStorage.getItem(SECURITIES_KEY);
+    const raw = localStorage.getItem(scopedKey(SECURITIES_KEY));
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch {}
-  return demoSecurities.map(s => ({ ...s }));
+  return [];
 }
 
 function saveSecurities(secs: SecurityRow[]) {
-  try { localStorage.setItem(SECURITIES_KEY, JSON.stringify(secs)); } catch {}
+  try {
+    localStorage.setItem(scopedKey(SECURITIES_KEY), JSON.stringify(secs));
+    pushBlobInBackground("securities", secs);
+  } catch {}
 }
 
 function recalcSecurity(s: SecurityRow): SecurityRow {
@@ -68,32 +78,13 @@ function recalcSecurity(s: SecurityRow): SecurityRow {
   return { ...s, cost_basis_ils, market_value_ils, unrealized_pnl_ils, unrealized_pnl_pct };
 }
 
-/* ─── Goal Linking with % allocation (localStorage) ─── */
-const GOAL_LINK_KEY = "verdant:asset_goal_links";
-interface GoalLink { goalId: string; pct: number }
-function loadGoalLinks(): Record<string, GoalLink> {
-  try {
-    const r = localStorage.getItem(GOAL_LINK_KEY);
-    if (!r) return {};
-    const parsed = JSON.parse(r);
-    const result: Record<string, GoalLink> = {};
-    for (const [k, v] of Object.entries(parsed)) {
-      if (typeof v === "string") result[k] = { goalId: v, pct: 100 };
-      else result[k] = v as GoalLink;
-    }
-    return result;
-  } catch { return {}; }
-}
-function saveGoalLinks(links: Record<string, GoalLink>) {
-  try { localStorage.setItem(GOAL_LINK_KEY, JSON.stringify(links)); } catch {}
-}
+/* ─── Goal Linking — now via shared lib/asset-goal-linking ─── */
 
 export default function InvestmentsPage() {
   const [sortField, setSortField] = useState<SortField>("market_value_ils");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [filterKind, setFilterKind] = useState<string>("all");
   const [selectedBenchmark, setSelectedBenchmark] = useState<string | null>(null);
-  const [goalLinks, setGoalLinks] = useState<Record<string, GoalLink>>({});
   const [assumptions, setAssumptions] = useState<Assumptions | null>(null);
   const [allSecurities, setAllSecurities] = useState<SecurityRow[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -103,23 +94,49 @@ export default function InvestmentsPage() {
   const [tickerLoading, setTickerLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [showImport, setShowImport] = useState(false);
 
-  useEffect(() => {
-    setGoalLinks(loadGoalLinks());
-    setAssumptions(loadAssumptions());
-    setAllSecurities(loadSecurities());
+  const handleImport = useCallback((rows: ImportedRow[], mode: "append" | "replace") => {
+    const mapped: SecurityRow[] = rows.map((r) => ({
+      id: `imp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      kind: r.kind,
+      symbol: r.symbol,
+      broker: r.broker,
+      currency: r.currency,
+      quantity: r.quantity,
+      avg_cost: r.avg_cost,
+      current_price: r.current_price,
+      fx_rate_to_ils: r.fx_rate_to_ils,
+      cost_basis_ils: r.cost_basis_ils,
+      market_value_ils: r.market_value_ils,
+      unrealized_pnl_ils: r.unrealized_pnl_ils,
+      unrealized_pnl_pct: r.unrealized_pnl_pct,
+      vest_date: null,
+      strike_price: null,
+    }));
+    setAllSecurities((prev) => (mode === "replace" ? mapped : [...prev, ...mapped]));
+    setShowImport(false);
   }, []);
 
-  // Persist securities + trigger sync cascade
   useEffect(() => {
-    if (allSecurities.length > 0) {
-      const t = setTimeout(() => {
-        saveSecurities(allSecurities);
-        triggerInvestmentSync();
-      }, 300);
-      return () => clearTimeout(t);
-    }
-  }, [allSecurities]);
+    setAssumptions(loadAssumptions());
+    setAllSecurities(loadSecurities());
+    setLoaded(true);
+  }, []);
+
+  // Persist securities + trigger sync cascade.
+  // We gate on `loaded` so the initial empty state doesn't overwrite raw,
+  // and we save unconditionally once loaded (even when the user deleted
+  // everything — an empty portfolio is a valid state).
+  useEffect(() => {
+    if (!loaded) return;
+    const t = setTimeout(() => {
+      saveSecurities(allSecurities);
+      triggerInvestmentSync();
+    }, 300);
+    return () => clearTimeout(t);
+  }, [allSecurities, loaded]);
 
   const securities = useMemo(() => {
     let list = [...allSecurities];
@@ -149,9 +166,6 @@ export default function InvestmentsPage() {
     return Object.entries(map).map(([kind, val]) => ({ kind, val, pct: totalMarket > 0 ? Math.round((val / totalMarket) * 100) : 0 })).sort((a, b) => b.val - a.val);
   }, [allSecurities, totalMarket]);
 
-  const totalExposure = demoExposure.reduce((s, e) => s + e.total, 0);
-  const sp500Pct = totalExposure > 0 ? (demoExposure.find(e => e.index === "S&P 500")?.total || 0) / totalExposure * 100 : 0;
-
   const vestingItems = allSecurities.filter(s => s.vest_date);
   const activeBenchmark = demoBenchmarks.find(b => b.id === selectedBenchmark);
 
@@ -161,24 +175,10 @@ export default function InvestmentsPage() {
   };
   const sortIcon = (field: SortField) => sortField === field ? (sortDir === "asc" ? "arrow_upward" : "arrow_downward") : "unfold_more";
 
-  const handleGoalLink = (secId: string, goalId: string) => {
-    const updated = { ...goalLinks };
-    if (!goalId) { delete updated[secId]; }
-    else { updated[secId] = { goalId, pct: updated[secId]?.pct ?? 100 }; }
-    setGoalLinks(updated);
-    saveGoalLinks(updated);
-  };
-  const handleGoalPct = (secId: string, pct: number) => {
-    const link = goalLinks[secId];
-    if (!link) return;
-    const updated = { ...goalLinks, [secId]: { ...link, pct: Math.min(100, Math.max(0, pct)) } };
-    setGoalLinks(updated);
-    saveGoalLinks(updated);
-  };
-
   /* ─── CRUD operations ─── */
   const deleteSecurity = useCallback((id: string) => {
     setAllSecurities(prev => prev.filter(s => s.id !== id));
+    removeLinksForAsset("security", id);
   }, []);
 
   const updateSecurity = useCallback((id: string, updates: Partial<SecurityRow>) => {
@@ -203,32 +203,66 @@ export default function InvestmentsPage() {
     setShowAddForm(false);
   }, []);
 
-  /* ─── Refresh ALL prices from Yahoo ─── */
+  /* ─── Refresh ALL prices (Yahoo + CoinGecko + BOI FX) ─── */
   const refreshAllPrices = useCallback(async () => {
     if (allSecurities.length === 0) return;
+    if (lastRefresh && Date.now() - new Date(`1970-01-01T${lastRefresh}`).getTime() < 60000) return; // throttle 60s
     setRefreshing(true);
     try {
-      const symbols = allSecurities.map(s => s.symbol).filter(Boolean);
-      const quotes = await fetchQuotesBulk(symbols);
+      // Split securities by kind
+      const stockSymbols = allSecurities.filter(s => s.kind !== "crypto").map(s => s.symbol).filter(Boolean);
+      const cryptoIds = allSecurities.filter(s => s.kind === "crypto").map(s => s.symbol).filter(Boolean);
+
+      // Fetch all in parallel
+      const [quotes, fxRates, cryptoQuotes] = await Promise.all([
+        stockSymbols.length > 0 ? fetchQuotesBulk(stockSymbols) : Promise.resolve({} as Record<string, any>),
+        fetchFXRates(),
+        cryptoIds.length > 0 ? fetchCryptoPricesBulk(cryptoIds) : Promise.resolve([]),
+      ]);
+
+      // Build crypto lookup
+      const cryptoMap: Record<string, number> = {};
+      for (const cq of cryptoQuotes) {
+        cryptoMap[cq.symbol.toLowerCase()] = cq.price;
+      }
+
       setAllSecurities(prev =>
         prev.map(s => {
-          const q = quotes[s.symbol.toUpperCase()];
-          if (!q) return s;
-          return recalcSecurity({ ...s, current_price: q.price });
+          let updated = { ...s };
+          if (s.kind === "crypto") {
+            const price = cryptoMap[s.symbol.toLowerCase()];
+            if (price != null) updated.current_price = price;
+            updated.fx_rate_to_ils = 1; // already in ILS from CoinGecko
+          } else {
+            const q = quotes[s.symbol.toUpperCase()];
+            if (q) updated.current_price = q.price;
+            // Update FX rate if available
+            if (fxRates[s.currency]) updated.fx_rate_to_ils = fxRates[s.currency];
+          }
+          return recalcSecurity(updated);
         })
       );
       setLastRefresh(new Date().toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" }));
       // Record snapshot of total portfolio for history
       const total = allSecurities.reduce((sum, s) => {
-        const q = quotes[s.symbol.toUpperCase()];
-        const price = q ? q.price : s.current_price;
-        return sum + s.quantity * price * s.fx_rate_to_ils;
+        let price = s.current_price;
+        let fx = s.fx_rate_to_ils;
+        if (s.kind === "crypto") {
+          const cp = cryptoMap[s.symbol.toLowerCase()];
+          if (cp != null) price = cp;
+          fx = 1;
+        } else {
+          const q = quotes[s.symbol.toUpperCase()];
+          if (q) price = q.price;
+          if (fxRates[s.currency]) fx = fxRates[s.currency];
+        }
+        return sum + s.quantity * price * fx;
       }, 0);
       recordSnapshot(total);
     } finally {
       setRefreshing(false);
     }
-  }, [allSecurities]);
+  }, [allSecurities, lastRefresh]);
 
   /* ─── Ticker lookup (Yahoo Finance via public API) ─── */
   const lookupTicker = useCallback(async (symbol: string) => {
@@ -255,9 +289,9 @@ export default function InvestmentsPage() {
   return (
     <div className="max-w-6xl mx-auto">
       <PageHeader
-        subtitle="Investments & Equity · שוק הון"
-        title="השקעות ושוק הון"
-        description="ניירות ערך, קריפטו, RSU ואופציות · ראייה הוליסטית של כל החשיפות"
+        subtitle="Capital Markets · תיק השקעות אישי"
+        title="שוק ההון"
+        description="ניירות ערך, קרנות סל, קריפטו, RSU ואופציות בניהולך הישיר · לראייה הוליסטית של כלל הנכסים — המאזן"
       />
 
       {/* ===== Market Sync Bar ===== */}
@@ -266,7 +300,7 @@ export default function InvestmentsPage() {
           ? computePerformance(totalMarket, totalCost, 12, assumptions.expectedReturnInvest || 0.065)
           : null;
         const perfBg = perf?.severity === "good" ? "#f0fdf4" : perf?.severity === "bad" ? "#fef2f2" : "#f9faf2";
-        const perfColor = perf?.severity === "good" ? "#0a7a4a" : perf?.severity === "bad" ? "#b91c1c" : "#012d1d";
+        const perfColor = perf?.severity === "good" ? "#1B4332" : perf?.severity === "bad" ? "#b91c1c" : "#012d1d";
         return (
           <section className="mb-5 rounded-2xl p-5 flex items-center gap-4"
             style={{ background: perfBg, border: `1.5px solid ${perfColor}25` }}>
@@ -290,8 +324,7 @@ export default function InvestmentsPage() {
             <button
               onClick={refreshAllPrices}
               disabled={refreshing || allSecurities.length === 0}
-              className="text-white font-extrabold text-[12px] py-2.5 px-5 rounded-xl transition-all hover:shadow-lg disabled:opacity-50 flex items-center gap-2"
-              style={{ background: "linear-gradient(135deg,#012d1d,#0a7a4a)" }}
+              className="btn-botanical text-[12px] py-2.5 px-5 disabled:opacity-50 flex items-center gap-2"
             >
               <span className={`material-symbols-outlined text-[16px] ${refreshing ? "animate-spin" : ""}`}>
                 {refreshing ? "sync" : "refresh"}
@@ -304,48 +337,35 @@ export default function InvestmentsPage() {
 
       {/* ===== KPI Row ===== */}
       <section className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-        {[
-          { label: "שווי שוק", value: fmtILS(totalMarket), color: "#012d1d", icon: "account_balance" },
-          { label: "שווי נטו (אחרי מס)", value: fmtILS(totalNetAfterTax), color: "#0a7a4a", icon: "verified", sub: `מס צפוי: ${fmtILS(totalTax)}` },
-          { label: "רווח/הפסד", value: `${totalPnl >= 0 ? "+" : ""}${fmtILS(totalPnl)}`, color: totalPnl >= 0 ? "#0a7a4a" : "#b91c1c", icon: "trending_up", sub: `תשואה: ${overallPct >= 0 ? "+" : ""}${overallPct.toFixed(1)}%` },
-        ].map(kpi => (
-          <div key={kpi.label} className="v-card p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="material-symbols-outlined text-[14px] text-verdant-muted">{kpi.icon}</span>
-              <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">{kpi.label}</div>
-            </div>
-            <div className="text-xl md:text-2xl font-extrabold tabular" style={{ color: kpi.color }}>{kpi.value}</div>
-            {kpi.sub && <div className="text-[10px] text-verdant-muted font-bold mt-1">{kpi.sub}</div>}
-          </div>
-        ))}
+        <SolidKpi label="שווי שוק"            value={fmtILS(totalMarket)}       icon="account_balance" tone="ink" />
+        <SolidKpi label="שווי נטו (אחרי מס)"  value={fmtILS(totalNetAfterTax)}  icon="verified"        tone="forest" sub={`מס צפוי: ${fmtILS(totalTax)}`} />
+        <SolidKpi label="רווח/הפסד"            value={`${totalPnl >= 0 ? "+" : ""}${fmtILS(totalPnl)}`} icon="trending_up" tone={totalPnl >= 0 ? "emerald" : "red"} sub={`תשואה: ${overallPct >= 0 ? "+" : ""}${overallPct.toFixed(1)}%`} />
       </section>
 
-      {/* ===== Holistic Exposure Pie ===== */}
-      <section className="v-card p-5 mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="material-symbols-outlined text-[18px] text-verdant-emerald">donut_large</span>
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted mb-0.5">ראייה הוליסטית</div>
-            <h3 className="text-sm font-extrabold text-verdant-ink">חשיפה למדדי בסיס — כל המכשירים</h3>
+      {/* ===== Portfolio Allocation — by instrument type (real holdings only) ===== */}
+      {allSecurities.length > 0 && (
+      <section className="card-pad mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[18px] text-verdant-emerald">donut_large</span>
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-[0.15em] text-verdant-muted mb-0.5">פיזור התיק</div>
+              <h3 className="text-base font-extrabold text-verdant-ink">הקצאה לפי סוג מכשיר</h3>
+            </div>
           </div>
+          <a href="/balance" className="text-[11px] font-bold text-verdant-emerald hover:underline flex items-center gap-1">
+            <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+            לראייה הוליסטית (פנסיה+השתלמות+תיק) → מאזן
+          </a>
         </div>
-
-        {sp500Pct > 60 && (
-          <div className="rounded-xl p-3 mb-4 flex items-center gap-3" style={{ background: "#fef3c7", border: "1px solid #f59e0b" }}>
-            <span className="material-symbols-outlined text-[20px]" style={{ color: "#f59e0b" }}>warning</span>
-            <p className="text-xs font-bold" style={{ color: "#92400e" }}>
-              {sp500Pct.toFixed(0)}% מההון שלך חשוף ל-S&P 500 — ריכוז גבוה. שקול פיזור.
-            </p>
-          </div>
-        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="flex items-center justify-center">
             <svg viewBox="0 0 200 200" className="w-48 h-48">
               {(() => {
                 let cumAngle = 0;
-                return demoExposure.map((e, i) => {
-                  const pct = totalExposure > 0 ? e.total / totalExposure : 0;
+                return kindAlloc.map((k) => {
+                  const pct = totalMarket > 0 ? k.val / totalMarket : 0;
                   const angle = pct * 360;
                   const startAngle = cumAngle;
                   cumAngle += angle;
@@ -359,47 +379,40 @@ export default function InvestmentsPage() {
                   const y2 = cy + r * Math.sin(endRad);
                   if (pct < 0.01) return null;
                   return (
-                    <path key={e.index} d={`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`}
-                      fill={EXPOSURE_COLORS[i % EXPOSURE_COLORS.length]} stroke="#fff" strokeWidth="2" />
+                    <path key={k.kind} d={`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`}
+                      fill={KIND_COLORS[k.kind] || "#94a3b8"} stroke="#fff" strokeWidth="2" />
                   );
                 });
               })()}
               <circle cx="100" cy="100" r="45" fill="#f9faf2" />
-              <text x="100" y="96" textAnchor="middle" className="text-[11px] font-bold" fill="#012d1d">חשיפה</text>
-              <text x="100" y="112" textAnchor="middle" className="text-[10px]" fill="#6b7280">הוליסטית</text>
+              <text x="100" y="96" textAnchor="middle" className="text-[11px] font-bold" fill="#012d1d">תיק</text>
+              <text x="100" y="112" textAnchor="middle" className="text-[10px]" fill="#6b7280">השקעות</text>
             </svg>
           </div>
           <div className="space-y-2">
-            {demoExposure.map((e, i) => {
-              const pct = totalExposure > 0 ? (e.total / totalExposure * 100).toFixed(1) : "0";
-              return (
-                <div key={e.index} className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#f4f7ed] transition-colors">
-                  <div className="w-3 h-3 rounded-sm flex-shrink-0" style={{ background: EXPOSURE_COLORS[i % EXPOSURE_COLORS.length] }} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold text-verdant-ink">{e.index}</div>
-                    <div className="flex gap-3 text-[10px] text-verdant-muted mt-0.5">
-                      <span>פנסיה: {fmtILS(e.pension)}</span>
-                      <span>השתלמות: {fmtILS(e.hishtalmut)}</span>
-                      <span>עצמאי: {fmtILS(e.selfManaged)}</span>
-                    </div>
-                  </div>
-                  <div className="text-left">
-                    <div className="text-xs font-extrabold tabular">{pct}%</div>
-                    <div className="text-[10px] text-verdant-muted tabular">{fmtILS(e.total)}</div>
-                  </div>
+            {kindAlloc.map((k) => (
+              <div key={k.kind} className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#f4f7ed] transition-colors">
+                <div className="w-3 h-3 rounded-sm flex-shrink-0" style={{ background: KIND_COLORS[k.kind] || "#94a3b8" }} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-bold text-verdant-ink">{KIND_LABELS[k.kind] || k.kind}</div>
                 </div>
-              );
-            })}
+                <div className="text-left">
+                  <div className="text-sm font-extrabold tabular">{k.pct}%</div>
+                  <div className="text-[11px] text-verdant-muted tabular">{fmtILS(k.val)}</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
+      )}
 
       {/* ===== Benchmark Models ===== */}
-      <section className="v-card p-5 mb-6">
+      <section className="card-pad mb-6">
         <div className="flex items-center gap-2 mb-4">
           <span className="material-symbols-outlined text-[18px] text-verdant-emerald">compare</span>
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted mb-0.5">השוואת מודלים</div>
+            <div className="caption mb-0.5">השוואת מודלים</div>
             <h3 className="text-sm font-extrabold text-verdant-ink">מודלים מובנים להשוואה (Benchmarking)</h3>
           </div>
         </div>
@@ -409,7 +422,7 @@ export default function InvestmentsPage() {
             <button key={b.id} onClick={() => setSelectedBenchmark(selectedBenchmark === b.id ? null : b.id)}
               className="p-4 rounded-xl text-right transition-all border-2"
               style={{
-                borderColor: selectedBenchmark === b.id ? "#0a7a4a" : "#e5e7d8",
+                borderColor: selectedBenchmark === b.id ? "#1B4332" : "#e5e7d8",
                 background: selectedBenchmark === b.id ? "#f0fdf4" : "#fff",
               }}>
               <div className="flex items-center justify-between mb-2">
@@ -422,7 +435,7 @@ export default function InvestmentsPage() {
                 </span>
               </div>
               <p className="text-[11px] text-verdant-muted mb-2">{b.description}</p>
-              <div className="text-xs font-bold" style={{ color: "#0a7a4a" }}>תשואה צפויה: {(b.expectedReturn * 100).toFixed(1)}%</div>
+              <div className="text-xs font-bold" style={{ color: "#1B4332" }}>תשואה צפויה: {(b.expectedReturn * 100).toFixed(1)}%</div>
             </button>
           ))}
         </div>
@@ -450,13 +463,13 @@ export default function InvestmentsPage() {
               </div>
               <div>
                 <div className="text-[10px] text-verdant-muted font-bold">{activeBenchmark.name} (10 שנים)</div>
-                <div className="text-sm font-extrabold tabular" style={{ color: "#0a7a4a" }}>
+                <div className="text-sm font-extrabold tabular" style={{ color: "#1B4332" }}>
                   {fmtILS(futureValue(totalMarket, assumptions.monthlyInvestment, activeBenchmark.expectedReturn, 10))}
                 </div>
               </div>
               <div>
                 <div className="text-[10px] text-verdant-muted font-bold">הפרש</div>
-                <div className="text-sm font-extrabold tabular" style={{ color: "#0a7a4a" }}>
+                <div className="text-sm font-extrabold tabular" style={{ color: "#1B4332" }}>
                   {fmtILS(
                     futureValue(totalMarket, assumptions.monthlyInvestment, activeBenchmark.expectedReturn, 10) -
                     futureValue(totalMarket, assumptions.monthlyInvestment, assumptions.expectedReturnInvest, 10)
@@ -469,13 +482,13 @@ export default function InvestmentsPage() {
       </section>
 
       {/* ===== Allocation by Kind ===== */}
-      <section className="v-card p-5 mb-6">
-        <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted mb-3">אלוקציה לפי סוג נכס</div>
+      <section className="card-pad mb-6">
+        <div className="caption mb-3">אלוקציה לפי סוג נכס</div>
         <div className="flex items-end gap-2 h-16">
           {kindAlloc.map(({ kind, pct }) => (
             <div key={kind} className="flex flex-col items-center gap-1 flex-1">
-              <div className="text-[10px] font-bold" style={{ color: KIND_COLORS[kind] || "#0a7a4a" }}>{pct}%</div>
-              <div className="w-full rounded-t-md transition-all" style={{ height: `${Math.max(pct * 0.5, 4)}px`, background: KIND_COLORS[kind] || "#0a7a4a" }} />
+              <div className="text-[10px] font-bold" style={{ color: KIND_COLORS[kind] || "#1B4332" }}>{pct}%</div>
+              <div className="w-full rounded-t-md transition-all" style={{ height: `${Math.max(pct * 0.5, 4)}px`, background: KIND_COLORS[kind] || "#1B4332" }} />
               <div className="text-[9px] font-bold text-verdant-muted">{KIND_LABELS[kind] || kind}</div>
             </div>
           ))}
@@ -484,11 +497,11 @@ export default function InvestmentsPage() {
 
       {/* ===== Vesting Timeline ===== */}
       {vestingItems.length > 0 && (
-        <section className="v-card p-5 mb-6">
+        <section className="card-pad mb-6">
           <div className="flex items-center gap-2 mb-4">
             <span className="material-symbols-outlined text-[18px] text-verdant-emerald">event</span>
             <div>
-              <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted mb-0.5">לוח Vesting</div>
+              <div className="caption mb-0.5">לוח Vesting</div>
               <h3 className="text-sm font-extrabold text-verdant-ink">RSU ואופציות — תאריכי הבשלה</h3>
             </div>
           </div>
@@ -500,7 +513,7 @@ export default function InvestmentsPage() {
               return (
                 <div key={s.id} className="flex items-center justify-between p-3 rounded-lg" style={{ background: "#f9faf2" }}>
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded" style={{ background: (KIND_COLORS[s.kind] || "#0a7a4a") + "15", color: KIND_COLORS[s.kind] || "#0a7a4a" }}>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded" style={{ background: (KIND_COLORS[s.kind] || "#1B4332") + "15", color: KIND_COLORS[s.kind] || "#1B4332" }}>
                       {KIND_LABELS[s.kind] || s.kind}
                     </span>
                     <div>
@@ -511,16 +524,16 @@ export default function InvestmentsPage() {
                     </div>
                   </div>
                   <div className="text-left">
-                    <div className="text-sm font-extrabold tabular" style={{ color: isPast ? "#0a7a4a" : "#012d1d" }}>
+                    <div className="text-sm font-extrabold tabular" style={{ color: isPast ? "#1B4332" : "#012d1d" }}>
                       {vestDate.toLocaleDateString("he-IL")}
                     </div>
-                    <div className="text-[11px] font-bold" style={{ color: isPast ? "#0a7a4a" : "#f59e0b" }}>
+                    <div className="text-[11px] font-bold" style={{ color: isPast ? "#1B4332" : "#f59e0b" }}>
                       {isPast ? "הבשיל" : `${daysLeft} ימים`}
                     </div>
                   </div>
                   <div className="text-left">
                     <div className="text-sm font-extrabold text-verdant-ink tabular">{fmtILS(s.market_value_ils)}</div>
-                    <div className="text-[11px] font-bold tabular" style={{ color: s.unrealized_pnl_ils >= 0 ? "#0a7a4a" : "#b91c1c" }}>
+                    <div className="text-[11px] font-bold tabular" style={{ color: s.unrealized_pnl_ils >= 0 ? "#1B4332" : "#b91c1c" }}>
                       {s.unrealized_pnl_ils >= 0 ? "+" : ""}{fmtILS(s.unrealized_pnl_ils)}
                     </div>
                   </div>
@@ -532,7 +545,7 @@ export default function InvestmentsPage() {
       )}
 
       {/* ===== Securities Table with Edit/Delete + Goal Linking ===== */}
-      <section className="v-card overflow-hidden mb-6">
+      <section className="card overflow-hidden mb-6">
         <div className="px-5 py-4 border-b v-divider flex items-center justify-between flex-wrap gap-3">
           <div>
             <h2 className="text-sm font-extrabold text-verdant-ink">תיק ניירות ערך</h2>
@@ -548,9 +561,13 @@ export default function InvestmentsPage() {
                 {Object.entries(KIND_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </div>
+            <button onClick={() => setShowImport(true)}
+              className="text-[11px] px-4 py-2 flex items-center gap-1.5 rounded-full font-bold border"
+              style={{ borderColor: "#E8E9E1", color: "#1B4332", background: "#F3F4EC" }}>
+              <span className="material-symbols-outlined text-[14px]">upload_file</span>טען מאקסל
+            </button>
             <button onClick={() => setShowAddForm(!showAddForm)}
-              className="text-[11px] font-bold px-4 py-2 rounded-xl text-white flex items-center gap-1.5"
-              style={{ background: "linear-gradient(135deg,#012d1d,#0a7a4a)" }}>
+              className="btn-botanical text-[11px] px-4 py-2 flex items-center gap-1.5">
               <span className="material-symbols-outlined text-[14px]">add</span>הוסף נייר
             </button>
           </div>
@@ -567,7 +584,7 @@ export default function InvestmentsPage() {
             <button onClick={() => lookupTicker(tickerSearch)}
               disabled={tickerLoading || !tickerSearch.trim()}
               className="text-[10px] font-bold px-3 py-1.5 rounded-lg disabled:opacity-40 flex items-center gap-1"
-              style={{ background: "#0a7a4a12", color: "#0a7a4a" }}>
+              style={{ background: "#1B433212", color: "#1B4332" }}>
               {tickerLoading ? (
                 <span className="material-symbols-outlined text-[14px] animate-spin">progress_activity</span>
               ) : (
@@ -578,7 +595,7 @@ export default function InvestmentsPage() {
             {tickerResult && (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
                 <span className="text-[11px] font-extrabold text-verdant-ink">{tickerResult.name}</span>
-                <span className="text-[11px] font-extrabold tabular" style={{ color: "#0a7a4a" }}>${tickerResult.price.toFixed(2)}</span>
+                <span className="text-[11px] font-extrabold tabular" style={{ color: "#1B4332" }}>${tickerResult.price.toFixed(2)}</span>
               </div>
             )}
           </div>
@@ -620,7 +637,7 @@ export default function InvestmentsPage() {
             </thead>
             <tbody>
               {securities.map(s => {
-                const color = s.unrealized_pnl_ils >= 0 ? "#0a7a4a" : "#b91c1c";
+                const color = s.unrealized_pnl_ils >= 0 ? "#1B4332" : "#b91c1c";
                 const isEditing = editingId === s.id;
                 return isEditing ? (
                   <tr key={s.id} className="border-b v-divider">
@@ -631,7 +648,7 @@ export default function InvestmentsPage() {
                 ) : (
                   <tr key={s.id} className="border-b v-divider hover:bg-[#f9faf2] transition-colors">
                     <td className="px-3 py-2.5">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded" style={{ background: (KIND_COLORS[s.kind] || "#0a7a4a") + "15", color: KIND_COLORS[s.kind] || "#0a7a4a" }}>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded" style={{ background: (KIND_COLORS[s.kind] || "#1B4332") + "15", color: KIND_COLORS[s.kind] || "#1B4332" }}>
                         {KIND_LABELS[s.kind] ?? s.kind}
                       </span>
                     </td>
@@ -642,7 +659,7 @@ export default function InvestmentsPage() {
                     <td className="px-3 py-2.5 text-verdant-muted font-bold">{s.broker}</td>
                     <td className="px-3 py-2.5 tabular font-bold text-left" dir="ltr">{fmtILS(s.market_value_ils)}</td>
                     <td className="px-3 py-2.5 tabular font-bold text-left" dir="ltr" style={{ color }}>{fmtILS(s.unrealized_pnl_ils, { signed: true })}</td>
-                    <td className="px-3 py-2.5 tabular font-bold text-left" dir="ltr" style={{ color }}>{s.unrealized_pnl_pct >= 0 ? "+" : ""}{s.unrealized_pnl_pct.toFixed(1)}%</td>
+                    <td className="px-3 py-2.5 tabular font-bold text-left" dir="ltr" style={{ color }}>{(s.unrealized_pnl_pct ?? 0) >= 0 ? "+" : ""}{(s.unrealized_pnl_pct ?? 0).toFixed(1)}%</td>
                     <td className="px-3 py-2.5 tabular font-bold text-left" dir="ltr">
                       {(() => {
                         const kind = s.kind === "rsu" ? "rsu" : s.kind === "option" ? "option" : "securities";
@@ -656,28 +673,7 @@ export default function InvestmentsPage() {
                       })()}
                     </td>
                     <td className="px-3 py-2.5">
-                      <div className="flex items-center gap-1.5">
-                        <select value={goalLinks[s.id]?.goalId || ""} onChange={e => handleGoalLink(s.id, e.target.value)}
-                          className="text-[10px] font-bold rounded px-1.5 py-1 border outline-none max-w-[100px]"
-                          style={{ borderColor: "#d8e0d0", background: goalLinks[s.id] ? "#f0fdf4" : "#fff" }}>
-                          <option value="">ללא שיוך</option>
-                          {demoGoals.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                        </select>
-                        {goalLinks[s.id] && (
-                          <div className="flex items-center gap-0.5">
-                            <input type="number" min={1} max={100} value={goalLinks[s.id].pct}
-                              onChange={e => handleGoalPct(s.id, Number(e.target.value))}
-                              className="w-10 text-[10px] font-bold text-center rounded border px-1 py-1 outline-none tabular"
-                              style={{ borderColor: "#d8e0d0", background: "#f0fdf4" }} />
-                            <span className="text-[9px] text-verdant-muted font-bold">%</span>
-                          </div>
-                        )}
-                      </div>
-                      {goalLinks[s.id] && goalLinks[s.id].pct < 100 && (
-                        <div className="text-[9px] text-verdant-muted mt-0.5">
-                          {fmtILS(s.market_value_ils * goalLinks[s.id].pct / 100)} צבוע ליעד
-                        </div>
-                      )}
+                      <GoalLinker assetType="security" assetId={s.id} assetValue={s.market_value_ils} variant="compact" />
                     </td>
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-1 justify-center">
@@ -702,17 +698,17 @@ export default function InvestmentsPage() {
       </section>
 
       {/* ===== Tax Insight ===== */}
-      <div className="rounded-2xl p-5 md:p-6" style={{ background: "linear-gradient(135deg,#012d1d 0%,#0a7a4a 100%)", color: "#fff" }}>
-        <div className="flex items-start gap-3 md:gap-4">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(88,225,176,0.2)" }}>
-            <span className="material-symbols-outlined" style={{ color: "#58e1b0" }}>receipt_long</span>
+      <div className="card-forest">
+        <div className="flex items-start gap-4">
+          <div className="icon-sm flex-shrink-0" style={{ background: "rgba(193,236,212,0.18)", color: "#C1ECD4" }}>
+            <span className="material-symbols-outlined text-[20px]">receipt_long</span>
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[10px] uppercase tracking-[0.25em] font-bold mb-2" style={{ color: "#58e1b0" }}>תובנת מס</div>
-            <h3 className="text-base md:text-lg font-extrabold mb-2">
+            <div className="caption mb-2">תובנת מס</div>
+            <h3 className="t-lg font-extrabold text-white mb-2">
               מס רווח הון צפוי: {fmtILS(totalTax)}
             </h3>
-            <p className="text-xs md:text-sm opacity-90 leading-relaxed">
+            <p className="text-[13px] leading-6" style={{ color: "rgba(249,250,242,0.75)" }}>
               {totalTax > 10000
                 ? "שקלו פריסת מימושים על פני שנות מס שונות כדי לצמצם חבות. ייתכן שכדאי לקזז הפסדים מנכסים אחרים."
                 : "חבות המס הצפויה נמוכה יחסית. מומלץ לבדוק פריסה רק אם מתכננים מימוש גדול."}
@@ -720,6 +716,10 @@ export default function InvestmentsPage() {
           </div>
         </div>
       </div>
+
+      {showImport && (
+        <PortfolioImport onImport={handleImport} onClose={() => setShowImport(false)} />
+      )}
     </div>
   );
 }
@@ -786,12 +786,11 @@ function InlineEditRow({ security, onSave, onCancel }: {
           fx_rate_to_ils: parseFloat(fxRate) || 3.72,
           vest_date: vestDate || null,
           strike_price: strikePrice ? parseFloat(strikePrice) : null,
-        })} className="text-[11px] font-bold px-5 py-2 rounded-xl text-white"
-          style={{ background: "linear-gradient(135deg,#012d1d,#0a7a4a)" }}>
+        })} className="btn-botanical text-[11px] px-5 py-2">
           שמור
         </button>
         <button onClick={onCancel}
-          className="text-[11px] font-bold px-4 py-2 rounded-xl text-verdant-muted" style={{ background: "#eef2e8" }}>
+          className="btn-botanical-ghost text-[11px] px-4 py-2">
           ביטול
         </button>
       </div>
@@ -866,12 +865,11 @@ function AddSecurityForm({ onSave, onCancel, tickerResult }: {
             vest_date: vestDate || null,
             strike_price: strikePrice ? parseFloat(strikePrice) : null,
           })}
-          className="text-[11px] font-bold px-5 py-2 rounded-xl text-white disabled:opacity-40"
-          style={{ background: "linear-gradient(135deg,#012d1d,#0a7a4a)" }}>
+          className="btn-botanical text-[11px] px-5 py-2 disabled:opacity-40">
           הוסף נייר ערך
         </button>
         <button onClick={onCancel}
-          className="text-[11px] font-bold px-4 py-2 rounded-xl text-verdant-muted" style={{ background: "#eef2e8" }}>
+          className="btn-botanical-ghost text-[11px] px-4 py-2">
           ביטול
         </button>
       </div>

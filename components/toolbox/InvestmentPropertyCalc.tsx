@@ -1,38 +1,12 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { pmt } from "@/lib/financial-math";
+import { pmt, calcPurchaseTax } from "@/lib/financial-math";
 import { loadAssumptions } from "@/lib/assumptions";
 import { fmtILS } from "@/lib/format";
+import { scopedKey } from "@/lib/client-scope";
 
-/**
- * Investment Property Calculator — מחשבון דירה שנייה להשקעה
- *
- * Israel 2026 purchase tax brackets (second apartment):
- *   0 – 6,055,070:  8%
- *   6,055,070 – 18,165,210: 10%
- *   Above 18,165,210: 10%
- *
- * Max LTV for investment: 50%
- */
-
-const PURCHASE_TAX_BRACKETS = [
-  { limit: 6_055_070, rate: 0.08 },
-  { limit: 18_165_210, rate: 0.10 },
-  { limit: Infinity, rate: 0.10 },
-];
-
-function calcPurchaseTax(price: number): number {
-  let tax = 0;
-  let prev = 0;
-  for (const b of PURCHASE_TAX_BRACKETS) {
-    const taxable = Math.min(price, b.limit) - prev;
-    if (taxable <= 0) break;
-    tax += taxable * b.rate;
-    prev = b.limit;
-  }
-  return tax;
-}
+const TASK_INSIGHTS_KEY = "verdant:task_insights";
 
 export function InvestmentPropertyCalc() {
   const [price, setPrice] = useState(1_800_000);
@@ -45,7 +19,7 @@ export function InvestmentPropertyCalc() {
 
   useEffect(() => {
     const a = loadAssumptions();
-    const defaultRate = ((a.riskFreeRate || 0.04) + 0.012) * 100;
+    const defaultRate = ((a.primeRate || 0.06) + 0.012) * 100;
     setMortgageRate(parseFloat(defaultRate.toFixed(1)));
   }, []);
 
@@ -113,14 +87,14 @@ export function InvestmentPropertyCalc() {
 
   const handleExport = () => {
     try {
-      const existing = JSON.parse(localStorage.getItem("verdant:task_insights") || "[]");
+      const existing = JSON.parse(localStorage.getItem(scopedKey(TASK_INSIGHTS_KEY)) || "[]");
       existing.push({
         id: `invest-${Date.now()}`,
         source: "מחשבון דירה להשקעה",
         date: new Date().toISOString(),
         text: `נכס ${fmtILS(price)}: הון עצמי דרוש ${fmtILS(Math.round(results.effectiveEquityNeeded))} (כולל מס רכישה ${fmtILS(Math.round(results.purchaseTax))}). משכנתא ${fmtILS(Math.round(results.effectiveMortgage))}. תשואה גולמית ${results.grossYield.toFixed(1)}%, נקייה ${results.netYield.toFixed(1)}%. פער תזרימי ${fmtILS(Math.round(results.monthlyCashflow))}/חודש.`,
       });
-      localStorage.setItem("verdant:task_insights", JSON.stringify(existing));
+      localStorage.setItem(scopedKey(TASK_INSIGHTS_KEY), JSON.stringify(existing));
       window.dispatchEvent(new Event("verdant:insights:updated"));
       setExported(true);
       setTimeout(() => setExported(false), 2500);
@@ -162,19 +136,19 @@ export function InvestmentPropertyCalc() {
           label="משכנתא מקסימלית (50%)"
           value={fmtILS(Math.round(results.effectiveMortgage))}
           icon="account_balance"
-          color="#0a7a4a"
+          color="#1B4332"
         />
         <ResultCard
           label="פער תזרימי חודשי"
           value={fmtILS(Math.round(results.monthlyCashflow))}
           icon={results.monthlyCashflow >= 0 ? "trending_up" : "trending_down"}
-          color={results.monthlyCashflow >= 0 ? "#0a7a4a" : "#b91c1c"}
+          color={results.monthlyCashflow >= 0 ? "#1B4332" : "#b91c1c"}
         />
       </div>
 
       {/* Purchase Tax Breakdown */}
       <div className="rounded-xl p-6" style={{ background: "#f9faf2", border: "1px solid #d8e0d0" }}>
-        <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted mb-4">מס רכישה — מדרגות דירה שנייה 2026</div>
+        <div className="caption mb-4">מס רכישה — מדרגות דירה שנייה 2026</div>
         <div className="grid grid-cols-3 gap-4 mb-4">
           <div className="rounded-lg p-3 text-center" style={{ background: "#fff", border: "1px solid #eef2e8" }}>
             <div className="text-[9px] font-bold text-verdant-muted mb-0.5">מס רכישה</div>
@@ -196,7 +170,7 @@ export function InvestmentPropertyCalc() {
 
       {/* Yield Analysis */}
       <div className="rounded-xl p-6 space-y-5" style={{ background: "#fff", border: "1px solid #d8e0d0" }}>
-        <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">ניתוח תשואה</div>
+        <div className="caption">ניתוח תשואה</div>
 
         <div className="grid grid-cols-3 gap-4">
           <YieldCard label="תשואה גולמית" value={results.grossYield} description="שכירות שנתית / מחיר" />
@@ -208,7 +182,7 @@ export function InvestmentPropertyCalc() {
         <div className="pt-4 border-t" style={{ borderColor: "#eef2e8" }}>
           <div className="flex items-center gap-4 mb-3">
             <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm" style={{ background: "#0a7a4a" }} />
+              <span className="w-3 h-3 rounded-sm" style={{ background: "#1B4332" }} />
               <span className="text-[10px] font-bold text-verdant-muted">גולמית {results.grossYield.toFixed(1)}%</span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -221,7 +195,7 @@ export function InvestmentPropertyCalc() {
             </div>
           </div>
           <div className="h-4 rounded-full overflow-hidden flex" style={{ background: "#eef2e8" }}>
-            <div className="h-full transition-all duration-500" style={{ width: `${Math.min(100, results.grossYield * 10)}%`, background: "#0a7a4a" }} />
+            <div className="h-full transition-all duration-500" style={{ width: `${Math.min(100, results.grossYield * 10)}%`, background: "#1B4332" }} />
           </div>
           <div className="h-4 rounded-full overflow-hidden flex mt-1" style={{ background: "#eef2e8" }}>
             <div className="h-full transition-all duration-500" style={{ width: `${Math.min(100, results.netYield * 10)}%`, background: "#012d1d" }} />
@@ -234,16 +208,16 @@ export function InvestmentPropertyCalc() {
 
       {/* Cashflow Details */}
       <div className="rounded-xl p-6 space-y-4" style={{ background: "#f9faf2", border: "1px solid #d8e0d0" }}>
-        <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">תזרים חודשי</div>
+        <div className="caption">תזרים חודשי</div>
         <div className="grid grid-cols-2 gap-y-3 gap-x-8">
-          <DetailRow label="שכירות חודשית" value={`+${fmtILS(monthlyRent)}`} color="#0a7a4a" />
+          <DetailRow label="שכירות חודשית" value={`+${fmtILS(monthlyRent)}`} color="#1B4332" />
           <DetailRow label="החזר משכנתא" value={`-${fmtILS(Math.round(results.monthlyPayment))}`} color="#b91c1c" />
           <DetailRow label="הוצאות שוטפות" value={`-${fmtILS(monthlyExpenses)}`} color="#b91c1c" />
           <DetailRow label="סה״כ ריבית לתקופה" value={fmtILS(Math.round(results.totalInterest))} />
         </div>
         <div className="pt-4 border-t flex items-center justify-between" style={{ borderColor: "#d8e0d0" }}>
           <span className="text-[12px] font-extrabold text-verdant-ink">פער תזרימי נטו</span>
-          <span className="text-lg font-extrabold tabular" style={{ color: results.monthlyCashflow >= 0 ? "#0a7a4a" : "#b91c1c" }}>
+          <span className="text-lg font-extrabold tabular" style={{ color: results.monthlyCashflow >= 0 ? "#1B4332" : "#b91c1c" }}>
             {fmtILS(Math.round(results.monthlyCashflow))}/חודש
           </span>
         </div>
@@ -256,9 +230,7 @@ export function InvestmentPropertyCalc() {
       </div>
 
       {/* Export button */}
-      <button onClick={handleExport}
-        className="text-[12px] font-bold px-5 py-2.5 rounded-xl text-white flex items-center gap-2 shadow-sm hover:shadow-md transition-shadow"
-        style={{ background: exported ? "#0a7a4a" : "linear-gradient(135deg,#012d1d,#0a7a4a)" }}>
+      <button onClick={handleExport} className="btn-botanical flex items-center gap-2">
         <span className="material-symbols-outlined text-[18px]">{exported ? "check" : "file_export"}</span>
         {exported ? "נשמר בהמלצות" : "ייצא לסיכום"}
       </button>
@@ -300,7 +272,7 @@ function ResultCard({ label, value, icon, color, highlight }: {
 }
 
 function YieldCard({ label, value, description }: { label: string; value: number; description: string }) {
-  const color = value >= 4 ? "#0a7a4a" : value >= 2.5 ? "#f59e0b" : "#b91c1c";
+  const color = value >= 4 ? "#1B4332" : value >= 2.5 ? "#f59e0b" : "#b91c1c";
   return (
     <div className="rounded-lg p-4 text-center" style={{ background: "#f9faf2", border: "1px solid #eef2e8" }}>
       <div className="text-[9px] font-bold text-verdant-muted mb-1">{label}</div>

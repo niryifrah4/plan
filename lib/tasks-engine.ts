@@ -43,7 +43,7 @@ const ruleNoCashflow: RuleFn = (s) =>
         title: "חסרים נתוני מאזן ותזרים",
         detail: "לא נמצאו חודשים פתוחים. פתח חודש ב'מאזן ותזרים' כדי להתחיל לאסוף Actuals.",
         severity: "high",
-        cta_href: "/cashflow-map",
+        cta_href: "/balance",
       }
     : null;
 
@@ -70,7 +70,7 @@ const ruleLowSafety: RuleFn = (s) => {
         title: "מרווח ביטחון נמוך",
         detail: `התזרים הפנוי החודש (${lastGap.toLocaleString("he-IL")} ₪) מתחת לסף הבטיחות של ₪${SAFETY_THRESHOLD_ILS}.`,
         severity: "medium",
-        cta_href: "/cashflow-map",
+        cta_href: "/balance",
       }
     : null;
 };
@@ -82,7 +82,7 @@ const ruleNoWealth: RuleFn = (s) =>
         title: "לא הוזנו נכסים במפת העושר",
         detail: "אין נכסים רשומים. הוסף חשבונות/השקעות/פנסיות כדי לחשב הון עצמי.",
         severity: "medium",
-        cta_href: "/wealth",
+        cta_href: "/balance",
       }
     : null;
 
@@ -93,7 +93,7 @@ const ruleNoPension: RuleFn = (s) =>
         title: "אין כיסוי פנסיוני רשום",
         detail: "לא נמצאו נכסים בקבוצה 'פנסיוני ארוך טווח'. חסר ביטחון כלכלי לפרישה.",
         severity: "high",
-        cta_href: "/retirement",
+        cta_href: "/pension",
       }
     : null;
 
@@ -111,7 +111,7 @@ const ruleLowEmergencyFund: RuleFn = (s) => {
         title: "קרן חירום מתחת ל-3 חודשים",
         detail: `יש לך נזילות של ${Math.round(monthsCovered * 10) / 10} חודשי הוצאה. מומלץ להגיע ל-3-6.`,
         severity: "medium",
-        cta_href: "/wealth",
+        cta_href: "/balance",
       }
     : null;
 };
@@ -128,7 +128,7 @@ const ruleDebtHeavy: RuleFn = (s) => {
         title: "יחס חוב/נכס גבוה",
         detail: `יחס ${ratio.toFixed(0)}% — מעל הסף הבריא של 40-60%. שקול מיחזור/איחוד הלוואות.`,
         severity: "high",
-        cta_href: "/toolbox",
+        cta_href: "/tools",
       }
     : null;
 };
@@ -141,7 +141,7 @@ const ruleExpensiveLoan: RuleFn = (s) => {
         title: `הלוואה יקרה (${expensive.length})`,
         detail: `זוהו ${expensive.length} הלוואות בריבית > 8%. כדאי לבדוק איחוד או מיחזור ב'ארגז כלים'.`,
         severity: "medium",
-        cta_href: "/toolbox",
+        cta_href: "/tools",
       }
     : null;
 };
@@ -154,7 +154,7 @@ const ruleGoalAtRisk: RuleFn = (s) => {
         title: `מטרה בסיכון (${atRisk.length})`,
         detail: `${atRisk.map((g) => g.name).join(", ")} — פער בין FV צפוי ליעד.`,
         severity: "medium",
-        cta_href: "/vision",
+        cta_href: "/goals",
       }
     : null;
 };

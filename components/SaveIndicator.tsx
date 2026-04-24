@@ -9,7 +9,7 @@ export function SaveIndicator({ status }: { status: "idle" | "saving" | "saved" 
 
   const config = {
     saving: { icon: "cloud_sync", text: "שומר...", color: "#5a7a6a", bg: "#f4f7ed" },
-    saved:  { icon: "cloud_done", text: "השינויים נשמרו", color: "#10b981", bg: "#10b98115" },
+    saved:  { icon: "cloud_done", text: "השינויים נשמרו", color: "#2B694D", bg: "#2B694D15" },
     error:  { icon: "cloud_off", text: "שגיאת שמירה", color: "#b91c1c", bg: "#b91c1c15" },
   }[status];
 

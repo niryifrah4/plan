@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { scopedKey } from "@/lib/client-scope";
 
 /* ═══════════════════════════════════════════════════════════
    Types
@@ -239,7 +240,7 @@ function getChildrenInsight(month: number, childCount: number): SeasonalInsight 
 
 function loadOnboardingChildren(): OnboardingChild[] {
   try {
-    const raw = localStorage.getItem("verdant:onboarding:children");
+    const raw = localStorage.getItem(scopedKey("verdant:onboarding:children"));
     if (raw) {
       const children = JSON.parse(raw) as OnboardingChild[];
       // Filter out empty placeholder rows
@@ -251,7 +252,7 @@ function loadOnboardingChildren(): OnboardingChild[] {
 
 function loadOnboardingFields(): Record<string, string> {
   try {
-    const raw = localStorage.getItem("verdant:onboarding:fields");
+    const raw = localStorage.getItem(scopedKey("verdant:onboarding:fields"));
     if (raw) return JSON.parse(raw);
   } catch {}
   return {};
@@ -442,7 +443,7 @@ export default function MonthlyInsights({ month, year, onApply }: Props) {
               onClick={handleApply}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-extrabold text-white transition-all hover:scale-[1.02] active:scale-[0.98]"
               style={{
-                background: "linear-gradient(135deg, #0a7a4a, #065f46)",
+                background: "linear-gradient(135deg, #1B4332, #065f46)",
                 boxShadow: "0 2px 8px rgba(10,122,74,.25)",
               }}
             >
