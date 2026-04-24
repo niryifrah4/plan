@@ -104,12 +104,27 @@ export default function OnboardingPage() {
     else if (saveStatus === "saving") { setSaveStatus("saved"); const t = setTimeout(() => setSaveStatus("idle"), 2000); return () => clearTimeout(t); }
   }, [isSaving, saveStatus]);
 
-  /* ── Push to Supabase when local debounced saves settle ──
-   * Triggers on the "saving → idle" transition, not on every keystroke,
-   * so we upload one snapshot per ~1.5s of typing instead of per char. */
+  /* ── Push to Supabase + cascade to all stores whenever saves settle ──
+   * usePersistedState writes to the RAW key (no scope). The stores read from
+   * the scoped key. So after each debounced save we:
+   *   1. Copy every onboarding slice to its scoped key (what the sync reads).
+   *   2. Fan out via syncOnboardingToStores → budget, properties, etc.
+   *   3. Push a remote snapshot (Supabase).
+   * Result: the client doesn't need to click "סיום" for data to flow —
+   * navigating to /budget immediately shows allowances, rent, etc. */
   useEffect(() => {
     if (!hydrated) return;
     if (!isSaving) {
+      try {
+        localStorage.setItem(scopedKey("verdant:onboarding:fields"),      JSON.stringify(fields));
+        localStorage.setItem(scopedKey("verdant:onboarding:children"),    JSON.stringify(children));
+        localStorage.setItem(scopedKey("verdant:onboarding:assets"),      JSON.stringify(assets));
+        localStorage.setItem(scopedKey("verdant:onboarding:liabilities"), JSON.stringify(liabilities));
+        localStorage.setItem(scopedKey("verdant:onboarding:insurance"),   JSON.stringify(insurance));
+        localStorage.setItem(scopedKey("verdant:onboarding:goals"),       JSON.stringify(goals));
+        localStorage.setItem(scopedKey("verdant:onboarding:incomes"),     JSON.stringify(incomes));
+      } catch {}
+      syncOnboardingToStores();
       pushOnboardingSnapshot();
     }
   }, [hydrated, isSaving, fields, children, assets, liabilities, insurance, goals, incomes]);

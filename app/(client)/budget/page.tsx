@@ -589,9 +589,13 @@ export default function BudgetPage() {
   } | null>(null);
   const [importToast, setImportToast] = useState<string | null>(null);
 
-  // Listen for debt + asset changes — re-inject locked rows (debt + passive)
+  // Listen for debt + asset changes — re-inject locked rows (debt + passive).
+  // Also re-run on window focus so that data entered in /onboarding in another
+  // tab flows in as soon as the user switches back here, without a manual reload.
   useEffect(() => {
     const handler = () => {
+      // Pull the freshest snapshot from the questionnaire first, then re-inject.
+      syncOnboardingToStores();
       setBudget(prev => {
         if (!prev) return prev;
         const updated = injectOnboardingIncomeRows(injectSalaryRow(injectPassiveIncomeRows(injectDebtRows(prev))));
@@ -602,10 +606,12 @@ export default function BudgetPage() {
     window.addEventListener("storage", handler);
     window.addEventListener("verdant:realestate:updated", handler);
     window.addEventListener(SALARY_PROFILE_EVENT, handler);
+    window.addEventListener("focus", handler);
     return () => {
       window.removeEventListener("storage", handler);
       window.removeEventListener("verdant:realestate:updated", handler);
       window.removeEventListener(SALARY_PROFILE_EVENT, handler);
+      window.removeEventListener("focus", handler);
     };
   }, []);
 
