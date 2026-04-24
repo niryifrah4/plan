@@ -718,7 +718,15 @@ function syncRealEstateToPropertyStore(assets: OnbAsset[]): void {
     const rentExp = parseFloat(a.rentExpenses || "0") || 0;
 
     const propId = `onb_prop_${a.type}_${a.desc || ""}`;
-    const existingProp = existing.find(p => p.id === propId);
+    // Match by id first, then by (name + type) to capture rows that came
+    // from the older `prop_<timestamp>_<i>` migration before IDs were
+    // unified. Without this fallback, updating rent in the questionnaire
+    // silently creates a duplicate property.
+    const desiredType = a.type === "נדל\"ן להשקעה" ? "investment" : "residence";
+    const existingProp = existing.find(p =>
+      p.id === propId ||
+      (p.name === (a.desc || a.type) && p.type === desiredType)
+    );
 
     if (existingProp) {
       // Update rent fields on each sync — the questionnaire is the fastest

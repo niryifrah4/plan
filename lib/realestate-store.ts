@@ -49,7 +49,7 @@ function migrateFromOnboarding(): Property[] {
   const raw = localStorage.getItem(scopedKey(ONBOARDING_ASSETS_KEY));
   if (!raw) return [];
   try {
-    const assets: { type: string; desc: string; value: string }[] = JSON.parse(raw);
+    const assets: { type: string; desc: string; value: string; rent?: string; rentExpenses?: string }[] = JSON.parse(raw);
     // Filter only explicit real-estate types — startsWith("נדל") prevents
     // "קופת גמל להשקעה" or other investment types from slipping through.
     return assets
@@ -60,18 +60,29 @@ function migrateFromOnboarding(): Property[] {
       // ghost residence on the /realestate page the moment the user adds
       // their first real property.
       .filter(a => (Number(a.value) || 0) > 0 || (a.desc && a.desc.trim()))
-      .map((a, i) => ({
-        id: `prop_${Date.now()}_${i}`,
-        name: a.desc || a.type,
-        // Exact match on investment real-estate — NOT substring "השקעה" which would
-        // incorrectly catch "קופת גמל להשקעה".
-        type: a.type === "נדל\"ן להשקעה" ? "investment" as const : "residence" as const,
-        purchasePrice: Number(a.value) || 0,
-        currentValue: Number(a.value) || 0,
-        annualAppreciation: 0.03,
-        annualRentGrowth: 0.03,
-        holdingYears: 10,
-      }));
+      .map((a) => {
+        const isInvestment = a.type === "נדל\"ן להשקעה";
+        const rent = Number(a.rent) || 0;
+        const rentExp = Number(a.rentExpenses) || 0;
+        return {
+          // Stable id — same format the onboarding-sync step uses. This keeps
+          // both code paths (first-time migration + re-sync on autosave)
+          // converging onto a single property record, so rent updates from
+          // the questionnaire patch the existing row instead of duplicating.
+          id: `onb_prop_${a.type}_${a.desc || ""}`,
+          name: a.desc || a.type,
+          // Exact match on investment real-estate — NOT substring "השקעה" which would
+          // incorrectly catch "קופת גמל להשקעה".
+          type: isInvestment ? "investment" as const : "residence" as const,
+          purchasePrice: Number(a.value) || 0,
+          currentValue: Number(a.value) || 0,
+          annualAppreciation: 0.03,
+          annualRentGrowth: 0.03,
+          holdingYears: 10,
+          ...(isInvestment && rent > 0 ? { monthlyRent: rent } : {}),
+          ...(isInvestment && rentExp > 0 ? { monthlyExpenses: rentExp } : {}),
+        };
+      });
   } catch {
     return [];
   }
