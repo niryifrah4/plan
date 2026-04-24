@@ -18,6 +18,7 @@ import {
   importTransactionsIntoBudget,
   type ImportSummary,
 } from "@/lib/budget-import";
+import { syncOnboardingToStores } from "@/lib/onboarding-sync";
 
 const BudgetChart = dynamic(() => import("./BudgetChart"), { ssr: false });
 const BudgetPie = dynamic(() => import("./BudgetPie"), { ssr: false });
@@ -571,6 +572,13 @@ export default function BudgetPage() {
       window.removeEventListener(BUSINESS_SCOPE_EVENT, handler);
       window.removeEventListener("storage", handler);
     };
+  }, []);
+
+  /* Pull the latest onboarding snapshot → stores on every mount so newly-added
+     rental properties / allowances reach this page without a detour through
+     /dashboard. Idempotent: each sub-syncer guards against duplicates. */
+  useEffect(() => {
+    syncOnboardingToStores();
   }, []);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 

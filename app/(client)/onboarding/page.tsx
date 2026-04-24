@@ -833,6 +833,7 @@ export default function OnboardingPage() {
                   localStorage.setItem(scopedKey("verdant:onboarding:liabilities"), JSON.stringify(liabilities));
                   localStorage.setItem(scopedKey("verdant:onboarding:insurance"), JSON.stringify(insurance));
                   localStorage.setItem(scopedKey("verdant:onboarding:goals"), JSON.stringify(goals));
+                  localStorage.setItem(scopedKey("verdant:onboarding:incomes"), JSON.stringify(incomes));
                 } catch {}
                 syncOnboardingToStores();
                 router.push("/dashboard");
