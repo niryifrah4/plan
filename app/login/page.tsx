@@ -46,8 +46,11 @@ export default function LoginPage() {
       if (mode === "login") {
         const { error } = await sb.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        // Smart router decides advisor vs client landing page.
-        window.location.href = "/auth/callback";
+        // Confirm session cookies are actually written before navigating —
+        // @supabase/ssr writes cookies async; jumping too fast races the
+        // middleware and bounces the user back to /login.
+        await sb.auth.getSession();
+        window.location.href = callbackUrl();
       } else {
         const { error } = await sb.auth.signUp({
           email, password,
@@ -60,7 +63,8 @@ export default function LoginPage() {
           },
         });
         if (error) throw error;
-        window.location.href = "/auth/callback";
+        await sb.auth.getSession();
+        window.location.href = callbackUrl();
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "שגיאה בהתחברות");

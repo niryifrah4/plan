@@ -13,19 +13,33 @@ import { useClient } from "@/lib/client-context";
 
 /* ===== Types ===== */
 interface Child { [key: string]: string; name: string; dob: string; age: string; framework: string; special: string; savings_provider: string; savings_track: string; savings_balance: string; savings_parent_deposit: string }
-interface AssetRow { [key: string]: string; type: string; desc: string; value: string }
+interface AssetRow {
+  [key: string]: string;
+  type: string;
+  desc: string;
+  value: string;
+  /** Monthly gross rent (investment properties only). */
+  rent: string;
+  /** Monthly operating expenses — ועד בית, ניהול, ארנונה (non-mortgage). */
+  rentExpenses: string;
+}
 interface LiabRow { [key: string]: string; type: string; lender: string; balance: string; rate: string; monthly: string }
 interface InsRow { [key: string]: string | undefined; type: string; has: string; company: string; coverage: string; premium: string; for?: string; isCustom?: string }
 interface GoalRow { [key: string]: string; name: string; cost: string; horizon: string; priority: string }
 interface IncomeRow { [key: string]: string; label: string; value: string }
 interface Fields { [key: string]: string }
 
-/* Default income rows shown to every new client — can be edited or deleted. */
+/* Default income rows shown to every new client — can be edited or deleted.
+   Note: "שכר" and "הכנסה מנכסים מניבים" are covered automatically by the
+   salary profile and the real-estate store; values entered here are still
+   useful for the snapshot but won't double-inject into the budget. The
+   allowance rows below (קצבאות) feed straight into the budget as income. */
 const INCOME_DEFAULTS: IncomeRow[] = [
   { label: "שכר בן/בת זוג 1 (נטו)", value: "" },
   { label: "שכר בן/בת זוג 2 (נטו)", value: "" },
   { label: "הכנסה מנכסים מניבים", value: "" },
-  { label: "קצבאות", value: "" },
+  { label: "קצבת ילדים", value: "" },
+  { label: "קצבת נכות / אחר מביטוח לאומי", value: "" },
   { label: "עזרה מההורים", value: "" },
 ];
 
@@ -77,7 +91,7 @@ export default function OnboardingPage() {
   const [fields, setFields, fieldsSaving] = usePersistedState<Fields>("verdant:onboarding:fields", {}, 1500);
   const emptyChild: Child = { name:"", dob:"", age:"", framework:"", special:"", savings_provider:"", savings_track:"medium", savings_balance:"", savings_parent_deposit:"57" };
   const [children, setChildren, childrenSaving] = usePersistedState<Child[]>("verdant:onboarding:children", [emptyChild], 1500);
-  const [assets, setAssets, assetsSaving] = usePersistedState<AssetRow[]>("verdant:onboarding:assets", [{ type:"נדל\"ן למגורים", desc:"", value:"" }], 1500);
+  const [assets, setAssets, assetsSaving] = usePersistedState<AssetRow[]>("verdant:onboarding:assets", [{ type:"נדל\"ן למגורים", desc:"", value:"", rent:"", rentExpenses:"" }], 1500);
   const [liabilities, setLiabilities, liabSaving] = usePersistedState<LiabRow[]>("verdant:onboarding:liabilities", [{ type:"משכנתא", lender:"", balance:"", rate:"", monthly:"" }], 1500);
   const [insurance, setInsurance, insSaving] = usePersistedState<InsRow[]>("verdant:onboarding:insurance", INS_DEFAULTS, 1500);
   const [goals, setGoals, goalsSaving] = usePersistedState<GoalRow[]>("verdant:onboarding:goals", [{ name:"", cost:"", horizon:"", priority:"" }], 1500);
@@ -514,7 +528,7 @@ export default function OnboardingPage() {
               <h3 className="text-sm font-extrabold text-verdant-ink flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px] text-verdant-emerald">account_balance</span>נכסים
               </h3>
-              <button type="button" onClick={()=>setAssets(p=>[...p,{type:"נדל\"ן למגורים",desc:"",value:""}])} className="text-[11px] font-bold text-verdant-emerald hover:underline flex items-center gap-1">
+              <button type="button" onClick={()=>setAssets(p=>[...p,{type:"נדל\"ן למגורים",desc:"",value:"",rent:"",rentExpenses:""}])} className="text-[11px] font-bold text-verdant-emerald hover:underline flex items-center gap-1">
                 <span className="material-symbols-outlined text-[14px]">add</span>הוסף נכס
               </button>
             </div>
@@ -532,6 +546,58 @@ export default function OnboardingPage() {
                 </>
               )}
             />
+
+            {/* Rental details — shown ONLY for investment properties so the
+                value auto-flows to /realestate and from there into /budget as
+                a locked income row. Keeps the main table clean for other
+                asset types (pension, car, portfolio, etc.). */}
+            {assets.some(a => a.type === "נדל\"ן להשקעה") && (
+              <div className="mt-4 space-y-3">
+                <div className="text-[11px] font-bold text-verdant-muted flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[14px] text-verdant-emerald">home_work</span>
+                  פרטי שכירות — נכסים להשקעה
+                </div>
+                {assets.map((a, i) => a.type === "נדל\"ן להשקעה" ? (
+                  <div
+                    key={`rent-${i}`}
+                    className="rounded-xl p-3"
+                    style={{ background:"#f9faf2", border:"1px solid #e5e9dc" }}
+                  >
+                    <div className="text-[12px] font-extrabold text-verdant-ink mb-2">
+                      {a.desc || "נכס ללא שם"} {a.value ? `· ${fmt(Number(a.value))}` : ""}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] font-bold text-verdant-muted block mb-1">שכ״ד חודשי (₪)</label>
+                        <input
+                          className="inp tabular"
+                          type="number"
+                          min="0"
+                          value={a.rent || ""}
+                          onChange={e => setAssets(p => p.map((x,j) => j===i ? {...x, rent:e.target.value} : x))}
+                          placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-verdant-muted block mb-1">הוצאות חודשיות (₪)</label>
+                        <input
+                          className="inp tabular"
+                          type="number"
+                          min="0"
+                          value={a.rentExpenses || ""}
+                          onChange={e => setAssets(p => p.map((x,j) => j===i ? {...x, rentExpenses:e.target.value} : x))}
+                          placeholder="ועד בית, ארנונה, ניהול"
+                          title="לא כולל משכנתא — היא כבר נספרת דרך טבלת ההתחייבויות"
+                        />
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-verdant-muted mt-2">
+                      שכ״ד נטו ({fmt(Math.max(0, (Number(a.rent)||0) - (Number(a.rentExpenses)||0)))}/ח׳) ייכנס אוטומטית לתקציב כהכנסה.
+                    </div>
+                  </div>
+                ) : null)}
+              </div>
+            )}
           </div>
 
           {/* Liabilities */}

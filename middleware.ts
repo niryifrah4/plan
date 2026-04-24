@@ -10,7 +10,10 @@ import { NextResponse, type NextRequest } from "next/server";
  */
 
 // Public app routes (no auth required to view the page).
-const PUBLIC_ROUTES = ["/login"];
+// /auth/callback must be public — it runs getUser() itself after exchanging
+// the code, and running middleware on it races the cookie-write from the
+// browser signInWithPassword and bounces the user back to /login.
+const PUBLIC_ROUTES = ["/login", "/auth/callback"];
 
 // Public API endpoints — the ONLY /api/* paths that skip middleware auth.
 // All other /api/* must call auth.getUser() internally (route-level).

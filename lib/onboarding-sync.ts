@@ -106,6 +106,10 @@ interface OnbAsset {
   type: string;        // "נדל\"ן למגורים" | "נדל\"ן להשקעה" | ...
   desc: string;
   value: string;
+  /** Monthly gross rent — investment properties only (optional). */
+  rent?: string;
+  /** Monthly operating expenses (non-mortgage) — investment properties only (optional). */
+  rentExpenses?: string;
 }
 
 /* ── Main sync function ── */
@@ -709,19 +713,44 @@ function syncRealEstateToPropertyStore(assets: OnbAsset[]): void {
     const value = parseFloat(a.value) || 0;
     if (value === 0 && !a.desc) continue;
 
+    const isInvestment = a.type === "נדל\"ן להשקעה";
+    const rent = parseFloat(a.rent || "0") || 0;
+    const rentExp = parseFloat(a.rentExpenses || "0") || 0;
+
     const propId = `onb_prop_${a.type}_${a.desc || ""}`;
-    if (existing.some(p => p.id === propId)) continue;
+    const existingProp = existing.find(p => p.id === propId);
+
+    if (existingProp) {
+      // Update rent fields on each sync — the questionnaire is the fastest
+      // way for the client to update rental cashflow. /realestate still wins
+      // if the user filled it there (non-empty wins), but empty→value flows.
+      let propChanged = false;
+      if (isInvestment && rent > 0 && existingProp.monthlyRent !== rent) {
+        existingProp.monthlyRent = rent;
+        propChanged = true;
+      }
+      if (isInvestment && rentExp > 0 && existingProp.monthlyExpenses !== rentExp) {
+        existingProp.monthlyExpenses = rentExp;
+        propChanged = true;
+      }
+      if (propChanged) changed = true;
+      continue;
+    }
 
     // Investment real-estate: exact match "נדל"ן להשקעה" only — NOT substring "השקעה"
     existing.push({
       id: propId,
       name: a.desc || a.type,
-      type: a.type === "נדל\"ן להשקעה" ? "investment" : "residence",
+      type: isInvestment ? "investment" : "residence",
       purchasePrice: value,
       currentValue: value,
       annualAppreciation: 0.03,
       annualRentGrowth: 0.03,
       holdingYears: 10,
+      // Only carry rental fields for investment properties — residence stays undefined
+      // so the passive-income aggregator knows not to treat it as a cashflow source.
+      ...(isInvestment && rent > 0 ? { monthlyRent: rent } : {}),
+      ...(isInvestment && rentExp > 0 ? { monthlyExpenses: rentExp } : {}),
     });
     changed = true;
   }
