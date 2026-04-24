@@ -51,7 +51,7 @@ interface BudgetRow {
   /** Locked rows are read-only — synced from another store (debt / assets). */
   locked?: boolean;
   /** Origin of a locked row. Undefined = manual user entry. */
-  source?: "debt" | "passive" | "salary";
+  source?: "debt" | "passive" | "salary" | "onboarding";
   notes?: string;
   /** Business / personal / mixed tag. Undefined = personal. */
   scope?: Scope;
@@ -431,6 +431,69 @@ function injectPassiveIncomeRows(budget: BudgetData): BudgetData {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   Inject onboarding-questionnaire incomes (allowances, other)
+   ═══════════════════════════════════════════════════════════
+   The onboarding step 2 lets the client list extra income streams
+   (קצבאות, עזרה מההורים, הרצאות וכו'). Salary and rental are already
+   covered by dedicated sources — so we SKIP those labels here to avoid
+   double-counting, and inject the rest as locked rows the client can't
+   accidentally edit in the budget table. */
+
+const ONB_INCOMES_KEY = "verdant:onboarding:incomes";
+
+/** Labels that are covered by other auto-injections → skip. */
+const ONB_SKIP_LABEL_PATTERNS = [
+  /שכר\s*ב?ן?\/?ב?ת?\s*זוג/,  // "שכר בן/בת זוג 1/2 (נטו)"  — comes from salary profile
+  /^\s*שכר\s*\(/,              // plain "שכר (נטו)"
+  /^משכורת/,                   // "משכורת נטו"
+  /שכ[״""]?ד/,                 // "שכ״ד" / שכ"ד — comes from realestate passive injection
+  /שכר\s+דירה/,                // "שכר דירה"
+  /נכסים\s+מניבים/,            // "הכנסה מנכסים מניבים" — comes from realestate
+];
+
+function injectOnboardingIncomeRows(budget: BudgetData): BudgetData {
+  if (typeof window === "undefined") return budget;
+
+  // Strip previously-injected onboarding rows; keep manual entries and other sources.
+  const incomeClean = (budget.sections.income || []).filter(r => r.source !== "onboarding");
+
+  let list: Array<{ label?: string; value?: string }> = [];
+  try {
+    const raw = localStorage.getItem(scopedKey(ONB_INCOMES_KEY)) || localStorage.getItem(ONB_INCOMES_KEY);
+    if (raw) list = JSON.parse(raw);
+  } catch { /* ignore corrupt JSON */ }
+
+  if (!Array.isArray(list) || list.length === 0) {
+    return { ...budget, sections: { ...budget.sections, income: incomeClean } };
+  }
+
+  const rows: BudgetRow[] = [];
+  for (const item of list) {
+    const label = (item?.label || "").trim();
+    const amount = Number(item?.value) || 0;
+    if (!label || amount <= 0) continue;
+    if (ONB_SKIP_LABEL_PATTERNS.some(rx => rx.test(label))) continue;
+    rows.push({
+      id: uid(),
+      name: label,
+      budget: amount,
+      actual: amount,
+      avg3: amount,
+      locked: true,
+      source: "onboarding",
+    });
+  }
+
+  return {
+    ...budget,
+    sections: {
+      ...budget.sections,
+      income: [...incomeClean, ...rows],
+    },
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════
    Inject salary (gross→net) into INCOME as a locked row
    ═══════════════════════════════════════════════════════════ */
 
@@ -523,7 +586,7 @@ export default function BudgetPage() {
     const handler = () => {
       setBudget(prev => {
         if (!prev) return prev;
-        const updated = injectSalaryRow(injectPassiveIncomeRows(injectDebtRows(prev)));
+        const updated = injectOnboardingIncomeRows(injectSalaryRow(injectPassiveIncomeRows(injectDebtRows(prev))));
         saveBudget(updated);
         return updated;
       });
@@ -543,7 +606,7 @@ export default function BudgetPage() {
     const existing = loadBudget(year, month);
     if (existing) {
       // Re-inject debt + passive income rows in case they changed
-      const withSync = injectSalaryRow(injectPassiveIncomeRows(injectDebtRows(existing)));
+      const withSync = injectOnboardingIncomeRows(injectSalaryRow(injectPassiveIncomeRows(injectDebtRows(existing))));
       setBudget(withSync);
       return;
     }
@@ -572,7 +635,7 @@ export default function BudgetPage() {
     }
 
     // Inject locked debt rows + passive income
-    fresh = injectSalaryRow(injectPassiveIncomeRows(injectDebtRows(fresh)));
+    fresh = injectOnboardingIncomeRows(injectSalaryRow(injectPassiveIncomeRows(injectDebtRows(fresh))));
 
     setBudget(fresh);
     saveBudget(fresh);
