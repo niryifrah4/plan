@@ -1007,8 +1007,8 @@ export default function BudgetPage() {
         {/* Savings rate bar */}
         <div className="mt-6 max-w-md mx-auto">
           <div className="flex items-center justify-between text-[11px] font-bold mb-1.5" style={{ color: "rgba(255,255,255,0.85)" }}>
-            <span>שיעור חיסכון</span>
-            <span className="tabular-nums">{savingsRate.toFixed(1)}%</span>
+            <span title="כמה מתוך ההכנסות נשאר — כלומר לא מוצא">חוסך מכל שקל</span>
+            <span className="tabular-nums">{savingsRate.toFixed(0)}%</span>
           </div>
           <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.15)" }}>
             <div
@@ -1117,45 +1117,12 @@ export default function BudgetPage() {
         <MonthlyInsights month={month} year={year} onApply={applyInsights} />
       )}
 
-      {/* ═══════════════════════════════════════════════════════════
-          BUSINESS SCOPE ESCAPE HATCH (subtle link)
-          ═══════════════════════════════════════════════════════════ */}
-      {!businessEnabled && (
-        <div className="mb-4 text-right">
-          <button
-            onClick={() => { setBusinessScopeOverride(true); }}
-            className="inline-flex items-center gap-1 text-[11px] font-semibold transition-colors hover:underline"
-            style={{ color: "#9fb3a4" }}
-          >
-            <span className="material-symbols-outlined text-[12px]">work</span>
-            הפעל הפרדת עסקי / פרטי
-          </button>
-        </div>
-      )}
+      {/* Business/personal scope toggle — removed from main page in cleanup/budget-week1.
+         The feature still works for users who already enabled it; new activation will
+         move to a Settings page (out of scope for week 1). */}
 
-      {/* ═══════ Charts block — bar + percentage donut side-by-side ═══════ */}
-      {showChart && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-          <BudgetChart
-            incBudget={totals.incBudget}
-            incActual={totals.incActual}
-            expBudget={totals.expBudget}
-            expActual={totals.expActual}
-          />
-          <BudgetPie
-            slices={pieData.slices}
-            mode={pieData.mode}
-            subtitle={pieData.mode === "actual"
-              ? "כמה יצא באחוז על כל קטגוריה — בפועל"
-              : "כמה תוכנן באחוז על כל קטגוריה — תכנון"}
-          />
-        </div>
-      )}
-
-      {/* ═══════ Monthly Insights (conditional) ═══════ */}
-      {showInsights && (
-        <MonthlyInsights month={month} year={year} onApply={applyInsights} />
-      )}
+      {/* Charts + Insights already rendered above (lines ~1097-1118).
+         Duplicate block removed in cleanup/budget-week1. */}
 
       {/* ═══════════════════════════════════════════════════════════
           BUDGET SECTIONS — collapsible disclosures, Finav-style
@@ -1407,8 +1374,8 @@ function BudgetSection({
       >
         <div>קטגוריה</div>
         <div className="text-left tabular-nums">תקציב</div>
-        <div className="text-left tabular-nums">ביצוע</div>
-        <div className="text-left tabular-nums">פער</div>
+        <div className="text-left tabular-nums">בפועל</div>
+        <div className="text-left tabular-nums">הפרש</div>
         <div className="text-right">הערות</div>
       </div>
 
