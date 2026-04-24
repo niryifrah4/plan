@@ -834,6 +834,26 @@ export default function BudgetPage() {
   const balance = totals.incBudget - totals.expBudget;
   const savingsRate = calcSavingsRate(totals.incBudget, totals.expBudget) * 100;
 
+  /* ── Daily allowance — the "how much can I spend today" number ──
+     Only meaningful for the CURRENT month. For past/future months we hide it.
+     Formula: (expense budget − expense actual) ÷ days remaining in month.
+     This is the Finav/YNAB daily-pace number: "at your current pace, you have
+     X shekels per remaining day to stay within budget". */
+  const dailyAllowance = useMemo(() => {
+    const today = new Date();
+    const isCurrentMonth = year === today.getFullYear() && month === today.getMonth();
+    if (!isCurrentMonth) return null;
+    // Days in month (month is 0-indexed; `new Date(y, m+1, 0)` = last day of month m)
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysRemaining = Math.max(1, daysInMonth - today.getDate() + 1);
+    const remainingBudget = Math.max(0, totals.expBudget - totals.expActual);
+    const perDay = remainingBudget / daysRemaining;
+    // Pace warning: if we've already exceeded the expected spend-by-today, flag it
+    const expectedByNow = totals.expBudget * (today.getDate() / daysInMonth);
+    const overPace = totals.expActual > expectedByNow;
+    return { perDay, daysRemaining, remainingBudget, overPace };
+  }, [year, month, totals.expBudget, totals.expActual]);
+
   /* ── Pie slices: per-row expense breakdown for the donut ──
      Uses actual spend if any row has actual > 0; otherwise falls back
      to budgeted amounts so the chart stays useful during planning. */
@@ -1002,6 +1022,39 @@ export default function BudgetPage() {
             {"  "}·{"  "}
             הוצאות <span className="tabular-nums font-extrabold">{fmtILS(totals.expBudget)}</span>
           </div>
+
+          {/* Daily allowance — the "how much can I spend today" number.
+              Shown only for the CURRENT month. Finav/YNAB daily-pace UX. */}
+          {dailyAllowance && (
+            <div
+              className="mt-5 pt-5 mx-auto max-w-sm"
+              style={{ borderTop: "1px solid rgba(255,255,255,0.12)" }}
+            >
+              <div
+                className="text-[10px] font-bold uppercase tracking-[0.2em]"
+                style={{ color: "rgba(255,255,255,0.65)" }}
+              >
+                נשאר לך להוציא היום
+              </div>
+              <div
+                className="text-[32px] font-extrabold tabular-nums mt-1 leading-none"
+                style={{
+                  color: dailyAllowance.overPace ? "#fecaca" : "#D6EFDC",
+                  fontFamily: "Manrope, Assistant, system-ui, sans-serif",
+                }}
+              >
+                {fmtILS(Math.round(dailyAllowance.perDay))}
+                <span className="text-[16px] font-bold opacity-70">/יום</span>
+              </div>
+              <div
+                className="text-[10px] font-bold mt-1.5"
+                style={{ color: "rgba(255,255,255,0.7)" }}
+              >
+                לעוד {dailyAllowance.daysRemaining} ימים
+                {dailyAllowance.overPace && " · חורג מהקצב"}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Savings rate bar */}
