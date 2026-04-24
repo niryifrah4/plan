@@ -66,7 +66,7 @@ export const NAV_SECTIONS: NavGroup[] = [
     items: [
       { id: "investments", label: "שוק ההון",       href: "/investments", icon: "candlestick_chart" },
       { id: "equity",      label: "Equity (RSU/ESPP)", href: "/equity",    icon: "stacked_bar_chart" },
-      { id: "pension",     label: "פנסיה ופרישה",   href: "/pension",     icon: "elderly" },
+      { id: "pension",     label: "פנסיה והשקעות",  href: "/pension",     icon: "elderly" },
       { id: "realestate",  label: "נדל״ן",          href: "/realestate",  icon: "home_work" },
       { id: "debt",        label: "חובות והלוואות", href: "/debt",        icon: "credit_score" },
       { id: "insurance",   label: "ניהול סיכונים",  href: "/insurance",   icon: "shield" },
