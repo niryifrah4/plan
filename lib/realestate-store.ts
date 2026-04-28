@@ -114,9 +114,12 @@ export function loadProperties(): Property[] {
 }
 
 export function saveProperties(props: Property[]) {
-  localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(props));
+  // Enforce primary-residence uniqueness on every save so the tax logic
+  // never sees an inconsistent state.
+  const safe = dedupePrimaryFlags(props);
+  localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(safe));
   window.dispatchEvent(new Event(EVENT_NAME));
-  pushBlobInBackground(BLOB_KEY, props);
+  pushBlobInBackground(BLOB_KEY, safe);
 }
 
 /** Pull properties from Supabase and overwrite local cache. */
@@ -147,6 +150,24 @@ export function updateProperty(id: string, patch: Partial<Property>) {
 
 export function deleteProperty(id: string) {
   saveProperties(loadProperties().filter(p => p.id !== id));
+}
+
+/**
+ * Enforce that at most one property carries `isPrimaryResidence: true`.
+ * If more than one is flagged (a state that should not exist but might
+ * after a sync race), we keep the OLDEST entry and unflag the rest —
+ * older usually = the actual primary the user already owned.
+ */
+function dedupePrimaryFlags(props: Property[]): Property[] {
+  const flagged = props.filter(p => p.isPrimaryResidence);
+  if (flagged.length <= 1) return props;
+  // Sort by id (created order ~ insertion). Keep first; clear the rest.
+  const keep = flagged[0].id;
+  return props.map(p =>
+    p.isPrimaryResidence && p.id !== keep
+      ? { ...p, isPrimaryResidence: false }
+      : p
+  );
 }
 
 export { EVENT_NAME };
@@ -182,7 +203,12 @@ export function propertyTaxStatus(prop: Property, all: Property[]): {
     (residences.length === 1 && residences[0].id === prop.id);
 
   if (residences.length <= 1 && (isPrimary || prop.type === "residence")) {
-    return { status: "exempt", message: "פטור — דירה יחידה" };
+    // 2026-04-28: ceiling note added per finance audit. Properties valued
+    // above ₪4.5M get only PARTIAL exemption — message must reflect this.
+    const message = (prop.currentValue || 0) > 4_500_000
+      ? "פטור חלקי — מעל תקרה ₪4.5M"
+      : "פטור — דירה יחידה";
+    return { status: "exempt", message };
   }
 
   // Two+ residences: check 18-month overlap window from a primary purchase.

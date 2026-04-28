@@ -66,17 +66,47 @@ async function fetchCoinGecko(coinIds: string[]): Promise<Record<string, number>
   }
 }
 
-/* ── GET — browser proxy ── */
+/* ── GET — browser proxy ──
+ * 2026-04-28 hardening (security audit):
+ *  - require an authenticated Supabase session — proxy is for our users
+ *    only, not a public service
+ *  - cap at 50 symbols + 30 cryptos per request to prevent DoS
+ *  - regex-validate symbols + crypto IDs to keep weird payloads out
+ */
+const SYMBOL_RE = /^[A-Za-z0-9.\-^=]{1,20}$/;
+const CRYPTO_RE = /^[a-z0-9-]{1,40}$/;
+const MAX_SYMBOLS = 50;
+const MAX_CRYPTOS = 30;
+
 export async function GET(req: NextRequest) {
+  // Auth gate — only signed-in users may use the proxy.
+  try {
+    // Inline import keeps the cron path (POST) free of Supabase deps when
+    // SUPABASE_URL isn't configured locally.
+    const { createClient } = await import("@/lib/supabase/server");
+    const sb = createClient();
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+  } catch {
+    // If Supabase isn't configured (dev), fall through. Production envs
+    // always have it set — verified by /lib/env at boot.
+  }
+
   const url = new URL(req.url);
   const symbolsParam = url.searchParams.get("symbols") || "";
   const cryptoParam = url.searchParams.get("crypto") || "";
 
-  const symbols = symbolsParam.split(",").map(s => s.trim()).filter(Boolean);
-  const cryptoIds = cryptoParam.split(",").map(s => s.trim()).filter(Boolean);
+  const symbols = symbolsParam.split(",").map(s => s.trim()).filter(Boolean)
+    .filter(s => SYMBOL_RE.test(s))
+    .slice(0, MAX_SYMBOLS);
+  const cryptoIds = cryptoParam.split(",").map(s => s.trim()).filter(Boolean)
+    .filter(s => CRYPTO_RE.test(s))
+    .slice(0, MAX_CRYPTOS);
 
   if (symbols.length === 0 && cryptoIds.length === 0) {
-    return NextResponse.json({ error: "missing symbols or crypto param" }, { status: 400 });
+    return NextResponse.json({ error: "missing or invalid symbols/crypto param" }, { status: 400 });
   }
 
   // Fetch in parallel, with mild throttle (Yahoo blocks heavy parallel).

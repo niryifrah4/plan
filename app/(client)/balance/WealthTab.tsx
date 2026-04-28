@@ -482,13 +482,17 @@ export function WealthTab() {
 
         if (total === 0) return null;
 
+        // 2026-04-28 finance audit fix: pension "cash" (conservative tracks)
+        // is NOT liquid — locked until retirement. Show it as its own slice
+        // so the user doesn't think it's emergency-fund money.
         const totalSlices = [
-          { key: "equity",  label: "מניות",       value: penEquity + secStocks, color: "#7C2D12" },
-          { key: "bonds",   label: "אג״ח",        value: penBonds + secBonds,   color: "#1E3A8A" },
-          { key: "re",      label: "נדל״ן",       value: reEquity,              color: "#1B4332" },
-          { key: "cash",    label: "מזומן",       value: penCash + cashTotal,   color: "#0F766E" },
-          { key: "alt",     label: "אלטרנטיבי",   value: penAlt + secOther,     color: "#6B21A8" },
-          { key: "unknown", label: "לא מזוהה",   value: penUnknown,            color: "#94a3b8" },
+          { key: "equity",     label: "מניות",            value: penEquity + secStocks, color: "#7C2D12" },
+          { key: "bonds",      label: "אג״ח",             value: penBonds + secBonds,   color: "#1E3A8A" },
+          { key: "re",         label: "נדל״ן",            value: reEquity,              color: "#1B4332" },
+          { key: "cash",       label: "מזומן נזיל",      value: cashTotal,             color: "#0F766E" },
+          { key: "pen_cash",   label: "פנסיוני שמרני",   value: penCash,               color: "#5b8b78" },
+          { key: "alt",        label: "אלטרנטיבי",        value: penAlt + secOther,     color: "#6B21A8" },
+          { key: "unknown",    label: "לא מזוהה",        value: penUnknown,            color: "#94a3b8" },
         ]
           .filter(s => s.value > 0.5)
           .map(s => ({ ...s, pct: (s.value / total) * 100 }))
