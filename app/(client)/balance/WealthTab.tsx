@@ -4,6 +4,9 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { AssetDonut } from "@/components/charts/AssetDonut";
+import { AllocationPie } from "@/components/charts/AllocationPie";
+import { buildPensionAllocations } from "@/lib/pension-allocation";
+import { buildSecuritiesAllocations } from "@/lib/securities-allocation";
 import { fmtILS } from "@/lib/format";
 import { getDebtAsLiabilities, type LiabilitySummaryRow } from "@/lib/debt-store";
 import { loadPensionFunds, EVENT_NAME as PENSION_EVENT } from "@/lib/pension-store";
@@ -439,6 +442,69 @@ export function WealthTab() {
       </section>
 
       {/* ===== Distribution donuts ===== */}
+      {/* ===== Total Exposure — 2026-04-28 unified pie ─────────
+           Combines pension (by risk), securities (by kind→asset class),
+           real estate (full value), and cash. This is the "אתם חשופים ל-X%
+           מניות / Y% אג"ח / Z% נדל"ן" view Nir asked for. */}
+      {(() => {
+        const penAlloc = buildPensionAllocations(pensionFunds);
+        const secAlloc = buildSecuritiesAllocations(securities);
+
+        // Map securities kinds → asset class
+        const STOCK_KINDS = new Set(["rsu", "option", "espp", "stock", "etf"]);
+        const BOND_KINDS  = new Set(["bond"]);
+        let secStocks = 0, secBonds = 0, secOther = 0;
+        for (const s of secAlloc.byKind) {
+          if (STOCK_KINDS.has(s.key)) secStocks += s.value;
+          else if (BOND_KINDS.has(s.key)) secBonds += s.value;
+          else secOther += s.value; // crypto, fund, other
+        }
+
+        // Pension by risk (already in ₪)
+        const penEquity = penAlloc.byRisk.find(s => s.key === "equity")?.value || 0;
+        const penBonds  = penAlloc.byRisk.find(s => s.key === "bonds")?.value  || 0;
+        const penCash   = penAlloc.byRisk.find(s => s.key === "cash")?.value   || 0;
+        const penAlt    = penAlloc.byRisk.find(s => s.key === "alternative")?.value || 0;
+        const penUnknown= penAlloc.byRisk.find(s => s.key === "unknown")?.value || 0;
+
+        // Real estate equity (value − mortgage)
+        const reEquity = reProperties.reduce((sum: number, p: Property) => {
+          const v = p.currentValue || 0;
+          const m = p.mortgageBalance || 0;
+          return sum + Math.max(0, v - m);
+        }, 0);
+
+        // Cash from bank accounts
+        const cashTotal = totalBankBalance(accounts);
+
+        const total = penEquity + penBonds + penCash + penAlt + penUnknown
+                    + secStocks + secBonds + secOther + reEquity + cashTotal;
+
+        if (total === 0) return null;
+
+        const totalSlices = [
+          { key: "equity",  label: "מניות",       value: penEquity + secStocks, color: "#7C2D12" },
+          { key: "bonds",   label: "אג״ח",        value: penBonds + secBonds,   color: "#1E3A8A" },
+          { key: "re",      label: "נדל״ן",       value: reEquity,              color: "#1B4332" },
+          { key: "cash",    label: "מזומן",       value: penCash + cashTotal,   color: "#0F766E" },
+          { key: "alt",     label: "אלטרנטיבי",   value: penAlt + secOther,     color: "#6B21A8" },
+          { key: "unknown", label: "לא מזוהה",   value: penUnknown,            color: "#94a3b8" },
+        ]
+          .filter(s => s.value > 0.5)
+          .map(s => ({ ...s, pct: (s.value / total) * 100 }))
+          .sort((a, b) => b.value - a.value);
+
+        return (
+          <section className="mb-6">
+            <AllocationPie
+              title="חשיפה כוללת — פנסיה + תיק + נדל״ן + מזומן"
+              slices={totalSlices}
+              size="lg"
+            />
+          </section>
+        );
+      })()}
+
       <section className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
         <div className="card-pad">
           <div className="caption mb-3">פיזור נכסים</div>

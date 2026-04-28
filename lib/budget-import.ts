@@ -146,6 +146,12 @@ export function importTransactionsIntoBudget(
       buckets.set(key, b);
       continue;
     }
+    // Skip pure inter-account transfers — they aren't real income/expense.
+    // Examples: "חיסכון לכל ילד" (kids savings), "העברה לחיסכון", bank-to-bank
+    // moves, ביט / paybox between own accounts. Counting them inflates both
+    // sides of the budget (Nir 2026-04-28: "₪114 חיסכון לילדים זה לא הוצאה").
+    if (tx.category === "transfers") continue;
+
     const target = CATEGORY_TO_BUDGET[tx.category];
     if (target) {
       const key = `${target.section}::${target.rowName}`;

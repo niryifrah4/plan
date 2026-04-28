@@ -42,6 +42,8 @@ import {
 import type { PensionFund } from "@/lib/pension-store";
 import { getFundById, getFundsByProvider, PROVIDERS } from "@/lib/fund-registry";
 import type { RegisteredFund } from "@/lib/fund-registry";
+import { AllocationPie } from "@/components/charts/AllocationPie";
+import { buildPensionAllocations } from "@/lib/pension-allocation";
 
 /* ── Constants ── */
 
@@ -325,12 +327,7 @@ export default function PensionPage() {
         <div className="flex items-center gap-3 text-white">
           <span className="material-symbols-outlined text-[22px]" style={{ color: "#C1ECD4" }}>beach_access</span>
           <div className="flex-1">
-            <div className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: "#C1ECD4" }}>
-              לתכנון הפרישה המלא
-            </div>
-            <div className="text-sm font-extrabold mt-0.5">
-              לראות את הקצבה הצפויה, ההכנסה החודשית בפרישה והפער מהיעד — עבור לתכנון פרישה
-            </div>
+            <div className="text-sm font-extrabold">תכנון פרישה המלא</div>
           </div>
           <span className="material-symbols-outlined" style={{ color: "#C1ECD4" }}>chevron_left</span>
         </div>
@@ -345,19 +342,41 @@ export default function PensionPage() {
                   sub={feeBenchmark(weightedFee).label} />
       </section>
 
-      {/* ===== 4. Distribution Donuts (product type + asset class) ===== */}
-      {funds.length > 0 && (
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
-          <div className="card-pad">
-            <h3 className="text-sm font-extrabold text-verdant-ink mb-3">כמה יש מכל מוצר</h3>
-            <MiniDonut data={fundsByTypeForChart} />
-          </div>
-          <div className="card-pad">
-            <h3 className="text-sm font-extrabold text-verdant-ink mb-3">איפה הכסף מושקע</h3>
-            <MiniDonut data={pensionAssetClassBreakdown} />
-          </div>
-        </section>
-      )}
+      {/* ===== 4. Allocation Pies (3 cuts: type / risk / geo) — 2026-04-28 redesign ===== */}
+      {funds.length > 0 && (() => {
+        const alloc = buildPensionAllocations(funds);
+        const missingPct = alloc.total > 0
+          ? Math.round((alloc.missingCoverage / alloc.total) * 100)
+          : 0;
+        return (
+          <>
+            <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+              <AllocationPie title="לפי סוג קופה" slices={alloc.byType} size="md" />
+              <AllocationPie
+                title="לפי רמת סיכון"
+                slices={alloc.byRisk}
+                size="md"
+                emptyHint="אין מסלולים מזוהים — בחר מסלול ידנית כדי לראות חתך סיכון"
+              />
+              <AllocationPie
+                title="לפי גאוגרפיה"
+                slices={alloc.byGeo}
+                size="md"
+                emptyHint="אין מסלולים מזוהים — בחר מסלול ידנית כדי לראות חתך גאוגרפי"
+              />
+            </section>
+            {missingPct > 0 && (
+              <div className="rounded-xl px-4 py-2.5 mb-6 flex items-start gap-2 text-[12px]"
+                   style={{ background: "#FEF3C7", border: "1px solid #FCD34D" }}>
+                <span className="material-symbols-outlined text-[18px]" style={{ color: "#92400E" }}>info</span>
+                <span style={{ color: "#92400E" }}>
+                  {missingPct}% מהקופות ללא מסלול מזוהה — חתכי סיכון וגאוגרפיה חלקיים. בחר מסלול בכל קופה לראייה מלאה.
+                </span>
+              </div>
+            )}
+          </>
+        );
+      })()}
 
       {/* ===== 5. Pension Funds Table (CRUD + insurance alert + summary) ===== */}
       <section className="v-card overflow-hidden mb-6">
@@ -419,9 +438,8 @@ export default function PensionPage() {
               account_balance
             </span>
             <h3 className="text-base font-extrabold text-verdant-ink mb-1">עדיין לא נוספו קרנות</h3>
-            <p className="text-xs text-verdant-muted max-w-sm mx-auto mb-4 leading-relaxed">
-              כדי לראות את התמונה המלאה — צבירה, דמי ניהול, מסלולים וביטוחים —
-              העלה את הדיוור השנתי המפורט (PDF) שמגיע מהקרן, או הוסף קרן ידנית.
+            <p className="text-xs text-verdant-muted mb-4">
+              העלה דוח שנתי או הוסף ידנית.
             </p>
             <div className="flex gap-2 justify-center">
               <button
@@ -508,12 +526,21 @@ export default function PensionPage() {
                     <div className="text-[10px] text-verdant-muted font-bold">יתרה</div>
                     <div className="text-sm font-extrabold text-verdant-ink tabular">{fmtILS(f.balance)}</div>
                   </div>
-                  <div className="flex gap-1">
-                    <button onClick={() => { setShowAddForm(false); setEditingFund(f.id); }} className="p-1 rounded hover:bg-[#f4f7ed]">
-                      <span className="material-symbols-outlined text-[14px] text-verdant-muted">edit</span>
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => { setShowAddForm(false); setEditingFund(f.id); }}
+                      title="עריכה"
+                      className="px-2.5 py-1.5 rounded-lg hover:bg-[#f4f7ed] flex items-center gap-1 text-[11px] text-verdant-muted font-bold"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">edit</span>
                     </button>
-                    <button onClick={() => handleDeleteFund(f.id)} className="p-1 rounded hover:bg-red-50">
-                      <span className="material-symbols-outlined text-[14px] text-red-400">delete</span>
+                    <button
+                      onClick={() => handleDeleteFund(f.id)}
+                      title="מחיקת קופה"
+                      className="px-2.5 py-1.5 rounded-lg hover:bg-red-50 flex items-center gap-1 text-[11px] text-red-600 font-bold border border-red-200"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">delete</span>
+                      מחק
                     </button>
                   </div>
                 </div>

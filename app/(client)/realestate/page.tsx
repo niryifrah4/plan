@@ -954,14 +954,10 @@ export default function RealEstatePage() {
             </div>
             <div>
               <div className="t-sm font-extrabold text-white">בדיקת שווי נכס — מדלן</div>
-              <div className="text-[11px]" style={{ color: "rgba(249,250,242,0.55)" }}>עסקאות אחרונות, מחיר למ&quot;ר ומגמות שכונתיות</div>
             </div>
           </div>
         </div>
         <div className="px-5 py-4">
-          <p className="text-xs text-verdant-muted mb-3 leading-relaxed">
-            מדלן מציג נתוני עסקאות אמיתיים מרשות המסים. ניתן לבדוק שווי נכס לפי כתובת, לראות עסקאות דומות בסביבה ומחיר למ&quot;ר עדכני.
-          </p>
           <div className="flex flex-wrap gap-2">
             {properties
               .filter((p) => p.city || p.address)

@@ -95,18 +95,7 @@ export default function PlanPage() {
   return (
     <main className="min-h-screen px-10 py-8" style={{ background: "var(--verdant-bg)" }}>
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <header className="mb-6 pb-5 border-b" style={{ borderColor: "#d8e0d0" }}>
-          <div className="text-[10px] uppercase tracking-[0.25em] font-bold mb-2" style={{ color: "#5a7a6a" }}>
-            תוכנית פעולה · יומן ליווי
-          </div>
-          <h1 className="text-3xl font-extrabold tracking-tight" style={{ color: "#012D1D" }}>
-            {familyName}
-          </h1>
-          <p className="text-sm mt-2" style={{ color: "#5a7a6a" }}>
-            מקום אחד לתעד פגישות, תחושות, משימות ופתקים. פשוט — הכל בשורה אחת לפי תאריך.
-          </p>
-        </header>
+        {/* Page header removed 2026-04-28 per Nir's request. */}
 
         {/* Quick stats */}
         <section className="grid grid-cols-3 gap-3 mb-6">

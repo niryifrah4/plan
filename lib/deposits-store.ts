@@ -173,6 +173,72 @@ export function entriesForMonth(month: string): DepositEntry[] {
  * Seed the current month with one entry per active plan that isn't
  * already represented in the log. Safe to call repeatedly — idempotent.
  */
+/**
+ * Sync /goals → /deposits — auto-creates DepositPlans for every bucket with
+ * a monthly contribution, so the user sees a unified monthly checklist.
+ *
+ * Built 2026-04-28 per Nir: "אם יעד אומר ₪300/חודש למטרה X — זה צריך להופיע
+ * בהפקדות כצ'קליסט". Idempotent — runs safely on every /deposits mount:
+ *
+ *  - bucket has monthlyContribution > 0 + no plan yet → create plan
+ *  - plan exists but bucket changed amount → update plan
+ *  - plan exists but bucket was deleted → deactivate plan (keep history)
+ */
+export function syncGoalsToDepositPlans(buckets: Array<{
+  id: string;
+  name: string;
+  monthlyContribution?: number;
+}>): { created: number; updated: number; deactivated: number } {
+  if (typeof window === "undefined") return { created: 0, updated: 0, deactivated: 0 };
+
+  const plans = loadPlans();
+  const planByRefId = new Map<string, DepositPlan>();
+  for (const p of plans) {
+    if (p.target.kind === "savings") planByRefId.set(p.target.refId, p);
+  }
+
+  let created = 0, updated = 0, deactivated = 0;
+  const liveBucketIds = new Set<string>();
+
+  for (const b of buckets) {
+    const monthly = b.monthlyContribution || 0;
+    if (monthly <= 0) continue;
+    liveBucketIds.add(b.id);
+
+    const existing = planByRefId.get(b.id);
+    if (!existing) {
+      plans.push({
+        id: uid(),
+        target: { kind: "savings", refId: b.id, label: b.name },
+        monthlyAmount: monthly,
+        active: true,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      });
+      created++;
+    } else if (existing.monthlyAmount !== monthly || existing.target.label !== b.name || !existing.active) {
+      existing.monthlyAmount = monthly;
+      existing.target.label = b.name;
+      existing.active = true;
+      existing.updatedAt = nowIso();
+      updated++;
+    }
+  }
+
+  // Deactivate plans whose bucket no longer exists (or no longer has monthly).
+  for (const p of plans) {
+    if (p.target.kind !== "savings") continue;
+    if (!liveBucketIds.has(p.target.refId) && p.active) {
+      p.active = false;
+      p.updatedAt = nowIso();
+      deactivated++;
+    }
+  }
+
+  if (created || updated || deactivated) savePlans(plans);
+  return { created, updated, deactivated };
+}
+
 export function seedMonth(month: string = currentMonthKey()): DepositEntry[] {
   const plans = loadPlans().filter(p => p.active);
   const entries = loadEntries();

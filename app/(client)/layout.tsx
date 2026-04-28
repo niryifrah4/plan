@@ -72,9 +72,9 @@ export default async function ClientLayout({ children }: { children: React.React
         "";
       const onOnboarding = path.startsWith("/onboarding");
 
-      if ((!household || household.stage === "onboarding") && !onOnboarding) {
-        redirect("/onboarding");
-      }
+      // Onboarding gate disabled 2026-04-28 per Nir: land on dashboard always.
+      // Users can still reach /onboarding via the sidebar when they want.
+      void household; void onOnboarding;
     }
   }
 

@@ -8,21 +8,16 @@ interface PageHeaderProps {
 }
 
 /**
- * Page header — matches the original HTML pattern exactly:
- *   text-[10px] subtitle · text-3xl title · text-xs description · border-b separator
+ * Page header — REMOVED visually 2026-04-28 per Nir:
+ * "תוריד את כל החלק הזה. תמשוך את הכל למעלה בעמוד תנצל את כל העמוד."
+ *
+ * Returns null so every page that imports PageHeader loses the title block
+ * automatically. Page-name remains in the sidebar (active highlight) and
+ * in the browser tab — that's enough orientation.
+ *
+ * Props kept on the signature so callers don't break.
  */
 export function PageHeader({ subtitle, title, description }: PageHeaderProps) {
-  return (
-    <header className="mb-6 pb-5 border-b v-divider">
-      <div className="label-botanical mb-2">
-        {subtitle}
-      </div>
-      <h1 className="text-4xl md:text-[2.6rem] font-extrabold text-verdant-ink tracking-tight leading-tight">
-        {title}
-      </h1>
-      {description && (
-        <p className="text-sm md:text-base text-verdant-muted mt-2">{description}</p>
-      )}
-    </header>
-  );
+  void subtitle; void title; void description;
+  return null;
 }

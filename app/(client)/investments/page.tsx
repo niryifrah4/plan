@@ -15,6 +15,8 @@ import { fetchQuotesBulk, computePerformance, recordSnapshot, fetchFXRates, fetc
 import type { Assumptions } from "@/lib/assumptions";
 import { scopedKey } from "@/lib/client-scope";
 import { pushBlobInBackground } from "@/lib/sync/blob-sync";
+import { AllocationPie } from "@/components/charts/AllocationPie";
+import { buildSecuritiesAllocations } from "@/lib/securities-allocation";
 import { PortfolioImport, type ImportedRow } from "@/components/investments/PortfolioImport";
 
 /* ─── Constants ─── */
@@ -342,70 +344,16 @@ export default function InvestmentsPage() {
         <SolidKpi label="רווח/הפסד"            value={`${totalPnl >= 0 ? "+" : ""}${fmtILS(totalPnl)}`} icon="trending_up" tone={totalPnl >= 0 ? "emerald" : "red"} sub={`תשואה: ${overallPct >= 0 ? "+" : ""}${overallPct.toFixed(1)}%`} />
       </section>
 
-      {/* ===== Portfolio Allocation — by instrument type (real holdings only) ===== */}
-      {allSecurities.length > 0 && (
-      <section className="card-pad mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px] text-verdant-emerald">donut_large</span>
-            <div>
-              <div className="text-[11px] font-bold uppercase tracking-[0.15em] text-verdant-muted mb-0.5">פיזור התיק</div>
-              <h3 className="text-base font-extrabold text-verdant-ink">הקצאה לפי סוג מכשיר</h3>
-            </div>
-          </div>
-          <a href="/balance" className="text-[11px] font-bold text-verdant-emerald hover:underline flex items-center gap-1">
-            <span className="material-symbols-outlined text-[14px]">open_in_new</span>
-            לראייה הוליסטית (פנסיה+השתלמות+תיק) → מאזן
-          </a>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="flex items-center justify-center">
-            <svg viewBox="0 0 200 200" className="w-48 h-48">
-              {(() => {
-                let cumAngle = 0;
-                return kindAlloc.map((k) => {
-                  const pct = totalMarket > 0 ? k.val / totalMarket : 0;
-                  const angle = pct * 360;
-                  const startAngle = cumAngle;
-                  cumAngle += angle;
-                  const r = 80, cx = 100, cy = 100;
-                  const startRad = (startAngle - 90) * Math.PI / 180;
-                  const endRad = (startAngle + angle - 90) * Math.PI / 180;
-                  const largeArc = angle > 180 ? 1 : 0;
-                  const x1 = cx + r * Math.cos(startRad);
-                  const y1 = cy + r * Math.sin(startRad);
-                  const x2 = cx + r * Math.cos(endRad);
-                  const y2 = cy + r * Math.sin(endRad);
-                  if (pct < 0.01) return null;
-                  return (
-                    <path key={k.kind} d={`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`}
-                      fill={KIND_COLORS[k.kind] || "#94a3b8"} stroke="#fff" strokeWidth="2" />
-                  );
-                });
-              })()}
-              <circle cx="100" cy="100" r="45" fill="#f9faf2" />
-              <text x="100" y="96" textAnchor="middle" className="text-[11px] font-bold" fill="#012d1d">תיק</text>
-              <text x="100" y="112" textAnchor="middle" className="text-[10px]" fill="#6b7280">השקעות</text>
-            </svg>
-          </div>
-          <div className="space-y-2">
-            {kindAlloc.map((k) => (
-              <div key={k.kind} className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#f4f7ed] transition-colors">
-                <div className="w-3 h-3 rounded-sm flex-shrink-0" style={{ background: KIND_COLORS[k.kind] || "#94a3b8" }} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-bold text-verdant-ink">{KIND_LABELS[k.kind] || k.kind}</div>
-                </div>
-                <div className="text-left">
-                  <div className="text-sm font-extrabold tabular">{k.pct}%</div>
-                  <div className="text-[11px] text-verdant-muted tabular">{fmtILS(k.val)}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-      )}
+      {/* ===== Portfolio Allocation — 2 pies: by kind + by geography (currency proxy) ===== */}
+      {allSecurities.length > 0 && (() => {
+        const secAlloc = buildSecuritiesAllocations(allSecurities);
+        return (
+          <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <AllocationPie title="לפי סוג מכשיר" slices={secAlloc.byKind} size="md" />
+            <AllocationPie title="לפי גאוגרפיה" slices={secAlloc.byGeo} size="md" />
+          </section>
+        );
+      })()}
 
       {/* ===== Benchmark Models ===== */}
       <section className="card-pad mb-6">
@@ -413,7 +361,7 @@ export default function InvestmentsPage() {
           <span className="material-symbols-outlined text-[18px] text-verdant-emerald">compare</span>
           <div>
             <div className="caption mb-0.5">השוואת מודלים</div>
-            <h3 className="text-sm font-extrabold text-verdant-ink">מודלים מובנים להשוואה (Benchmarking)</h3>
+            <h3 className="text-sm font-extrabold text-verdant-ink">השוואה למודלים</h3>
           </div>
         </div>
 

@@ -474,7 +474,7 @@ export default function GoalsPage() {
                 הגיע הזמן ל-check-in חודשי
               </div>
               <div className="text-[11px] font-bold" style={{ color: "#92400e" }}>
-                רגע של כנות — האם באמת הפקדת החודש למה שתכננת?
+                הפקדת החודש?
               </div>
             </div>
           </div>
@@ -571,7 +571,7 @@ export default function GoalsPage() {
             <div className="flex-1 min-w-0">
               <div className="t-lg font-extrabold mb-2" style={{ color: "var(--botanical-deep)" }}>לא הוגדרו מטרות ויעדים</div>
               <div className="text-[13px] leading-6 mb-4" style={{ color: "rgba(1,45,29,0.75)" }}>
-                כל שקל שאתה חוסך צריך לדעת לאן הוא הולך. בוא נתחיל להגדיר מטרות ולצבוע אליהן את הכסף.
+                כל שקל יודע לאן הוא הולך.
               </div>
               <button onClick={() => setShowAddForm(true)} className="btn btn-primary btn-sm">
                 <span className="material-symbols-outlined text-[16px]">add</span>

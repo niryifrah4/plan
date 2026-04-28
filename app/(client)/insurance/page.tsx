@@ -103,43 +103,17 @@ export default function RiskManagementPage() {
       />
 
       {/* ── Summary KPIs ── */}
+      {/* Coverage tile uses SolidKpi with bg override so it matches the
+          rest of the rail visually (2026-04-28 — was a custom ring div). */}
       <SolidKpiRow>
-        {/* Coverage gauge tile — forest hero with ring */}
-        <div
-          className="p-4 relative overflow-hidden transition-all duration-300 hover:-translate-y-0.5 flex flex-col items-center justify-center"
-          style={{
-            background: pct >= 80 ? "#012D1D" : pct >= 50 ? "#B45309" : "#8B2E2E",
-            color: "#FFFFFF",
-            borderRadius: "1rem",
-            boxShadow: "0 1px 2px rgba(27, 67, 50, 0.06)",
-          }}
-        >
-          <div className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2" style={{ color: "rgba(255,255,255,0.60)" }}>
-            אחוז כיסוי
-          </div>
-          <div className="relative w-16 h-16">
-            <svg viewBox="0 0 36 36" className="w-full h-full">
-              <path
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                fill="none"
-                stroke="rgba(255,255,255,0.18)"
-                strokeWidth="3"
-              />
-              <path
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                fill="none"
-                stroke="#C1ECD4"
-                strokeWidth="3"
-                strokeDasharray={`${pct}, 100`}
-                strokeLinecap="round"
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-lg font-black text-white">{pct}%</span>
-            </div>
-          </div>
-        </div>
-
+        <SolidKpi
+          label="אחוז כיסוי"
+          value={`${pct}%`}
+          icon="verified"
+          tone="forest"
+          bg={pct >= 80 ? "#012D1D" : pct >= 50 ? "#B45309" : "#8B2E2E"}
+          sub={pct >= 80 ? "כיסוי מלא" : pct >= 50 ? "פערים חלקיים" : "פערים מהותיים"}
+        />
         <SolidKpi label="מכוסים"        value={String(stats.covered)}                  icon="check_circle" tone="emerald" />
         <SolidKpi label="דורשים טיפול"  value={String(stats.partial + stats.missing)} icon="warning"      tone={(stats.partial + stats.missing) > 0 ? "amber" : "sage"} />
         <SolidKpi label="עלות חודשית"   value={fmtCurrency(stats.totalMonthlyCost)}    icon="payments"     tone="ink" />

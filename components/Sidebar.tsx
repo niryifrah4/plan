@@ -178,11 +178,15 @@ export function Sidebar({ familyName, membersCount, advisorName, onExit, saveSta
 
   const renderGroup = (group: NavGroup) => {
     // Flat group (no header) — just render items
+    // 2026-04-28: visual separator above + same indent as items in
+    // collapsible groups so the row aligns with the rest of the rail.
     if (!group.label) {
       return (
-        <ul className="space-y-1 mt-2" key={group.id}>
-          {group.items.map((it) => renderItem(it, false))}
-        </ul>
+        <div key={group.id} className="mt-3 pt-3" style={{ borderTop: "1px solid rgba(168,197,177,0.12)" }}>
+          <ul className="space-y-1">
+            {group.items.map((it) => renderItem(it, false))}
+          </ul>
+        </div>
       );
     }
 

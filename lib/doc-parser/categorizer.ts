@@ -261,6 +261,13 @@ export const CATEGORIES: Category[] = [
       "שק", "צ'ק", "שיק", "המחאה",
       "פיקדון", "פק\"מ", "פקדון",
       "חיסכון", "הפקדה לחיסכון",
+      // 2026-04-28: explicit children-savings keywords. These are
+      // government deposits + parental match flowing to a kid's account
+      // (₪57 + ₪57 = ₪114). Money leaves the parent's account but is NOT
+      // an expense — it's a transfer to an asset.
+      "חיסכון לכל ילד", "חיסכון לילד", "חיסכון לילדים",
+      "מגדל גמל ילדים", "פסגות ילדים", "אלטשולר ילדים",
+      "ילין לפידות ילדים", "מיטב גמל ילדים",
     ],
     patterns: [
       /העברה?\s*(ל|מ|בין)/i,

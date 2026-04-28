@@ -332,6 +332,21 @@ export function mislakaProductsToFunds(products: ParsedMislakaProduct[]): Pensio
       ? p.tracks.map(t => t.name).join(", ")
       : productLabel(p.productType);
 
+    // 2026-04-28: try to auto-link to fund-registry so the new risk + geo
+    // pies on /pension light up immediately. Mislaka XML gives only free-
+    // text track names, so we fuzzy-match against the registry.
+    let registeredFundId: string | undefined;
+    try {
+      // Inline import avoids circular-dep risk at module load time.
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { matchFundByTrack } = require("./track-matcher");
+      const firstTrack = p.tracks[0]?.name || trackName;
+      const m = matchFundByTrack(firstTrack, p.company, type);
+      if (m.fundId) registeredFundId = m.fundId;
+    } catch {
+      // matcher unavailable — skip silently, user can pick manually
+    }
+
     return {
       id: uid(),
       company: p.company,
@@ -344,6 +359,7 @@ export function mislakaProductsToFunds(products: ParsedMislakaProduct[]): Pensio
       monthlyContrib: p.monthlyContrib,
       insuranceCover: p.insuranceCover,
       openingDate: p.openingDate,
+      registeredFundId,
     };
   });
 }

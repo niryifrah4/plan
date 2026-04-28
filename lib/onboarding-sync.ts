@@ -19,7 +19,8 @@ import { loadPensionFunds, savePensionFunds, type PensionFund, EVENT_NAME as PEN
 import { loadAssumptions, saveAssumptions } from "./assumptions";
 import { loadKidsSavings, saveKidsSavings, kidSavingsId, DEFAULT_MONTHLY, GOV_MONTHLY_DEPOSIT, type KidSavings } from "./kids-savings-store";
 import { loadProperties, saveProperties, type Property, EVENT_NAME as RE_EVENT } from "./realestate-store";
-import { loadBuckets, saveBuckets, BUCKETS_EVENT } from "./buckets-store";
+import { loadBuckets, saveBuckets, BUCKETS_EVENT, createBucket } from "./buckets-store";
+import { fireSync } from "./sync-engine";
 import type { Bucket, OnboardingGoalRow } from "@shared/buckets-core";
 import { migrateOnboardingGoals } from "@shared/buckets-core";
 import { loadSalaryProfile, saveSalaryProfile, DEFAULT_SALARY_PROFILE } from "./salary-engine";
@@ -50,6 +51,7 @@ const ASSUMPTIONS_SEEDED = "verdant:onboarding:assumptions_seeded";
  * capturing goals in the questionnaire if they choose to.
  */
 const GOALS_SEEDED    = "verdant:onboarding:goals_seeded";
+const EMERGENCY_SEEDED = "verdant:onboarding:emergency_seeded";
 /**
  * Sentinel: salary profile seeded from onboarding (p1_gross / p1_credit_points).
  * After seeding, the salary page owns the profile — repeating onboarding must
@@ -132,6 +134,9 @@ export function syncOnboardingToStores(): void {
   syncGoalsToBuckets(goals);
   syncSalaryProfile(fields);
   syncBudgetFromExpenses(fields);
+  // Emergency fund must run AFTER syncBudgetFromExpenses so we have
+  // assumptions.monthlyExpenses available for the 3× target calculation.
+  seedEmergencyFundBucket();
 
   // Mark as synced
   localStorage.setItem(scopedKey(ONB_SYNCED_AT), new Date().toISOString());
@@ -319,6 +324,44 @@ function syncGoalsToBuckets(rows: OnboardingGoalRow[]): void {
   if (changed) saveBuckets(Array.from(byName.values()));
   // Mark seed complete (even if nothing changed — we've run the one-shot pass).
   localStorage.setItem(scopedKey(GOALS_SEEDED), new Date().toISOString());
+}
+
+/* ── Emergency fund — auto-seed once ──
+ * Per Nir 2026-04-28: emergency fund should be a goal, not just a label.
+ * Target = 3 × monthly expenses (the household's safety floor).
+ * Idempotent — runs once per client (EMERGENCY_SEEDED flag).
+ * Skips if user already created a bucket with the same name. */
+function seedEmergencyFundBucket(): void {
+  if (localStorage.getItem(scopedKey(EMERGENCY_SEEDED))) return;
+
+  const assumptions = loadAssumptions();
+  const monthlyExp = assumptions.monthlyExpenses || 0;
+  // Sensible fallback if expenses unknown (₪10k/month → ₪30k floor).
+  const target = monthlyExp > 0 ? Math.round(monthlyExp * 3) : 30000;
+
+  const existing = loadBuckets();
+  const hasIt = existing.some(b =>
+    b.name.includes("חירום") || b.name.toLowerCase().includes("emergency")
+  );
+
+  if (!hasIt) {
+    // 12-month horizon — short, so the goal stays urgent in the UI.
+    const targetDate = new Date(Date.now() + 365 * 24 * 3600 * 1000)
+      .toISOString().split("T")[0];
+    const emergencyBucket = createBucket({
+      name: "קרן חירום",
+      icon: "shield",
+      targetAmount: target,
+      targetDate,
+      priority: "high",
+      expectedAnnualReturn: 0.03, // money-market / cash equivalent
+      notes: `מטרה אוטומטית: 3× הוצאה חודשית. עדכן אם המספר לא מתאים.`,
+    });
+    saveBuckets([...existing, emergencyBucket]);
+    fireSync(BUCKETS_EVENT);
+  }
+
+  localStorage.setItem(scopedKey(EMERGENCY_SEEDED), new Date().toISOString());
 }
 
 /* ── 1. Liabilities → Debt Store ── */

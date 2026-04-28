@@ -23,7 +23,9 @@ import {
   deletePlan,
   loadEntries,
   loadPlans,
+  seedMonth,
   summaryForMonth,
+  syncGoalsToDepositPlans,
   unconfirmEntry,
   updatePlan,
   type DepositEntry,
@@ -31,6 +33,7 @@ import {
   type DepositTargetKind,
   type MonthSummary,
 } from "@/lib/deposits-store";
+import { loadBuckets, BUCKETS_EVENT } from "@/lib/buckets-store";
 
 const HE_MONTHS = [
   "ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני",
@@ -66,6 +69,11 @@ export default function DepositsPage() {
 
   useEffect(() => {
     const reload = () => {
+      // Sync goals → deposit plans first so any new bucket with monthly
+      // contribution shows up here automatically. Idempotent.
+      syncGoalsToDepositPlans(loadBuckets());
+      // Make sure the current month has entries seeded for every active plan.
+      seedMonth(month);
       setSummary(summaryForMonth(month));
       setPlans(loadPlans());
       setPensionFunds(loadPensionFunds());
@@ -74,10 +82,12 @@ export default function DepositsPage() {
     reload();
     window.addEventListener(DEPOSITS_EVENT, reload);
     window.addEventListener("verdant:pension:updated", reload);
+    window.addEventListener(BUCKETS_EVENT, reload);
     window.addEventListener("storage", reload);
     return () => {
       window.removeEventListener(DEPOSITS_EVENT, reload);
       window.removeEventListener("verdant:pension:updated", reload);
+      window.removeEventListener(BUCKETS_EVENT, reload);
       window.removeEventListener("storage", reload);
     };
   }, [month]);

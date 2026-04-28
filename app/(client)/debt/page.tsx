@@ -295,12 +295,7 @@ export default function DebtPage() {
       </header>
 
       {/* ═══ KPI Summary ═══ */}
-      <div className="mb-2">
-        <div className="text-base font-extrabold mb-1" style={{ color: "#012d1d" }}>סיכום חובות חודשי</div>
-        <div className="text-[11px] font-semibold mb-4" style={{ color: "#5a7a6a" }}>
-          סה&quot;כ תשלומים חודשיים שיורדים מכל המקורות
-        </div>
-      </div>
+      <div className="text-base font-extrabold mb-3" style={{ color: "#012d1d" }}>סיכום חובות חודשי</div>
       <section className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
         <SolidKpi label="משכנתא חודשי"     value={fmtILS(mortgageTotals.monthlyTotal)}    icon="home"           tone="ink"     sub={`${mortgageTotals.count} מסלולים · ${mortgageTotals.avgInterest.toFixed(2)}% ריבית`} />
         <SolidKpi label="החזר הלוואות"     value={fmtILS(loanTotals.monthlyTotal)}        icon="credit_score"   tone="red"     sub={`${loanTotals.count} הלוואות`} />
@@ -309,7 +304,7 @@ export default function DebtPage() {
       <section className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
         <SolidKpi label="יתרת משכנתא"      value={fmtILS(mortgageTotals.balanceTotal)}    icon="account_balance" tone="forest"  sub={`שולם ${(mortgageTotals.progress * 100).toFixed(0)}%`} />
         <SolidKpi label="יתרת הלוואות"     value={fmtILS(loanTotals.balanceTotal)}        icon="receipt_long"    tone="ink"     sub="סה״כ יתרות" />
-        <SolidKpi label="סה״כ חודשי כולל"  value={fmtILS(grandMonthly)}                   icon="paid"            tone={grandMonthly > 0 ? "red" : "emerald"} sub="משכנתא + הלוואות + תשלומים" />
+        <SolidKpi label="סה״כ חודשי כולל"  value={fmtILS(grandMonthly)}                   icon="paid"            tone={grandMonthly > 0 ? "red" : "emerald"} />
       </section>
 
       {/* ═══ Mortgage Section ═══ */}

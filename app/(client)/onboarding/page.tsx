@@ -215,17 +215,12 @@ export default function OnboardingPage() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      {/* Header */}
-      <header className="mb-6">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-verdant-muted font-bold mb-2">שאלון אפיון · Onboarding</div>
-        <div className="flex items-end justify-between flex-wrap gap-3 mb-4">
-          <div>
-            <h1 className="text-4xl font-extrabold text-verdant-ink tracking-tight leading-tight">איסוף פרטי המשפחה או היחיד</h1>
-            <p className="text-sm text-verdant-muted mt-2">{TOTAL_STEPS} שלבים · שמירה אוטומטית · הנתונים מעדכנים את מפת העושר והתקציב</p>
-          </div>
-          <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: saveStatus === "saved" ? "#2B694D" : "#5a7a6a" }}>
+      {/* Page header removed 2026-04-28 — only save indicator + progress bar remain. */}
+      <header className="mb-3">
+        <div className="flex items-center justify-end mb-2">
+          <div className="flex items-center gap-2 text-[11px] font-semibold" style={{ color: saveStatus === "saved" ? "#2B694D" : "#5a7a6a" }}>
             <span className="material-symbols-outlined text-[16px]">{saveStatus === "saving" ? "cloud_sync" : "cloud_done"}</span>
-            <span>{saveStatus === "saving" ? "שומר..." : saveStatus === "saved" ? "נשמר" : "אוטומטי"}</span>
+            <span>{saveStatus === "saving" ? "שומר..." : saveStatus === "saved" ? "נשמר אוטומטית" : "אוטומטי"}</span>
           </div>
         </div>
 
@@ -533,7 +528,7 @@ export default function OnboardingPage() {
           <div className="rounded-xl p-3 mt-6 mb-3 flex items-start gap-2" style={{ background:"#eef7f1", border:"1px solid #c9e3d4" }}>
             <span className="material-symbols-outlined text-[18px] text-verdant-emerald mt-0.5">info</span>
             <div className="text-[12px] text-verdant-ink leading-relaxed">
-              הוצאות נשאבות אוטומטית ממיפוי עסקאות בדף <b>תקציב</b> ו-<b>תזרים</b>. הכנסות הן נתון קשה-לשינוי — כדאי לתעד כאן. הוצאות הן כלי חינוכי — נלמד אותן מהנתון האמיתי, לא מהערכה.
+              הכנסות מתעדים כאן. הוצאות נשאבות מתקציב.
             </div>
           </div>
 
@@ -817,7 +812,7 @@ export default function OnboardingPage() {
           <div className="rounded-xl p-3 mb-4 flex items-start gap-2" style={{ background:"#eef7f1", border:"1px solid #c9e3d4" }}>
             <span className="material-symbols-outlined text-[18px] text-verdant-emerald mt-0.5">info</span>
             <div className="text-[12px] text-verdant-ink leading-relaxed">
-              נתוני החסכון הפנסיוני — קרנות פנסיה, ביטוחי מנהלים, גמל וקרנות השתלמות — נטענים אוטומטית מהמסלקה בעמוד "פנסיה ופרישה". אין צורך להזין אותם כאן.
+              פנסיה נטענת מהמסלקה.
             </div>
           </div>
         </StepCard>}

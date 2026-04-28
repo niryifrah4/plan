@@ -30,6 +30,7 @@ import type { Assumptions } from "@/lib/assumptions";
 import { AssetDonut } from "@/components/charts/AssetDonut";
 import { useClient } from "@/lib/client-context";
 import { MacroPanel } from "@/components/MacroPanel";
+import { syncGoalsToDepositPlans, seedMonth, summaryForMonth, currentMonthKey, DEPOSITS_EVENT } from "@/lib/deposits-store";
 import { DepositsWidget } from "@/components/DepositsWidget";
 import { scopedKey } from "@/lib/client-scope";
 import { SCOPE_COLORS, effectiveScope, type Scope } from "@/lib/scope-types";
@@ -225,6 +226,45 @@ export default function DashboardPage() {
     } catch {}
     setShowCheckin(false);
     setCheckinDismissed(true);
+  };
+
+  // ── Monthly deposits banner — pulses on the dashboard when there are
+  // unconfirmed scheduled deposits for the current month. Dismissible
+  // per-month (DEPOSITS_DISMISSED_KEY scoped to YYYY-MM). ──
+  const DEPOSITS_DISMISSED_KEY = "verdant:dashboard:deposits_banner_dismissed";
+  const [depositsPending, setDepositsPending] = useState({ count: 0, total: 0 });
+  const [depositsBannerDismissed, setDepositsBannerDismissed] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const refreshDeposits = () => {
+      // Sync goal buckets → deposit plans (idempotent), then seed month.
+      syncGoalsToDepositPlans(loadBuckets());
+      const month = currentMonthKey();
+      seedMonth(month);
+      const sum = summaryForMonth(month);
+      const pending = sum.entries.filter(e => !e.confirmed);
+      setDepositsPending({
+        count: pending.length,
+        total: pending.reduce((s, e) => s + (e.amount || 0), 0),
+      });
+      const dismissedFor = localStorage.getItem(scopedKey(DEPOSITS_DISMISSED_KEY));
+      setDepositsBannerDismissed(dismissedFor === month);
+    };
+    refreshDeposits();
+    window.addEventListener(DEPOSITS_EVENT, refreshDeposits);
+    window.addEventListener(BUCKETS_EVENT, refreshDeposits);
+    return () => {
+      window.removeEventListener(DEPOSITS_EVENT, refreshDeposits);
+      window.removeEventListener(BUCKETS_EVENT, refreshDeposits);
+    };
+  }, []);
+
+  const dismissDepositsBanner = () => {
+    try {
+      localStorage.setItem(scopedKey(DEPOSITS_DISMISSED_KEY), currentMonthKey());
+    } catch {}
+    setDepositsBannerDismissed(true);
   };
 
   const totalAssets = assets.reduce((a, x) => a + x.balance, 0);
@@ -497,7 +537,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <h3 className="text-lg font-extrabold text-verdant-ink">בדיקה חודשית</h3>
-                <p className="text-[11px] text-verdant-muted font-bold">Monthly Check-in · סטטוס תכנון</p>
+                <p className="text-[11px] text-verdant-muted font-bold">סטטוס תכנון</p>
               </div>
             </div>
 
@@ -527,20 +567,42 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ═══════ Header ═══════ */}
-      <header className="mb-10 pb-8 border-b v-divider">
-        <div className="flex items-end justify-between flex-wrap gap-4">
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.25em] text-verdant-muted font-bold mb-3">
-              The Cockpit · לוח בקרה
+      {/* Page header removed 2026-04-28 per Nir's request. */}
+
+      {/* ── Monthly deposits banner — gentle nudge to confirm planned deposits ── */}
+      {!depositsBannerDismissed && depositsPending.count > 0 && (
+        <div
+          className="rounded-2xl px-4 py-3 mb-4 flex items-center gap-3"
+          style={{ background: "#FEF3C7", border: "1px solid #FCD34D" }}
+        >
+          <span className="material-symbols-outlined text-[22px]" style={{ color: "#92400E" }}>
+            fact_check
+          </span>
+          <div className="flex-1">
+            <div className="text-[13px] font-extrabold" style={{ color: "#92400E" }}>
+              {depositsPending.count} הפקדות עוד לא אושרו החודש · {fmtILS(depositsPending.total)}
             </div>
-            <h1 className="text-4xl font-extrabold text-botanical-forest tracking-tight leading-tight">
-              {loading ? "טוען..." : `שלום ${familyName}`}
-            </h1>
-            <p className="text-sm text-verdant-muted mt-2">{today}</p>
+            <div className="text-[11px]" style={{ color: "#92400E" }}>
+              עבור ל"הפקדות" כדי לאשר ולעדכן יתרות
+            </div>
           </div>
+          <Link
+            href="/deposits"
+            className="text-[12px] font-bold px-3 py-1.5 rounded-lg"
+            style={{ background: "#92400E", color: "#fff" }}
+          >
+            לעבור →
+          </Link>
+          <button
+            onClick={dismissDepositsBanner}
+            title="דלג עד החודש הבא"
+            className="text-[18px] font-bold p-1 rounded hover:bg-amber-200"
+            style={{ color: "#92400E" }}
+          >
+            ✕
+          </button>
         </div>
-      </header>
+      )}
 
       {/* ═══════ Macro — BoI / Prime / Inflation control ═══════ */}
       <MacroPanel />
@@ -557,7 +619,7 @@ export default function DashboardPage() {
             <div className="icon-sm icon-forest">
               <span className="material-symbols-outlined text-[20px]">account_balance</span>
             </div>
-            <div className="caption pt-2.5">Monthly Cashflow · תזרים חודשי</div>
+            <div className="caption pt-2.5">תזרים חודשי</div>
           </div>
 
           <div className="grid grid-cols-2 gap-x-5 gap-y-4 mb-5">
@@ -737,7 +799,7 @@ export default function DashboardPage() {
           <div className="flex flex-wrap gap-3 mb-5 items-center">
             {/* Capital ↔ Income — the "heart of the heart" toggle */}
             <div className="flex gap-1 p-1 rounded-lg w-fit" style={{ background: "rgba(1,45,29,0.04)" }}
-              title="הון = מסלול צבירת השווי הנקי. קצבה חודשית = שכבות ההכנסה בפרישה (פנסיה + שכ״ד + SWR + ביטוח לאומי)">
+              title="הון מצטבר מול הכנסה חודשית בפרישה">
               {[
                 { key: "capital", label: "הון" },
                 { key: "income",  label: "קצבה חודשית" },
@@ -771,7 +833,7 @@ export default function DashboardPage() {
               ))}
             </div>
             <div className="flex gap-1 p-1 rounded-lg w-fit" style={{ background: "rgba(1,45,29,0.04)" }}
-              title="נומינלי = ערכי עתיד ברוטו. ריאלי = ערכי היום אחרי אינפלציה ומס רווחי הון 25% על נזיל">
+              title="ריאלי = אחרי אינפלציה ומס 25%">
               {[
                 { key: "nominal", label: "נומינלי" },
                 { key: "real", label: "ריאלי (נטו)" },
@@ -1093,7 +1155,7 @@ export default function DashboardPage() {
               <span className="material-symbols-outlined text-[20px]">flag</span>
             </div>
             <div>
-              <div className="caption mb-1">Goals Overview · מטרות ויעדים</div>
+              <div className="caption mb-1">מטרות ויעדים</div>
               <h3 className="t-lg font-extrabold" style={{ color: "var(--botanical-forest)" }}>מטרות ויעדים</h3>
               {buckets.length > 0 && (
                 <div className="kpi-hint font-bold mt-1 tabular">

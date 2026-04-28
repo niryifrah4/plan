@@ -143,18 +143,7 @@ export default function RetirementPage() {
 
   return (
     <div className="max-w-6xl mx-auto" style={{ fontFamily: "'Assistant', sans-serif" }}>
-      {/* ═══ Header ═══ */}
-      <header className="mb-10 pb-8 border-b v-divider">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-verdant-muted font-bold mb-3">
-          Retirement Workshop · תכנון פרישה
-        </div>
-        <h1 className="text-4xl font-extrabold text-botanical-forest tracking-tight leading-tight">
-          תכנון פרישה · {familyName}
-        </h1>
-        <p className="text-sm text-verdant-muted mt-2">
-          משוך את המחוונים וצפה בתמונה הכוללת מתעדכנת. כל שינוי מחושב מחדש מול כל שכבות ההכנסה.
-        </p>
-      </header>
+      {/* Page header removed 2026-04-28 per Nir's request. */}
 
       {/* ═══ KPI strip ═══ */}
       <section className="grid grid-cols-4 gap-4 mb-8">
