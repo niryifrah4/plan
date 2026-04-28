@@ -544,46 +544,8 @@ export default function RealEstatePage() {
         })}
       </div>
 
-      {/* ── 2.5 Recommendations ── */}
-      {recommendations.length > 0 ? (
-        <section className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="material-symbols-outlined text-[18px] text-verdant-emerald">lightbulb</span>
-            <h2 className="text-sm font-extrabold text-verdant-ink">תובנות והמלצות</h2>
-          </div>
-          <div className="space-y-2">
-            {recommendations.map((rec) => {
-              const sevColors: Record<string, { bg: string; border: string; text: string }> = {
-                critical:    { bg: "#fef2f2", border: "#fca5a5", text: "#b91c1c" },
-                warning:     { bg: "#fffbeb", border: "#fcd34d", text: "#92400e" },
-                info:        { bg: "#eff6ff", border: "#93c5fd", text: "#1d4ed8" },
-                opportunity: { bg: "#f0fdf4", border: "#86efac", text: "#166534" },
-              };
-              const c = sevColors[rec.severity];
-              return (
-                <div key={rec.id} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: c.bg, borderRight: `3px solid ${c.border}` }}>
-                  <span className="material-symbols-outlined text-[18px] mt-0.5" style={{ color: c.text }}>{rec.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-extrabold" style={{ color: c.text }}>{rec.title}</span>
-                      {rec.impact && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: c.border + "40", color: c.text }}>
-                          {rec.impact}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[11px] text-verdant-muted mt-0.5">{rec.propertyName} — {rec.detail}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      ) : properties.length > 0 ? (
-        <div className="v-card p-4 mb-6 text-center">
-          <span className="text-xs font-bold text-verdant-emerald">הכל תקין — אין המלצות כרגע</span>
-        </div>
-      ) : null}
+      {/* Recommendations moved to bottom of page (2026-04-28 per Nir):
+          "המרכז חייב להיות נקי לנתונים ותכנון". See section at end of page. */}
 
       {/* ── 3. Property Cards + CRUD ── */}
       <h2 className="text-sm font-extrabold text-verdant-ink mb-3">הנכסים שלי</h2>
@@ -1034,6 +996,43 @@ export default function RealEstatePage() {
           </div>
         </div>
       </section>
+
+      {/* ── Recommendations — moved to bottom 2026-04-28 ── */}
+      {recommendations.length > 0 ? (
+        <section className="mb-6 mt-8 pt-6 border-t v-divider">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="material-symbols-outlined text-[18px] text-verdant-emerald">lightbulb</span>
+            <h2 className="text-sm font-extrabold text-verdant-ink">תובנות והמלצות</h2>
+          </div>
+          <div className="space-y-2">
+            {recommendations.map((rec) => {
+              const sevColors: Record<string, { bg: string; border: string; text: string }> = {
+                critical:    { bg: "#fef2f2", border: "#fca5a5", text: "#b91c1c" },
+                warning:     { bg: "#fffbeb", border: "#fcd34d", text: "#92400e" },
+                info:        { bg: "#eff6ff", border: "#93c5fd", text: "#1d4ed8" },
+                opportunity: { bg: "#f0fdf4", border: "#86efac", text: "#166534" },
+              };
+              const c = sevColors[rec.severity];
+              return (
+                <div key={rec.id} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: c.bg, borderRight: `3px solid ${c.border}` }}>
+                  <span className="material-symbols-outlined text-[18px] mt-0.5" style={{ color: c.text }}>{rec.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-extrabold" style={{ color: c.text }}>{rec.title}</span>
+                      {rec.impact && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: c.border + "40", color: c.text }}>
+                          {rec.impact}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-verdant-muted mt-0.5">{rec.propertyName} — {rec.detail}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
 
       {/* ── Modals ── */}
       {showAddForm && <PropertyForm onSave={handleAdd} onCancel={() => setShowAddForm(false)} />}

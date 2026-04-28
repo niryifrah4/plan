@@ -429,19 +429,9 @@ export default function InvestmentsPage() {
         )}
       </section>
 
-      {/* ===== Allocation by Kind ===== */}
-      <section className="card-pad mb-6">
-        <div className="caption mb-3">אלוקציה לפי סוג נכס</div>
-        <div className="flex items-end gap-2 h-16">
-          {kindAlloc.map(({ kind, pct }) => (
-            <div key={kind} className="flex flex-col items-center gap-1 flex-1">
-              <div className="text-[10px] font-bold" style={{ color: KIND_COLORS[kind] || "#1B4332" }}>{pct}%</div>
-              <div className="w-full rounded-t-md transition-all" style={{ height: `${Math.max(pct * 0.5, 4)}px`, background: KIND_COLORS[kind] || "#1B4332" }} />
-              <div className="text-[9px] font-bold text-verdant-muted">{KIND_LABELS[kind] || kind}</div>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* "אלוקציה לפי סוג נכס" — REMOVED 2026-04-28 per Nir.
+          Same data is shown in the AllocationPie above. Bars added redundancy
+          and visual noise without new information. */}
 
       {/* ===== Vesting Timeline ===== */}
       {vestingItems.length > 0 && (
