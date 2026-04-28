@@ -105,8 +105,24 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 
 const EMPTY_FUND: Omit<PensionFund, "id"> = {
   company: "", type: "pension", balance: 0, mgmtFeeDeposit: 0, mgmtFeeBalance: 0,
-  track: "", monthlyContrib: 0,
+  track: "", monthlyContrib: 0, owner: "spouse_a",
 };
+
+/** Read spouse names from onboarding fields (fallback labels if blank). */
+function loadSpouseNames(): { a: string; b: string; hasB: boolean } {
+  if (typeof window === "undefined") return { a: "בן זוג א'", b: "בן זוג ב'", hasB: false };
+  try {
+    const raw = localStorage.getItem("verdant:onboarding:fields");
+    if (!raw) return { a: "בן זוג א'", b: "בן זוג ב'", hasB: false };
+    const f = JSON.parse(raw) as Record<string, string>;
+    const a = (f.p1_name || "").trim() || "בן זוג א'";
+    const b = (f.p2_name || "").trim() || "בן זוג ב'";
+    const hasB = !!(f.p2_name && f.p2_name.trim());
+    return { a, b, hasB };
+  } catch {
+    return { a: "בן זוג א'", b: "בן זוג ב'", hasB: false };
+  }
+}
 
 /* ══════════════════════════════════════════════════ */
 
@@ -147,6 +163,8 @@ export default function PensionPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   // Per-fund simulation modal — pops on row "סימולציה" click.
   const [simFundId, setSimFundId] = useState<string | null>(null);
+  // Accordion: which fund is expanded? null = all collapsed.
+  const [expandedFundId, setExpandedFundId] = useState<string | null>(null);
 
   const currentAge = assumptions?.currentAge ?? 42;
 
@@ -336,14 +354,32 @@ export default function PensionPage() {
         </div>
       </Link>
 
-      {/* ===== 3. KPI Row (3 only — data-focused) ===== */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+      {/* ===== 3. KPI Row (3 portfolio-level metrics) ===== */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
         <SolidKpi label="צבירה פנסיונית"    value={fmtILS(totalFundsBalance)}    icon="savings"        tone="forest" />
         <SolidKpi label="הפקדה חודשית"      value={fmtILS(baseMonthlyContrib)}   icon="calendar_month" tone="emerald" />
         <SolidKpi label="דמי ניהול ממוצעים" value={`${weightedFee.toFixed(2)}%`} icon="percent"
                   tone={feeBenchmark(weightedFee).color === "#b91c1c" ? "red" : feeBenchmark(weightedFee).color === "#1B4332" ? "emerald" : "amber"}
                   sub={feeBenchmark(weightedFee).label} />
       </section>
+
+      {/* ===== 3b. Per-spouse summary — 2026-04-28 per Nir ===== */}
+      {funds.length > 0 && (() => {
+        const names = loadSpouseNames();
+        const aTotal = funds.filter(f => (f.owner || "spouse_a") === "spouse_a").reduce((s, f) => s + f.balance, 0);
+        const bTotal = funds.filter(f => f.owner === "spouse_b").reduce((s, f) => s + f.balance, 0);
+        const jointTotal = funds.filter(f => f.owner === "joint").reduce((s, f) => s + f.balance, 0);
+        if (!names.hasB && bTotal === 0 && jointTotal === 0) return null;
+        return (
+          <section className={`grid grid-cols-${jointTotal > 0 ? 3 : 2} gap-3 mb-6`}>
+            <SolidKpi label={`כמה יש ל${names.a}`} value={fmtILS(aTotal)} icon="person" tone="forest" />
+            <SolidKpi label={`כמה יש ל${names.b}`} value={fmtILS(bTotal)} icon="person" tone="emerald" />
+            {jointTotal > 0 && (
+              <SolidKpi label="משותף" value={fmtILS(jointTotal)} icon="people" tone="ink" />
+            )}
+          </section>
+        );
+      })()}
 
       {/* ===== 4. Allocation Pies (3 cuts: type / risk / geo) — 2026-04-28 redesign ===== */}
       {funds.length > 0 && (() => {
@@ -472,8 +508,32 @@ export default function PensionPage() {
                 {FUND_TYPE_LABELS[type] || type}
               </span>
             </div>
-            {typeFunds.map(f => (
-              <div key={f.id} className="px-5 py-3.5 border-b v-divider hover:bg-[#f9faf2] transition-colors">
+            {typeFunds.map(f => {
+              const isExpanded = expandedFundId === f.id;
+              return (
+              <div key={f.id} className="border-b v-divider">
+                {/* Collapsed row — clickable to expand. Always visible. */}
+                <button
+                  onClick={() => setExpandedFundId(isExpanded ? null : f.id)}
+                  className="w-full text-right px-5 py-3 hover:bg-[#f9faf2] transition-colors flex items-center gap-3"
+                >
+                  <span className="material-symbols-outlined text-[20px] text-verdant-muted">
+                    {isExpanded ? "expand_less" : "expand_more"}
+                  </span>
+                  <div className="flex-1 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-extrabold text-verdant-ink">{f.company}</span>
+                      <span className="text-[11px] text-verdant-muted">· {f.track || "—"}</span>
+                    </div>
+                    <div className="text-sm font-extrabold text-verdant-ink tabular-nums">
+                      {fmtILS(f.balance)}
+                    </div>
+                  </div>
+                </button>
+
+                {/* Expanded body — only when accordion open. */}
+                {isExpanded && (
+                <div className="px-5 pb-4 pt-1 hover:bg-[#f9faf2] transition-colors">
                 <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -596,8 +656,11 @@ export default function PensionPage() {
                     </div>
                   </div>
                 )}
+                </div>
+                )}
               </div>
-            ))}
+              );
+            })}
           </div>
         ))}
 
@@ -920,6 +983,27 @@ function FundForm({ initial, onSave, onCancel }: {
             <option value="gemel">קופת גמל</option>
             <option value="hishtalmut">קרן השתלמות</option>
             <option value="bituach">ביטוח מנהלים</option>
+          </select>
+        </div>
+        {/* Ownership selector — drives the per-spouse summary on the page. */}
+        <div>
+          <label className="text-[10px] font-bold text-verdant-muted block mb-1">בעלות</label>
+          <select
+            value={form.owner || "spouse_a"}
+            onChange={e => set({ owner: e.target.value as PensionFund["owner"] })}
+            className="w-full px-2.5 py-1.5 rounded-lg border text-xs font-bold text-verdant-ink"
+            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+          >
+            {(() => {
+              const names = loadSpouseNames();
+              return (
+                <>
+                  <option value="spouse_a">{names.a}</option>
+                  {names.hasB && <option value="spouse_b">{names.b}</option>}
+                  {names.hasB && <option value="joint">משותף</option>}
+                </>
+              );
+            })()}
           </select>
         </div>
       </div>

@@ -24,6 +24,12 @@ export interface BankAccount {
   lastUpdated: string;   // YYYY-MM-DD
   isMain: boolean;
   notes: string;
+  /**
+   * 2026-04-28: account type for business/private separation.
+   * Drives the "מבט מאוחד" + business-only views in the cashflow page.
+   * Default treated as "private" for back-compat.
+   */
+  accountType?: "private" | "business";
 }
 
 /* ── Credit Card ── */

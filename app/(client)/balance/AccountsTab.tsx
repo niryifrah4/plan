@@ -294,6 +294,7 @@ function BankForm({ initial, onSave, onCancel, onDelete }: {
   const [creditLimit, setCreditLimit] = useState(initial?.creditLimit?.toString() || "");
   const [isMain, setIsMain] = useState(initial?.isMain || false);
   const [notes, setNotes] = useState(initial?.notes || "");
+  const [accountType, setAccountType] = useState<"private" | "business">(initial?.accountType || "private");
 
   return (
     <div className="px-5 py-4 border-b" style={{ background: "#fafbfc", borderColor: "var(--verdant-border)" }}>
@@ -329,6 +330,17 @@ function BankForm({ initial, onSave, onCancel, onDelete }: {
           <label className="text-[10px] font-bold block mb-1" style={{ color: "var(--verdant-muted)" }}>הערות</label>
           <input className="v-input text-sm w-full" value={notes} onChange={e => setNotes(e.target.value)} />
         </div>
+        <div>
+          <label className="text-[10px] font-bold block mb-1" style={{ color: "var(--verdant-muted)" }}>סוג חשבון</label>
+          <select
+            className="v-input text-sm w-full"
+            value={accountType}
+            onChange={e => setAccountType(e.target.value as "private" | "business")}
+          >
+            <option value="private">פרטי</option>
+            <option value="business">עסקי</option>
+          </select>
+        </div>
         <div className="flex items-end pb-1">
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={isMain} onChange={e => setIsMain(e.target.checked)} className="rounded" />
@@ -338,7 +350,7 @@ function BankForm({ initial, onSave, onCancel, onDelete }: {
       </div>
       <div className="flex items-center gap-2">
         <button
-          onClick={() => onSave({ bankName, accountNumber, branchNumber, balance: parseFloat(balance) || 0, creditLimit: parseFloat(creditLimit) || 0, lastUpdated: today(), isMain, notes })}
+          onClick={() => onSave({ bankName, accountNumber, branchNumber, balance: parseFloat(balance) || 0, creditLimit: parseFloat(creditLimit) || 0, lastUpdated: today(), isMain, notes, accountType })}
           disabled={!bankName}
           className="btn-botanical text-xs px-4 py-2 disabled:opacity-40"
         >

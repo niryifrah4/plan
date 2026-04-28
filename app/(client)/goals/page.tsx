@@ -670,7 +670,7 @@ export default function GoalsPage() {
                     {formatDate(bucket.targetDate)} · בעוד {formatYears(proj.monthsRemaining)}
                   </span>
                 </div>
-                {/* Emergency-fund 3/6-month coverage selector — only on emergency buckets. */}
+                {/* Emergency-fund — 3/6-month coverage selector + needed-vs-liquid gauge. */}
                 {bucket.isEmergency && (() => {
                   const a = loadAssumptions();
                   const monthlyIncome = a.monthlyIncome || 0;
@@ -683,29 +683,64 @@ export default function GoalsPage() {
                     } as Partial<Bucket>));
                     pulse();
                   };
+                  // Liquid assets — sum of all bank account balances. This is
+                  // the "ready cash" available to absorb the emergency.
+                  let liquid = 0;
+                  try {
+                    const raw = localStorage.getItem(scopedKey("verdant:accounts"));
+                    if (raw) {
+                      const parsed = JSON.parse(raw);
+                      const banks = parsed?.banks || [];
+                      liquid = banks.reduce((s: number, b: any) => s + (b.currentBalance || 0), 0);
+                    }
+                  } catch {}
+                  const gap = Math.max(0, bucket.targetAmount - liquid);
+                  const coveragePct = bucket.targetAmount > 0
+                    ? Math.min(100, Math.round((liquid / bucket.targetAmount) * 100))
+                    : 0;
                   return (
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="text-[11px] font-bold text-verdant-muted">כיסוי</span>
-                      <div className="inline-flex rounded-lg p-0.5" style={{ background: "#eef2e8" }}>
-                        {[3, 6].map((m) => (
-                          <button
-                            key={m}
-                            onClick={() => setCoverage(m as 3 | 6)}
-                            className="text-[11px] font-bold px-3 py-1 rounded-md transition-all"
-                            style={{
-                              background: months === m ? "#012D1D" : "transparent",
-                              color: months === m ? "#F9FAF2" : "#1B4332",
-                            }}
-                          >
-                            {m} חודשים
-                          </button>
-                        ))}
+                    <div className="mt-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-bold text-verdant-muted">כיסוי</span>
+                        <div className="inline-flex rounded-lg p-0.5" style={{ background: "#eef2e8" }}>
+                          {[3, 6].map((m) => (
+                            <button
+                              key={m}
+                              onClick={() => setCoverage(m as 3 | 6)}
+                              className="text-[11px] font-bold px-3 py-1 rounded-md transition-all"
+                              style={{
+                                background: months === m ? "#012D1D" : "transparent",
+                                color: months === m ? "#F9FAF2" : "#1B4332",
+                              }}
+                            >
+                              {m} חודשים
+                            </button>
+                          ))}
+                        </div>
+                        {monthlyIncome > 0 && (
+                          <span className="text-[11px] text-verdant-muted">
+                            ({fmtILS(monthlyIncome)}/חודש × {months})
+                          </span>
+                        )}
                       </div>
-                      {monthlyIncome > 0 && (
-                        <span className="text-[11px] text-verdant-muted">
-                          ({fmtILS(monthlyIncome)}/חודש × {months})
-                        </span>
-                      )}
+                      {/* Needed-vs-liquid bar — quick visual of "where you stand". */}
+                      <div className="rounded-lg p-2.5" style={{ background: "#f4f7ed", border: "1px solid #d8e0d0" }}>
+                        <div className="flex items-center justify-between text-[11px] font-bold mb-1">
+                          <span className="text-verdant-muted">נזיל בעו״ש <b className="text-verdant-ink tabular-nums">{fmtILS(liquid)}</b></span>
+                          <span style={{ color: gap === 0 ? "#1B4332" : "#B45309" }}>
+                            {gap === 0 ? "מכוסה ✓" : `חסר ${fmtILS(gap)}`}
+                          </span>
+                        </div>
+                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "#eef2e8" }}>
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${coveragePct}%`,
+                              background: gap === 0 ? "#1B4332" : "#B45309",
+                            }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   );
                 })()}

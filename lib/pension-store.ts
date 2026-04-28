@@ -67,6 +67,14 @@ export interface PensionFund {
   openingDate?: string;
   /** האם העובד שכיר (6 שנים) או עצמאי (3 שנים) — לחישוב נזילות השתלמות */
   isEmployed?: boolean;
+
+  /**
+   * 2026-04-28: ownership tag — drives the per-spouse summary on /pension
+   * ("כמה יש לו / כמה יש לה"). Two-character codes keep the UI compact.
+   * "joint" for funds that belong to both (rare but possible).
+   * Default treated as "spouse_a" when undefined for back-compat.
+   */
+  owner?: "spouse_a" | "spouse_b" | "joint";
 }
 
 import { scopedKey } from "./client-scope";
