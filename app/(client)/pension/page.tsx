@@ -44,6 +44,7 @@ import { getFundById, getFundsByProvider, PROVIDERS } from "@/lib/fund-registry"
 import type { RegisteredFund } from "@/lib/fund-registry";
 import { AllocationPie } from "@/components/charts/AllocationPie";
 import { buildPensionAllocations } from "@/lib/pension-allocation";
+import { FundSimulationModal } from "@/components/pension/FundSimulationModal";
 
 /* ── Constants ── */
 
@@ -144,6 +145,8 @@ export default function PensionPage() {
   /* ── UI State ── */
   const [editingFund, setEditingFund] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  // Per-fund simulation modal — pops on row "סימולציה" click.
+  const [simFundId, setSimFundId] = useState<string | null>(null);
 
   const currentAge = assumptions?.currentAge ?? 42;
 
@@ -528,6 +531,15 @@ export default function PensionPage() {
                   </div>
                   <div className="flex gap-1.5">
                     <button
+                      onClick={() => setSimFundId(f.id)}
+                      title="סימולציה — what if על הקופה הזו"
+                      className="px-2.5 py-1.5 rounded-lg hover:bg-[#eef7f1] flex items-center gap-1 text-[11px] font-bold border"
+                      style={{ color: "#1B4332", borderColor: "#c9e3d4" }}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">tune</span>
+                      סימולציה
+                    </button>
+                    <button
                       onClick={() => { setShowAddForm(false); setEditingFund(f.id); }}
                       title="עריכה"
                       className="px-2.5 py-1.5 rounded-lg hover:bg-[#f4f7ed] flex items-center gap-1 text-[11px] text-verdant-muted font-bold"
@@ -781,6 +793,13 @@ export default function PensionPage() {
       <div id="annual-upload" className="mt-6 scroll-mt-20">
         <AnnualReportUpload />
       </div>
+
+      {/* Per-fund simulation modal — opens on row "סימולציה" click. */}
+      {simFundId && (() => {
+        const f = funds.find(x => x.id === simFundId);
+        if (!f) return null;
+        return <FundSimulationModal fund={f} onClose={() => setSimFundId(null)} />;
+      })()}
     </div>
   );
 }

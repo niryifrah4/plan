@@ -152,6 +152,19 @@ export function importTransactionsIntoBudget(
     // sides of the budget (Nir 2026-04-28: "₪114 חיסכון לילדים זה לא הוצאה").
     if (tx.category === "transfers") continue;
 
+    // 2026-04-28 per Nir: low-confidence + unrecognized transactions are
+    // routed to /files mapping queue instead of polluting the budget with
+    // "[אחר - X]" rows. The Documents tab surfaces them for manual triage.
+    const isLowConfidence = (tx as any).confidence != null && (tx as any).confidence < 0.7;
+    if (tx.category === "other" || isLowConfidence) {
+      unmatchedList.push({
+        description: tx.description,
+        amount: tx.amount,
+        category: tx.category,
+      });
+      continue;
+    }
+
     const target = CATEGORY_TO_BUDGET[tx.category];
     if (target) {
       const key = `${target.section}::${target.rowName}`;
