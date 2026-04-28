@@ -308,17 +308,26 @@ function carryForward(prevBudget: BudgetData, year: number, month: number): Budg
     if (key === "debt") continue;
     sections[key] = rows
       .filter(r => !r.locked) // Don't carry locked debt rows — they'll be re-injected
-      .map(r => ({
-        ...r,
-        id: uid(),
-        actual: 0,
-        avg3: r.avg3,
-        subItems: r.subItems?.map(s => ({
-          ...s,
+      .map(r => {
+        // 2026-04-28 per Nir: previous month's ACTUAL becomes the new budget.
+        // The reasoning: the user's real-world spend is more accurate than
+        // the original (often optimistic) plan. Falls back to the old plan
+        // when there was no actual (newly added rows mid-month).
+        const newBudget = r.actual > 0 ? Math.round(r.actual) : r.budget;
+        return {
+          ...r,
           id: uid(),
+          budget: newBudget,
           actual: 0,
-        })),
-      }));
+          avg3: r.avg3,
+          subItems: r.subItems?.map(s => ({
+            ...s,
+            id: uid(),
+            budget: s.actual > 0 ? Math.round(s.actual) : s.budget,
+            actual: 0,
+          })),
+        };
+      });
   }
   return { year, month, sections, settled: false };
 }

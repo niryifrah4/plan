@@ -12,6 +12,7 @@ import {
   addProperty,
   updateProperty,
   deleteProperty,
+  propertyTaxStatus,
   EVENT_NAME,
   type Property,
 } from "@/lib/realestate-store";
@@ -78,6 +79,9 @@ function PropertyForm({ initial, onSave, onCancel }: PropertyFormProps) {
       ? (initial.annualRentGrowth * 100).toString()
       : (initial?.annualAppreciation != null ? (initial.annualAppreciation * 100).toString() : "3")
   );
+  // 2026-04-28: tax exemption flag — drives the מס שבח badge.
+  const [purchaseDate, setPurchaseDate] = useState(initial?.purchaseDate ?? "");
+  const [isPrimaryResidence, setIsPrimaryResidence] = useState(initial?.isPrimaryResidence ?? true);
 
   const handleSubmit = () => {
     if (!name.trim() || !purchasePrice) return;
@@ -100,7 +104,8 @@ function PropertyForm({ initial, onSave, onCancel }: PropertyFormProps) {
       oneTimeAppreciationYear: oneTimeAppreciationYear ? Number(oneTimeAppreciationYear) : undefined,
       holdingYears: holdingYears ? Math.max(1, Number(holdingYears)) : undefined,
       annualRentGrowth: annualRentGrowth !== "" ? (Number(annualRentGrowth) || 0) / 100 : undefined,
-      purchaseDate: initial?.purchaseDate,
+      purchaseDate: purchaseDate || initial?.purchaseDate,
+      isPrimaryResidence,
       mortgageLinked: initial?.mortgageLinked,
       notes: initial?.notes,
     };
@@ -151,6 +156,28 @@ function PropertyForm({ initial, onSave, onCancel }: PropertyFormProps) {
           <div className="col-span-2">
             <label className={labelCls}>כתובת (אופציונלי)</label>
             <input className={inputCls} value={address} onChange={(e) => setAddress(e.target.value)} placeholder="רחוב הרצל 5" />
+          </div>
+          {/* תאריך רכישה — לחישוב מס שבח */}
+          <div>
+            <label className={labelCls}>תאריך רכישה</label>
+            <input
+              className={inputCls}
+              type="month"
+              value={purchaseDate}
+              onChange={(e) => setPurchaseDate(e.target.value)}
+            />
+          </div>
+          {/* דירה יחידה — פטור ממס שבח */}
+          <div className="flex items-end">
+            <label className="flex items-center gap-2 text-[12px] font-bold text-verdant-ink select-none cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isPrimaryResidence}
+                onChange={(e) => setIsPrimaryResidence(e.target.checked)}
+                className="w-4 h-4 accent-[#1B4332]"
+              />
+              דירה יחידה (פטור ממס שבח)
+            </label>
           </div>
           {/* שטח */}
           <div>
@@ -581,7 +608,31 @@ export default function RealEstatePage() {
                 )}
               </div>
               <div>
-                <div className="text-sm font-extrabold text-verdant-ink">{prop.name}</div>
+                <div className="flex items-center gap-2">
+                  <div className="text-sm font-extrabold text-verdant-ink">{prop.name}</div>
+                  {(() => {
+                    // Tax-status badge — Israeli capital-gains exemption logic.
+                    // Hides for "land" + "commercial" (different rules apply).
+                    if (prop.type !== "residence" && prop.type !== "investment") return null;
+                    const tx = propertyTaxStatus(prop, properties);
+                    const styleByStatus: Record<typeof tx.status, { bg: string; fg: string }> = {
+                      exempt:  { bg: "#D1FAE5", fg: "#065F46" },
+                      overlap: { bg: "#FEF3C7", fg: "#92400E" },
+                      taxable: { bg: "#FEE2E2", fg: "#991B1B" },
+                      unknown: { bg: "#E5E7EB", fg: "#374151" },
+                    };
+                    const s = styleByStatus[tx.status];
+                    return (
+                      <span
+                        className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        style={{ background: s.bg, color: s.fg }}
+                        title={tx.message}
+                      >
+                        {tx.message}
+                      </span>
+                    );
+                  })()}
+                </div>
                 <div className="text-[10px] text-verdant-muted">
                   {TYPE_LABELS[prop.type]}
                   {prop.city && ` · ${prop.city}`}

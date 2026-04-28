@@ -41,6 +41,12 @@ export interface Property {
   holdingYears?: number;           // תכנון להחזיק בנכס כמה שנים (לצורכי IRR/יציאה)
   annualRentGrowth?: number;       // גידול שנתי של שכ״ד (ברירת מחדל: כמו annualAppreciation, בד״כ 3%)
   notes?: string;
+  /**
+   * 2026-04-28: Owner's primary residence ("דירה יחידה"). Drives the
+   * Israeli capital-gains tax exemption logic on /realestate. Default:
+   * true for type="residence" + first added property; the user can flip.
+   */
+  isPrimaryResidence?: boolean;
 }
 
 // ===== Migration from onboarding =====
@@ -144,3 +150,62 @@ export function deleteProperty(id: string) {
 }
 
 export { EVENT_NAME };
+
+/**
+ * Israeli capital-gains-tax (מס שבח) status for a property, given the
+ * full portfolio. Implements the "single residence exemption" + the
+ * 18-month overlap window for upgraders (חוק חישוב חדש 2026).
+ *
+ * Returns one of:
+ *  - "exempt"       : single residence — no tax on sale
+ *  - "overlap"      : currently within 18 months of buying a new primary,
+ *                     so the second property is treated as transitional;
+ *                     `monthsLeft` tells how many months remain
+ *  - "taxable"      : capital gains tax applies on the realized gain
+ *  - "unknown"      : missing dates — UI should ask the user to fill in
+ */
+export function propertyTaxStatus(prop: Property, all: Property[]): {
+  status: "exempt" | "overlap" | "taxable" | "unknown";
+  monthsLeft?: number;
+  message: string;
+} {
+  // Need a purchase date to reason at all
+  if (!prop.purchaseDate) {
+    return { status: "unknown", message: "הזן תאריך רכישה לחישוב מס שבח." };
+  }
+
+  // Treat a property as "primary" if explicitly flagged, OR if it's the
+  // only residence in the portfolio with type="residence".
+  const residences = all.filter(p => p.type === "residence");
+  const flagged = all.filter(p => p.isPrimaryResidence);
+  const isPrimary = prop.isPrimaryResidence ||
+    (residences.length === 1 && residences[0].id === prop.id);
+
+  if (residences.length <= 1 && (isPrimary || prop.type === "residence")) {
+    return { status: "exempt", message: "פטור — דירה יחידה" };
+  }
+
+  // Two+ residences: check 18-month overlap window from a primary purchase.
+  // Pick the OTHER primary residence (the one we bought to replace).
+  const otherPrimary = flagged.find(p => p.id !== prop.id) ||
+    residences.find(p => p.id !== prop.id);
+
+  if (otherPrimary?.purchaseDate) {
+    const purchaseMs = new Date(prop.purchaseDate + "-01").getTime();
+    const otherMs    = new Date(otherPrimary.purchaseDate + "-01").getTime();
+    const diffMonths = Math.abs((purchaseMs - otherMs) / (1000 * 60 * 60 * 24 * 30.4375));
+    if (diffMonths < 18) {
+      const monthsLeft = Math.max(0, Math.ceil(18 - diffMonths));
+      return {
+        status: "overlap",
+        monthsLeft,
+        message: `תקופת חפיפה — עוד ${monthsLeft} חודשים לפטור`,
+      };
+    }
+  }
+
+  return {
+    status: "taxable",
+    message: "חייב במס שבח (25% על הרווח הריאלי)",
+  };
+}

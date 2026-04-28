@@ -327,17 +327,32 @@ function syncGoalsToBuckets(rows: OnboardingGoalRow[]): void {
 }
 
 /* ── Emergency fund — auto-seed once ──
- * Per Nir 2026-04-28: emergency fund should be a goal, not just a label.
- * Target = 3 × monthly expenses (the household's safety floor).
+ * Per Nir 2026-04-28: emergency fund target is monthly INCOME × coverage.
+ * Reasoning: the fund replaces lost income while the family looks for new
+ * work; income — not expenses — measures the gap to fill. Default 3 months;
+ * UI in /goals lets the user toggle to 6.
  * Idempotent — runs once per client (EMERGENCY_SEEDED flag).
  * Skips if user already created a bucket with the same name. */
 function seedEmergencyFundBucket(): void {
   if (localStorage.getItem(scopedKey(EMERGENCY_SEEDED))) return;
 
-  const assumptions = loadAssumptions();
-  const monthlyExp = assumptions.monthlyExpenses || 0;
-  // Sensible fallback if expenses unknown (₪10k/month → ₪30k floor).
-  const target = monthlyExp > 0 ? Math.round(monthlyExp * 3) : 30000;
+  // Pull household income from the dynamic incomes list (both spouses + side
+  // gigs all flow into ONB_INCOMES). Fallback to assumptions.monthlyIncome
+  // (legacy single-line entry), then a hard floor of ₪30k.
+  let monthlyIncome = 0;
+  try {
+    const incomes = readJSON<Array<{ value?: string }>>(ONB_INCOMES, []);
+    monthlyIncome = incomes.reduce((s, r) => s + (parseFloat(r?.value || "0") || 0), 0);
+  } catch {}
+  if (monthlyIncome <= 0) {
+    const assumptions = loadAssumptions();
+    monthlyIncome = assumptions.monthlyIncome || 0;
+  }
+
+  const coverageMonths = 3; // default — user can flip to 6 in /goals
+  const target = monthlyIncome > 0
+    ? Math.round(monthlyIncome * coverageMonths)
+    : 30000;
 
   const existing = loadBuckets();
   const hasIt = existing.some(b =>
@@ -355,7 +370,9 @@ function seedEmergencyFundBucket(): void {
       targetDate,
       priority: "high",
       expectedAnnualReturn: 0.03, // money-market / cash equivalent
-      notes: `מטרה אוטומטית: 3× הוצאה חודשית. עדכן אם המספר לא מתאים.`,
+      coverageMonths,
+      isEmergency: true,
+      notes: `מטרה אוטומטית: ${coverageMonths}× הכנסה חודשית. עדכן אם המספר לא מתאים.`,
     });
     saveBuckets([...existing, emergencyBucket]);
     fireSync(BUCKETS_EVENT);

@@ -8,6 +8,7 @@ import { useSaveStatus } from "@/lib/hooks/useSaveStatus";
 import { fmtILS } from "@/lib/format";
 import { onSync } from "@/lib/sync-engine";
 import { scopedKey } from "@/lib/client-scope";
+import { loadAssumptions } from "@/lib/assumptions";
 import {
   Bucket,
   BucketPriority,
@@ -82,15 +83,15 @@ const INSTRUMENTS: Record<string, { label: string; rate: number; horizon: string
   "gemel-child":        { label: "קופת גמל לילד", rate: 0.05, horizon: "long", taxNote: "פטור ממס רווחי הון עד גיל 18. אחרי 18 — 25% מס.", category: "פנסיוני" },
   "hishtalmut":         { label: "קרן השתלמות", rate: 0.05, horizon: "medium", taxNote: "פטור מלא ממס רווחי הון אחרי 6 שנים (3 לגיל 60+). עד תקרת הפקדה.", category: "חיסכון מוטה מס" },
   "savings-policy":     { label: "פוליסת חיסכון", rate: 0.04, horizon: "medium", taxNote: "25% מס רווחי הון. ללא דמי ניהול מההפקדה (רק מהצבירה).", category: "חיסכון מוטה מס" },
-  "etf-israel":         { label: "קרן סל ישראלית", rate: 0.06, horizon: "medium", taxNote: "25% מס רווחי הון.", category: "שוק ההון" },
-  "etf-global":         { label: "קרן סל עולמית (S&P 500 וכו׳)", rate: 0.08, horizon: "long", taxNote: "25% מס רווחי הון. חשיפה למט\"ח.", category: "שוק ההון" },
-  "mutual-fund":        { label: "קרן נאמנות", rate: 0.055, horizon: "medium", taxNote: "25% מס רווחי הון. דמי ניהול משתנים.", category: "שוק ההון" },
+  "etf-israel":         { label: "קרן סל ישראלית", rate: 0.06, horizon: "medium", taxNote: "25% מס רווחי הון.", category: "תיק השקעות עצמאי" },
+  "etf-global":         { label: "קרן סל עולמית (S&P 500 וכו׳)", rate: 0.08, horizon: "long", taxNote: "25% מס רווחי הון. חשיפה למט\"ח.", category: "תיק השקעות עצמאי" },
+  "mutual-fund":        { label: "קרן נאמנות", rate: 0.055, horizon: "medium", taxNote: "25% מס רווחי הון. דמי ניהול משתנים.", category: "תיק השקעות עצמאי" },
   "money-market":       { label: "קרן כספית", rate: 0.04, horizon: "short", taxNote: "25% מס רווחי הון. נזילות מיידית.", category: "נזיל" },
   "bank-deposit":       { label: "פיקדון בנקאי", rate: 0.035, horizon: "short", taxNote: "15% מס על ריבית.", category: "נזיל" },
   "bank-savings":       { label: "תוכנית חיסכון בנקאית", rate: 0.038, horizon: "short", taxNote: "15% מס. נעול לתקופה קבועה.", category: "נזיל" },
 };
 
-const INSTRUMENT_CATEGORIES = ["פנסיוני", "חיסכון מוטה מס", "שוק ההון", "נזיל"];
+const INSTRUMENT_CATEGORIES = ["פנסיוני", "חיסכון מוטה מס", "תיק השקעות עצמאי", "נזיל"];
 
 function instrumentsByCategory() {
   return INSTRUMENT_CATEGORIES.map(cat => ({
@@ -669,6 +670,45 @@ export default function GoalsPage() {
                     {formatDate(bucket.targetDate)} · בעוד {formatYears(proj.monthsRemaining)}
                   </span>
                 </div>
+                {/* Emergency-fund 3/6-month coverage selector — only on emergency buckets. */}
+                {bucket.isEmergency && (() => {
+                  const a = loadAssumptions();
+                  const monthlyIncome = a.monthlyIncome || 0;
+                  const months = bucket.coverageMonths || 3;
+                  const setCoverage = (m: 3 | 6) => {
+                    const newTarget = monthlyIncome > 0 ? Math.round(monthlyIncome * m) : bucket.targetAmount;
+                    setBuckets(prev => updateBucket(prev, bucket.id, {
+                      coverageMonths: m,
+                      targetAmount: newTarget,
+                    } as Partial<Bucket>));
+                    pulse();
+                  };
+                  return (
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-[11px] font-bold text-verdant-muted">כיסוי</span>
+                      <div className="inline-flex rounded-lg p-0.5" style={{ background: "#eef2e8" }}>
+                        {[3, 6].map((m) => (
+                          <button
+                            key={m}
+                            onClick={() => setCoverage(m as 3 | 6)}
+                            className="text-[11px] font-bold px-3 py-1 rounded-md transition-all"
+                            style={{
+                              background: months === m ? "#012D1D" : "transparent",
+                              color: months === m ? "#F9FAF2" : "#1B4332",
+                            }}
+                          >
+                            {m} חודשים
+                          </button>
+                        ))}
+                      </div>
+                      {monthlyIncome > 0 && (
+                        <span className="text-[11px] text-verdant-muted">
+                          ({fmtILS(monthlyIncome)}/חודש × {months})
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Row 3: Progress */}

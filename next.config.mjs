@@ -75,7 +75,10 @@ const nextConfig = {
   reactStrictMode: true,
   experimental: {
     typedRoutes: true,
-    serverComponentsExternalPackages: ["pdf-parse"],
+    // 2026-04-28 perf fix: googleapis (~194MB) and xlsx (~7MB) are used only
+    // by server-side API routes. Without this list, Next bundles them into
+    // every dev rebuild, dragging compile time. Marking external = ~2x dev speed.
+    serverComponentsExternalPackages: ["pdf-parse", "googleapis", "xlsx"],
   },
   async headers() {
     return [
