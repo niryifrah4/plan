@@ -41,8 +41,27 @@ export interface PensionFund {
   track: string;
   monthlyContrib: number;
   insuranceCover?: { death: boolean; disability: boolean; lossOfWork: boolean };
-  /** Link to fund-registry.ts for auto-allocation */
+  /** Link to fund-registry.ts for auto-allocation (single-track funds only). */
   registeredFundId?: string;
+
+  /**
+   * Track-level breakdown — populated from Mislaka XML when a single product
+   * holds money across multiple investment tracks (e.g. 60% מנייתי + 40% אג״ח).
+   * Per Nir 2026-04-28: "צלילה לעומק של המסלולים" — without this the risk/geo
+   * pies on /pension report only the dominant track and miss the real mix.
+   *
+   * Sum of `tracks[].balance` should equal `balance`. If the array is empty
+   * or missing, treat the fund as single-track (use top-level `registeredFundId`).
+   */
+  tracks?: Array<{
+    name: string;
+    balance: number;
+    /** Matched fund-registry id — drives risk + geo pies. Optional: a manual
+     * track without a registry match still counts toward "by type" only. */
+    registeredFundId?: string;
+    /** Annual return % from the Mislaka report (informational). */
+    returnPct?: number;
+  }>;
 
   /** תאריך פתיחה — YYYY-MM-DD (רלוונטי במיוחד לקרן השתלמות) */
   openingDate?: string;

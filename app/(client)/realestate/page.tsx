@@ -194,16 +194,12 @@ function PropertyForm({ initial, onSave, onCancel }: PropertyFormProps) {
             <button
               type="button"
               disabled
-              title="הפיצ'ר יחובר בקרוב — פרסינג אוטומטי של מסלולים, ריביות ולוח החזרים מקובץ PDF."
               className="w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-[12px] font-bold"
               style={{ background: "#f4f5ed", color: "#7a8a7e", border: "1px dashed #c9d3c0", cursor: "not-allowed" }}
             >
               <span className="material-symbols-outlined text-[16px]">upload_file</span>
-              העלאת לוח סילוקין — בקרוב
+              פרסור PDF — בקרוב
             </button>
-            <p className="text-[11px] text-verdant-muted mt-1 leading-relaxed">
-              מהקובץ נשאב מסלולים, ריביות מדויקות ויתרות — מחליף את השדות הידניים לעיל.
-            </p>
           </div>
           {/* הוצאות */}
           <div>

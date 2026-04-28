@@ -96,24 +96,37 @@ export function buildPensionAllocations(funds: PensionFund[]): PensionAllocation
     .sort(sortByValue);
 
   // ── 2. By risk (asset class) — needs fund-registry coverage ──
+  // Drill-down: when a fund has `tracks[]` (Mislaka multi-track product),
+  // each track contributes independently with its own balance + registry
+  // match. Falls back to top-level `registeredFundId` for single-track funds.
   const riskAcc: Record<keyof typeof RISK_LABEL, number> = {
     equity: 0, bonds: 0, cash: 0, alternative: 0, unknown: 0,
   };
   let missingCoverage = 0;
   for (const f of funds) {
-    const balance = f.balance || 0;
-    if (!balance) continue;
-    const reg = f.registeredFundId ? getFundById(f.registeredFundId) : undefined;
-    if (!reg) {
-      riskAcc.unknown += balance;
-      missingCoverage += balance;
-      continue;
+    const totalBalance = f.balance || 0;
+    if (!totalBalance) continue;
+
+    // Per-track decomposition when present
+    const tracks = (f.tracks && f.tracks.length > 0)
+      ? f.tracks
+      : [{ name: f.track || "", balance: totalBalance, registeredFundId: f.registeredFundId }];
+
+    for (const t of tracks) {
+      const tb = t.balance || 0;
+      if (!tb) continue;
+      const reg = t.registeredFundId ? getFundById(t.registeredFundId) : undefined;
+      if (!reg) {
+        riskAcc.unknown += tb;
+        missingCoverage += tb;
+        continue;
+      }
+      const ac = reg.allocation.assetClass;
+      riskAcc.equity      += tb * (ac.equity      / 100);
+      riskAcc.bonds       += tb * (ac.bonds       / 100);
+      riskAcc.cash        += tb * (ac.cash        / 100);
+      riskAcc.alternative += tb * (ac.alternative / 100);
     }
-    const ac = reg.allocation.assetClass; // pct numbers 0..100
-    riskAcc.equity      += balance * (ac.equity      / 100);
-    riskAcc.bonds       += balance * (ac.bonds       / 100);
-    riskAcc.cash        += balance * (ac.cash        / 100);
-    riskAcc.alternative += balance * (ac.alternative / 100);
   }
   const byRisk: PieSlice[] = (Object.keys(riskAcc) as Array<keyof typeof RISK_LABEL>)
     .filter((k) => riskAcc[k] > 0.5) // hide noise slices < ₪0.5
@@ -126,24 +139,32 @@ export function buildPensionAllocations(funds: PensionFund[]): PensionAllocation
     }))
     .sort(sortByValue);
 
-  // ── 3. By geography ──
+  // ── 3. By geography (per-track) ──
   const geoAcc: Record<keyof typeof GEO_LABEL, number> = {
     IL: 0, US: 0, EU: 0, EM: 0, OTHER: 0, unknown: 0,
   };
   for (const f of funds) {
-    const balance = f.balance || 0;
-    if (!balance) continue;
-    const reg = f.registeredFundId ? getFundById(f.registeredFundId) : undefined;
-    if (!reg) {
-      geoAcc.unknown += balance;
-      continue;
+    const totalBalance = f.balance || 0;
+    if (!totalBalance) continue;
+    const tracks = (f.tracks && f.tracks.length > 0)
+      ? f.tracks
+      : [{ name: f.track || "", balance: totalBalance, registeredFundId: f.registeredFundId }];
+
+    for (const t of tracks) {
+      const tb = t.balance || 0;
+      if (!tb) continue;
+      const reg = t.registeredFundId ? getFundById(t.registeredFundId) : undefined;
+      if (!reg) {
+        geoAcc.unknown += tb;
+        continue;
+      }
+      const g = reg.allocation.geography;
+      geoAcc.IL    += tb * (g.IL    / 100);
+      geoAcc.US    += tb * (g.US    / 100);
+      geoAcc.EU    += tb * (g.EU    / 100);
+      geoAcc.EM    += tb * (g.EM    / 100);
+      geoAcc.OTHER += tb * (g.OTHER / 100);
     }
-    const g = reg.allocation.geography;
-    geoAcc.IL    += balance * (g.IL    / 100);
-    geoAcc.US    += balance * (g.US    / 100);
-    geoAcc.EU    += balance * (g.EU    / 100);
-    geoAcc.EM    += balance * (g.EM    / 100);
-    geoAcc.OTHER += balance * (g.OTHER / 100);
   }
   const byGeo: PieSlice[] = (Object.keys(geoAcc) as Array<keyof typeof GEO_LABEL>)
     .filter((k) => geoAcc[k] > 0.5)

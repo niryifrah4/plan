@@ -336,13 +336,33 @@ export function mislakaProductsToFunds(products: ParsedMislakaProduct[]): Pensio
     // pies on /pension light up immediately. Mislaka XML gives only free-
     // text track names, so we fuzzy-match against the registry.
     let registeredFundId: string | undefined;
+    let matchedTracks: Array<{ name: string; balance: number; registeredFundId?: string; returnPct?: number }> | undefined;
     try {
       // Inline import avoids circular-dep risk at module load time.
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { matchFundByTrack } = require("./track-matcher");
-      const firstTrack = p.tracks[0]?.name || trackName;
-      const m = matchFundByTrack(firstTrack, p.company, type);
-      if (m.fundId) registeredFundId = m.fundId;
+
+      // Match each track individually so multi-track funds (e.g. 60% מנייתי
+      // + 40% אג"ח) get the correct weighted allocation.
+      if (p.tracks.length > 0) {
+        matchedTracks = p.tracks.map(t => {
+          const m = matchFundByTrack(t.name, p.company, type);
+          return {
+            name: t.name,
+            balance: Math.round(t.balance),
+            returnPct: t.returnPct,
+            registeredFundId: m.fundId || undefined,
+          };
+        });
+        // Top-level registeredFundId reflects the LARGEST track (back-compat).
+        const dominant = matchedTracks
+          .slice()
+          .sort((a, b) => b.balance - a.balance)[0];
+        if (dominant?.registeredFundId) registeredFundId = dominant.registeredFundId;
+      } else {
+        const m = matchFundByTrack(trackName, p.company, type);
+        if (m.fundId) registeredFundId = m.fundId;
+      }
     } catch {
       // matcher unavailable — skip silently, user can pick manually
     }
@@ -360,6 +380,7 @@ export function mislakaProductsToFunds(products: ParsedMislakaProduct[]): Pensio
       insuranceCover: p.insuranceCover,
       openingDate: p.openingDate,
       registeredFundId,
+      tracks: matchedTracks,
     };
   });
 }

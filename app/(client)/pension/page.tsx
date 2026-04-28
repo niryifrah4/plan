@@ -555,6 +555,35 @@ export default function PensionPage() {
                     </div>
                   );
                 })()}
+                {/* Multi-track drill-down — shown only when fund has tracks[]. */}
+                {f.tracks && f.tracks.length > 1 && (
+                  <div className="mt-2 pt-2 border-t v-divider">
+                    <div className="text-[10px] font-bold text-verdant-muted mb-1.5">
+                      פילוח מסלולים ({f.tracks.length})
+                    </div>
+                    <div className="space-y-1">
+                      {f.tracks.map((t, ti) => {
+                        const pct = f.balance > 0 ? (t.balance / f.balance) * 100 : 0;
+                        return (
+                          <div key={ti} className="flex items-center justify-between text-[11px]">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className={`w-2 h-2 rounded-sm shrink-0 ${t.registeredFundId ? "" : "ring-1 ring-amber-400"}`}
+                                    style={{ background: t.registeredFundId ? "#1B4332" : "#FCD34D" }} />
+                              <span className="text-verdant-ink truncate">{t.name}</span>
+                              {!t.registeredFundId && (
+                                <span className="text-[9px] font-bold text-amber-700">לא מזוהה</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-[10px] text-verdant-muted tabular">{fmtILS(t.balance)}</span>
+                              <span className="text-verdant-ink font-bold tabular w-10 text-left">{Math.round(pct)}%</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
