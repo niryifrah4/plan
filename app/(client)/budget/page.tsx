@@ -1025,17 +1025,17 @@ export default function BudgetPage() {
           HERO — one clear number per screen, Finav-inspired
           ═══════════════════════════════════════════════════════════ */}
       <section
-        className="rounded-3xl mb-5 relative overflow-hidden"
+        className="rounded-2xl mb-4 relative overflow-hidden"
         style={{
           background: balance >= 0
             ? "linear-gradient(135deg, #1B4332 0%, #012D1D 100%)"
             : "linear-gradient(135deg, #7a1818 0%, #4a0e0e 100%)",
           color: "#F9FAF2",
-          padding: "28px 32px",
+          padding: "14px 22px",
         }}
       >
         {/* Top row — month nav + save indicator */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-1">
             <button
               onClick={goPrevMonth}
@@ -1086,78 +1086,54 @@ export default function BudgetPage() {
           )}
         </div>
 
-        {/* Hero KPI — the one number */}
-        <div className="text-center">
-          <div
-            className="text-[11px] font-bold uppercase tracking-[0.2em] mb-2"
-            style={{ color: "rgba(255,255,255,0.7)" }}
-          >
-            {balance >= 0 ? "נשאר בחודש" : "חריגה בחודש"}
-          </div>
-          <div
-            className="text-[56px] font-extrabold tabular-nums leading-none tracking-tight"
-            style={{ color: "#F9FAF2", fontFamily: "Manrope, Assistant, system-ui, sans-serif" }}
-          >
-            {fmtILS(Math.abs(balance))}
-          </div>
-          <div
-            className="mt-3 text-[13px] font-semibold"
-            style={{ color: "rgba(255,255,255,0.85)" }}
-          >
-            הכנסות <span className="tabular-nums font-extrabold">{fmtILS(totals.incBudget)}</span>
-            {"  "}·{"  "}
-            הוצאות <span className="tabular-nums font-extrabold">{fmtILS(totals.expBudget)}</span>
+        {/* Hero — compact (2026-04-28: was eating half-screen). One row:
+            big number on right, in/out + daily allowance on left. */}
+        <div className="flex items-center justify-between gap-6 flex-wrap">
+          <div>
+            <div
+              className="text-[10px] font-bold uppercase tracking-[0.18em] mb-1"
+              style={{ color: "rgba(255,255,255,0.7)" }}
+            >
+              {balance >= 0 ? "נשאר בחודש" : "חריגה בחודש"}
+            </div>
+            <div
+              className="text-[34px] font-extrabold tabular-nums leading-none tracking-tight"
+              style={{ color: "#F9FAF2", fontFamily: "Manrope, Assistant, system-ui, sans-serif" }}
+            >
+              {fmtILS(Math.abs(balance))}
+            </div>
+            <div className="mt-1.5 text-[12px]" style={{ color: "rgba(255,255,255,0.8)" }}>
+              הכנסות <span className="tabular-nums font-bold">{fmtILS(totals.incBudget)}</span>
+              {" · "}
+              הוצאות <span className="tabular-nums font-bold">{fmtILS(totals.expBudget)}</span>
+              {" · "}
+              חיסכון <span className="tabular-nums font-bold">{savingsRate.toFixed(0)}%</span>
+            </div>
           </div>
 
-          {/* Daily allowance — the "how much can I spend today" number.
-              Shown only for the CURRENT month. Finav/YNAB daily-pace UX. */}
           {dailyAllowance && (
             <div
-              className="mt-5 pt-5 mx-auto max-w-sm"
-              style={{ borderTop: "1px solid rgba(255,255,255,0.12)" }}
+              className="text-left pl-4 border-l border-white/15 pr-4"
+              style={{ minWidth: 140 }}
             >
-              <div
-                className="text-[10px] font-bold uppercase tracking-[0.2em]"
-                style={{ color: "rgba(255,255,255,0.65)" }}
-              >
-                נשאר לך להוציא היום
+              <div className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: "rgba(255,255,255,0.65)" }}>
+                להיום
               </div>
               <div
-                className="text-[32px] font-extrabold tabular-nums mt-1 leading-none"
+                className="text-[22px] font-extrabold tabular-nums leading-none mt-0.5"
                 style={{
                   color: dailyAllowance.overPace ? "#fecaca" : "#D6EFDC",
                   fontFamily: "Manrope, Assistant, system-ui, sans-serif",
                 }}
               >
                 {fmtILS(Math.round(dailyAllowance.perDay))}
-                <span className="text-[16px] font-bold opacity-70">/יום</span>
+                <span className="text-[12px] font-bold opacity-70">/יום</span>
               </div>
-              <div
-                className="text-[10px] font-bold mt-1.5"
-                style={{ color: "rgba(255,255,255,0.7)" }}
-              >
-                לעוד {dailyAllowance.daysRemaining} ימים
-                {dailyAllowance.overPace && " · חורג מהקצב"}
+              <div className="text-[10px] mt-1" style={{ color: "rgba(255,255,255,0.7)" }}>
+                {dailyAllowance.daysRemaining} ימים{dailyAllowance.overPace && " · חורג"}
               </div>
             </div>
           )}
-        </div>
-
-        {/* Savings rate bar */}
-        <div className="mt-6 max-w-md mx-auto">
-          <div className="flex items-center justify-between text-[11px] font-bold mb-1.5" style={{ color: "rgba(255,255,255,0.85)" }}>
-            <span title="כמה מתוך ההכנסות נשאר — כלומר לא מוצא">חוסך מכל שקל</span>
-            <span className="tabular-nums">{savingsRate.toFixed(0)}%</span>
-          </div>
-          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.15)" }}>
-            <div
-              className="h-full rounded-full transition-all"
-              style={{
-                width: `${balance >= 0 ? balancePct : 0}%`,
-                background: savingsRate >= 20 ? "#D6EFDC" : savingsRate >= 10 ? "#fef3c7" : "#fecaca",
-              }}
-            />
-          </div>
         </div>
       </section>
 

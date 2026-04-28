@@ -464,55 +464,19 @@ export default function CrmPage() {
     <main dir="rtl" className="min-h-screen px-6 py-8 relative" style={{ background: "var(--verdant-bg)" }}>
       <div className="max-w-7xl mx-auto">
 
-        {/* ═══════ Header ═══════ */}
-        <header className="flex items-start justify-between mb-8 gap-4">
-          <div className="text-right">
-            <div className="flex items-baseline gap-2 justify-end">
-              <span className="text-[11px] uppercase tracking-[0.2em] text-verdant-emerald font-bold">CRM · מרכז ניהול</span>
-              <span className="text-2xl font-extrabold text-verdant-ink">פלאן</span>
-            </div>
-            <h1 className="text-3xl font-extrabold text-verdant-ink mt-1">שלום, ניר — {greet}</h1>
-            <p className="text-sm text-verdant-muted mt-0.5">{today}</p>
-          </div>
-          {/* Actions cluster — top-left */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {!gcalConnected ? (
-              <button
-                onClick={handleGcalConnect}
-                disabled={gcalLoading}
-                title="חבר יומן גוגל"
-                className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-2xl text-[12px] font-bold transition-all disabled:opacity-60"
-                style={{ background: "#F3F4EC", color: "#1B4332" }}
-              >
-                <span className={`material-symbols-outlined text-[16px] ${gcalLoading ? "animate-spin" : ""}`} style={{ color: "#2B694D" }}>
-                  {gcalLoading ? "progress_activity" : "calendar_month"}
-                </span>
-                {gcalLoading ? "מתחבר..." : "חבר יומן"}
-              </button>
-            ) : (
-              <button
-                onClick={handleGcalDisconnect}
-                title={`יומן מחובר${gcalEvents.length ? ` · ${gcalEvents.length} אירועים` : ""} · לחץ לניתוק`}
-                className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-2xl text-[12px] font-bold transition-all"
-                style={{ background: "#ECF7EF", color: "#1B4332" }}
-              >
-                <span className="material-symbols-outlined text-[16px]" style={{ color: "#2B694D" }}>check_circle</span>
-                יומן מחובר
-                {gcalEvents.length > 0 && (
-                  <span className="tabular text-[10px] opacity-70">· {gcalEvents.length}</span>
-                )}
-              </button>
-            )}
-            <button
-              onClick={() => router.push("/login")}
-              title="התנתקות"
-              className="w-10 h-10 rounded-2xl flex items-center justify-center transition-all hover:bg-red-50 hover:text-red-600 text-verdant-muted"
-              style={{ background: "#F3F4EC" }}
-            >
-              <span className="material-symbols-outlined text-[20px]">logout</span>
-            </button>
-          </div>
-        </header>
+        {/* CRM header + Google Calendar removed 2026-04-28 per Nir.
+            Logout button preserved as a small floating action so the
+            advisor can still sign out. */}
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={() => router.push("/login")}
+            title="התנתקות"
+            className="w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:bg-red-50 hover:text-red-600 text-verdant-muted"
+            style={{ background: "#F3F4EC" }}
+          >
+            <span className="material-symbols-outlined text-[18px]">logout</span>
+          </button>
+        </div>
 
         {/* ═══════ KPI Row — 3 colored tiles ═══════ */}
         <section className="grid grid-cols-3 gap-5 mb-8">
@@ -588,9 +552,9 @@ export default function CrmPage() {
           </div>
         </section>
 
-        {/* ═══════ Command Center: Calendar + Daily Tasks ═══════ */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8 items-stretch">
-          {/* ── Calendar Card ── */}
+        {/* ═══════ Daily Tasks (Calendar removed 2026-04-28 per Nir) ═══════ */}
+        <section className="mb-8">
+          {false && (
           <div className="card-pad flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <div className="text-right">
@@ -678,6 +642,7 @@ export default function CrmPage() {
               </div>
             )}
           </div>
+          )}
 
           {/* ── Daily Tasks Card ── */}
           <div className="card-pad flex flex-col">

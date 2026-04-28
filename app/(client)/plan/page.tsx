@@ -92,15 +92,43 @@ export default function PlanPage() {
     reload();
   };
 
+  // Excel export — flat list of all entries (date, type, content, status,
+  // attached tags). Uses the dynamic-import xlsx module so it doesn't bloat
+  // the page bundle.
+  const exportToExcel = async () => {
+    const XLSX = await import("xlsx");
+    const rows = sortedLog(entries).map(e => ({
+      תאריך: formatDateHe(e.entryDate),
+      סוג: LOG_TYPE_META[e.type]?.label || e.type,
+      כותרת: e.title,
+      תוכן: e.body || "",
+      סטטוס: e.type === "task" ? (e.done ? "בוצע" : "פתוח") : "—",
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "תוכנית פעולה");
+    const fname = `תוכנית-פעולה-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, fname);
+  };
+
   return (
     <main className="min-h-screen px-10 py-8" style={{ background: "var(--verdant-bg)" }}>
       <div className="max-w-4xl mx-auto">
         {/* Page header removed 2026-04-28 per Nir's request. */}
 
-        {/* Quick stats — 2 KPIs (was 3, "פגישות מתועדות" removed 2026-04-28). */}
-        <section className="grid grid-cols-2 gap-3 mb-6">
+        {/* Quick stats — 2 KPIs + Excel export */}
+        <section className="grid grid-cols-3 gap-3 mb-6">
           <StatCard label="רשומות" value={entries.length} icon="history_edu" />
           <StatCard label="משימות פתוחות" value={openTasksCount} icon="task_alt" highlight={openTasksCount > 0} />
+          <button
+            onClick={exportToExcel}
+            disabled={entries.length === 0}
+            className="rounded-2xl bg-white p-4 flex items-center justify-center gap-2 transition-all hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ border: "1px solid #eef2e8", color: "#1B4332" }}
+          >
+            <span className="material-symbols-outlined text-[20px]">download</span>
+            <span className="text-sm font-extrabold">ייצוא ל-Excel</span>
+          </button>
         </section>
 
         {/* Composer */}

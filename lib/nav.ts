@@ -52,7 +52,8 @@ export const NAV_SECTIONS: NavGroup[] = [
     items: [
       { id: "budget",   label: "תזרים חודשי",   href: "/budget",   icon: "pie_chart" },
       { id: "deposits", label: "הפקדות חודשיות", href: "/deposits", icon: "savings" },
-      { id: "balance",  label: "מאזן ומסמכים",   href: "/balance",  icon: "account_balance_wallet" },
+      { id: "balance",  label: "מאזן וחשבונות",  href: "/balance",  icon: "account_balance_wallet" },
+      { id: "files",    label: "קבצים במיפוי",    href: "/files",    icon: "folder_open" },
     ],
   },
 

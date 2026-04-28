@@ -151,7 +151,20 @@ export default function DashboardPage() {
   useEffect(() => {
     // Auto-sync onboarding data on page load
     syncOnboardingToStores();
+    // 2026-04-28 perf fix: 9 separate event listeners can fire within ms of
+    // each other (e.g. on initial sync). Without coalescing, each one triggers
+    // 7+ setStates → 7 renders → trajectory math recomputes 7×. rAF batches
+    // them into one render per frame.
+    let scheduled = false;
     const reload = () => {
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(() => {
+        scheduled = false;
+        doReload();
+      });
+    };
+    const doReload = () => {
       setRealLiab(getTotalLiabilities());
       setAssumptions(loadAssumptions());
       setReProperties(loadProperties());

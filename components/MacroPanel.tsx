@@ -49,6 +49,9 @@ export function MacroPanel() {
     macroUpdatedAt: DEFAULT_ASSUMPTIONS.macroUpdatedAt,
   });
   const [showSource, setShowSource] = useState(false);
+  // 2026-04-28 per Nir: macro panel collapses by default — it's reference
+  // data, not the main story. Click the chip to expand and see/edit values.
+  const [expanded, setExpanded] = useState(false);
 
   const hydrate = useCallback(() => {
     const a = loadAssumptions();
@@ -66,6 +69,29 @@ export function MacroPanel() {
     return () => window.removeEventListener("verdant:assumptions", hydrate);
   }, [hydrate]);
 
+  // Collapsed → render as a slim chip showing the 3 numbers inline.
+  if (!expanded) {
+    return (
+      <button
+        onClick={() => setExpanded(true)}
+        className="w-full rounded-xl bg-white px-4 py-2.5 mb-4 flex items-center justify-between gap-4 text-right hover:shadow-sm transition-shadow"
+        style={{ border: "1px solid #eef2e8" }}
+        title="לחץ להרחבה ועריכה"
+      >
+        <span className="flex items-center gap-2 text-[11px] font-bold text-verdant-muted">
+          <span className="material-symbols-outlined text-[16px]" style={{ color: "#1B4332" }}>trending_up</span>
+          מאקרו
+        </span>
+        <div className="flex items-center gap-5 text-[12px] font-bold text-verdant-ink tabular-nums">
+          <span>בנק ישראל <b>{fmtPct2(values.boiRate)}</b></span>
+          <span>פריים <b>{fmtPct2(values.primeRate)}</b></span>
+          <span>אינפלציה <b>{fmtPct2(values.inflationRate)}</b></span>
+        </div>
+        <span className="material-symbols-outlined text-[18px] text-verdant-muted">expand_more</span>
+      </button>
+    );
+  }
+
   return (
     <div
       className="rounded-organic shadow-soft bg-white p-5 md:p-6 mb-6"
@@ -80,6 +106,13 @@ export function MacroPanel() {
           <h3 className="text-base font-extrabold" style={{ color: "#012d1d" }}>
             נתוני מאקרו — ישראל
           </h3>
+          <button
+            onClick={() => setExpanded(false)}
+            title="כווץ"
+            className="mr-2 p-1 rounded hover:bg-verdant-bg"
+          >
+            <span className="material-symbols-outlined text-[18px] text-verdant-muted">expand_less</span>
+          </button>
           {/* Info icon with hover tooltip */}
           <div className="relative flex items-center">
             <button
