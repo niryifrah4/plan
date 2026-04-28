@@ -713,26 +713,17 @@ export default function PensionPage() {
                 </div>
 
                 <div className="p-3 rounded-lg border text-right" style={{ background: "#fafdf5", borderColor: "#d1e7c8" }}>
-                  <div className="text-[10px] font-bold text-verdant-emerald uppercase tracking-wider mb-1.5">💡 תובנה אסטרטגית</div>
                   {isLiquid ? (
-                    <div className="text-[11px] font-bold text-verdant-ink leading-relaxed space-y-1">
-                      <p>הקרן <strong>נזילה</strong> — אפשר למשוך ללא מס רווחי הון.</p>
-                      <p>שימושים חכמים: סגירת/הקטנת משכנתא, הון עצמי לרכישת דירה, עזרה לילדים בדיור.</p>
-                      <p style={{ color: "#1B4332" }}>
-                        <strong>המלצה:</strong> אם אין צורך דחוף — עדיף להשאיר. ב-5 שנים נוספות הצבירה תגדל ל-{fmtILS(projectedIn5)} (ריבית דריבית פטורה ממס).
-                      </p>
+                    <div className="text-[12px] font-bold text-verdant-ink">
+                      ✓ נזילה — ב-5 שנים נוספות תגדל ל-{fmtILS(projectedIn5)} פטור ממס. עדיף להשאיר.
                     </div>
                   ) : f.openingDate ? (
-                    <div className="text-[11px] font-bold text-verdant-ink leading-relaxed space-y-1">
-                      <p>הקרן <strong>עדיין לא נזילה</strong> — תהיה נזילה ב-{liquidityDate?.toLocaleDateString("he-IL")}.</p>
-                      <p>בינתיים הכסף צובר ריבית דריבית פטורה ממס — זה &quot;כסף אחרון&quot; שעדיף לא לגעת בו.</p>
-                      <p style={{ color: "#1B4332" }}>
-                        <strong>תכנון:</strong> כשהקרן תיפתח, אפשר לשקול שימוש אסטרטגי (דירה, משכנתא) — לא טיולים. לטיול חוסכים מהיום קדימה.
-                      </p>
+                    <div className="text-[12px] font-bold text-verdant-ink">
+                      תיפתח ב-{liquidityDate?.toLocaleDateString("he-IL")} · "כסף אחרון" — לא לגעת.
                     </div>
                   ) : (
-                    <div className="text-[11px] font-bold text-verdant-ink leading-relaxed">
-                      <p>קרן השתלמות היא &quot;כסף אחרון&quot; — פטור ממס רווחי הון. עדיף לא לפדות אלא להמשיך לצבור ריבית דריבית.</p>
+                    <div className="text-[12px] font-bold text-verdant-ink">
+                      "כסף אחרון" — פטור ממס. הוסף תאריך פתיחה לתכנון נזילות.
                     </div>
                   )}
                 </div>
@@ -846,7 +837,16 @@ function FundForm({ initial, onSave, onCancel }: {
   onCancel: () => void;
 }) {
   const [form, setForm] = useState<PensionFund>({ ...initial });
-  const [provider, setProvider] = useState("");
+  // Pre-fill provider when editing an existing fund so the user sees the
+  // track dropdown pre-populated (2026-04-28 — was always blank before).
+  const initialProvider = (() => {
+    if (initial.registeredFundId) {
+      const reg = getFundById(initial.registeredFundId);
+      if (reg) return reg.provider;
+    }
+    return initial.company || "";
+  })();
+  const [provider, setProvider] = useState(initialProvider);
   const [selectedFundId, setSelectedFundId] = useState(form.registeredFundId || "");
   const set = (patch: Partial<PensionFund>) => setForm(prev => ({ ...prev, ...patch }));
 

@@ -794,7 +794,7 @@ export default function BudgetPage() {
     const all = loadParsedTransactions();
     const forMonth = filterByMonth(all, year, month);
     if (forMonth.length === 0) {
-      setImportToast("אין תנועות שמורות לחודש זה. העלה קובץ בדף 'מאזן' קודם.");
+      setImportToast("העלה קובץ במאזן קודם.");
       setTimeout(() => setImportToast(null), 3000);
       return;
     }
@@ -1484,12 +1484,7 @@ function BudgetSection({
       <div className="px-5 pb-5 pt-1">
 
       {/* Income section explainer — passive income is auto-synced from assets */}
-      {sectionKey === "income" && rows.some(r => r.source === "passive") && (
-        <div className="flex items-start gap-1.5 text-[10.5px] font-semibold mb-3 px-2 py-1.5 rounded-lg" style={{ background: "#D6EFDC", color: "#1B4332" }}>
-          <span className="material-symbols-outlined text-[13px] mt-[1px]" style={{ color: "#2B694D" }}>info</span>
-          <span>הכנסות פסיביות (שכ״ד, דיבידנדים) מסונכרנות אוטומטית מעמודי הנכסים.</span>
-        </div>
-      )}
+      {/* Passive-income note removed 2026-04-28 — info already in tooltip on locked rows. */}
 
       {/* Column headers — 5 columns. Label uses natural width so it sits
           tight next to the numbers; notes takes remaining space. */}
@@ -1538,7 +1533,7 @@ function BudgetSection({
                 {isLocked ? (
                   row.source === "passive" ? (
                     <div className="flex items-center gap-1.5 text-[13px] font-semibold" style={{ color: "#1B4332" }}
-                      title="הכנסה פסיבית — מסונכרן אוטומטית מדף הנכסים. לעדכון, ערוך את שכ״ד בעמוד הנדל״ן.">
+                      title="מסונכרן מנדל״ן">
                       <span className="material-symbols-outlined text-[13px]" style={{ color: "#2B694D" }}>home_work</span>
                       {row.name}
                       <span className="material-symbols-outlined text-[11px]" style={{ color: "#8aab99" }}>sync</span>

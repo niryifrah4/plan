@@ -298,7 +298,7 @@ function IncomeMountain({ points, retirementAge, targetMonthly }: {
 
   // Early out when there's no meaningful trajectory
   if (points.length === 0) {
-    return <div className="text-center py-10 text-verdant-muted text-sm font-bold">אין עדיין נתונים לתחזית</div>;
+    return <div className="text-center py-10 text-verdant-muted text-sm font-bold">אין נתונים</div>;
   }
   const fmtY = (v: number) => v >= 1000 ? `₪${Math.round(v / 100) / 10}K` : `₪${Math.round(v)}`;
 

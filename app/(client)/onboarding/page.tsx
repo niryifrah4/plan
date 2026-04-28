@@ -652,7 +652,7 @@ export default function OnboardingPage() {
             <div className="rounded-xl p-3 mt-3 flex items-start gap-2" style={{ background:"#eef7f1", border:"1px solid #c9e3d4" }}>
               <span className="material-symbols-outlined text-[18px] text-verdant-emerald mt-0.5">info</span>
               <div className="text-[12px] text-verdant-ink leading-relaxed">
-                במשכנתא יש לרוב כמה מסלולים עם ריביות שונות. את הריבית המדויקת וחלוקת המסלולים נטען מלוח הסילוקין בדף <b>נדל״ן</b> — לכל נכס בנפרד. כאן די להזין יתרה והחזר חודשי כולל.
+                ריביות ומסלולים יילקחו מלוח הסילוקין בדף <b>נדל״ן</b>. כאן רק יתרה והחזר חודשי.
               </div>
             </div>
           </div>

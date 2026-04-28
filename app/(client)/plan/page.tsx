@@ -97,11 +97,10 @@ export default function PlanPage() {
       <div className="max-w-4xl mx-auto">
         {/* Page header removed 2026-04-28 per Nir's request. */}
 
-        {/* Quick stats */}
-        <section className="grid grid-cols-3 gap-3 mb-6">
-          <StatCard label="רשומות ביומן" value={entries.length} icon="history_edu" />
+        {/* Quick stats — 2 KPIs (was 3, "פגישות מתועדות" removed 2026-04-28). */}
+        <section className="grid grid-cols-2 gap-3 mb-6">
+          <StatCard label="רשומות" value={entries.length} icon="history_edu" />
           <StatCard label="משימות פתוחות" value={openTasksCount} icon="task_alt" highlight={openTasksCount > 0} />
-          <StatCard label="פגישות מתועדות" value={meetingsCount} icon="event" />
         </section>
 
         {/* Composer */}
