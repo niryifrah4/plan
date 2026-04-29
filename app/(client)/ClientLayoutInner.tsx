@@ -43,7 +43,10 @@ export default function ClientLayoutInner({
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-verdant-muted">טוען...</div>}>
       <ClientProvider>
-        <ClientShell>{children}</ClientShell>
+        {/* `impersonation !== null` ↔ logged-in user is the advisor. Pass
+            it through so the sidebar can hide CRM-only affordances for
+            actual clients. (2026-04-29 per Nir.) */}
+        <ClientShell isAdvisor={impersonation !== null}>{children}</ClientShell>
       </ClientProvider>
     </Suspense>
   );

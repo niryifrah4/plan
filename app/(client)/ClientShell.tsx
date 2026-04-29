@@ -7,7 +7,7 @@ import { useClient } from "@/lib/client-context";
 import { startSessionWatcher } from "@/lib/session-security";
 import { isSupabaseConfigured } from "@/lib/supabase/browser";
 
-export function ClientShell({ children }: { children: React.ReactNode }) {
+export function ClientShell({ children, isAdvisor = false }: { children: React.ReactNode; isAdvisor?: boolean }) {
   const { familyName, membersCount, loading } = useClient();
 
   // Start idle-timeout watcher (only when real auth is active — skip in demo mode)
@@ -57,6 +57,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
         familyName={loading ? "טוען..." : familyName}
         membersCount={membersCount}
         advisorName="ניר יפרח"
+        isAdvisor={isAdvisor}
       />
       <main className="mr-[280px] min-h-screen px-10 py-8">
         <div className="flex justify-start mb-6">

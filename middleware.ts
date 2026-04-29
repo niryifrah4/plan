@@ -97,6 +97,28 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // 2026-04-29 per Nir: clients (rows in client_users) shouldn't see
+  // advisor-only surfaces. Block /crm + /api/crm at the edge.
+  // Advisors are identified as the advisor_id of any household; everyone
+  // else hitting an advisor-only route is bounced to /dashboard.
+  if (pathname.startsWith("/crm") || pathname.startsWith("/api/crm")) {
+    const { data: ownedHh } = await supabase
+      .from("households")
+      .select("id")
+      .eq("advisor_id", user.id)
+      .limit(1)
+      .maybeSingle();
+    if (!ownedHh) {
+      if (pathname.startsWith("/api/")) {
+        return new NextResponse(
+          JSON.stringify({ error: "forbidden" }),
+          { status: 403, headers: { "content-type": "application/json" } },
+        );
+      }
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+  }
+
   return response;
 }
 

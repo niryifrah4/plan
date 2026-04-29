@@ -12,6 +12,9 @@ interface SidebarProps {
   advisorName: string;
   onExit?: () => void;
   saveStatus?: "idle" | "saving" | "saved" | "error";
+  /** True when the logged-in user owns this advisor practice (vs. is a
+   *  client of one). Hides advisor-only affordances when false. */
+  isAdvisor?: boolean;
 }
 
 const GROUPS_STORAGE_KEY = "verdant:nav:groups";
@@ -34,7 +37,7 @@ function saveGroupState(state: Record<string, boolean>): void {
   } catch {}
 }
 
-export function Sidebar({ familyName, membersCount, advisorName, onExit, saveStatus = "idle" }: SidebarProps) {
+export function Sidebar({ familyName, membersCount, advisorName, onExit, saveStatus = "idle", isAdvisor = false }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -388,16 +391,19 @@ export function Sidebar({ familyName, membersCount, advisorName, onExit, saveSta
           {resetStage === "confirm" ? "לחץ שוב לאישור סופי" : "איפוס מלא לאפס"}
         </button>
 
-        <button
-          onClick={() => router.push("/crm")}
-          className="mt-3 w-full px-3 py-2.5 rounded-2xl text-[13px] font-bold flex items-center justify-center gap-2 transition-all"
-          style={{ background: "rgba(255,255,255,0.06)", color: "#F9FAF2", border: "1px solid rgba(255,255,255,0.1)" }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.10)")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
-        >
-          <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-          חזרה ל-CRM
-        </button>
+        {/* "חזרה ל-CRM" — advisor-only. Clients never see this affordance. */}
+        {isAdvisor && (
+          <button
+            onClick={() => router.push("/crm")}
+            className="mt-3 w-full px-3 py-2.5 rounded-2xl text-[13px] font-bold flex items-center justify-center gap-2 transition-all"
+            style={{ background: "rgba(255,255,255,0.06)", color: "#F9FAF2", border: "1px solid rgba(255,255,255,0.1)" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.10)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
+          >
+            <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+            חזרה ל-CRM
+          </button>
+        )}
 
         <button
           onClick={onExit ?? (() => router.push("/login"))}

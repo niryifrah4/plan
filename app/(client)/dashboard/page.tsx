@@ -30,6 +30,7 @@ import type { Assumptions } from "@/lib/assumptions";
 import { AssetDonut } from "@/components/charts/AssetDonut";
 import { useClient } from "@/lib/client-context";
 import { MacroPanel } from "@/components/MacroPanel";
+import { buildNudges } from "@/lib/benchmark-advice";
 import { syncGoalsToDepositPlans, seedMonth, summaryForMonth, currentMonthKey, DEPOSITS_EVENT } from "@/lib/deposits-store";
 import { DepositsWidget } from "@/components/DepositsWidget";
 import { scopedKey } from "@/lib/client-scope";
@@ -619,6 +620,48 @@ export default function DashboardPage() {
 
       {/* ═══════ Macro — BoI / Prime / Inflation control ═══════ */}
       <MacroPanel />
+
+      {/* ═══════ Benchmark advisory nudges (2026-04-29) ═══════
+          Top 3 prioritized recommendations based on age / savings rate /
+          asset mix / risk tolerance. Each links to the page that owns the fix. */}
+      {(() => {
+        const nudges = buildNudges().slice(0, 3);
+        if (nudges.length === 0) return null;
+        const SEV: Record<string, { bg: string; border: string; text: string }> = {
+          critical:    { bg: "#fef2f2", border: "#fca5a5", text: "#b91c1c" },
+          warning:     { bg: "#fffbeb", border: "#fcd34d", text: "#92400e" },
+          info:        { bg: "#eff6ff", border: "#93c5fd", text: "#1d4ed8" },
+          opportunity: { bg: "#f0fdf4", border: "#86efac", text: "#166534" },
+        };
+        return (
+          <section className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="material-symbols-outlined text-[18px] text-verdant-emerald">tips_and_updates</span>
+              <h2 className="text-sm font-extrabold text-verdant-ink">המלצות לחודש הזה</h2>
+            </div>
+            <div className="space-y-2">
+              {nudges.map(n => {
+                const c = SEV[n.severity];
+                const card = (
+                  <div className="flex items-start gap-3 p-3 rounded-xl"
+                       style={{ background: c.bg, borderRight: `3px solid ${c.border}` }}>
+                    <span className="material-symbols-outlined text-[18px] mt-0.5" style={{ color: c.text }}>
+                      {n.icon}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] font-extrabold" style={{ color: c.text }}>{n.title}</div>
+                      <div className="text-[12px] mt-0.5 leading-relaxed" style={{ color: c.text }}>{n.detail}</div>
+                    </div>
+                  </div>
+                );
+                return n.href
+                  ? <Link key={n.id} href={n.href as any} className="block hover:opacity-90 transition-opacity">{card}</Link>
+                  : <div key={n.id}>{card}</div>;
+              })}
+            </div>
+          </section>
+        );
+      })()}
 
       {/* ═══════ Zone 1 + Zone 2 — Two Cards Side by Side ═══════ */}
       <section className="grid grid-cols-2 gap-6 mb-10">
