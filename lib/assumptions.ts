@@ -38,6 +38,14 @@ export interface Assumptions {
   oldAgeAllowanceMonthly: number;
   /** "single" = יחיד · "couple" = זוג (combined). */
   oldAgeAllowanceStatus: "single" | "couple";
+
+  /**
+   * 2026-04-29 per Nir: overall risk tolerance — drives the index-only
+   * nudge, model recommendations, and asset-allocation suggestions.
+   * Captured from the onboarding step "מוכנות לסיכון". Optional — pages
+   * fall back to "moderate" when undefined.
+   */
+  riskTolerance?: "conservative" | "moderate" | "aggressive";
 }
 
 export const DEFAULT_ASSUMPTIONS: Assumptions = {

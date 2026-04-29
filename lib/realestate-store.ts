@@ -47,6 +47,13 @@ export interface Property {
    * true for type="residence" + first added property; the user can flip.
    */
   isPrimaryResidence?: boolean;
+  /**
+   * 2026-04-29 per Nir: when true, this property's projected value (with
+   * appreciation) and/or rental income is folded into the retirement income
+   * trajectory. Default: true for "investment", false for "residence" —
+   * residences usually aren't sold to fund retirement.
+   */
+  includeInRetirement?: boolean;
 }
 
 // ===== Migration from onboarding =====

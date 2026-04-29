@@ -83,6 +83,10 @@ function PropertyForm({ initial, onSave, onCancel }: PropertyFormProps) {
   // 2026-04-28: tax exemption flag — drives the מס שבח badge.
   const [purchaseDate, setPurchaseDate] = useState(initial?.purchaseDate ?? "");
   const [isPrimaryResidence, setIsPrimaryResidence] = useState(initial?.isPrimaryResidence ?? true);
+  // Default: investment properties are included in retirement, residences are not.
+  const [includeInRetirement, setIncludeInRetirement] = useState(
+    initial?.includeInRetirement ?? (initial?.type ? initial.type === "investment" : false),
+  );
 
   const handleSubmit = () => {
     if (!name.trim() || !purchasePrice) return;
@@ -107,6 +111,7 @@ function PropertyForm({ initial, onSave, onCancel }: PropertyFormProps) {
       annualRentGrowth: annualRentGrowth !== "" ? (Number(annualRentGrowth) || 0) / 100 : undefined,
       purchaseDate: purchaseDate || initial?.purchaseDate,
       isPrimaryResidence,
+      includeInRetirement,
       mortgageLinked: initial?.mortgageLinked,
       notes: initial?.notes,
     };
@@ -178,6 +183,20 @@ function PropertyForm({ initial, onSave, onCancel }: PropertyFormProps) {
                 className="w-4 h-4 accent-[#1B4332]"
               />
               דירה יחידה (פטור ממס שבח)
+            </label>
+          </div>
+          <div className="flex items-end col-span-2">
+            <label className="flex items-center gap-2 text-[12px] font-bold text-verdant-ink select-none cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeInRetirement}
+                onChange={(e) => setIncludeInRetirement(e.target.checked)}
+                className="w-4 h-4 accent-[#1B4332]"
+              />
+              כלול נכס זה בתכנון הפרישה
+              <span className="text-[10px] text-verdant-muted font-medium">
+                (שווי נכס + שכ״ד יחושבו כחלק מההון לפרישה)
+              </span>
             </label>
           </div>
           {/* שטח */}

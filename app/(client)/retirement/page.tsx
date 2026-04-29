@@ -123,10 +123,17 @@ export default function RetirementPage() {
   }, [assumptions, ovrRetirementAge, ovrMonthlyInvest, ovrSWR, ovrExtraExpense, ovrIncomeGapYears]);
 
   /* ─── Live trajectory + income ─── */
+  // 2026-04-29 per Nir: only properties flagged includeInRetirement contribute
+  // to the long-term plan. Default rule: investment properties yes, residences
+  // no (residences are usually kept, not sold).
+  const retirementProperties = useMemo(() =>
+    reProperties.filter(p => p.includeInRetirement ?? (p.type === "investment")),
+  [reProperties]);
+
   const trajectory = useMemo(() => {
     if (!effAssumptions) return [];
     const pensionBalance = pensionFunds.reduce((s, f) => s + (f.balance || 0), 0);
-    const realEstateVal = reProperties.reduce((s, p) => s + p.currentValue, 0);
+    const realEstateVal = retirementProperties.reduce((s, p) => s + p.currentValue, 0);
     // Apply portfolio-shock to the starting liquid balance.
     const shockedLiquid = ovrPortfolioShock > 0
       ? liquid * (1 - ovrPortfolioShock / 100)
@@ -137,17 +144,17 @@ export default function RetirementPage() {
       pension: pensionBalance,
       realestate: realEstateVal,
     });
-  }, [effAssumptions, pensionFunds, reProperties, liquid, ovrPortfolioShock]);
+  }, [effAssumptions, pensionFunds, retirementProperties, liquid, ovrPortfolioShock]);
 
   const incomeResult = useMemo(() => {
     if (!effAssumptions) return null;
     return computeMonthlyIncomeTrajectory(trajectory, effAssumptions, {
-      properties: reProperties,
+      properties: retirementProperties,
       pensionFunds,
       btlAge: 67,
       targetMonthly,
     });
-  }, [trajectory, effAssumptions, reProperties, pensionFunds, targetMonthly]);
+  }, [trajectory, effAssumptions, retirementProperties, pensionFunds, targetMonthly]);
 
   /* ─── UI helpers ─── */
   const retAge = effAssumptions?.retirementAge ?? 67;

@@ -477,12 +477,33 @@ function injectOnboardingIncomeRows(budget: BudgetData): BudgetData {
     return { ...budget, sections: { ...budget.sections, income: incomeClean } };
   }
 
+  // 2026-04-29 fix: only skip salary labels if the salary profile WILL inject
+  // them via injectSalaryRow. Otherwise the user's net-salary entry just falls
+  // off the budget. Same for rent: if no real-estate property has rent set,
+  // keep the onboarding line.
+  const salaryWillBeInjected = hasSavedSalaryProfile();
+  const rentWillBeInjected = (() => {
+    try {
+      const props = JSON.parse(localStorage.getItem(scopedKey("verdant:properties")) || "[]");
+      return Array.isArray(props) && props.some((p: any) => (p.monthlyRent || 0) > 0);
+    } catch { return false; }
+  })();
+
+  const SALARY_RX = [/^משכורת/, /^\s*שכר\s*\(/, /שכר\s*ב?ן?\/?ב?ת?\s*זוג/];
+  const RENT_RX = [/שכ[״""]?ד/, /שכר\s+דירה/, /נכסים\s+מניבים/];
+
   const rows: BudgetRow[] = [];
   for (const item of list) {
     const label = (item?.label || "").trim();
     const amount = Number(item?.value) || 0;
     if (!label || amount <= 0) continue;
-    if (ONB_SKIP_LABEL_PATTERNS.some(rx => rx.test(label))) continue;
+
+    const isSalaryLabel = SALARY_RX.some(rx => rx.test(label));
+    const isRentLabel = RENT_RX.some(rx => rx.test(label));
+
+    if (isSalaryLabel && salaryWillBeInjected) continue; // covered by injectSalaryRow
+    if (isRentLabel && rentWillBeInjected) continue;     // covered by injectPassiveIncomeRows
+
     rows.push({
       id: uid(),
       name: label,

@@ -730,6 +730,21 @@ function syncFieldsToAssumptions(fields: OnbField): void {
     }
   }
 
+  // 2026-04-29: map the onboarding pension_risk dropdown → riskTolerance.
+  // Five-step UI compresses to three buckets used everywhere else.
+  const PENSION_RISK_TO_TOLERANCE: Record<string, "conservative" | "moderate" | "aggressive"> = {
+    "שמרני מאוד": "conservative",
+    "שמרני":      "conservative",
+    "מאוזן":      "moderate",
+    "צמיחה":      "aggressive",
+    "אגרסיבי":    "aggressive",
+  };
+  const newTolerance = PENSION_RISK_TO_TOLERANCE[fields.pension_risk?.trim() || ""];
+  if (newTolerance && newTolerance !== assumptions.riskTolerance) {
+    assumptions.riskTolerance = newTolerance;
+    changed = true;
+  }
+
   if (changed) {
     saveAssumptions(assumptions);
   }

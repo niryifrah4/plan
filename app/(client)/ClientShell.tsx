@@ -20,6 +20,37 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
     return stop;
   }, []);
 
+  // 2026-04-29 per Nir: when the user clicks into an input, the existing
+  // value should be selected automatically so they can just type the new
+  // number without first clearing the old one. Skip checkboxes, ranges,
+  // dates, and password/email fields where select-on-focus is awkward.
+  useEffect(() => {
+    const SKIP_TYPES = new Set(["checkbox", "radio", "range", "submit", "button", "color", "file", "date", "datetime-local", "month", "week", "time", "password", "email"]);
+    const handler = (e: FocusEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      // Inputs and textareas only.
+      if (target instanceof HTMLInputElement) {
+        const t = (target.type || "text").toLowerCase();
+        if (SKIP_TYPES.has(t)) return;
+        // Skip inputs the developer explicitly marked as no-autoselect.
+        if (target.dataset.noAutoselect === "true") return;
+        // Defer one tick — Safari sometimes double-fires focus and a sync
+        // select() races with the click placing the cursor.
+        requestAnimationFrame(() => {
+          try { target.select(); } catch {}
+        });
+      } else if (target instanceof HTMLTextAreaElement) {
+        if (target.dataset.noAutoselect === "true") return;
+        requestAnimationFrame(() => {
+          try { target.select(); } catch {}
+        });
+      }
+    };
+    document.addEventListener("focusin", handler);
+    return () => document.removeEventListener("focusin", handler);
+  }, []);
+
   return (
     <>
       <Sidebar
