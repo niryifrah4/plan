@@ -8,6 +8,7 @@ import { usePersistedState } from "@/hooks/usePersistedState";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import { SaveIndicator } from "@/components/SaveIndicator";
 import { InviteClientButton } from "@/components/crm/InviteClientButton";
+import { SolidKpi } from "@/components/ui/SolidKpi";
 
 /* ═══════════════════════════════════════════════════════════════════
    Types
@@ -478,78 +479,12 @@ export default function CrmPage() {
           </button>
         </div>
 
-        {/* ═══════ KPI Row — 3 colored tiles ═══════ */}
-        <section className="grid grid-cols-3 gap-5 mb-8">
-          {/* Leads — mint */}
-          <div
-            className="p-5 flex flex-col justify-between min-h-[140px] transition-all hover:-translate-y-0.5"
-            style={{
-              background: "#D6EFDC",
-              color: "#012D1D",
-              borderRadius: "1rem",
-              boxShadow: "0 1px 2px rgba(27,67,50,0.06)",
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(27,67,50,0.12)", color: "#1B4332" }}>
-                <span className="material-symbols-outlined text-[22px]">person_add</span>
-              </div>
-              <div className="text-[10px] uppercase tracking-[0.2em] font-bold text-right" style={{ color: "rgba(1,45,29,0.55)" }}>מתעניינים חדשים החודש</div>
-            </div>
-            <div className="flex items-baseline gap-2 justify-end mt-auto pt-3">
-              <span className="text-[11px] font-bold" style={{ color: "rgba(1,45,29,0.65)" }}>ב-30 יום</span>
-              <span className="text-4xl font-extrabold tabular" style={{ color: "#012D1D" }}>{newLeadsThisMonth}</span>
-            </div>
-          </div>
-
-          {/* Conversions — sage-cream tint */}
-          <div
-            className="p-5 flex flex-col justify-between min-h-[140px] transition-all hover:-translate-y-0.5"
-            style={{
-              background: "#E7EFDD",
-              color: "#012D1D",
-              borderRadius: "1rem",
-              boxShadow: "0 1px 2px rgba(27,67,50,0.06)",
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(27,67,50,0.12)", color: "#1B4332" }}>
-                <span className="material-symbols-outlined text-[22px]">how_to_reg</span>
-              </div>
-              <div className="text-[10px] uppercase tracking-[0.2em] font-bold text-right" style={{ color: "rgba(1,45,29,0.55)" }}>סגירות (המרה ללקוח)</div>
-            </div>
-            <div className="flex items-baseline gap-2 justify-end mt-auto pt-3">
-              <span className="text-[11px] font-bold" style={{ color: "rgba(1,45,29,0.65)" }}>החודש</span>
-              <span className="text-4xl font-extrabold tabular" style={{ color: "#012D1D" }}>{conversionsThisMonth}</span>
-            </div>
-          </div>
-
-          {/* Conversion rate — forest hero */}
-          <div
-            className="p-5 flex flex-col justify-between min-h-[140px] transition-all hover:-translate-y-0.5"
-            style={{
-              background: "#012D1D",
-              color: "#FFFFFF",
-              borderRadius: "1rem",
-              boxShadow: "0 1px 2px rgba(27,67,50,0.12)",
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(193,236,212,0.18)", color: "#C1ECD4" }}>
-                <span className="material-symbols-outlined text-[22px]">trending_up</span>
-              </div>
-              <div className="text-[10px] uppercase tracking-[0.2em] font-bold text-right" style={{ color: "rgba(255,255,255,0.60)" }}>אחוז סגירה</div>
-            </div>
-            <div className="flex items-baseline gap-2 justify-end mt-auto pt-3">
-              <span className="text-[11px] font-bold" style={{ color: "rgba(255,255,255,0.65)" }}>Converted / Total</span>
-              <span className="text-4xl font-extrabold tabular" style={{ color: conversionRate >= 20 ? "#C1ECD4" : conversionRate >= 10 ? "#FCD34D" : "#FCA5A5" }}>
-                {conversionRate}%
-              </span>
-            </div>
-            <div className="h-1.5 rounded-full overflow-hidden mt-2" style={{ background: "rgba(255,255,255,0.15)" }}>
-              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(conversionRate, 100)}%`, background: conversionRate >= 20 ? "#C1ECD4" : conversionRate >= 10 ? "#FCD34D" : "#FCA5A5" }} />
-            </div>
-          </div>
+        {/* KPIs unified to bank-style 2026-04-29 — was 3 colored tiles. */}
+        <section className="grid grid-cols-3 gap-3 mb-6">
+          <SolidKpi label="מתעניינים החודש" value={String(newLeadsThisMonth)} icon="person_add" tone="emerald" sub="ב-30 יום" />
+          <SolidKpi label="סגירות החודש"   value={String(conversionsThisMonth)} icon="how_to_reg" tone="forest" sub="המרה ללקוח" />
+          <SolidKpi label="אחוז סגירה"     value={`${conversionRate}%`} icon="trending_up"
+                    tone={conversionRate >= 20 ? "emerald" : conversionRate >= 10 ? "amber" : "red"} />
         </section>
 
         {/* ═══════ Daily Tasks (Calendar removed 2026-04-28 per Nir) ═══════ */}

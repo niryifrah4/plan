@@ -21,6 +21,7 @@ import { loadKidsSavings, saveKidsSavings, kidSavingsId, DEFAULT_MONTHLY, GOV_MO
 import { loadProperties, saveProperties, type Property, EVENT_NAME as RE_EVENT } from "./realestate-store";
 import { loadBuckets, saveBuckets, BUCKETS_EVENT, createBucket } from "./buckets-store";
 import { fireSync } from "./sync-engine";
+import { syncChildLifeEvents } from "./life-events";
 import type { Bucket, OnboardingGoalRow } from "@shared/buckets-core";
 import { migrateOnboardingGoals } from "@shared/buckets-core";
 import { loadSalaryProfile, saveSalaryProfile, DEFAULT_SALARY_PROFILE } from "./salary-engine";
@@ -126,9 +127,11 @@ export function syncOnboardingToStores(): void {
 
   syncLiabilitiesToDebtStore(liabilities);
   syncInsuranceToRiskStore(insurances);
+  syncLegalDocsToRiskStore(fields);
   syncPensionToPensionStore(fields);
   syncFieldsToAssumptions(fields);
   syncChildrenToKidsSavings();
+  syncChildLifeEventsFromOnb();
   syncRealEstateToPropertyStore(assets);
   syncGemelAssetsToPrensionStore(assets);
   syncGoalsToBuckets(goals);
@@ -542,6 +545,55 @@ function syncInsuranceToRiskStore(insurances: OnbInsurance[]): void {
   }
 }
 
+/* ── 2b. Legal-docs answers (will / prenup) → Risk Store ──
+ *
+ * Per Nir 2026-04-29: when the questionnaire reports that a will is missing
+ * or out-of-date, that becomes a high-priority follow-up task on the risk-
+ * management page. Same for the prenup. The answers come back as Hebrew
+ * strings the user picked from a dropdown (see onboarding/page.tsx).
+ *
+ * Mapping rule:
+ *   "קיימת ומעודכנת" / "קיים"      → covered
+ *   "קיימת ולא מעודכנת"             → partial
+ *   "לא קיימת" / "לא קיים"          → missing
+ *   "לא רלוונטי"                     → not_relevant (prenup only — single user)
+ *   anything else / blank            → leave the existing status untouched
+ *
+ * Idempotent — runs on every onboarding sync; only writes when status would
+ * actually change. Notes are NEVER overwritten so the user's edits survive.
+ */
+function syncLegalDocsToRiskStore(fields: OnbField): void {
+  const items = loadRiskItems();
+  let changed = false;
+
+  const mapAnswer = (answer: string): RiskItem["status"] | null => {
+    if (!answer) return null;
+    if (answer.includes("ומעודכנת") || answer === "קיים") return "covered";
+    if (answer.includes("לא מעודכנת")) return "partial";
+    if (answer.startsWith("לא קיימ")) return "missing";
+    if (answer === "לא רלוונטי") return "not_relevant";
+    return null;
+  };
+
+  const willStatus = mapAnswer(fields.will || "");
+  const prenupStatus = mapAnswer(fields.prenup || "");
+
+  // Find by label (the legal items aren't given fixed ids in DEFAULT_RISK_ITEMS).
+  const willItem = items.find(i => i.category === "legal" && i.label === "צוואה");
+  const prenupItem = items.find(i => i.category === "legal" && i.label === "הסכם ממון");
+
+  if (willItem && willStatus && willItem.status !== willStatus) {
+    willItem.status = willStatus;
+    changed = true;
+  }
+  if (prenupItem && prenupStatus && prenupItem.status !== prenupStatus) {
+    prenupItem.status = prenupStatus;
+    changed = true;
+  }
+
+  if (changed) saveRiskItems(items);
+}
+
 /* ── 3. Pension fields → Pension Store ── */
 function syncPensionToPensionStore(fields: OnbField): void {
   const funds = loadPensionFunds();
@@ -683,6 +735,17 @@ function syncFieldsToAssumptions(fields: OnbField): void {
   }
   // Mark one-shot seed done (even if nothing changed — we ran the pass).
   localStorage.setItem(scopedKey(ASSUMPTIONS_SEEDED), new Date().toISOString());
+}
+
+/* ── 5b. Children → auto-generated life-event buckets ──
+ * Reads the same ONB_CHILDREN list as syncChildrenToKidsSavings but
+ * routes to /goals (buckets) instead of the savings store. Per Nir
+ * 2026-04-29: bar/bat mitzvah + army release should appear automatically
+ * the moment a DOB is entered. */
+function syncChildLifeEventsFromOnb(): void {
+  const ONB_CHILDREN_KEY = "verdant:onboarding:children";
+  const children = readJSON<Array<{ name?: string; dob?: string; gender?: "male" | "female" }>>(ONB_CHILDREN_KEY, []);
+  syncChildLifeEvents(children);
 }
 
 /* ── 5. Children → Kids Savings Store ── */

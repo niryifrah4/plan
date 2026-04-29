@@ -33,6 +33,7 @@ import {
   weightedConversionFactor,
 } from "@/lib/retirement-income";
 import { RetirementAdvisorPanel } from "./RetirementAdvisorPanel";
+import { AnnualReviewPanel } from "@/components/AnnualReviewPanel";
 
 export default function RetirementPage() {
   const { familyName, clientId } = useClient();
@@ -220,6 +221,9 @@ export default function RetirementPage() {
         targetMonthly={targetMonthly}
         familyName={familyName}
       />
+
+      {/* ═══ Annual Review — strategic brain (2026-04-29) ═══ */}
+      <AnnualReviewPanel />
     </div>
   );
 }

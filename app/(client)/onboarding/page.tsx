@@ -12,7 +12,7 @@ import { KIDS_TRACKS, KIDS_PROVIDERS, GOV_MONTHLY_DEPOSIT, PARENT_MONTHLY_MAX } 
 import { useClient } from "@/lib/client-context";
 
 /* ===== Types ===== */
-interface Child { [key: string]: string; name: string; dob: string; age: string; framework: string; special: string; savings_provider: string; savings_track: string; savings_balance: string; savings_parent_deposit: string }
+interface Child { [key: string]: string; name: string; dob: string; gender: string; age: string; framework: string; special: string; savings_provider: string; savings_track: string; savings_balance: string; savings_parent_deposit: string }
 interface AssetRow {
   [key: string]: string;
   type: string;
@@ -89,7 +89,7 @@ export default function OnboardingPage() {
 
   /* ── Persisted state — auto-saves to localStorage (1.5s debounce) ── */
   const [fields, setFields, fieldsSaving] = usePersistedState<Fields>("verdant:onboarding:fields", {}, 1500);
-  const emptyChild: Child = { name:"", dob:"", age:"", framework:"", special:"", savings_provider:"", savings_track:"medium", savings_balance:"", savings_parent_deposit:"57" };
+  const emptyChild: Child = { name:"", dob:"", gender:"", age:"", framework:"", special:"", savings_provider:"", savings_track:"medium", savings_balance:"", savings_parent_deposit:"57" };
   const [children, setChildren, childrenSaving] = usePersistedState<Child[]>("verdant:onboarding:children", [emptyChild], 1500);
   const [assets, setAssets, assetsSaving] = usePersistedState<AssetRow[]>("verdant:onboarding:assets", [{ type:"נדל\"ן למגורים", desc:"", value:"", rent:"", rentExpenses:"" }], 1500);
   const [liabilities, setLiabilities, liabSaving] = usePersistedState<LiabRow[]>("verdant:onboarding:liabilities", [{ type:"משכנתא", lender:"", balance:"", rate:"", monthly:"" }], 1500);
@@ -343,6 +343,14 @@ export default function OnboardingPage() {
                       <div>
                         <label className="text-[10px] font-bold text-verdant-muted block mb-1">תאריך לידה</label>
                         <input className="inp w-full" type="date" value={c.dob} onChange={e => updateChild("dob", e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-verdant-muted block mb-1">מין</label>
+                        <select className="inp w-full" value={c.gender} onChange={e => updateChild("gender", e.target.value)}>
+                          <option value="">—</option>
+                          <option value="male">זכר</option>
+                          <option value="female">נקבה</option>
+                        </select>
                       </div>
                       <div>
                         <label className="text-[10px] font-bold text-verdant-muted block mb-1">מסגרת</label>

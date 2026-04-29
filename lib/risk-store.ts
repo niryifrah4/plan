@@ -39,6 +39,9 @@ export const RISK_CATEGORIES: RiskCategory[] = [
   { key: "health",     label: "בריאות",                      icon: "local_hospital",      description: "ביטוח בריאות פרטי, השלמת שב\"ן, טכנולוגיות" },
   { key: "critical",   label: "מחלות קשות",                  icon: "emergency",           description: "כיסוי חד-פעמי למקרה אבחון מחלה קשה" },
   { key: "property",   label: "רכוש ואחריות",                icon: "home_work",           description: "ביטוח דירה, רכב, אחריות מקצועית, שותפים" },
+  // 2026-04-29 per Nir: legal docs are part of risk management — "אם אין
+  // צוואה / הסכם ממון, לערוך". Drives questionnaire follow-up tasks.
+  { key: "legal",      label: "תכנון משפטי",                  icon: "gavel",               description: "צוואה, הסכם ממון, ייפוי כוח מתמשך" },
 ];
 
 /* ── Risk item (one checklist row) ── */
@@ -106,6 +109,10 @@ export const DEFAULT_RISK_ITEMS: RiskItem[] = [
   item("property", "ביטוח רכב — חובה + מקיף", "ביטוח חובה וביטוח מקיף"),
   item("property", "ביטוח אחריות מקצועית", "למי שעוסק בייעוץ/שירות מקצועי"),
   item("property", "ביטוח שותפים / אנשי מפתח", "ביטוח עסקי — שותפים ואנשי מפתח"),
+  // תכנון משפטי — נטען / מתעדכן אוטומטית מהשאלון.
+  item("legal", "צוואה", "מסמך משפטי שמגדיר את חלוקת הרכוש לאחר פטירה"),
+  item("legal", "הסכם ממון", "הסכם בין בני הזוג לחלוקת רכוש במקרה גירושין"),
+  item("legal", "ייפוי כוח מתמשך", "מסמך שממנה אדם לטפל בעניינים במקרה אובדן כשרות משפטית"),
 ];
 
 /* ── CRUD ── */
@@ -116,12 +123,25 @@ export function loadRiskItems(): RiskItem[] {
     const raw = localStorage.getItem(scopedKey(STORAGE_KEY));
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;  // empty array = valid user state
+      if (Array.isArray(parsed)) {
+        // 2026-04-29 migration: ensure default "legal" items exist for users
+        // who saved risk items before that category was introduced. Adds only
+        // missing-by-label rows; never overwrites existing data.
+        const labels = new Set(parsed.map((i: RiskItem) => i.label));
+        const legalDefaults = DEFAULT_RISK_ITEMS.filter(
+          d => d.category === "legal" && !labels.has(d.label),
+        );
+        if (legalDefaults.length > 0) {
+          const augmented = [...parsed, ...legalDefaults.map(d => ({ ...d, id: `risk_legal_${Date.now()}_${d.label}` }))];
+          // Persist quietly so next load is consistent.
+          try { localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(augmented)); } catch {}
+          return augmented;
+        }
+        return parsed;  // empty array = valid user state
+      }
     }
   } catch {}
   // No data saved yet — seed with defaults (first visit only).
-  // Once the user saves anything (even empty via deleteRiskItem), the key
-  // exists in localStorage and we'll never reach this branch again.
   return DEFAULT_RISK_ITEMS.map(i => ({ ...i }));
 }
 

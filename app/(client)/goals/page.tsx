@@ -675,10 +675,11 @@ export default function GoalsPage() {
                   const a = loadAssumptions();
                   const monthlyIncome = a.monthlyIncome || 0;
                   const months = bucket.coverageMonths || 3;
-                  const setCoverage = (m: 3 | 6) => {
-                    const newTarget = monthlyIncome > 0 ? Math.round(monthlyIncome * m) : bucket.targetAmount;
+                  const setCoverage = (m: number) => {
+                    const clamped = Math.max(3, Math.min(6, Math.round(m))) as 3 | 4 | 5 | 6;
+                    const newTarget = monthlyIncome > 0 ? Math.round(monthlyIncome * clamped) : bucket.targetAmount;
                     setBuckets(prev => updateBucket(prev, bucket.id, {
-                      coverageMonths: m,
+                      coverageMonths: clamped as any,
                       targetAmount: newTarget,
                     } as Partial<Bucket>));
                     pulse();
@@ -700,28 +701,30 @@ export default function GoalsPage() {
                     : 0;
                   return (
                     <div className="mt-3 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-bold text-verdant-muted">כיסוי</span>
-                        <div className="inline-flex rounded-lg p-0.5" style={{ background: "#eef2e8" }}>
-                          {[3, 6].map((m) => (
-                            <button
-                              key={m}
-                              onClick={() => setCoverage(m as 3 | 6)}
-                              className="text-[11px] font-bold px-3 py-1 rounded-md transition-all"
-                              style={{
-                                background: months === m ? "#012D1D" : "transparent",
-                                color: months === m ? "#F9FAF2" : "#1B4332",
-                              }}
-                            >
-                              {m} חודשים
-                            </button>
-                          ))}
-                        </div>
-                        {monthlyIncome > 0 && (
-                          <span className="text-[11px] text-verdant-muted">
-                            ({fmtILS(monthlyIncome)}/חודש × {months})
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[11px] font-bold text-verdant-muted">כיסוי</span>
+                          <span className="text-[12px] font-extrabold tabular-nums text-verdant-ink">
+                            {months} חודשים
+                            {monthlyIncome > 0 && (
+                              <span className="text-[10px] text-verdant-muted font-medium mr-2">
+                                · {fmtILS(monthlyIncome)} × {months}
+                              </span>
+                            )}
                           </span>
-                        )}
+                        </div>
+                        <input
+                          type="range"
+                          min={3}
+                          max={6}
+                          step={1}
+                          value={months}
+                          onChange={(e) => setCoverage(parseInt(e.target.value))}
+                          className="w-full h-1.5 accent-[#1B4332]"
+                        />
+                        <div className="flex items-center justify-between text-[9px] text-verdant-muted mt-0.5 px-0.5">
+                          <span>3</span><span>4</span><span>5</span><span>6</span>
+                        </div>
                       </div>
                       {/* Needed-vs-liquid bar — quick visual of "where you stand". */}
                       <div className="rounded-lg p-2.5" style={{ background: "#f4f7ed", border: "1px solid #d8e0d0" }}>
