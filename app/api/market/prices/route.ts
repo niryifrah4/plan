@@ -79,19 +79,23 @@ const MAX_SYMBOLS = 50;
 const MAX_CRYPTOS = 30;
 
 export async function GET(req: NextRequest) {
-  // Auth gate — only signed-in users may use the proxy.
-  try {
-    // Inline import keeps the cron path (POST) free of Supabase deps when
-    // SUPABASE_URL isn't configured locally.
-    const { createClient } = await import("@/lib/supabase/server");
-    const sb = createClient();
-    const { data: { user } } = await sb.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // Auth gate — fail-closed when Supabase IS configured. Only the explicit
+  // "no env vars set" case (local dev without Supabase) is allowed through.
+  // 2026-04-29 hardening per security audit — previous version swallowed all
+  // errors, which meant a misconfigured prod could degrade silently to public.
+  const supabaseConfigured = !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  if (supabaseConfigured) {
+    try {
+      const { createClient } = await import("@/lib/supabase/server");
+      const sb = createClient();
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) {
+        return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+      }
+    } catch (e: any) {
+      // Configured but auth check threw — fail closed.
+      return NextResponse.json({ error: "auth check failed", detail: e?.message || "unknown" }, { status: 500 });
     }
-  } catch {
-    // If Supabase isn't configured (dev), fall through. Production envs
-    // always have it set — verified by /lib/env at boot.
   }
 
   const url = new URL(req.url);

@@ -365,6 +365,37 @@ export default function InvestmentsPage() {
           </div>
         </div>
 
+        {/* Index-only nudge — 2026-04-29 per Nir.
+            When the portfolio holds individual stocks (kind="stock") or
+            actively-managed funds (kind="fund"/"mutual-fund"), surface a
+            short note suggesting broad-index exposure for diversification
+            and lower fees. Pure UI hint — no automatic action. */}
+        {(() => {
+          const activeKinds = new Set(["stock", "fund", "mutual-fund", "mutual_fund"]);
+          const flagged = allSecurities.filter(s => activeKinds.has((s.kind || "").toLowerCase()));
+          if (flagged.length === 0) return null;
+          const flaggedValue = flagged.reduce((s, x) => s + (x.market_value_ils || 0), 0);
+          const pct = totalMarket > 0 ? Math.round((flaggedValue / totalMarket) * 100) : 0;
+          return (
+            <div
+              className="rounded-xl px-4 py-3 mb-4 flex items-start gap-3"
+              style={{ background: "#FEF3C7", border: "1px solid #FCD34D" }}
+            >
+              <span className="material-symbols-outlined text-[20px] mt-0.5" style={{ color: "#92400E" }}>
+                tips_and_updates
+              </span>
+              <div className="flex-1">
+                <div className="text-[12px] font-extrabold mb-0.5" style={{ color: "#92400E" }}>
+                  {flagged.length} פוזיציות אקטיביות ({pct}% מהתיק)
+                </div>
+                <div className="text-[12px] leading-relaxed" style={{ color: "#92400E" }}>
+                  מומלץ לבחון מעבר למחקי מדד רחבים (S&amp;P 500, MSCI World) לטובת פיזור מקסימלי והוזלת עלויות.
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
           {demoBenchmarks.map(b => (
             <button key={b.id} onClick={() => setSelectedBenchmark(selectedBenchmark === b.id ? null : b.id)}

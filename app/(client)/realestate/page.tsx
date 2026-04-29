@@ -13,6 +13,7 @@ import {
   updateProperty,
   deleteProperty,
   propertyTaxStatus,
+  propertyCAGR,
   EVENT_NAME,
   type Property,
 } from "@/lib/realestate-store";
@@ -607,6 +608,19 @@ export default function RealEstatePage() {
               <div className="text-left">
                 <div className="text-[10px] text-verdant-muted font-bold">שווי נוכחי</div>
                 <div className="text-base font-extrabold text-verdant-ink tabular">{fmtILS(prop.currentValue)}</div>
+                {(() => {
+                  const r = propertyCAGR(prop);
+                  if (!r) return null;
+                  if (r.cagrPct == null) {
+                    return <div className="text-[10px] text-verdant-muted">חזקה {r.yearsHeld < 1/12 ? "פחות מחודש" : `${r.yearsHeld.toFixed(1)} שנים`}</div>;
+                  }
+                  const color = r.cagrPct >= 0 ? "#1B4332" : "#8B2E2E";
+                  return (
+                    <div className="text-[10px] font-bold tabular-nums mt-0.5" style={{ color }} title={`סה"כ תשואה ${r.totalReturnPct.toFixed(1)}% מאז הרכישה (${r.yearsHeld.toFixed(1)} שנים)`}>
+                      תשואה שנתית {r.cagrPct >= 0 ? "+" : ""}{r.cagrPct.toFixed(1)}%
+                    </div>
+                  );
+                })()}
               </div>
               <div className="flex gap-1">
                 <button onClick={() => setEditingPropId(prop.id)} className="p-1 rounded hover:bg-[#f4f7ed]">

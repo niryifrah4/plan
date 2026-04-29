@@ -19,6 +19,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { fmtILS } from "@/lib/format";
+import { SolidKpi } from "@/components/ui/SolidKpi";
 import { useClient } from "@/lib/client-context";
 import { loadAssumptions, type Assumptions } from "@/lib/assumptions";
 import { loadProperties } from "@/lib/realestate-store";
@@ -47,6 +48,16 @@ export default function RetirementPage() {
   const [ovrRetirementAge, setOvrRetirementAge] = useState<number | null>(null);
   const [ovrMonthlyInvest, setOvrMonthlyInvest] = useState<number | null>(null);
   const [ovrSWR, setOvrSWR] = useState<number | null>(null);
+  // 2026-04-29 scenario planning per Nir.
+  // expense shock: extra ₪/month (e.g. another child) reduces what's left
+  //   to invest. We model it by lowering monthlyInvestment for the chosen
+  //   number of years. 0 = scenario off.
+  const [ovrExtraExpense, setOvrExtraExpense]   = useState(0);
+  const [ovrExtraExpenseYears, setOvrExtraExpenseYears] = useState(18);
+  // portfolio shock: one-time haircut on the liquid balance (-10/-20/-30%).
+  const [ovrPortfolioShock, setOvrPortfolioShock] = useState(0);
+  // income gap: years with zero monthly investment (sabbatical / job loss).
+  const [ovrIncomeGapYears, setOvrIncomeGapYears] = useState(0);
 
   useEffect(() => {
     syncOnboardingToStores();
@@ -97,26 +108,36 @@ export default function RetirementPage() {
   /* ─── Effective assumptions (slider-overridden) ─── */
   const effAssumptions = useMemo<Assumptions | null>(() => {
     if (!assumptions) return null;
+    // Combined effect of sliders + scenarios. Income-gap zeroes monthlyInvestment
+    // for the duration; expense-shock subtracts a flat ₪/mo from it for years.
+    const baseInvest = ovrMonthlyInvest ?? assumptions.monthlyInvestment;
+    const investAfterScenarios = ovrIncomeGapYears > 0
+      ? 0  // crude: income gap = no contribution at all during the period
+      : Math.max(0, baseInvest - (ovrExtraExpense || 0));
     return {
       ...assumptions,
       retirementAge: ovrRetirementAge ?? assumptions.retirementAge,
-      monthlyInvestment: ovrMonthlyInvest ?? assumptions.monthlyInvestment,
+      monthlyInvestment: investAfterScenarios,
       safeWithdrawalRate: ovrSWR ?? assumptions.safeWithdrawalRate ?? 0.04,
     };
-  }, [assumptions, ovrRetirementAge, ovrMonthlyInvest, ovrSWR]);
+  }, [assumptions, ovrRetirementAge, ovrMonthlyInvest, ovrSWR, ovrExtraExpense, ovrIncomeGapYears]);
 
   /* ─── Live trajectory + income ─── */
   const trajectory = useMemo(() => {
     if (!effAssumptions) return [];
     const pensionBalance = pensionFunds.reduce((s, f) => s + (f.balance || 0), 0);
     const realEstateVal = reProperties.reduce((s, p) => s + p.currentValue, 0);
+    // Apply portfolio-shock to the starting liquid balance.
+    const shockedLiquid = ovrPortfolioShock > 0
+      ? liquid * (1 - ovrPortfolioShock / 100)
+      : liquid;
     return buildTrajectory({
       assumptions: effAssumptions,
-      liquid,
+      liquid: shockedLiquid,
       pension: pensionBalance,
       realestate: realEstateVal,
     });
-  }, [effAssumptions, pensionFunds, reProperties, liquid]);
+  }, [effAssumptions, pensionFunds, reProperties, liquid, ovrPortfolioShock]);
 
   const incomeResult = useMemo(() => {
     if (!effAssumptions) return null;
@@ -146,17 +167,18 @@ export default function RetirementPage() {
     <div className="max-w-6xl mx-auto" style={{ fontFamily: "'Assistant', sans-serif" }}>
       {/* Page header removed 2026-04-28 per Nir's request. */}
 
-      {/* ═══ KPI strip ═══ */}
-      <section className="grid grid-cols-4 gap-4 mb-8">
-        <Kpi label="יעד חודשי" value={targetMonthly} hint="מהשאלון" color="#012d1d" />
-        <Kpi label={`צפוי בגיל ${retAge}`} value={retPoint?.total ?? 0} color="#1B4332" />
-        <Kpi
+      {/* ═══ KPI strip ═══ unified to SolidKpi 2026-04-29 (was local Kpi). */}
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+        <SolidKpi label="יעד חודשי"               value={fmtILS(targetMonthly)}            icon="flag"           tone="ink"     sub="מהשאלון" />
+        <SolidKpi label={`צפוי בגיל ${retAge}`}    value={fmtILS(Math.round(retPoint?.total ?? 0))} icon="trending_up" tone="forest" />
+        <SolidKpi
           label={gap > 0 ? "פער" : "עודף"}
-          value={Math.abs(gap)}
-          color={gap > 0 ? "#8B2E2E" : "#2B694D"}
-          highlight={gap > 0}
+          value={fmtILS(Math.abs(Math.round(gap)))}
+          icon={gap > 0 ? "trending_down" : "verified"}
+          tone={gap > 0 ? "red" : "emerald"}
         />
-        <Kpi label="כיסוי" value={coverage} suffix="%" isPct color={coverage >= 100 ? "#2B694D" : coverage >= 80 ? "#B45309" : "#8B2E2E"} />
+        <SolidKpi label="כיסוי" value={`${Math.round(coverage)}%`} icon="shield"
+                  tone={coverage >= 100 ? "emerald" : coverage >= 80 ? "amber" : "red"} />
       </section>
 
       {/* ═══ Sliders ═══ */}
@@ -192,6 +214,84 @@ export default function RetirementPage() {
             onReset={() => setOvrSWR(null)}
             suffix="%"
           />
+        </div>
+      </section>
+
+      {/* ═══ Scenario Planning — what-if 2026-04-29 ═══ */}
+      <section className="card-pad-lg mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="t-lg font-extrabold" style={{ color: "var(--botanical-forest)" }}>
+            תרחישים · "מה אם"
+          </h3>
+          {(ovrExtraExpense > 0 || ovrPortfolioShock > 0 || ovrIncomeGapYears > 0) && (
+            <button
+              onClick={() => { setOvrExtraExpense(0); setOvrPortfolioShock(0); setOvrIncomeGapYears(0); }}
+              className="text-[12px] font-bold text-verdant-emerald hover:underline"
+            >
+              ↺ אפס תרחישים
+            </button>
+          )}
+        </div>
+        <div className="space-y-4">
+          {/* Extra expense — e.g. another child */}
+          <div>
+            <div className="flex items-center justify-between text-[12px] mb-1.5">
+              <label className="font-bold text-verdant-ink">הוצאה חודשית נוספת (עוד ילד / מקרה חיים)</label>
+              <span className="font-extrabold tabular-nums" style={{ color: ovrExtraExpense > 0 ? "#B45309" : "#5a7a6a" }}>
+                {ovrExtraExpense > 0 ? `−${fmtILS(ovrExtraExpense)}/חודש` : "ללא"}
+              </span>
+            </div>
+            <input
+              type="range" min={0} max={8000} step={500}
+              value={ovrExtraExpense}
+              onChange={(e) => setOvrExtraExpense(parseInt(e.target.value) || 0)}
+              className="w-full h-1.5 accent-[#B45309]"
+            />
+          </div>
+
+          {/* Portfolio shock — sudden market drop */}
+          <div>
+            <div className="flex items-center justify-between text-[12px] mb-1.5">
+              <label className="font-bold text-verdant-ink">ירידה חד-פעמית בתיק (מימוש סיכון)</label>
+              <span className="font-extrabold tabular-nums" style={{ color: ovrPortfolioShock > 0 ? "#8B2E2E" : "#5a7a6a" }}>
+                {ovrPortfolioShock > 0 ? `−${ovrPortfolioShock}%` : "ללא"}
+              </span>
+            </div>
+            <div className="inline-flex rounded-lg p-0.5" style={{ background: "#eef2e8" }}>
+              {[0, 10, 20, 30].map((pct) => (
+                <button
+                  key={pct}
+                  onClick={() => setOvrPortfolioShock(pct)}
+                  className="text-[11px] font-bold px-3 py-1 rounded-md transition-all"
+                  style={{
+                    background: ovrPortfolioShock === pct ? "#8B2E2E" : "transparent",
+                    color: ovrPortfolioShock === pct ? "#fff" : "#1B4332",
+                  }}
+                >
+                  {pct === 0 ? "ללא" : `−${pct}%`}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Income gap — sabbatical / job loss */}
+          <div>
+            <div className="flex items-center justify-between text-[12px] mb-1.5">
+              <label className="font-bold text-verdant-ink">שנות הפסקת הכנסה (שבתון / חופשה)</label>
+              <span className="font-extrabold tabular-nums" style={{ color: ovrIncomeGapYears > 0 ? "#B45309" : "#5a7a6a" }}>
+                {ovrIncomeGapYears > 0 ? `${ovrIncomeGapYears} שנים` : "ללא"}
+              </span>
+            </div>
+            <input
+              type="range" min={0} max={5} step={1}
+              value={ovrIncomeGapYears}
+              onChange={(e) => setOvrIncomeGapYears(parseInt(e.target.value) || 0)}
+              className="w-full h-1.5 accent-[#B45309]"
+            />
+            <div className="flex justify-between text-[9px] text-verdant-muted mt-0.5 px-0.5">
+              <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+            </div>
+          </div>
         </div>
       </section>
 

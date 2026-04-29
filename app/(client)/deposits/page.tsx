@@ -23,6 +23,7 @@ import {
   deletePlan,
   loadEntries,
   loadPlans,
+  saveEntries,
   seedMonth,
   summaryForMonth,
   syncGoalsToDepositPlans,
@@ -142,17 +143,13 @@ export default function DepositsPage() {
       // Re-confirm with new amount, triggers delta application
       confirmEntry(entry.id, amount);
     } else {
-      // Update planned amount on the entry even before confirming
+      // Update planned amount on the entry even before confirming.
+      // 2026-04-29: use saveEntries() instead of hand-rolling the storage key.
       const entries = loadEntries();
       const idx = entries.findIndex(e => e.id === entry.id);
       if (idx >= 0) {
         entries[idx] = { ...entries[idx], amount, updatedAt: new Date().toISOString() };
-        localStorage.setItem(
-          `verdant:c:${(localStorage.getItem("verdant:current_hh") || "")}:deposits:log`,
-          JSON.stringify(entries),
-        );
-        // Re-read via the store's public API to keep events firing
-        window.dispatchEvent(new Event(DEPOSITS_EVENT));
+        saveEntries(entries);
       }
     }
   };

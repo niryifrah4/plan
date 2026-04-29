@@ -173,6 +173,39 @@ function dedupePrimaryFlags(props: Property[]): Property[] {
 export { EVENT_NAME };
 
 /**
+ * 2026-04-29: compute the realized CAGR (annualized return) on a property
+ * since purchase. Pure helper — accepts purchaseDate (YYYY-MM or YYYY-MM-DD),
+ * purchase price, and current value. Returns null when inputs are insufficient.
+ *
+ * CAGR = (current/purchase)^(1/years) − 1
+ *
+ * Edge cases:
+ *  - holding period < 1 month → return simple percentage (avoids exploding
+ *    annualized number for fresh purchases)
+ *  - missing/zero purchase price → null
+ */
+export function propertyCAGR(prop: Property): {
+  cagrPct: number | null;
+  totalReturnPct: number;
+  yearsHeld: number;
+} | null {
+  if (!prop.purchaseDate || !prop.purchasePrice || prop.purchasePrice <= 0) return null;
+  const purchaseMs = new Date(prop.purchaseDate.length === 7
+    ? prop.purchaseDate + "-01"
+    : prop.purchaseDate
+  ).getTime();
+  if (isNaN(purchaseMs)) return null;
+  const yearsHeld = Math.max(0, (Date.now() - purchaseMs) / (1000 * 60 * 60 * 24 * 365.25));
+  const ratio = (prop.currentValue || 0) / prop.purchasePrice;
+  const totalReturnPct = (ratio - 1) * 100;
+  if (yearsHeld < 1 / 12) {
+    return { cagrPct: null, totalReturnPct, yearsHeld };
+  }
+  const cagr = Math.pow(ratio, 1 / yearsHeld) - 1;
+  return { cagrPct: cagr * 100, totalReturnPct, yearsHeld };
+}
+
+/**
  * Israeli capital-gains-tax (מס שבח) status for a property, given the
  * full portfolio. Implements the "single residence exemption" + the
  * 18-month overlap window for upgraders (חוק חישוב חדש 2026).
