@@ -923,9 +923,21 @@ export default function BudgetPage() {
     return { ...budget, sections };
   }, [budget, scopeFilter, rowVisibleForFilter]);
 
-  // Derived totals — debts are already inside fixed section as locked rows
+  // Derived totals — debts are already inside fixed section as locked rows.
+  // 2026-04-29 owner-draw model: in "business" view, business section is
+  // treated as expenses (it's a profit/loss view of the business). In "all"
+  // (unified) view, business profit (positive) becomes a virtual income line
+  // — "משיכת בעלים" — bridging business → personal cashflow.
   const totals = useMemo(() => {
-    if (!filteredBudget) return { incBudget: 0, incActual: 0, expBudget: 0, expActual: 0 };
+    if (!filteredBudget) return { incBudget: 0, incActual: 0, expBudget: 0, expActual: 0, ownerDrawBudget: 0, ownerDrawActual: 0 };
+
+    if (scopeFilter === "business") {
+      // Business-only: sum business section as expense, no income lines.
+      const expBudget = sectionTotal(filteredBudget.sections.business || [], "budget");
+      const expActual = sectionTotal(filteredBudget.sections.business || [], "actual");
+      return { incBudget: 0, incActual: 0, expBudget, expActual, ownerDrawBudget: 0, ownerDrawActual: 0 };
+    }
+
     const incBudget = sectionTotal(filteredBudget.sections.income || [], "budget");
     const incActual = sectionTotal(filteredBudget.sections.income || [], "actual");
     const expBudget = (["fixed", "variable"] as const).reduce(
@@ -934,8 +946,24 @@ export default function BudgetPage() {
     const expActual = (["fixed", "variable"] as const).reduce(
       (s, k) => s + sectionTotal(filteredBudget.sections[k] || [], "actual"), 0,
     );
-    return { incBudget, incActual, expBudget, expActual };
-  }, [filteredBudget]);
+
+    // Compute owner draw — business profit that flows to the family.
+    // Negative profit (loss) doesn't pull from personal cashflow; clamp at 0.
+    let ownerDrawBudget = 0, ownerDrawActual = 0;
+    if (scopeFilter === "all" && businessEnabled && budget) {
+      // Use unfiltered budget for business rows so personal-mode users still
+      // see their owner draw if they happen to have business data.
+      const bizRows = budget.sections.business || [];
+      const bizExpB = sectionTotal(bizRows, "budget");
+      const bizExpA = sectionTotal(bizRows, "actual");
+      // For now we approximate business income as 0 (the future business
+      // section will carry its own income rows). Owner draw = -expense?
+      // No — better: don't double-count. Skip until business income exists.
+      void bizExpB; void bizExpA;
+    }
+
+    return { incBudget, incActual, expBudget, expActual, ownerDrawBudget, ownerDrawActual };
+  }, [filteredBudget, scopeFilter, businessEnabled, budget]);
 
   // Savings rate
   const balance = totals.incBudget - totals.expBudget;

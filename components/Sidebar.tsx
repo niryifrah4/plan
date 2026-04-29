@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { NAV_SECTIONS, type NavGroup, type NavItem } from "@/lib/nav";
-import { manualFactoryReset } from "@/lib/factory-reset";
+import { manualFactoryResetAsync } from "@/lib/factory-reset";
 
 interface SidebarProps {
   familyName: string;
@@ -82,16 +82,18 @@ export function Sidebar({ familyName, membersCount, advisorName, onExit, saveSta
     return () => clearTimeout(t);
   }, [resetStage]);
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (resetStage === "idle") {
       setResetStage("confirm");
       return;
     }
-    const { wiped } = manualFactoryReset();
-    // Hard reload so every page re-mounts with zeroed state
+    // 2026-04-29: await the async path so the remote-blob wipe + Supabase
+    // signOut finish BEFORE we reload. Otherwise the bootstrap re-pulls
+    // the deleted-but-not-yet-deleted state and the user sees ghost data.
+    const { wiped, remoteDeleted } = await manualFactoryResetAsync();
     try {
       // eslint-disable-next-line no-console
-      console.info(`[manual-reset] wiped ${wiped} keys — reloading`);
+      console.info(`[manual-reset] wiped ${wiped} local keys + ${remoteDeleted} remote rows — reloading`);
     } catch {}
     window.location.href = "/dashboard";
   };

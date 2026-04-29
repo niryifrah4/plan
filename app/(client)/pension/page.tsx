@@ -339,20 +339,7 @@ export default function PensionPage() {
         <SaveStatus status={saveStatus} />
       </div>
 
-      {/* ===== 2. Cross-link banner → /retirement ===== */}
-      <Link
-        href="/retirement"
-        className="block mb-6 p-4 rounded-xl transition-shadow hover:shadow-md"
-        style={{ background: "linear-gradient(135deg, #1B4332 0%, #2B694D 100%)" }}
-      >
-        <div className="flex items-center gap-3 text-white">
-          <span className="material-symbols-outlined text-[22px]" style={{ color: "#C1ECD4" }}>beach_access</span>
-          <div className="flex-1">
-            <div className="text-sm font-extrabold">תכנון פרישה המלא</div>
-          </div>
-          <span className="material-symbols-outlined" style={{ color: "#C1ECD4" }}>chevron_left</span>
-        </div>
-      </Link>
+      {/* Cross-link to /retirement removed 2026-04-29 — pages merged. */}
 
       {/* ===== 3. KPI Row (3 portfolio-level metrics) ===== */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">

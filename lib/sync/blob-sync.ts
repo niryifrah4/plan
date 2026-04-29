@@ -61,3 +61,33 @@ export async function pushBlob<T = any>(key: string, value: T): Promise<boolean>
 export function pushBlobInBackground<T = any>(key: string, value: T) {
   void pushBlob(key, value);
 }
+
+/**
+ * Wipe ALL blob rows for the current household. Called from manualFactoryReset
+ * so that hydration after the reload doesn't pull old state back in.
+ *
+ * 2026-04-29 per security audit: previously a reset only wiped localStorage;
+ * the bootstrap then re-pulled the same data from Supabase and the user
+ * thought the reset failed (e.g. "the Haifa property is still there").
+ */
+export async function wipeAllBlobsForHousehold(): Promise<{ deleted: number }> {
+  if (!isSupabaseConfigured()) return { deleted: 0 };
+  const hh = getHouseholdId();
+  if (!hh) return { deleted: 0 };
+  const sb = getSupabaseBrowser();
+  if (!sb) return { deleted: 0 };
+  try {
+    const { count, error } = await sb
+      .from("client_state")
+      .delete({ count: "exact" })
+      .eq("household_id", hh);
+    if (error) {
+      console.warn("[blob-sync] wipe failed:", error.message);
+      return { deleted: 0 };
+    }
+    return { deleted: count || 0 };
+  } catch (e) {
+    console.warn("[blob-sync] wipe threw:", e);
+    return { deleted: 0 };
+  }
+}

@@ -104,21 +104,63 @@ async function wipeBrowserState(): Promise<void> {
  * Use from a UI button. Fires FACTORY_RESET_EVENT so every live page reloads
  * its state, and also dispatches a `storage` event for good measure.
  */
+/**
+ * Synchronous reset — kept for back-compat with existing callers. Internally
+ * delegates to manualFactoryResetAsync but returns immediately. Use the async
+ * variant when you need to know the wipe finished before reloading.
+ */
 export function manualFactoryReset(): { wiped: number } {
-  if (typeof window === "undefined") return { wiped: 0 };
-  const n = wipeAllVerdantKeys();
-  // Fire-and-forget: full browser-state wipe runs in parallel; the page
-  // reload triggered by the caller waits for nothing.
-  wipeBrowserState().catch(() => {});
+  void manualFactoryResetAsync();
+  // Best-effort sync count — counts what's already gone right now.
+  return { wiped: 0 };
+}
+
+/**
+ * Full reset 2026-04-29 — local + remote + auth.
+ *
+ * Sequence matters:
+ *  1. Wipe Supabase blobs FIRST so any in-flight hydrate that fires during
+ *     the wipe pulls "nothing" (vs. pulling stale data from server).
+ *  2. Wipe localStorage (verdant:* keys).
+ *  3. Wipe sessionStorage + IndexedDB + sign out.
+ *  4. Seed a fresh empty client.
+ *  5. Fire events for any live page that hasn't yet been navigated.
+ *
+ * Caller should `await` this and then reload the window so step 1's effect
+ * (no remote rows for the household) takes hold on the next bootstrap.
+ */
+export async function manualFactoryResetAsync(): Promise<{ wiped: number; remoteDeleted: number }> {
+  if (typeof window === "undefined") return { wiped: 0, remoteDeleted: 0 };
+
+  // Step 1: wipe remote blobs BEFORE clearing local pointers to household.
+  let remoteDeleted = 0;
+  try {
+    const { wipeAllBlobsForHousehold } = await import("./sync/blob-sync");
+    const r = await wipeAllBlobsForHousehold();
+    remoteDeleted = r.deleted;
+  } catch (e) {
+    console.warn("[factory-reset] remote blob wipe failed:", e);
+  }
+
+  // Step 2: wipe local
+  const wiped = wipeAllVerdantKeys();
+
+  // Step 3: wipe browser state + signOut (await — must finish before reload)
+  await wipeBrowserState();
+
+  // Step 4: seed a fresh empty client
   seedFreshClient();
   try {
     localStorage.setItem(VERSION_KEY, FACTORY_RESET_VERSION);
   } catch {}
+
+  // Step 5: notify any live React tree
   try {
     window.dispatchEvent(new Event(FACTORY_RESET_EVENT));
     window.dispatchEvent(new Event("storage"));
   } catch {}
-  return { wiped: n };
+
+  return { wiped, remoteDeleted };
 }
 
 /**

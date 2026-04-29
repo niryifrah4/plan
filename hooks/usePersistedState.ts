@@ -38,16 +38,18 @@ export function usePersistedState<T>(
       return;
     }
 
+    // 2026-04-29 per Nir: write to localStorage IMMEDIATELY on every change
+    // so SPA navigation (router.push to /budget) never loses data — the
+    // debounce now only delays the "saved" indicator flip, not the actual
+    // persistence.
     setSaving(true);
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {
+      console.warn("[usePersistedState] localStorage write failed:", e);
+    }
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      try {
-        localStorage.setItem(key, JSON.stringify(value));
-      } catch (e) {
-        console.warn("[usePersistedState] localStorage write failed:", e);
-      }
-      setSaving(false);
-    }, debounceMs);
+    timerRef.current = setTimeout(() => setSaving(false), debounceMs);
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
