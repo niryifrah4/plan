@@ -1,0 +1,70 @@
+# Render Blueprint — Plan App production deploy
+#
+# Usage:
+#   1. Push this file to your repo (already done if you see it).
+#   2. In Render dashboard → New + → Blueprint → connect this repo.
+#   3. Render reads this file and provisions everything.
+#   4. After creation, fill the env vars marked `sync: false` from the
+#      project's Environment tab (they're prompted as secrets, not echoed).
+#
+# Region: frankfurt — closest to Israeli users (~80ms RTT vs 200ms US-East).
+# Plan:   starter — $7/mo, no spin-down, no cold starts. Sufficient for the
+#         50-user beta.
+
+services:
+  - type: web
+    name: plan-app
+    runtime: node
+    region: frankfurt
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    branch: main
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      # ── Supabase (set as secrets in dashboard) ─────────────────────────
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      # ── Public base URL (for OAuth + Resend links) ─────────────────────
+      - key: NEXT_PUBLIC_BASE_URL
+        sync: false
+      # ── Sentry (optional — leave blank to disable) ─────────────────────
+      - key: SENTRY_DSN
+        sync: false
+      - key: NEXT_PUBLIC_SENTRY_DSN
+        sync: false
+      - key: SENTRY_ORG
+        sync: false
+      - key: SENTRY_PROJECT
+        sync: false
+      - key: SENTRY_AUTH_TOKEN
+        sync: false
+      # ── Resend (optional — leave blank to fall back to Supabase mail) ──
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        sync: false
+      # ── Google Calendar (optional) ─────────────────────────────────────
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      # ── Cron secret (used by /api/market/prices manual triggers) ───────
+      - key: CRON_SECRET
+        generateValue: true
+
+# Cron note (deferred to post-launch):
+#  Render Cron Jobs ($1/mo each) can hit /api/market/prices daily. For now
+#  the endpoint accepts manual GET requests + a Vercel-style cron header.
+#  Easiest free alternative: cron-job.org → set up a daily POST to
+#  https://app.your-domain.co.il/api/market/prices with header
+#  Authorization: Bearer ${CRON_SECRET}.
