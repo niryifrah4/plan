@@ -21,6 +21,7 @@ const PUBLIC_ROUTES = ["/login", "/auth/callback", "/privacy", "/terms"];
 const PUBLIC_API_ROUTES = [
   "/api/auth/",       // login / magic-link callbacks (Supabase handles internally)
   "/api/gcal/callback", // Google OAuth callback (validates state internally)
+  "/api/health",      // Render healthcheck — must be reachable unauthenticated
 ];
 
 function isPublicApi(pathname: string): boolean {
