@@ -7,6 +7,14 @@ type Mode = "login" | "signup";
 
 export default function LoginPage() {
   const [mode, setMode] = useState<Mode>("login");
+  // 2026-04-30: invite-only — hide signup tab unless ?signup=1 (admin escape).
+  const [showSignupTab, setShowSignupTab] = useState(false);
+  useEffect(() => {
+    try {
+      const flag = new URLSearchParams(window.location.search).get("signup");
+      setShowSignupTab(flag === "1");
+    } catch {}
+  }, []);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -192,13 +200,16 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Mode switcher */}
+        {/* Mode switcher.
+            2026-04-30: signup tab hidden by default (invite-only model per
+            Nir). Open it with ?signup=1 in the URL for admin testing only. */}
         <div
           className="flex gap-1 p-1"
           style={{
             marginTop: "28px",
             background: C.inputBg,
             borderRadius: "14px",
+            display: showSignupTab ? "flex" : "none",
           }}
         >
           <button
@@ -361,6 +372,13 @@ export default function LoginPage() {
             </button>
           </>
         )}
+
+        {/* 2026-04-30 — legal links, required before go-live. */}
+        <div className="text-center mt-6 text-[11px] text-verdant-muted">
+          <a href="/terms" className="hover:text-verdant-emerald hover:underline">תנאי שימוש</a>
+          <span className="mx-2">·</span>
+          <a href="/privacy" className="hover:text-verdant-emerald hover:underline">מדיניות פרטיות</a>
+        </div>
       </div>
     </div>
   );

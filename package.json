@@ -12,6 +12,7 @@
     "db:types": "supabase gen types typescript --local > types/supabase.ts"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.51.0",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.0",
     "buffer": "^6.0.3",
@@ -22,6 +23,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^2.13.0",
+    "resend": "^6.12.2",
     "xlsx": "^0.18.5",
     "zod": "^3.23.8"
   },

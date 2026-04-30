@@ -91,4 +91,23 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+// 2026-04-30 — wrap with Sentry only when DSN is set (avoids dev noise +
+// avoids upload-source-map errors when SENTRY_AUTH_TOKEN is missing).
+async function withSentryIfConfigured(cfg) {
+  if (!process.env.SENTRY_DSN && !process.env.NEXT_PUBLIC_SENTRY_DSN) return cfg;
+  try {
+    const { withSentryConfig } = await import("@sentry/nextjs");
+    return withSentryConfig(cfg, {
+      silent: true,
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      // Don't fail the build if source-map upload fails — common on first deploys.
+      errorHandler: () => {},
+    });
+  } catch {
+    return cfg;
+  }
+}
+
+export default await withSentryIfConfigured(nextConfig);
