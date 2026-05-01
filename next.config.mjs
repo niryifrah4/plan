@@ -71,6 +71,12 @@ const securityHeaders = [
   },
 ];
 
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename_ = fileURLToPath(import.meta.url);
+const __dirname_ = path.dirname(__filename_);
+
 const nextConfig = {
   reactStrictMode: true,
   experimental: {
@@ -79,6 +85,17 @@ const nextConfig = {
     // by server-side API routes. Without this list, Next bundles them into
     // every dev rebuild, dragging compile time. Marking external = ~2x dev speed.
     serverComponentsExternalPackages: ["pdf-parse", "googleapis", "xlsx"],
+  },
+  // 2026-05-01 — explicit webpack aliases. Render's build was failing on
+  // every '@/...' import despite tsconfig declaring the paths. Forcing the
+  // alias here at the bundler level removes any tooling ambiguity.
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      "@": __dirname_,
+      "@shared": path.join(__dirname_, "lib", "_shared"),
+    };
+    return config;
   },
   async headers() {
     return [
