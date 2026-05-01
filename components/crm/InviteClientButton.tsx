@@ -21,6 +21,8 @@ export function InviteClientButton() {
   const [email, setEmail] = useState("");
   const [familyName, setFamilyName] = useState("");
   const [fullName, setFullName] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordCreated, setPasswordCreated] = useState(false);
   const [inviteUrl, setInviteUrl] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [copied, setCopied] = useState(false);
@@ -28,7 +30,7 @@ export function InviteClientButton() {
   const [emailWarn, setEmailWarn] = useState<string | null>(null);
 
   function reset() {
-    setPhase("form"); setEmail(""); setFamilyName(""); setFullName("");
+    setPhase("form"); setEmail(""); setFamilyName(""); setFullName(""); setPassword(""); setPasswordCreated(false);
     setInviteUrl(""); setErrorMsg(""); setCopied(false);
     setEmailSent(false); setEmailWarn(null);
   }
@@ -42,7 +44,7 @@ export function InviteClientButton() {
       const res = await fetch("/api/crm/invites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), fullName, familyName }),
+        body: JSON.stringify({ email: email.trim(), fullName, familyName, password: password.trim() || undefined }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -52,6 +54,7 @@ export function InviteClientButton() {
       setInviteUrl(json.inviteUrl || "");
       setEmailSent(!!json.emailSent);
       setEmailWarn(json.emailSent ? null : (json.emailError || null));
+      setPasswordCreated(!!json.passwordCreated);
       setPhase("ready");
       // Tell CRM page to refetch clients so the new household appears immediately.
       try { window.dispatchEvent(new CustomEvent("verdant:clients:refetch")); } catch { /* ignore */ }
@@ -116,6 +119,21 @@ export function InviteClientButton() {
                     placeholder="דני כהן" className="w-full h-11 px-3 rounded-xl text-sm"
                     style={{ background: "#F3F4EC", border: "none", outline: "none" }} />
                 </label>
+                <label className="block">
+                  <span className="text-[11px] font-bold mb-1 block" style={{ color: "#5a7a6a" }}>
+                    סיסמה (אופציונלי — אם תזין, יווצר משתמש מוכן ולא יישלח מייל)
+                  </span>
+                  <input
+                    type="text"
+                    dir="ltr"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="לפחות 6 תווים"
+                    minLength={6}
+                    className="w-full h-11 px-3 rounded-xl text-sm font-mono"
+                    style={{ background: "#F3F4EC", border: "none", outline: "none" }}
+                  />
+                </label>
                 {phase === "error" && (
                   <div className="text-[12px] font-bold px-3 py-2 rounded-xl whitespace-pre-wrap" style={{ background: "#FEF2F2", color: "#991B1B" }}>
                     {errorMsg}
@@ -129,7 +147,21 @@ export function InviteClientButton() {
               </form>
             ) : (
               <div className="space-y-3">
-                {emailSent ? (
+                {passwordCreated ? (
+                  <div className="px-3 py-3 rounded-xl space-y-2" style={{ background: "#ECF7EF", color: "#012D1D" }}>
+                    <div className="flex items-start gap-2">
+                      <span className="material-symbols-outlined text-[18px]" style={{ color: "#1B4332" }}>person_add</span>
+                      <div className="text-[13px] font-bold">המשתמש נוצר בהצלחה</div>
+                    </div>
+                    <div dir="ltr" className="text-[12px] font-mono px-2 py-1.5 rounded-lg space-y-0.5" style={{ background: "rgba(255,255,255,0.6)" }}>
+                      <div>email: <strong>{email}</strong></div>
+                      <div>password: <strong>{password}</strong></div>
+                    </div>
+                    <div className="text-[11px] font-medium" style={{ color: "#1B4332" }}>
+                      העתק והעבר ללקוח (WhatsApp / SMS). הוא נכנס ב-{typeof window !== "undefined" ? window.location.origin : ""}/login
+                    </div>
+                  </div>
+                ) : emailSent ? (
                   <div className="flex items-start gap-2 px-3 py-2 rounded-xl" style={{ background: "#ECF7EF", color: "#012D1D" }}>
                     <span className="material-symbols-outlined text-[18px]" style={{ color: "#1B4332" }}>mark_email_read</span>
                     <div className="text-[13px] font-bold">

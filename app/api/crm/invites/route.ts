@@ -98,48 +98,75 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const origin = new URL(req.url).origin;
+  const fwdProto = req.headers.get("x-forwarded-proto") || "https";
+  const fwdHost = req.headers.get("x-forwarded-host") || req.headers.get("host");
+  const origin = fwdHost
+    ? `${fwdProto}://${fwdHost}`
+    : (process.env.NEXT_PUBLIC_BASE_URL || new URL(req.url).origin);
   const inviteUrl = `${origin}/login?invite=${encodeURIComponent(token)}`;
 
-  // Try to send the invite email via Supabase admin API.
-  // This also creates the auth.users row with invite_token in metadata, so
-  // when the client sets their password our trigger links them correctly.
+  // 2026-05-01 per Nir: advisor can set password directly. If a password
+  // is provided in the request body, we create an auto-confirmed user with
+  // that password and link the household via the trigger. Otherwise we fall
+  // back to the email-invite flow.
+  const directPassword = (body.password || "").trim();
   let emailSent = false;
   let emailError: string | undefined;
+  let passwordCreated = false;
+
   try {
     const admin = createAdminClient();
-    const { error: mailErr } = await admin.auth.admin.inviteUserByEmail(email, {
-      data: {
-        invite_token: token,
-        full_name: body.fullName || undefined,
-        family_name: body.familyName || undefined,
-        invited_by: advisor.full_name || undefined,
-      },
-      redirectTo: `${origin}/auth/callback`,
-    });
-    if (mailErr) {
-      emailError = mailErr.message;
-      // If the user already has an auth account, inviteUserByEmail refuses.
-      // Fall back to a magic-link email that lands on /auth/callback — our
-      // callback will then link them via the pending invite (matched by email).
-      if (/already been registered|already registered/i.test(mailErr.message)) {
-        const { error: linkErr } = await admin.auth.admin.generateLink({
-          type: "magiclink",
-          email,
-          options: { redirectTo: `${origin}/auth/callback` },
-        });
-        if (!linkErr) {
-          emailSent = true;
-          emailError = undefined;
-        } else {
-          emailError = `user_exists: ${linkErr.message}`;
-        }
+
+    if (directPassword) {
+      // Create user with set password — bypass invite email entirely.
+      const { error: createErr } = await admin.auth.admin.createUser({
+        email,
+        password: directPassword,
+        email_confirm: true,
+        user_metadata: {
+          invite_token: token,
+          full_name: body.fullName || undefined,
+          family_name: body.familyName || undefined,
+          invited_by: advisor.full_name || undefined,
+        },
+      });
+      if (createErr) {
+        emailError = createErr.message;
+      } else {
+        passwordCreated = true;
       }
     } else {
-      emailSent = true;
+      // Email-invite flow.
+      const { error: mailErr } = await admin.auth.admin.inviteUserByEmail(email, {
+        data: {
+          invite_token: token,
+          full_name: body.fullName || undefined,
+          family_name: body.familyName || undefined,
+          invited_by: advisor.full_name || undefined,
+        },
+        redirectTo: `${origin}/auth/callback`,
+      });
+      if (mailErr) {
+        emailError = mailErr.message;
+        if (/already been registered|already registered/i.test(mailErr.message)) {
+          const { error: linkErr } = await admin.auth.admin.generateLink({
+            type: "magiclink",
+            email,
+            options: { redirectTo: `${origin}/auth/callback` },
+          });
+          if (!linkErr) {
+            emailSent = true;
+            emailError = undefined;
+          } else {
+            emailError = `user_exists: ${linkErr.message}`;
+          }
+        }
+      } else {
+        emailSent = true;
+      }
     }
   } catch (err) {
-    emailError = err instanceof Error ? err.message : "email_send_failed";
+    emailError = err instanceof Error ? err.message : "send_failed";
   }
 
   return NextResponse.json({
@@ -150,6 +177,7 @@ export async function POST(req: NextRequest) {
     email,
     emailSent,
     emailError,
+    passwordCreated,
   });
   } catch (err) {
     console.error("[invites POST] unhandled error:", err);
