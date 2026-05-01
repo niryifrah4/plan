@@ -21,7 +21,9 @@ export function InviteClientButton() {
   const [email, setEmail] = useState("");
   const [familyName, setFamilyName] = useState("");
   const [fullName, setFullName] = useState("");
-  const [password, setPassword] = useState("");
+  // Default password 2026-05-01 per Nir: client gets a simple known
+  // password and changes it from /settings after first login.
+  const [password, setPassword] = useState("1234");
   const [passwordCreated, setPasswordCreated] = useState(false);
   const [inviteUrl, setInviteUrl] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -30,7 +32,7 @@ export function InviteClientButton() {
   const [emailWarn, setEmailWarn] = useState<string | null>(null);
 
   function reset() {
-    setPhase("form"); setEmail(""); setFamilyName(""); setFullName(""); setPassword(""); setPasswordCreated(false);
+    setPhase("form"); setEmail(""); setFamilyName(""); setFullName(""); setPassword("1234"); setPasswordCreated(false);
     setInviteUrl(""); setErrorMsg(""); setCopied(false);
     setEmailSent(false); setEmailWarn(null);
   }
@@ -121,15 +123,14 @@ export function InviteClientButton() {
                 </label>
                 <label className="block">
                   <span className="text-[11px] font-bold mb-1 block" style={{ color: "#5a7a6a" }}>
-                    סיסמה (אופציונלי — אם תזין, יווצר משתמש מוכן ולא יישלח מייל)
+                    סיסמה ראשונית (הלקוח יוכל לשנות אחרי כניסה ראשונה)
                   </span>
                   <input
                     type="text"
                     dir="ltr"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="לפחות 6 תווים"
-                    minLength={6}
+                    placeholder="1234"
                     className="w-full h-11 px-3 rounded-xl text-sm font-mono"
                     style={{ background: "#F3F4EC", border: "none", outline: "none" }}
                   />
