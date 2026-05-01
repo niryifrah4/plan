@@ -17,9 +17,19 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(req: NextRequest) {
-  const { searchParams, origin } = new URL(req.url);
+  const { searchParams } = new URL(req.url);
   const code = searchParams.get("code");
   const redirectParam = searchParams.get("redirect");
+
+  // 2026-05-01: behind a proxy (Render), `new URL(req.url).origin` returns
+  // the internal `localhost:10000` instead of the public host. Use the
+  // X-Forwarded-* headers Render sets, fall back to NEXT_PUBLIC_BASE_URL,
+  // then to the parsed URL as last resort.
+  const fwdProto = req.headers.get("x-forwarded-proto") || "https";
+  const fwdHost = req.headers.get("x-forwarded-host") || req.headers.get("host");
+  const origin = fwdHost
+    ? `${fwdProto}://${fwdHost}`
+    : (process.env.NEXT_PUBLIC_BASE_URL || new URL(req.url).origin);
 
   const sb = createClient();
 
