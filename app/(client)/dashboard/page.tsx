@@ -30,7 +30,7 @@ import type { Assumptions } from "@/lib/assumptions";
 import { AssetDonut } from "@/components/charts/AssetDonut";
 import { useClient } from "@/lib/client-context";
 import { MacroPanel } from "@/components/MacroPanel";
-import { buildNudges } from "@/lib/benchmark-advice";
+import { buildNudges, type Nudge } from "@/lib/benchmark-advice";
 import { syncGoalsToDepositPlans, seedMonth, summaryForMonth, currentMonthKey, DEPOSITS_EVENT } from "@/lib/deposits-store";
 import { DepositsWidget } from "@/components/DepositsWidget";
 import { scopedKey } from "@/lib/client-scope";
@@ -272,6 +272,19 @@ export default function DashboardPage() {
       window.removeEventListener(DEPOSITS_EVENT, refreshDeposits);
       window.removeEventListener(BUCKETS_EVENT, refreshDeposits);
     };
+  }, []);
+
+  // Nudges — must be client-only (reads localStorage). 2026-04-30 fix:
+  // computing inside render produced different output on server (empty)
+  // vs client (full list) → hydration mismatch on /dashboard.
+  const [nudges, setNudges] = useState<Nudge[]>([]);
+  useEffect(() => {
+    const refresh = () => setNudges(buildNudges().slice(0, 3));
+    refresh();
+    // Re-compute when underlying data changes.
+    const evs = ["storage", "verdant:assumptions", "verdant:realestate:updated", PENSION_EVENT, ACCOUNTS_EVENT, "verdant:goals:updated"];
+    evs.forEach(e => window.addEventListener(e, refresh));
+    return () => evs.forEach(e => window.removeEventListener(e, refresh));
   }, []);
 
   const dismissDepositsBanner = () => {
@@ -625,7 +638,6 @@ export default function DashboardPage() {
           Top 3 prioritized recommendations based on age / savings rate /
           asset mix / risk tolerance. Each links to the page that owns the fix. */}
       {(() => {
-        const nudges = buildNudges().slice(0, 3);
         if (nudges.length === 0) return null;
         const SEV: Record<string, { bg: string; border: string; text: string }> = {
           critical:    { bg: "#fef2f2", border: "#fca5a5", text: "#b91c1c" },
