@@ -20,6 +20,7 @@ import {
 import { loadDebtData, type MortgageData } from "@/lib/debt-store";
 import { generateRERecommendations } from "@/lib/realestate-recommendations";
 import { AcquisitionSimulator } from "@/components/realestate/AcquisitionSimulator";
+import { SaleSimulator } from "@/components/realestate/SaleSimulator";
 import { GoalLinker } from "@/components/GoalLinker";
 import { removeLinksForAsset } from "@/lib/asset-goal-linking";
 
@@ -390,6 +391,7 @@ export default function RealEstatePage() {
   const [mortgage, setMortgage] = useState<MortgageData | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingPropId, setEditingPropId] = useState<string | null>(null);
+  const [salePropId, setSalePropId] = useState<string | null>(null);
 
   /* Forecast sliders */
   const [forecastYears, setForecastYears] = useState(15);
@@ -641,7 +643,16 @@ export default function RealEstatePage() {
                   );
                 })()}
               </div>
-              <div className="flex gap-1">
+              <div className="flex gap-1.5 items-center">
+                <button
+                  onClick={() => setSalePropId(prop.id)}
+                  title="סימולציית מכירה — מה יישאר ביד אם תמכור"
+                  className="px-2.5 py-1.5 rounded-lg hover:bg-[#eef7f1] flex items-center gap-1 text-[11px] font-bold border"
+                  style={{ color: "#1B4332", borderColor: "#c9e3d4" }}
+                >
+                  <span className="material-symbols-outlined text-[16px]">sell</span>
+                  מכירה
+                </button>
                 <button onClick={() => setEditingPropId(prop.id)} className="p-1 rounded hover:bg-[#f4f7ed]">
                   <span className="material-symbols-outlined text-[14px] text-verdant-muted">edit</span>
                 </button>
@@ -1070,6 +1081,11 @@ export default function RealEstatePage() {
       {/* ── Modals ── */}
       {showAddForm && <PropertyForm onSave={handleAdd} onCancel={() => setShowAddForm(false)} />}
       {editingProp && <PropertyForm initial={editingProp} onSave={handleUpdate} onCancel={() => setEditingPropId(null)} />}
+      {salePropId && (() => {
+        const sp = properties.find(p => p.id === salePropId);
+        if (!sp) return null;
+        return <SaleSimulator property={sp} allProperties={properties} onClose={() => setSalePropId(null)} />;
+      })()}
     </div>
   );
 }

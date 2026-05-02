@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
   if (!advisor) return NextResponse.json({ error: "not_advisor" }, { status: 403 });
 
-  let body: { email?: string; fullName?: string; familyName?: string; householdId?: string };
+  let body: { email?: string; fullName?: string; familyName?: string; householdId?: string; password?: string };
   try { body = await req.json(); } catch { return NextResponse.json({ error: "bad_json" }, { status: 400 }); }
 
   const email = (body.email || "").trim().toLowerCase();
