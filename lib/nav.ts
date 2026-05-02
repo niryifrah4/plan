@@ -83,6 +83,7 @@ export const NAV_SECTIONS: NavGroup[] = [
     defaultOpen: true,
     items: [
       { id: "goals",      label: "מטרות וחזון",     href: "/goals",      icon: "flag" },
+      { id: "roadmap",    label: "מסלול חיים",      href: "/roadmap",    icon: "timeline" },
       // 2026-04-29 per Nir: /retirement merged into /pension. The simulation
       // panels live there now. Sidebar entry removed; route still exists for
       // back-compat (any deep link auto-redirects via the page itself).

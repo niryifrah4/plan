@@ -17,6 +17,7 @@ import { scopedKey } from "@/lib/client-scope";
 import { pushBlobInBackground } from "@/lib/sync/blob-sync";
 import { AllocationPie } from "@/components/charts/AllocationPie";
 import { buildSecuritiesAllocations } from "@/lib/securities-allocation";
+import { PortfolioGrowthProjector } from "@/components/investments/PortfolioGrowthProjector";
 import { PortfolioImport, type ImportedRow } from "@/components/investments/PortfolioImport";
 
 /* ─── Constants ─── */
@@ -354,6 +355,9 @@ export default function InvestmentsPage() {
           </section>
         );
       })()}
+
+      {/* ===== Future projection (2026-05-02) ===== */}
+      {totalMarket > 0 && <PortfolioGrowthProjector currentValue={totalMarket} />}
 
       {/* ===== Benchmark Models ===== */}
       <section className="card-pad mb-6">

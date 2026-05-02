@@ -23,6 +23,7 @@ import { syncOnboardingToStores } from "@/lib/onboarding-sync";
 const BudgetChart = dynamic(() => import("./BudgetChart"), { ssr: false });
 const BudgetPie = dynamic(() => import("./BudgetPie"), { ssr: false });
 const MonthlyInsights = dynamic(() => import("./MonthlyInsights"), { ssr: false });
+const CashflowForecast = dynamic(() => import("@/components/budget/CashflowForecast").then(m => m.CashflowForecast), { ssr: false });
 
 import type { BudgetAdjustment } from "./MonthlyInsights";
 import { scopedKey } from "@/lib/client-scope";
@@ -1280,6 +1281,9 @@ export default function BudgetPage() {
       {showInsights && (
         <MonthlyInsights month={month} year={year} onApply={applyInsights} />
       )}
+
+      {/* 12-month cashflow forecast (2026-05-02). */}
+      <CashflowForecast />
 
       {/* Business/personal scope toggle — removed from main page in cleanup/budget-week1.
          The feature still works for users who already enabled it; new activation will

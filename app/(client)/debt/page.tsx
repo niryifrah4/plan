@@ -8,6 +8,9 @@ import {
   effectiveTrackRate,
   type DebtData, type Loan, type Installment,
   type MortgageData, type MortgageTrack,
+} from "@/lib/debt-store";
+import { RefinanceSimulator } from "@/components/debt/RefinanceSimulator";
+import {
   type IndexationType, type RepaymentMethod,
 } from "@/lib/debt-store";
 import { useAssumptions } from "@/lib/hooks/useAssumptions";
@@ -95,6 +98,8 @@ export default function DebtPage() {
   // the values the user actually types into the track rows.
   const primeRate = assumptions.primeRate * 100;
   const [data, setData] = useState<DebtData>({ loans: [], installments: [] });
+  // Refinance simulator modal — holds the track ID being simulated.
+  const [refiTrackId, setRefiTrackId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [expandedLoans, setExpandedLoans] = useState(true);
   const [expandedInstallments, setExpandedInstallments] = useState(true);
@@ -524,7 +529,15 @@ export default function DebtPage() {
                       className="bg-transparent border-none text-[10px] font-semibold w-full focus:outline-none"
                       style={{ color: "#5a7a6a" }}
                     />
-                    {/* Delete */}
+                    {/* Refi simulator + Delete */}
+                    <button
+                      onClick={() => setRefiTrackId(track.id)}
+                      className="opacity-100 transition-opacity"
+                      style={{ color: "#1B4332" }}
+                      title="סימולציית מיחזור / פירעון מואץ"
+                    >
+                      <span className="material-symbols-outlined text-[16px] hover:text-verdant-emerald transition-colors">savings</span>
+                    </button>
                     <button
                       onClick={() => deleteMortgageTrack(track.id)}
                       className="opacity-0 group-hover:opacity-100 transition-opacity"
@@ -890,6 +903,13 @@ export default function DebtPage() {
           </div>
         )}
       </section>
+
+      {/* Refinance simulator modal — pops on row "savings" icon click. */}
+      {refiTrackId && (() => {
+        const tr = (mortgage.tracks || []).find((t: MortgageTrack) => t.id === refiTrackId);
+        if (!tr) return null;
+        return <RefinanceSimulator track={tr} onClose={() => setRefiTrackId(null)} />;
+      })()}
     </div>
   );
 }
