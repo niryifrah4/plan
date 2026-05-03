@@ -28,7 +28,7 @@ import { buildTrajectory } from "@/lib/trajectory-builder";
 import { loadProactiveInsights, totalAnnualOpportunity, type ProactiveInsight } from "@/lib/proactive-insights";
 import type { Assumptions } from "@/lib/assumptions";
 import { AssetDonut } from "@/components/charts/AssetDonut";
-import { LifeCoverageChart } from "@/components/dashboard/LifeCoverageChart";
+import { buildLifeCoverage } from "@/lib/life-coverage";
 import { useClient } from "@/lib/client-context";
 import { MacroPanel } from "@/components/MacroPanel";
 import { buildNudges, type Nudge } from "@/lib/benchmark-advice";
@@ -438,6 +438,9 @@ export default function DashboardPage() {
     });
   }, [assumptions, trajectory, pensionFunds]);
 
+  // ─── Plan Score + Missing/Surplus pieces (rendered as 3 badges in mountain header) ───
+  const lifeCoverage = useMemo(() => buildLifeCoverage(), [assumptions, buckets, totalLiabilities, assets]);
+
   // Filter trajectory by selected chart range
   const filteredTrajectory = useMemo(() => {
     if (chartRange === "max") return trajectory;
@@ -815,12 +818,6 @@ export default function DashboardPage() {
         <DepositsWidget />
       </section>
 
-      {/* ═══════ Plan Score + Missing/Surplus pieces (2026-05-03) ═══════
-          Sits right above הר העושר so the client first sees the summary
-          (one number + two pieces), then the visual trajectory underneath.
-          Goal pins on the mountain turn red when uncovered — the visual link. */}
-      <LifeCoverageChart />
-
       {/* ═══════ Zone 3 — Growth Chart (Full Width) ═══════ */}
       <section className="card-pad-lg relative overflow-hidden mb-10">
         <div className="relative">
@@ -848,6 +845,40 @@ export default function DashboardPage() {
                     FIRE · חסרים {fmtILS(Math.round(fireResult.gapToFireCapital))} הון להון עצמאי
                   </div>
                 )}
+                {/* Plan Score + Missing/Surplus — 3 compact badges */}
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <span
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold"
+                    style={{
+                      background: lifeCoverage.planScore >= 75 ? "#D6EFDC" : lifeCoverage.planScore >= 50 ? "#FEF3C7" : "#FEE2E2",
+                      color: lifeCoverage.planScore >= 75 ? "#1B4332" : lifeCoverage.planScore >= 50 ? "#92400E" : "#7F1D1D",
+                    }}
+                    title="מדד פלאן · 0-100 · גבוה=טוב יותר. משקלל כיסוי יעדים, חיסכון, חוב, וקרן חירום."
+                  >
+                    <span className="material-symbols-outlined text-[13px]">speed</span>
+                    מדד פלאן · {lifeCoverage.planScore}/100
+                  </span>
+                  {lifeCoverage.missingPiece > 0 && (
+                    <span
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold"
+                      style={{ background: "#FEE2E2", color: "#7F1D1D" }}
+                      title="ערך נוכחי של יעדים שלא יכוסו לפי המסלול הנוכחי"
+                    >
+                      <span className="material-symbols-outlined text-[13px]">remove_circle</span>
+                      חתיכה חסרה · {fmtILS(lifeCoverage.missingPiece)}
+                    </span>
+                  )}
+                  {lifeCoverage.surplusPiece > 0 && (
+                    <span
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold"
+                      style={{ background: "#FEF7E6", color: "#78350F" }}
+                      title="כסף בעו״ש מעל קרן חירום של 6 חודשים — כסף שלא עובד"
+                    >
+                      <span className="material-symbols-outlined text-[13px]">savings</span>
+                      חתיכה עודפת · {fmtILS(lifeCoverage.surplusPiece)}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-5">
