@@ -100,16 +100,18 @@ export async function middleware(request: NextRequest) {
 
   // 2026-04-29 per Nir: clients (rows in client_users) shouldn't see
   // advisor-only surfaces. Block /crm + /api/crm at the edge.
-  // Advisors are identified as the advisor_id of any household; everyone
-  // else hitting an advisor-only route is bounced to /dashboard.
+  // 2026-05-03 fix (Victor): identify advisors via the `advisors` table —
+  // NOT via "owns a household". The (client) layout uses the advisors table
+  // to send advisors to /crm; if middleware uses a different rule (households)
+  // and the advisor has zero clients, /crm bounces to /dashboard, /dashboard
+  // bounces back to /crm → infinite redirect loop.
   if (pathname.startsWith("/crm") || pathname.startsWith("/api/crm")) {
-    const { data: ownedHh } = await supabase
-      .from("households")
+    const { data: advisor } = await supabase
+      .from("advisors")
       .select("id")
-      .eq("advisor_id", user.id)
-      .limit(1)
+      .eq("id", user.id)
       .maybeSingle();
-    if (!ownedHh) {
+    if (!advisor) {
       if (pathname.startsWith("/api/")) {
         return new NextResponse(
           JSON.stringify({ error: "forbidden" }),
