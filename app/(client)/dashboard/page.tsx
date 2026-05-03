@@ -28,6 +28,7 @@ import { buildTrajectory } from "@/lib/trajectory-builder";
 import { loadProactiveInsights, totalAnnualOpportunity, type ProactiveInsight } from "@/lib/proactive-insights";
 import type { Assumptions } from "@/lib/assumptions";
 import { AssetDonut } from "@/components/charts/AssetDonut";
+import { LifeCoverageChart } from "@/components/dashboard/LifeCoverageChart";
 import { useClient } from "@/lib/client-context";
 import { MacroPanel } from "@/components/MacroPanel";
 import { buildNudges, type Nudge } from "@/lib/benchmark-advice";
@@ -595,6 +596,13 @@ export default function DashboardPage() {
       )}
 
       {/* Page header removed 2026-04-28 per Nir's request. */}
+
+      {/* ═══════ Life Coverage Chart + Plan Score (2026-05-03) ═══════
+          Plangram-inspired flagship: one chart shows the entire life path,
+          one number (0-100) summarizes financial health, two KPIs show the
+          missing/surplus pieces. Mounted FIRST so the client sees their
+          big picture before drilling into any detail panel. */}
+      <LifeCoverageChart />
 
       {/* ── Monthly deposits banner — gentle nudge to confirm planned deposits ── */}
       {!depositsBannerDismissed && depositsPending.count > 0 && (
