@@ -811,7 +811,7 @@ export default function GoalsPage() {
 
               {/* Row 4: 4 key numbers */}
               <div className="px-7 pb-5 border-t pt-4" style={{ borderColor: "#eef2e8" }}>
-                <div className="grid grid-cols-4 gap-5">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
                   <div>
                     <div className="text-[10px] font-bold text-verdant-muted mb-1">הפקדה חודשית</div>
                     <div className="text-[14px] font-extrabold tabular-nums text-verdant-ink">

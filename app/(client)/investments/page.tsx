@@ -70,6 +70,10 @@ function saveSecurities(secs: SecurityRow[]) {
   try {
     localStorage.setItem(scopedKey(SECURITIES_KEY), JSON.stringify(secs));
     pushBlobInBackground("securities", secs);
+    // 2026-05-03 fix (Victor): notify dashboard + balance to recalc.
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("verdant:investments:updated"));
+    }
   } catch {}
 }
 

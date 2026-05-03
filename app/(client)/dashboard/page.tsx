@@ -5,7 +5,7 @@ import Link from "next/link";
 import { fmtILS, fmtPct } from "@/lib/format";
 import { savingsRate as calcSavingsRate } from "@/lib/financial-math";
 import type { CashflowSummary } from "@/types/db";
-import { getTotalLiabilities } from "@/lib/debt-store";
+import { getTotalLiabilities, loadDebtData } from "@/lib/debt-store";
 import { syncOnboardingToStores } from "@/lib/onboarding-sync";
 import { buildBudgetLines, totalBudget, deriveMonthlyIncomeFromBudget, deriveMonthlyExpensesFromBudget } from "@/lib/budget-store";
 import { loadProperties } from "@/lib/realestate-store";
@@ -218,6 +218,10 @@ export default function DashboardPage() {
     window.addEventListener(ACCOUNTS_EVENT, reload);
     window.addEventListener(KIDS_SAVINGS_EVENT, reload);
     window.addEventListener(SALARY_PROFILE_EVENT, reload);
+    // 2026-05-03 fix (Victor): budget/goals updates were missing — dashboard
+    // showed stale income/expenses + goal pins.
+    window.addEventListener("verdant:budgets:updated", reload);
+    window.addEventListener("verdant:goals:updated", reload);
     return () => {
       window.removeEventListener("storage", reload);
       window.removeEventListener("verdant:assumptions", reload);
@@ -228,6 +232,8 @@ export default function DashboardPage() {
       window.removeEventListener(ACCOUNTS_EVENT, reload);
       window.removeEventListener(KIDS_SAVINGS_EVENT, reload);
       window.removeEventListener(SALARY_PROFILE_EVENT, reload);
+      window.removeEventListener("verdant:budgets:updated", reload);
+      window.removeEventListener("verdant:goals:updated", reload);
     };
   }, [clientId]);
 
@@ -298,7 +304,13 @@ export default function DashboardPage() {
   const totalAssets = assets.reduce((a, x) => a + x.balance, 0);
   const reMortgageTotal = reProperties.reduce((s, p) => s + (p.mortgageBalance ?? 0), 0);
   const creditCharges = totalCreditCharges(accounts);
-  const totalLiabilities = realLiab + reMortgageTotal + creditCharges;
+  // 2026-05-03 fix (Victor): same mortgage entered in BOTH debt-store and
+  // realestate-store was double-counted in dashboard NW (WealthTab already
+  // dedups via reMortgageExtra; dashboard didn't). Aligned the logic.
+  const debtMortgageOnly = (loadDebtData().mortgage?.tracks || [])
+    .reduce((s, t) => s + (t.remainingBalance || 0), 0);
+  const reMortgageExtra = Math.max(0, reMortgageTotal - debtMortgageOnly);
+  const totalLiabilities = realLiab + reMortgageExtra + creditCharges;
   const netWorthVal = totalAssets - totalLiabilities;
   const latestGap = cashflow[0]?.cashflow_gap ?? 0;
   const latestIncome = cashflow[0]?.income_total ?? 0;
@@ -680,7 +692,7 @@ export default function DashboardPage() {
       })()}
 
       {/* ═══════ Zone 1 + Zone 2 — Two Cards Side by Side ═══════ */}
-      <section className="grid grid-cols-2 gap-6 mb-10">
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
 
         {/* Zone 1 — Monthly Cashflow */}
         <Link

@@ -79,7 +79,7 @@ export default function RoadmapPage() {
         <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-verdant-muted mb-3">
           צפי הון נטו לאורך השנים
         </div>
-        <div className="grid gap-1 items-end" style={{ gridTemplateColumns: `repeat(${netWorthSeries.length}, 1fr)`, minHeight: 100 }}>
+        <div className="grid gap-1 items-end overflow-x-auto" style={{ gridTemplateColumns: `repeat(${netWorthSeries.length}, minmax(14px, 1fr))`, minHeight: 100 }}>
           {netWorthSeries.map((p, idx) => {
             const heightPct = (p.netWorth / nwMax) * 100;
             const isRetirement = retirementYear !== null && p.year === retirementYear;
@@ -98,7 +98,7 @@ export default function RoadmapPage() {
           })}
         </div>
         <div className="grid gap-1 text-[9px] text-verdant-muted text-center mt-1"
-             style={{ gridTemplateColumns: `repeat(${netWorthSeries.length}, 1fr)` }}>
+             style={{ gridTemplateColumns: `repeat(${netWorthSeries.length}, minmax(14px, 1fr))` }}>
           {netWorthSeries.map(p => (
             <div key={`l${p.year}`} style={{ color: p.year === retirementYear ? "#B45309" : undefined, fontWeight: p.year === retirementYear ? 700 : undefined }}>
               {p.year % 2 === 0 ? p.year : ""}

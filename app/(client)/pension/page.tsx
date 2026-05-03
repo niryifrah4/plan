@@ -358,7 +358,7 @@ export default function PensionPage() {
         const jointTotal = funds.filter(f => f.owner === "joint").reduce((s, f) => s + f.balance, 0);
         if (!names.hasB && bTotal === 0 && jointTotal === 0) return null;
         return (
-          <section className={`grid grid-cols-${jointTotal > 0 ? 3 : 2} gap-3 mb-6`}>
+          <section className={`grid grid-cols-1 sm:grid-cols-2 ${jointTotal > 0 ? "lg:grid-cols-3" : ""} gap-3 mb-6`}>
             <SolidKpi label={`כמה יש ל${names.a}`} value={fmtILS(aTotal)} icon="person" tone="forest" />
             <SolidKpi label={`כמה יש ל${names.b}`} value={fmtILS(bTotal)} icon="person" tone="emerald" />
             {jointTotal > 0 && (

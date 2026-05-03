@@ -554,7 +554,7 @@ export default function RealEstatePage() {
       </div>
 
       {/* ── 2. KPI Row ── */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         {kpis.map((k) => {
           const tone: KpiTone =
             k.color === "#1B4332" ? "emerald" :
