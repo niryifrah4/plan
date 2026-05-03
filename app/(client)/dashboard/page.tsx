@@ -597,13 +597,6 @@ export default function DashboardPage() {
 
       {/* Page header removed 2026-04-28 per Nir's request. */}
 
-      {/* ═══════ Life Coverage Chart + Plan Score (2026-05-03) ═══════
-          Plangram-inspired flagship: one chart shows the entire life path,
-          one number (0-100) summarizes financial health, two KPIs show the
-          missing/surplus pieces. Mounted FIRST so the client sees their
-          big picture before drilling into any detail panel. */}
-      <LifeCoverageChart />
-
       {/* ── Monthly deposits banner — gentle nudge to confirm planned deposits ── */}
       {!depositsBannerDismissed && depositsPending.count > 0 && (
         <div
@@ -821,6 +814,12 @@ export default function DashboardPage() {
       <section className="mb-10">
         <DepositsWidget />
       </section>
+
+      {/* ═══════ Plan Score + Missing/Surplus pieces (2026-05-03) ═══════
+          Sits right above הר העושר so the client first sees the summary
+          (one number + two pieces), then the visual trajectory underneath.
+          Goal pins on the mountain turn red when uncovered — the visual link. */}
+      <LifeCoverageChart />
 
       {/* ═══════ Zone 3 — Growth Chart (Full Width) ═══════ */}
       <section className="card-pad-lg relative overflow-hidden mb-10">
@@ -1094,17 +1093,34 @@ export default function DashboardPage() {
                 const stack = yearCounts[idx] || 0;
                 yearCounts[idx] = stack + 1;
                 const pinY = Math.max(CHART_PAD_TOP + 8, y - 18 - stack * 18);
-                const color = bucket.color || "#B45309";
+                // 2026-05-03: red pin when goal is unfundable.
+                // A goal is "uncovered" if the projected NW at that year is
+                // less than the remaining target (target - already saved).
+                const remaining = Math.max(0, (bucket.targetAmount || 0) - (bucket.currentAmount || 0));
+                const projectedNW = chartData[idx].total;
+                const isCovered = projectedNW >= remaining;
+                const color = isCovered ? (bucket.color || "#B45309") : "#8B2E2E";
+                const gap = isCovered ? 0 : Math.round(remaining - projectedNW);
                 return (
                   <g key={bucket.id}>
                     {/* Dotted vertical connector */}
-                    <line x1={x} x2={x} y1={pinY + 6} y2={y} stroke={color} strokeDasharray="2 2" strokeWidth="1" opacity="0.4" />
-                    {/* Pin head */}
-                    <circle cx={x} cy={pinY} r="7" fill={color} opacity="0.18" />
+                    <line x1={x} x2={x} y1={pinY + 6} y2={y} stroke={color} strokeDasharray="2 2" strokeWidth="1" opacity={isCovered ? 0.4 : 0.7} />
+                    {/* Pin head — red ring + inner cross when uncovered */}
+                    <circle cx={x} cy={pinY} r="7" fill={color} opacity={isCovered ? 0.18 : 0.28} />
                     <circle cx={x} cy={pinY} r="4" fill={color} />
-                    <circle cx={x} cy={pinY} r="1.5" fill="#ffffff" />
-                    {/* Bucket name — rotated for readability, truncated */}
-                    <title>{bucket.name} · {bucket.targetDate} · יעד {fmtILS(Math.round(bucket.targetAmount))}</title>
+                    {isCovered
+                      ? <circle cx={x} cy={pinY} r="1.5" fill="#ffffff" />
+                      : (
+                        <g stroke="#ffffff" strokeWidth="1.2" strokeLinecap="round">
+                          <line x1={x - 2} y1={pinY - 2} x2={x + 2} y2={pinY + 2} />
+                          <line x1={x - 2} y1={pinY + 2} x2={x + 2} y2={pinY - 2} />
+                        </g>
+                      )
+                    }
+                    <title>
+                      {bucket.name} · {bucket.targetDate} · יעד {fmtILS(Math.round(bucket.targetAmount))}
+                      {!isCovered && ` · חוסר ${fmtILS(gap)}`}
+                    </title>
                   </g>
                 );
               });
