@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { logEnvStatus } from "@/lib/env";
 
@@ -8,6 +8,18 @@ if (typeof window === "undefined") logEnvStatus();
 export const metadata: Metadata = {
   title: "פלאן · מערכת לתכנון פיננסי",
   description: "פלאן — מערכת לתכנון פיננסי ללקוח",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "פלאן",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: "#012D1D",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
