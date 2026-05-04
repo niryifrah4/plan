@@ -26,7 +26,7 @@ import {
   totalDeficitContribution,
   BucketProjection,
   BucketRecommendation,
-} from "@/lib/buckets-rebalancing";
+} from "@shared/buckets-rebalancing";
 import { MonthlyCheckIn, hasCheckedInThisMonth } from "@/components/MonthlyCheckIn";
 import { KidsSavingsSection } from "@/components/KidsSavingsSection";
 import { syncOnboardingToStores } from "@/lib/onboarding-sync";
@@ -44,28 +44,42 @@ import { type Scope, SCOPE_LABELS, SCOPE_COLORS, cycleScope } from "@/lib/scope-
 /* ═══════════════════════════════════════════════════════════ */
 
 const GOAL_ICONS: Record<string, string> = {
-  "קרן חירום": "savings", "חינוך": "school", "חינוך ילדים": "school", "לימודים": "school",
-  "רכב": "directions_car", "החלפת רכב": "directions_car",
-  "דירה": "home", "שדרוג דיור": "home", "רכישת דירה": "home",
-  "חתונה": "favorite", "חופשה": "flight_takeoff",
-  "פרישה": "elderly", "פרישה מוקדמת": "elderly",
-  "עסק": "storefront", "פתיחת עסק": "storefront", "default": "flag",
+  "קרן חירום": "savings",
+  חינוך: "school",
+  "חינוך ילדים": "school",
+  לימודים: "school",
+  רכב: "directions_car",
+  "החלפת רכב": "directions_car",
+  דירה: "home",
+  "שדרוג דיור": "home",
+  "רכישת דירה": "home",
+  חתונה: "favorite",
+  חופשה: "flight_takeoff",
+  פרישה: "elderly",
+  "פרישה מוקדמת": "elderly",
+  עסק: "storefront",
+  "פתיחת עסק": "storefront",
+  default: "flag",
 };
 
 const PRIORITY_COLORS: Record<BucketPriority, { bg: string; text: string }> = {
-  high:   { bg: "#8B2E2E10", text: "#8B2E2E" },
+  high: { bg: "#8B2E2E10", text: "#8B2E2E" },
   medium: { bg: "#B4530910", text: "#B45309" },
-  low:    { bg: "#1B433210", text: "#1B4332" },
+  low: { bg: "#1B433210", text: "#1B4332" },
 };
-const PRIORITY_LABELS: Record<BucketPriority, string> = { high: "גבוהה", medium: "בינונית", low: "נמוכה" };
+const PRIORITY_LABELS: Record<BucketPriority, string> = {
+  high: "גבוהה",
+  medium: "בינונית",
+  low: "נמוכה",
+};
 const PRIORITY_ORDER: Record<BucketPriority, number> = { high: 0, medium: 1, low: 2 };
 
 /* Status → color + label (aligned to Botanical brand palette) */
 const STATUS_COLOR: Record<string, string> = {
-  ahead:    "#1B4332", // forest
+  ahead: "#1B4332", // forest
   on_track: "#2B694D", // emerald
-  behind:   "#B45309", // amber
-  at_risk:  "#8B2E2E", // deep red
+  behind: "#B45309", // amber
+  at_risk: "#8B2E2E", // deep red
 };
 const STATUS_LABEL: Record<string, string> = {
   ahead: "מקדים",
@@ -75,45 +89,214 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 /* Instruments catalog (kept from previous version — used for tax context) */
-const INSTRUMENTS: Record<string, { label: string; rate: number; horizon: string; taxNote: string; category: string }> = {
-  "pension":            { label: "קרן פנסיה", rate: 0.05, horizon: "long", taxNote: "פטור ממס על קצבה עד תקרה. הפקדות מוכרות כניכוי/זיכוי מס.", category: "פנסיוני" },
-  "managers-insurance": { label: "ביטוח מנהלים", rate: 0.045, horizon: "long", taxNote: "דמי ניהול גבוהים יותר מפנסיה. פטור ממס על קצבה עד תקרה.", category: "פנסיוני" },
-  "gemel-savings":      { label: "קופת גמל לחיסכון", rate: 0.05, horizon: "long", taxNote: "משיכה כקצבה — פטור. משיכה הונית אחרי 60 — 25% מס רווחי הון.", category: "פנסיוני" },
-  "gemel-invest":       { label: "קופת גמל להשקעה", rate: 0.055, horizon: "medium", taxNote: "25% מס רווחי הון. נזילה אחרי 15 שנה ללא מס, או בכל עת עם מס.", category: "פנסיוני" },
-  "gemel-child":        { label: "קופת גמל לילד", rate: 0.05, horizon: "long", taxNote: "פטור ממס רווחי הון עד גיל 18. אחרי 18 — 25% מס.", category: "פנסיוני" },
-  "hishtalmut":         { label: "קרן השתלמות", rate: 0.05, horizon: "medium", taxNote: "פטור מלא ממס רווחי הון אחרי 6 שנים (3 לגיל 60+). עד תקרת הפקדה.", category: "חיסכון מוטה מס" },
-  "savings-policy":     { label: "פוליסת חיסכון", rate: 0.04, horizon: "medium", taxNote: "25% מס רווחי הון. ללא דמי ניהול מההפקדה (רק מהצבירה).", category: "חיסכון מוטה מס" },
-  "etf-israel":         { label: "קרן סל ישראלית", rate: 0.06, horizon: "medium", taxNote: "25% מס רווחי הון.", category: "תיק השקעות עצמאי" },
-  "etf-global":         { label: "קרן סל עולמית (S&P 500 וכו׳)", rate: 0.08, horizon: "long", taxNote: "25% מס רווחי הון. חשיפה למט\"ח.", category: "תיק השקעות עצמאי" },
-  "mutual-fund":        { label: "קרן נאמנות", rate: 0.055, horizon: "medium", taxNote: "25% מס רווחי הון. דמי ניהול משתנים.", category: "תיק השקעות עצמאי" },
-  "money-market":       { label: "קרן כספית", rate: 0.04, horizon: "short", taxNote: "25% מס רווחי הון. נזילות מיידית.", category: "נזיל" },
-  "bank-deposit":       { label: "פיקדון בנקאי", rate: 0.035, horizon: "short", taxNote: "15% מס על ריבית.", category: "נזיל" },
-  "bank-savings":       { label: "תוכנית חיסכון בנקאית", rate: 0.038, horizon: "short", taxNote: "15% מס. נעול לתקופה קבועה.", category: "נזיל" },
+const INSTRUMENTS: Record<
+  string,
+  { label: string; rate: number; horizon: string; taxNote: string; category: string }
+> = {
+  pension: {
+    label: "קרן פנסיה",
+    rate: 0.05,
+    horizon: "long",
+    taxNote: "פטור ממס על קצבה עד תקרה. הפקדות מוכרות כניכוי/זיכוי מס.",
+    category: "פנסיוני",
+  },
+  "managers-insurance": {
+    label: "ביטוח מנהלים",
+    rate: 0.045,
+    horizon: "long",
+    taxNote: "דמי ניהול גבוהים יותר מפנסיה. פטור ממס על קצבה עד תקרה.",
+    category: "פנסיוני",
+  },
+  "gemel-savings": {
+    label: "קופת גמל לחיסכון",
+    rate: 0.05,
+    horizon: "long",
+    taxNote: "משיכה כקצבה — פטור. משיכה הונית אחרי 60 — 25% מס רווחי הון.",
+    category: "פנסיוני",
+  },
+  "gemel-invest": {
+    label: "קופת גמל להשקעה",
+    rate: 0.055,
+    horizon: "medium",
+    taxNote: "25% מס רווחי הון. נזילה אחרי 15 שנה ללא מס, או בכל עת עם מס.",
+    category: "פנסיוני",
+  },
+  "gemel-child": {
+    label: "קופת גמל לילד",
+    rate: 0.05,
+    horizon: "long",
+    taxNote: "פטור ממס רווחי הון עד גיל 18. אחרי 18 — 25% מס.",
+    category: "פנסיוני",
+  },
+  hishtalmut: {
+    label: "קרן השתלמות",
+    rate: 0.05,
+    horizon: "medium",
+    taxNote: "פטור מלא ממס רווחי הון אחרי 6 שנים (3 לגיל 60+). עד תקרת הפקדה.",
+    category: "חיסכון מוטה מס",
+  },
+  "savings-policy": {
+    label: "פוליסת חיסכון",
+    rate: 0.04,
+    horizon: "medium",
+    taxNote: "25% מס רווחי הון. ללא דמי ניהול מההפקדה (רק מהצבירה).",
+    category: "חיסכון מוטה מס",
+  },
+  "etf-israel": {
+    label: "קרן סל ישראלית",
+    rate: 0.06,
+    horizon: "medium",
+    taxNote: "25% מס רווחי הון.",
+    category: "תיק השקעות עצמאי",
+  },
+  "etf-global": {
+    label: "קרן סל עולמית (S&P 500 וכו׳)",
+    rate: 0.08,
+    horizon: "long",
+    taxNote: '25% מס רווחי הון. חשיפה למט"ח.',
+    category: "תיק השקעות עצמאי",
+  },
+  "mutual-fund": {
+    label: "קרן נאמנות",
+    rate: 0.055,
+    horizon: "medium",
+    taxNote: "25% מס רווחי הון. דמי ניהול משתנים.",
+    category: "תיק השקעות עצמאי",
+  },
+  "money-market": {
+    label: "קרן כספית",
+    rate: 0.04,
+    horizon: "short",
+    taxNote: "25% מס רווחי הון. נזילות מיידית.",
+    category: "נזיל",
+  },
+  "bank-deposit": {
+    label: "פיקדון בנקאי",
+    rate: 0.035,
+    horizon: "short",
+    taxNote: "15% מס על ריבית.",
+    category: "נזיל",
+  },
+  "bank-savings": {
+    label: "תוכנית חיסכון בנקאית",
+    rate: 0.038,
+    horizon: "short",
+    taxNote: "15% מס. נעול לתקופה קבועה.",
+    category: "נזיל",
+  },
 };
 
 const INSTRUMENT_CATEGORIES = ["פנסיוני", "חיסכון מוטה מס", "תיק השקעות עצמאי", "נזיל"];
 
 function instrumentsByCategory() {
-  return INSTRUMENT_CATEGORIES.map(cat => ({
+  return INSTRUMENT_CATEGORIES.map((cat) => ({
     category: cat,
     items: Object.entries(INSTRUMENTS)
       .filter(([, v]) => v.category === cat)
       .map(([k, v]) => ({ key: k, label: v.label })),
-  })).filter(g => g.items.length > 0);
+  })).filter((g) => g.items.length > 0);
 }
 
 /* Presets for quickly creating new buckets */
-const BUCKET_PRESETS: { name: string; icon: string; targetAmount: number; years: number; priority: BucketPriority; instrument: string; color: string }[] = [
-  { name: "רכישת דירה",   icon: "home",            targetAmount: 500000,  years: 7,  priority: "high",   instrument: "etf-global",    color: "#2563eb" },
-  { name: "החלפת רכב",    icon: "directions_car",  targetAmount: 150000,  years: 3,  priority: "medium", instrument: "money-market",  color: "#d97706" },
-  { name: "חינוך ילדים",  icon: "school",          targetAmount: 200000,  years: 10, priority: "medium", instrument: "hishtalmut",    color: "#16a34a" },
-  { name: "חתונה",         icon: "favorite",        targetAmount: 80000,   years: 2,  priority: "high",   instrument: "bank-savings",  color: "#be185d" },
-  { name: "חופשה",         icon: "flight_takeoff",  targetAmount: 25000,   years: 1,  priority: "low",    instrument: "money-market",  color: "#0891b2" },
-  { name: "טיול גדול",     icon: "luggage",         targetAmount: 60000,   years: 2,  priority: "low",    instrument: "money-market",  color: "#7c3aed" },
-  { name: "לימודים",       icon: "school",          targetAmount: 120000,  years: 3,  priority: "medium", instrument: "bank-savings",  color: "#0284c7" },
-  { name: "קרן חירום",     icon: "savings",         targetAmount: 80000,   years: 1,  priority: "high",   instrument: "bank-deposit",  color: "#dc2626" },
-  { name: "פרישה מוקדמת",  icon: "elderly",         targetAmount: 3000000, years: 25, priority: "medium", instrument: "gemel-invest",  color: "#4338ca" },
-  { name: "פתיחת עסק",    icon: "storefront",      targetAmount: 300000,  years: 5,  priority: "medium", instrument: "etf-global",    color: "#0f766e" },
+const BUCKET_PRESETS: {
+  name: string;
+  icon: string;
+  targetAmount: number;
+  years: number;
+  priority: BucketPriority;
+  instrument: string;
+  color: string;
+}[] = [
+  {
+    name: "רכישת דירה",
+    icon: "home",
+    targetAmount: 500000,
+    years: 7,
+    priority: "high",
+    instrument: "etf-global",
+    color: "#2563eb",
+  },
+  {
+    name: "החלפת רכב",
+    icon: "directions_car",
+    targetAmount: 150000,
+    years: 3,
+    priority: "medium",
+    instrument: "money-market",
+    color: "#d97706",
+  },
+  {
+    name: "חינוך ילדים",
+    icon: "school",
+    targetAmount: 200000,
+    years: 10,
+    priority: "medium",
+    instrument: "hishtalmut",
+    color: "#16a34a",
+  },
+  {
+    name: "חתונה",
+    icon: "favorite",
+    targetAmount: 80000,
+    years: 2,
+    priority: "high",
+    instrument: "bank-savings",
+    color: "#be185d",
+  },
+  {
+    name: "חופשה",
+    icon: "flight_takeoff",
+    targetAmount: 25000,
+    years: 1,
+    priority: "low",
+    instrument: "money-market",
+    color: "#0891b2",
+  },
+  {
+    name: "טיול גדול",
+    icon: "luggage",
+    targetAmount: 60000,
+    years: 2,
+    priority: "low",
+    instrument: "money-market",
+    color: "#7c3aed",
+  },
+  {
+    name: "לימודים",
+    icon: "school",
+    targetAmount: 120000,
+    years: 3,
+    priority: "medium",
+    instrument: "bank-savings",
+    color: "#0284c7",
+  },
+  {
+    name: "קרן חירום",
+    icon: "savings",
+    targetAmount: 80000,
+    years: 1,
+    priority: "high",
+    instrument: "bank-deposit",
+    color: "#dc2626",
+  },
+  {
+    name: "פרישה מוקדמת",
+    icon: "elderly",
+    targetAmount: 3000000,
+    years: 25,
+    priority: "medium",
+    instrument: "gemel-invest",
+    color: "#4338ca",
+  },
+  {
+    name: "פתיחת עסק",
+    icon: "storefront",
+    targetAmount: 300000,
+    years: 5,
+    priority: "medium",
+    instrument: "etf-global",
+    color: "#0f766e",
+  },
 ];
 
 /* ═══════════════════════════════════════════════════════════ */
@@ -129,7 +312,20 @@ function getIcon(name: string): string {
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
-  const months = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+  const months = [
+    "ינואר",
+    "פברואר",
+    "מרץ",
+    "אפריל",
+    "מאי",
+    "יוני",
+    "יולי",
+    "אוגוסט",
+    "ספטמבר",
+    "אוקטובר",
+    "נובמבר",
+    "דצמבר",
+  ];
   return `${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 
@@ -157,19 +353,30 @@ function taxRecommendation(years: number, amount: number): string | null {
 /* Grouped Instrument Select                                     */
 /* ═══════════════════════════════════════════════════════════ */
 
-function InstrumentSelect({ value, onChange, className, style }: {
+function InstrumentSelect({
+  value,
+  onChange,
+  className,
+  style,
+}: {
   value: string;
   onChange: (key: string) => void;
   className?: string;
   style?: React.CSSProperties;
 }) {
   return (
-    <select value={value} onChange={e => onChange(e.target.value)}
-      className={className} style={style}>
-      {instrumentsByCategory().map(g => (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={className}
+      style={style}
+    >
+      {instrumentsByCategory().map((g) => (
         <optgroup key={g.category} label={g.category}>
-          {g.items.map(item => (
-            <option key={item.key} value={item.key}>{item.label}</option>
+          {g.items.map((item) => (
+            <option key={item.key} value={item.key}>
+              {item.label}
+            </option>
           ))}
         </optgroup>
       ))}
@@ -205,20 +412,22 @@ function RecommendationCard({ rec, color }: { rec: BucketRecommendation; color: 
 
   return (
     <div
-      className="p-4 rounded-xl"
+      className="rounded-xl p-4"
       style={{
         background: bgMap[rec.type] || "#f9faf2",
         border: `1px solid ${borderMap[rec.type] || "#d8e0d0"}`,
       }}
     >
-      <div className="text-[12px] font-extrabold mb-1.5" style={{ color: textMap[rec.type] }}>
+      <div className="mb-1.5 text-[12px] font-extrabold" style={{ color: textMap[rec.type] }}>
         {rec.title}
       </div>
       <div className="text-[11px] font-bold leading-relaxed" style={{ color: textMap[rec.type] }}>
         {rec.message}
       </div>
-      <div className="text-[9px] font-bold mt-2 opacity-70" style={{ color: textMap[rec.type] }}>
-        {rec.confidence === "high" ? "מבוסס על תשואה בפועל" : "מבוסס על תשואה צפויה — יתעדכן כשיהיה מידע אמיתי"}
+      <div className="mt-2 text-[9px] font-bold opacity-70" style={{ color: textMap[rec.type] }}>
+        {rec.confidence === "high"
+          ? "מבוסס על תשואה בפועל"
+          : "מבוסס על תשואה צפויה — יתעדכן כשיהיה מידע אמיתי"}
       </div>
     </div>
   );
@@ -263,11 +472,16 @@ function buildAssetValueLookup(): (type: AssetType, id: string) => number {
   } catch {}
   return (type, id) => {
     switch (type) {
-      case "security":   return secIndex.get(id) ?? 0;
-      case "realestate": return reIndex.get(id) ?? 0;
-      case "pension":    return penIndex.get(id) ?? 0;
-      case "cash":       return 0; // cash linking comes in Phase 2
-      default:           return 0;
+      case "security":
+        return secIndex.get(id) ?? 0;
+      case "realestate":
+        return reIndex.get(id) ?? 0;
+      case "pension":
+        return penIndex.get(id) ?? 0;
+      case "cash":
+        return 0; // cash linking comes in Phase 2
+      default:
+        return 0;
     }
   };
 }
@@ -296,7 +510,10 @@ export default function GoalsPage() {
   // Banner logic: grace period of 14 days after the user's FIRST goal.
   // Then show once per month, and not within 30 days of being dismissed.
   useEffect(() => {
-    if (buckets.length === 0) { setNeedsCheckIn(false); return; }
+    if (buckets.length === 0) {
+      setNeedsCheckIn(false);
+      return;
+    }
     const shouldShow = (() => {
       // 14-day grace from the oldest goal's creation
       const oldest = buckets.reduce((min, b) => {
@@ -322,7 +539,7 @@ export default function GoalsPage() {
     const refresh = () => {
       setBuckets(loadBuckets());
       setLinks(loadLinks());
-      setAssetLookupVersion(v => v + 1);
+      setAssetLookupVersion((v) => v + 1);
     };
     const unsubGoals = onSync("verdant:goals:updated", refresh);
     const unsubInv = onSync("verdant:investments:updated", refresh);
@@ -343,7 +560,7 @@ export default function GoalsPage() {
 
   // Effective buckets — currentAmount = linked assets + initialCash.
   const effectiveBuckets = useMemo<Bucket[]>(() => {
-    return buckets.map(b => {
+    return buckets.map((b) => {
       const linkedAmount = computeGoalAmountFromLinks(b.id, assetLookup, links).total;
       const ic = b.initialCash ?? 0;
       return { ...b, currentAmount: linkedAmount + ic };
@@ -374,8 +591,8 @@ export default function GoalsPage() {
 
   // Sorted: priority first, then by target date
   const sorted = useMemo(() => {
-    const bucketsWithProj = effectiveBuckets.map(b => {
-      const proj = projections.find(p => p.bucketId === b.id)!;
+    const bucketsWithProj = effectiveBuckets.map((b) => {
+      const proj = projections.find((p) => p.bucketId === b.id)!;
       return { bucket: b, proj };
     });
     return [...bucketsWithProj].sort((a, b) => {
@@ -394,76 +611,87 @@ export default function GoalsPage() {
 
   /* ── CRUD ──────────────────────────────────── */
 
-  const addBucket = useCallback((input: {
-    name: string;
-    targetAmount: number;
-    targetDate: string;
-    currentAmount: number;
-    monthlyContribution: number;
-    expectedAnnualReturn: number;
-    priority: BucketPriority;
-    fundingSource?: string;
-    color?: string;
-    scope?: Scope;
-    initialCash?: number;
-  }) => {
-    const bucket = createBucket({
-      ...input,
-      icon: getIcon(input.name),
-      color: input.color || pickColor(input.name + Date.now()),
-    });
-    if (input.scope) bucket.scope = input.scope;
-    setBuckets(prev => [...prev, bucket]);
-    pulse();
-    setShowAddForm(false);
-  }, [pulse]);
+  const addBucket = useCallback(
+    (input: {
+      name: string;
+      targetAmount: number;
+      targetDate: string;
+      currentAmount: number;
+      monthlyContribution: number;
+      expectedAnnualReturn: number;
+      priority: BucketPriority;
+      fundingSource?: string;
+      color?: string;
+      scope?: Scope;
+      initialCash?: number;
+    }) => {
+      const bucket = createBucket({
+        ...input,
+        icon: getIcon(input.name),
+        color: input.color || pickColor(input.name + Date.now()),
+      });
+      if (input.scope) bucket.scope = input.scope;
+      setBuckets((prev) => [...prev, bucket]);
+      pulse();
+      setShowAddForm(false);
+    },
+    [pulse]
+  );
 
-  const updateBucketById = useCallback((id: string, patch: Partial<Bucket>) => {
-    setBuckets(prev => updateBucket(prev, id, {
-      ...patch,
-      icon: patch.name ? getIcon(patch.name) : undefined,
-    }));
-    pulse();
-    setEditingId(null);
-  }, [pulse]);
+  const updateBucketById = useCallback(
+    (id: string, patch: Partial<Bucket>) => {
+      setBuckets((prev) =>
+        updateBucket(prev, id, {
+          ...patch,
+          icon: patch.name ? getIcon(patch.name) : undefined,
+        })
+      );
+      pulse();
+      setEditingId(null);
+    },
+    [pulse]
+  );
 
-  const deleteBucket = useCallback((id: string) => {
-    if (!confirm("למחוק את הקופה? פעולה זו בלתי הפיכה.")) return;
-    setBuckets(prev => removeBucket(prev, id));
-    pulse();
-  }, [pulse]);
+  const deleteBucket = useCallback(
+    (id: string) => {
+      if (!confirm("למחוק את הקופה? פעולה זו בלתי הפיכה.")) return;
+      setBuckets((prev) => removeBucket(prev, id));
+      pulse();
+    },
+    [pulse]
+  );
 
   /* ═══════ RENDER ═══════ */
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto py-20 text-center text-verdant-muted text-[13px] font-bold">
+      <div className="mx-auto max-w-4xl py-20 text-center text-[13px] font-bold text-verdant-muted">
         טוען קופות...
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto" style={{ fontFamily: "'Assistant', sans-serif" }}>
+    <div className="mx-auto max-w-4xl" style={{ fontFamily: "'Assistant', sans-serif" }}>
       <PageHeader
         subtitle="Plan · מטרות ויעדים"
         title="המטרות והיעדים שלי"
         description="הגדרת מטרות חיים וצביעת הכסף אליהן — כדי לדעת לאן אנחנו הולכים"
       />
       {/* אינדיקטור שמירה */}
-      <div className="flex justify-end -mt-4 mb-3 min-h-[18px]">
+      <div className="-mt-4 mb-3 flex min-h-[18px] justify-end">
         <SaveStatus status={saveStatus} />
       </div>
 
       {/* ═══════ Monthly check-in banner ═══════ */}
       {buckets.length > 0 && needsCheckIn && (
         <section
-          className="rounded-2xl p-5 mb-6 flex items-center justify-between gap-4"
+          className="mb-6 flex items-center justify-between gap-4 rounded-2xl p-5"
           style={{ background: "#fffbea", border: "1px solid #fde68a" }}
         >
           <div className="flex items-center gap-4">
             <div
-              className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
               style={{ background: "#f59e0b20" }}
             >
               <span className="material-symbols-outlined text-[24px]" style={{ color: "#b45309" }}>
@@ -481,10 +709,12 @@ export default function GoalsPage() {
           </div>
           <button
             onClick={() => {
-              try { localStorage.setItem(scopedKey(GOALS_CHECKIN_KEY), String(Date.now())); } catch {}
+              try {
+                localStorage.setItem(scopedKey(GOALS_CHECKIN_KEY), String(Date.now()));
+              } catch {}
               setCheckInOpen(true);
             }}
-            className="px-5 py-2.5 rounded-xl text-[12px] font-extrabold text-white transition-colors hover:opacity-90 shrink-0"
+            className="shrink-0 rounded-xl px-5 py-2.5 text-[12px] font-extrabold text-white transition-colors hover:opacity-90"
             style={{ background: "#b45309" }}
           >
             התחל check-in
@@ -495,12 +725,16 @@ export default function GoalsPage() {
       <MonthlyCheckIn
         open={checkInOpen}
         onClose={() => {
-          try { localStorage.setItem(scopedKey(GOALS_CHECKIN_KEY), String(Date.now())); } catch {}
+          try {
+            localStorage.setItem(scopedKey(GOALS_CHECKIN_KEY), String(Date.now()));
+          } catch {}
           setCheckInOpen(false);
           setNeedsCheckIn(false);
         }}
         onDone={() => {
-          try { localStorage.setItem(scopedKey(GOALS_CHECKIN_KEY), String(Date.now())); } catch {}
+          try {
+            localStorage.setItem(scopedKey(GOALS_CHECKIN_KEY), String(Date.now()));
+          } catch {}
           setBuckets(loadBuckets());
           setNeedsCheckIn(false);
         }}
@@ -546,10 +780,12 @@ export default function GoalsPage() {
 
       {/* ═══════ Add Button — only when there ARE buckets ═══════ */}
       {buckets.length > 0 && (
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <div />
-          <button onClick={() => setShowAddForm(true)}
-            className="btn-botanical inline-flex items-center gap-2 text-[12px] !px-5 !py-2.5">
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="btn-botanical inline-flex items-center gap-2 !px-5 !py-2.5 text-[12px]"
+          >
             <span className="material-symbols-outlined text-[16px]">add</span>הוסף מטרה
           </button>
         </div>
@@ -566,12 +802,17 @@ export default function GoalsPage() {
       {buckets.length === 0 && !showAddForm && (
         <div className="card-mint">
           <div className="flex items-start gap-5">
-            <div className="icon-lg shrink-0" style={{ background: "rgba(27,67,50,0.1)", color: "var(--botanical-forest)" }}>
+            <div
+              className="icon-lg shrink-0"
+              style={{ background: "rgba(27,67,50,0.1)", color: "var(--botanical-forest)" }}
+            >
               <span className="material-symbols-outlined text-[26px]">palette</span>
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="t-lg font-extrabold mb-2" style={{ color: "var(--botanical-deep)" }}>לא הוגדרו מטרות ויעדים</div>
-              <div className="text-[13px] leading-6 mb-4" style={{ color: "rgba(1,45,29,0.75)" }}>
+            <div className="min-w-0 flex-1">
+              <div className="t-lg mb-2 font-extrabold" style={{ color: "var(--botanical-deep)" }}>
+                לא הוגדרו מטרות ויעדים
+              </div>
+              <div className="mb-4 text-[13px] leading-6" style={{ color: "rgba(1,45,29,0.75)" }}>
                 כל שקל יודע לאן הוא הולך.
               </div>
               <button onClick={() => setShowAddForm(true)} className="btn btn-primary btn-sm">
@@ -593,7 +834,7 @@ export default function GoalsPage() {
           return (
             <div
               key={bucket.id}
-              className="rounded-2xl transition-all duration-200 hover:shadow-soft overflow-hidden"
+              className="overflow-hidden rounded-2xl transition-all duration-200 hover:shadow-soft"
               style={{
                 background: "#fff",
                 border: "1px solid #E8E9E1",
@@ -601,23 +842,31 @@ export default function GoalsPage() {
               }}
             >
               {/* Row 1: Name + Badges */}
-              <div className="px-7 pt-6 pb-3">
+              <div className="px-7 pb-3 pt-6">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div
-                      className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                      className="flex h-12 w-12 items-center justify-center rounded-2xl"
                       style={{ background: "var(--botanical-forest)" }}
                     >
-                      <span className="material-symbols-outlined text-[24px]" style={{ color: "#C1ECD4" }}>
+                      <span
+                        className="material-symbols-outlined text-[24px]"
+                        style={{ color: "#C1ECD4" }}
+                      >
                         {bucket.icon}
                       </span>
                     </div>
-                    <h3 className="text-xl font-extrabold leading-tight" style={{ color: "#012D1D" }}>{bucket.name}</h3>
+                    <h3
+                      className="text-xl font-extrabold leading-tight"
+                      style={{ color: "#012D1D" }}
+                    >
+                      {bucket.name}
+                    </h3>
                   </div>
                   <div className="flex items-center gap-2">
                     {(bucket.scope === "business" || bucket.scope === "mixed") && (
                       <span
-                        className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+                        className="rounded-full px-2.5 py-1 text-[10px] font-bold"
                         style={{
                           background: `${SCOPE_COLORS[bucket.scope]}15`,
                           color: SCOPE_COLORS[bucket.scope],
@@ -630,30 +879,44 @@ export default function GoalsPage() {
                     <button
                       onClick={() => {
                         const next = cycleScope(bucket.scope);
-                        setBuckets(prev => updateBucket(prev, bucket.id, { scope: next } as Partial<Bucket>));
+                        setBuckets((prev) =>
+                          updateBucket(prev, bucket.id, { scope: next } as Partial<Bucket>)
+                        );
                         pulse();
                       }}
-                      className="shrink-0 flex items-center justify-center w-5 h-5 rounded-full transition-all hover:scale-110"
+                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-all hover:scale-110"
                       style={{
                         background: bucket.scope ? SCOPE_COLORS[bucket.scope] : "transparent",
                         border: `1.5px solid ${bucket.scope ? SCOPE_COLORS[bucket.scope] : "#c8d6c0"}`,
                       }}
-                      title={bucket.scope ? `${SCOPE_LABELS[bucket.scope]} — לחץ לשינוי` : "סמן כעסקי/מעורב"}
+                      title={
+                        bucket.scope
+                          ? `${SCOPE_LABELS[bucket.scope]} — לחץ לשינוי`
+                          : "סמן כעסקי/מעורב"
+                      }
                     />
-                    <span className="text-[11px] font-extrabold px-3 py-1.5 rounded-full"
-                      style={{ background: `${statusColor}15`, color: statusColor }}>
+                    <span
+                      className="rounded-full px-3 py-1.5 text-[11px] font-extrabold"
+                      style={{ background: `${statusColor}15`, color: statusColor }}
+                    >
                       {STATUS_LABEL[proj.status]}
                     </span>
-                    <button onClick={() => setEditingId(isEditing ? null : bucket.id)}
+                    <button
+                      onClick={() => setEditingId(isEditing ? null : bucket.id)}
                       title={isEditing ? "סגור עריכה" : "ערוך יעד"}
-                      className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:shadow-sm"
-                      style={{ background: "#F3F4EC", color: "#1B4332" }}>
-                      <span className="material-symbols-outlined text-[18px]">{isEditing ? "close" : "edit"}</span>
+                      className="flex h-9 w-9 items-center justify-center rounded-full transition-all hover:shadow-sm"
+                      style={{ background: "#F3F4EC", color: "#1B4332" }}
+                    >
+                      <span className="material-symbols-outlined text-[18px]">
+                        {isEditing ? "close" : "edit"}
+                      </span>
                     </button>
-                    <button onClick={() => deleteBucket(bucket.id)}
+                    <button
+                      onClick={() => deleteBucket(bucket.id)}
                       title="מחק יעד"
-                      className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:bg-red-100"
-                      style={{ background: "#FEF2F2", color: "#b91c1c" }}>
+                      className="flex h-9 w-9 items-center justify-center rounded-full transition-all hover:bg-red-100"
+                      style={{ background: "#FEF2F2", color: "#b91c1c" }}
+                    >
                       <span className="material-symbols-outlined text-[18px]">delete_outline</span>
                     </button>
                   </div>
@@ -663,7 +926,10 @@ export default function GoalsPage() {
               {/* Row 2: Target + date */}
               <div className="px-7 pb-3">
                 <div className="flex items-baseline gap-3">
-                  <span className="text-2xl font-extrabold tabular-nums" style={{ color: "#012d1d" }}>
+                  <span
+                    className="text-2xl font-extrabold tabular-nums"
+                    style={{ color: "#012d1d" }}
+                  >
                     {fmtILS(bucket.targetAmount)}
                   </span>
                   <span className="text-[12px] font-bold text-verdant-muted">
@@ -671,93 +937,118 @@ export default function GoalsPage() {
                   </span>
                 </div>
                 {/* Emergency-fund — 3/6-month coverage selector + needed-vs-liquid gauge. */}
-                {bucket.isEmergency && (() => {
-                  const a = loadAssumptions();
-                  const monthlyIncome = a.monthlyIncome || 0;
-                  const months = bucket.coverageMonths || 3;
-                  const setCoverage = (m: number) => {
-                    const clamped = Math.max(3, Math.min(6, Math.round(m))) as 3 | 4 | 5 | 6;
-                    const newTarget = monthlyIncome > 0 ? Math.round(monthlyIncome * clamped) : bucket.targetAmount;
-                    setBuckets(prev => updateBucket(prev, bucket.id, {
-                      coverageMonths: clamped as any,
-                      targetAmount: newTarget,
-                    } as Partial<Bucket>));
-                    pulse();
-                  };
-                  // Liquid assets — sum of all bank account balances. This is
-                  // the "ready cash" available to absorb the emergency.
-                  let liquid = 0;
-                  try {
-                    const raw = localStorage.getItem(scopedKey("verdant:accounts"));
-                    if (raw) {
-                      const parsed = JSON.parse(raw);
-                      const banks = parsed?.banks || [];
-                      liquid = banks.reduce((s: number, b: any) => s + (b.currentBalance || 0), 0);
-                    }
-                  } catch {}
-                  const gap = Math.max(0, bucket.targetAmount - liquid);
-                  const coveragePct = bucket.targetAmount > 0
-                    ? Math.min(100, Math.round((liquid / bucket.targetAmount) * 100))
-                    : 0;
-                  return (
-                    <div className="mt-3 space-y-2">
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[11px] font-bold text-verdant-muted">כיסוי</span>
-                          <span className="text-[12px] font-extrabold tabular-nums text-verdant-ink">
-                            {months} חודשים
-                            {monthlyIncome > 0 && (
-                              <span className="text-[10px] text-verdant-muted font-medium mr-2">
-                                · {fmtILS(monthlyIncome)} × {months}
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                        <input
-                          type="range"
-                          min={3}
-                          max={6}
-                          step={1}
-                          value={months}
-                          onChange={(e) => setCoverage(parseInt(e.target.value))}
-                          className="w-full h-1.5 accent-[#1B4332]"
-                        />
-                        <div className="flex items-center justify-between text-[9px] text-verdant-muted mt-0.5 px-0.5">
-                          <span>3</span><span>4</span><span>5</span><span>6</span>
-                        </div>
-                      </div>
-                      {/* Needed-vs-liquid bar — quick visual of "where you stand". */}
-                      <div className="rounded-lg p-2.5" style={{ background: "#f4f7ed", border: "1px solid #d8e0d0" }}>
-                        <div className="flex items-center justify-between text-[11px] font-bold mb-1">
-                          <span className="text-verdant-muted">נזיל בעו״ש <b className="text-verdant-ink tabular-nums">{fmtILS(liquid)}</b></span>
-                          <span style={{ color: gap === 0 ? "#1B4332" : "#B45309" }}>
-                            {gap === 0 ? "מכוסה ✓" : `חסר ${fmtILS(gap)}`}
-                          </span>
-                        </div>
-                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "#eef2e8" }}>
-                          <div
-                            className="h-full rounded-full transition-all"
-                            style={{
-                              width: `${coveragePct}%`,
-                              background: gap === 0 ? "#1B4332" : "#B45309",
-                            }}
+                {bucket.isEmergency &&
+                  (() => {
+                    const a = loadAssumptions();
+                    const monthlyIncome = a.monthlyIncome || 0;
+                    const months = bucket.coverageMonths || 3;
+                    const setCoverage = (m: number) => {
+                      const clamped = Math.max(3, Math.min(6, Math.round(m))) as 3 | 4 | 5 | 6;
+                      const newTarget =
+                        monthlyIncome > 0
+                          ? Math.round(monthlyIncome * clamped)
+                          : bucket.targetAmount;
+                      setBuckets((prev) =>
+                        updateBucket(prev, bucket.id, {
+                          coverageMonths: clamped as any,
+                          targetAmount: newTarget,
+                        } as Partial<Bucket>)
+                      );
+                      pulse();
+                    };
+                    // Liquid assets — sum of all bank account balances. This is
+                    // the "ready cash" available to absorb the emergency.
+                    let liquid = 0;
+                    try {
+                      const raw = localStorage.getItem(scopedKey("verdant:accounts"));
+                      if (raw) {
+                        const parsed = JSON.parse(raw);
+                        const banks = parsed?.banks || [];
+                        liquid = banks.reduce(
+                          (s: number, b: any) => s + (b.currentBalance || 0),
+                          0
+                        );
+                      }
+                    } catch {}
+                    const gap = Math.max(0, bucket.targetAmount - liquid);
+                    const coveragePct =
+                      bucket.targetAmount > 0
+                        ? Math.min(100, Math.round((liquid / bucket.targetAmount) * 100))
+                        : 0;
+                    return (
+                      <div className="mt-3 space-y-2">
+                        <div>
+                          <div className="mb-1.5 flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-verdant-muted">כיסוי</span>
+                            <span className="text-[12px] font-extrabold tabular-nums text-verdant-ink">
+                              {months} חודשים
+                              {monthlyIncome > 0 && (
+                                <span className="mr-2 text-[10px] font-medium text-verdant-muted">
+                                  · {fmtILS(monthlyIncome)} × {months}
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min={3}
+                            max={6}
+                            step={1}
+                            value={months}
+                            onChange={(e) => setCoverage(parseInt(e.target.value))}
+                            className="h-1.5 w-full accent-[#1B4332]"
                           />
+                          <div className="mt-0.5 flex items-center justify-between px-0.5 text-[9px] text-verdant-muted">
+                            <span>3</span>
+                            <span>4</span>
+                            <span>5</span>
+                            <span>6</span>
+                          </div>
+                        </div>
+                        {/* Needed-vs-liquid bar — quick visual of "where you stand". */}
+                        <div
+                          className="rounded-lg p-2.5"
+                          style={{ background: "#f4f7ed", border: "1px solid #d8e0d0" }}
+                        >
+                          <div className="mb-1 flex items-center justify-between text-[11px] font-bold">
+                            <span className="text-verdant-muted">
+                              נזיל בעו״ש{" "}
+                              <b className="tabular-nums text-verdant-ink">{fmtILS(liquid)}</b>
+                            </span>
+                            <span style={{ color: gap === 0 ? "#1B4332" : "#B45309" }}>
+                              {gap === 0 ? "מכוסה ✓" : `חסר ${fmtILS(gap)}`}
+                            </span>
+                          </div>
+                          <div
+                            className="h-1.5 overflow-hidden rounded-full"
+                            style={{ background: "#eef2e8" }}
+                          >
+                            <div
+                              className="h-full rounded-full transition-all"
+                              style={{
+                                width: `${coveragePct}%`,
+                                background: gap === 0 ? "#1B4332" : "#B45309",
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })()}
+                    );
+                  })()}
               </div>
 
               {/* Row 3: Progress */}
               <div className="px-7 pb-4">
-                <div className="flex items-center justify-between text-[11px] font-bold text-verdant-muted mb-1.5">
+                <div className="mb-1.5 flex items-center justify-between text-[11px] font-bold text-verdant-muted">
                   <span className="tabular-nums">{proj.progressPct}% הושג</span>
                   <span className="tabular-nums">
                     {fmtILS(Math.round(bucket.currentAmount))} מתוך {fmtILS(bucket.targetAmount)}
                   </span>
                 </div>
-                <div className="h-2.5 rounded-full overflow-hidden" style={{ background: "#eef2e8" }}>
+                <div
+                  className="h-2.5 overflow-hidden rounded-full"
+                  style={{ background: "#eef2e8" }}
+                >
                   <div
                     className="h-full rounded-full transition-all duration-700"
                     style={{
@@ -778,8 +1069,7 @@ export default function GoalsPage() {
                     <div className="mt-1.5 text-[10px] font-bold" style={{ color: "#5a7a6a" }}>
                       {parts.map((p, i) => (
                         <span key={i}>
-                          {i > 0 && <>&nbsp;&nbsp;•&nbsp;&nbsp;</>}
-                          • {p}
+                          {i > 0 && <>&nbsp;&nbsp;•&nbsp;&nbsp;</>}• {p}
                         </span>
                       ))}
                     </div>
@@ -790,18 +1080,34 @@ export default function GoalsPage() {
                   const bd = bucketBreakdowns[bucket.id];
                   if (!bd) return null;
                   const items: { label: string; icon: string; value: number; color: string }[] = [
-                    { label: "שוק ההון",  icon: "candlestick_chart",   value: bd.security,   color: "#1B4332" }, // forest
-                    { label: 'נדל״ן',     icon: "home_work",           value: bd.realestate, color: "#B45309" }, // amber (earth)
-                    { label: "פנסיה",     icon: "elderly",             value: bd.pension,    color: "#2B694D" }, // emerald
-                    { label: "מזומן",     icon: "account_balance_wallet", value: bd.cash,    color: "#4A7C59" }, // moss
-                  ].filter(i => i.value > 0);
+                    {
+                      label: "שוק ההון",
+                      icon: "candlestick_chart",
+                      value: bd.security,
+                      color: "#1B4332",
+                    }, // forest
+                    { label: "נדל״ן", icon: "home_work", value: bd.realestate, color: "#B45309" }, // amber (earth)
+                    { label: "פנסיה", icon: "elderly", value: bd.pension, color: "#2B694D" }, // emerald
+                    {
+                      label: "מזומן",
+                      icon: "account_balance_wallet",
+                      value: bd.cash,
+                      color: "#4A7C59",
+                    }, // moss
+                  ].filter((i) => i.value > 0);
                   if (items.length === 0) return null;
                   return (
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
-                      {items.map(item => (
-                        <div key={item.label} className="flex items-center gap-1 text-[10px] font-bold" style={{ color: item.color }}>
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                      {items.map((item) => (
+                        <div
+                          key={item.label}
+                          className="flex items-center gap-1 text-[10px] font-bold"
+                          style={{ color: item.color }}
+                        >
                           <span className="material-symbols-outlined text-[13px]">{item.icon}</span>
-                          <span>{item.label}: {fmtILS(Math.round(item.value))}</span>
+                          <span>
+                            {item.label}: {fmtILS(Math.round(item.value))}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -810,30 +1116,39 @@ export default function GoalsPage() {
               </div>
 
               {/* Row 4: 4 key numbers */}
-              <div className="px-7 pb-5 border-t pt-4" style={{ borderColor: "#eef2e8" }}>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+              <div className="border-t px-7 pb-5 pt-4" style={{ borderColor: "#eef2e8" }}>
+                <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
                   <div>
-                    <div className="text-[10px] font-bold text-verdant-muted mb-1">הפקדה חודשית</div>
+                    <div className="mb-1 text-[10px] font-bold text-verdant-muted">
+                      הפקדה חודשית
+                    </div>
                     <div className="text-[14px] font-extrabold tabular-nums text-verdant-ink">
                       {fmtILS(bucket.monthlyContribution)}
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] font-bold text-verdant-muted mb-1">נדרש בחודש</div>
+                    <div className="mb-1 text-[10px] font-bold text-verdant-muted">נדרש בחודש</div>
                     <div
                       className="text-[14px] font-extrabold tabular-nums"
-                      style={{ color: proj.requiredMonthly > bucket.monthlyContribution ? "#8B2E2E" : "#1B4332" }}
+                      style={{
+                        color:
+                          proj.requiredMonthly > bucket.monthlyContribution ? "#8B2E2E" : "#1B4332",
+                      }}
                     >
                       {fmtILS(Math.round(proj.requiredMonthly))}
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] font-bold text-verdant-muted mb-1">מכשיר</div>
-                    <div className="text-[13px] font-extrabold text-verdant-ink">{inst?.label || "—"}</div>
+                    <div className="mb-1 text-[10px] font-bold text-verdant-muted">מכשיר</div>
+                    <div className="text-[13px] font-extrabold text-verdant-ink">
+                      {inst?.label || "—"}
+                    </div>
                   </div>
                   <div>
-                    <div className="text-[10px] font-bold text-verdant-muted mb-1">
-                      {proj.effectiveAnnualReturn === bucket.expectedAnnualReturn ? "תשואה צפויה" : "תשואה בפועל"}
+                    <div className="mb-1 text-[10px] font-bold text-verdant-muted">
+                      {proj.effectiveAnnualReturn === bucket.expectedAnnualReturn
+                        ? "תשואה צפויה"
+                        : "תשואה בפועל"}
                     </div>
                     <div className="text-[14px] font-extrabold text-verdant-ink">
                       {(proj.effectiveAnnualReturn * 100).toFixed(1)}%
@@ -854,7 +1169,7 @@ export default function GoalsPage() {
                 <div className="mx-7 mb-6">
                   <BucketEditForm
                     bucket={bucket}
-                    onSave={u => updateBucketById(bucket.id, u)}
+                    onSave={(u) => updateBucketById(bucket.id, u)}
                     onCancel={() => setEditingId(null)}
                   />
                 </div>
@@ -876,7 +1191,11 @@ export default function GoalsPage() {
 /* Edit Form                                                     */
 /* ═══════════════════════════════════════════════════════════ */
 
-function BucketEditForm({ bucket, onSave, onCancel }: {
+function BucketEditForm({
+  bucket,
+  onSave,
+  onCancel,
+}: {
   bucket: Bucket;
   onSave: (u: Partial<Bucket>) => void;
   onCancel: () => void;
@@ -884,8 +1203,12 @@ function BucketEditForm({ bucket, onSave, onCancel }: {
   const [name, setName] = useState(bucket.name);
   const [targetAmount, setTargetAmount] = useState(bucket.targetAmount.toString());
   const [targetDate, setTargetDate] = useState(bucket.targetDate);
-  const [monthlyContribution, setMonthlyContribution] = useState(bucket.monthlyContribution.toString());
-  const [expectedReturn, setExpectedReturn] = useState((bucket.expectedAnnualReturn * 100).toFixed(1));
+  const [monthlyContribution, setMonthlyContribution] = useState(
+    bucket.monthlyContribution.toString()
+  );
+  const [expectedReturn, setExpectedReturn] = useState(
+    (bucket.expectedAnnualReturn * 100).toFixed(1)
+  );
   const [priority, setPriority] = useState<BucketPriority>(bucket.priority);
   const [fundingSource, setFundingSource] = useState(bucket.fundingSource || "money-market");
   const [color, setColor] = useState(bucket.color);
@@ -903,46 +1226,71 @@ function BucketEditForm({ bucket, onSave, onCancel }: {
   };
 
   return (
-    <div className="rounded-xl p-6 space-y-4" style={{ background: "#f9faf2", border: "1px solid #d8e0d0" }}>
+    <div
+      className="space-y-4 rounded-xl p-6"
+      style={{ background: "#f9faf2", border: "1px solid #d8e0d0" }}
+    >
       <div className="text-[11px] font-extrabold text-verdant-ink">עריכת קופה</div>
       <div className="grid grid-cols-3 gap-3">
         <Field label="שם הקופה" value={name} onChange={setName} />
         <Field label="סכום יעד (₪)" value={targetAmount} onChange={setTargetAmount} type="number" />
         <Field label="תאריך יעד" value={targetDate} onChange={setTargetDate} type="date" />
-        <Field label="הפקדה חודשית (₪)" value={monthlyContribution} onChange={setMonthlyContribution} type="number" />
-        <Field label="תשואה צפויה %" value={expectedReturn} onChange={setExpectedReturn} type="number" />
+        <Field
+          label="הפקדה חודשית (₪)"
+          value={monthlyContribution}
+          onChange={setMonthlyContribution}
+          type="number"
+        />
+        <Field
+          label="תשואה צפויה %"
+          value={expectedReturn}
+          onChange={setExpectedReturn}
+          type="number"
+        />
       </div>
       <div>
-        <div className="text-[9px] font-bold text-verdant-muted mb-1">סכום מזומן שיש לך היום ליעד הזה (אופציונלי)</div>
+        <div className="mb-1 text-[9px] font-bold text-verdant-muted">
+          סכום מזומן שיש לך היום ליעד הזה (אופציונלי)
+        </div>
         <input
           type="number"
           value={initialCash}
-          onChange={e => setInitialCash(e.target.value)}
+          onChange={(e) => setInitialCash(e.target.value)}
           placeholder="₪0"
-          className="w-full text-[11px] font-bold px-3 py-2 rounded-lg border outline-none focus:ring-2 focus:ring-verdant-accent/30"
+          className="w-full rounded-lg border px-3 py-2 text-[11px] font-bold outline-none focus:ring-2 focus:ring-verdant-accent/30"
           style={{ borderColor: "#d8e0d0", background: "#fff", color: "#0891b2" }}
         />
-        <div className="text-[9px] font-bold mt-1" style={{ color: "#5a7a6a" }}>
+        <div className="mt-1 text-[9px] font-bold" style={{ color: "#5a7a6a" }}>
           סכום חד-פעמי שכבר קיים בידיך — יחושב כחלק מהיעד מיידית
         </div>
       </div>
 
       <div>
-        <div className="text-[9px] font-bold text-verdant-muted mb-1">מכשיר ההשקעה</div>
-        <InstrumentSelect value={fundingSource} onChange={handleInstrumentChange}
-          className="w-full text-[11px] font-bold rounded-lg px-3 py-2 border outline-none"
-          style={{ borderColor: "#d8e0d0", background: "#fff" }} />
+        <div className="mb-1 text-[9px] font-bold text-verdant-muted">מכשיר ההשקעה</div>
+        <InstrumentSelect
+          value={fundingSource}
+          onChange={handleInstrumentChange}
+          className="w-full rounded-lg border px-3 py-2 text-[11px] font-bold outline-none"
+          style={{ borderColor: "#d8e0d0", background: "#fff" }}
+        />
         {currentInst && (
-          <div className="text-[9px] font-bold mt-1.5 leading-relaxed" style={{ color: "#5a7a6a" }}>
+          <div className="mt-1.5 text-[9px] font-bold leading-relaxed" style={{ color: "#5a7a6a" }}>
             {currentInst.taxNote}
           </div>
         )}
       </div>
 
       {tip && (
-        <div className="p-3 rounded-lg" style={{ background: "#eff6ff", border: "1px solid #93c5fd30" }}>
+        <div
+          className="rounded-lg p-3"
+          style={{ background: "#eff6ff", border: "1px solid #93c5fd30" }}
+        >
           {tip.split("\n").map((line, i) => (
-            <div key={i} className="text-[11px] font-bold leading-relaxed" style={{ color: "#1e40af" }}>
+            <div
+              key={i}
+              className="text-[11px] font-bold leading-relaxed"
+              style={{ color: "#1e40af" }}
+            >
               {line}
             </div>
           ))}
@@ -950,35 +1298,43 @@ function BucketEditForm({ bucket, onSave, onCancel }: {
       )}
 
       <div className="flex items-center gap-3">
-        <div className="text-[9px] font-bold text-verdant-muted ml-2">עדיפות:</div>
-        {(["high", "medium", "low"] as const).map(p => (
-          <button key={p} onClick={() => setPriority(p)}
-            className="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all"
-            style={{ background: priority === p ? PRIORITY_COLORS[p].text : "#eef2e8", color: priority === p ? "#fff" : PRIORITY_COLORS[p].text }}>
+        <div className="ml-2 text-[9px] font-bold text-verdant-muted">עדיפות:</div>
+        {(["high", "medium", "low"] as const).map((p) => (
+          <button
+            key={p}
+            onClick={() => setPriority(p)}
+            className="rounded-lg px-3 py-1.5 text-[10px] font-bold transition-all"
+            style={{
+              background: priority === p ? PRIORITY_COLORS[p].text : "#eef2e8",
+              color: priority === p ? "#fff" : PRIORITY_COLORS[p].text,
+            }}
+          >
             {PRIORITY_LABELS[p]}
           </button>
         ))}
       </div>
 
-      <div className="flex items-center gap-3 pt-3 border-t" style={{ borderColor: "#d8e0d0" }}>
+      <div className="flex items-center gap-3 border-t pt-3" style={{ borderColor: "#d8e0d0" }}>
         <button
-          onClick={() => onSave({
-            name,
-            targetAmount: parseFloat(targetAmount) || 0,
-            targetDate,
-            monthlyContribution: parseFloat(monthlyContribution) || 0,
-            currentAmount: 0,
-            expectedAnnualReturn: (parseFloat(expectedReturn) || 5) / 100,
-            priority,
-            fundingSource,
-            color,
-            initialCash: parseFloat(initialCash) || 0,
-          })}
-          className="btn-botanical text-[12px] !px-5 !py-2"
+          onClick={() =>
+            onSave({
+              name,
+              targetAmount: parseFloat(targetAmount) || 0,
+              targetDate,
+              monthlyContribution: parseFloat(monthlyContribution) || 0,
+              currentAmount: 0,
+              expectedAnnualReturn: (parseFloat(expectedReturn) || 5) / 100,
+              priority,
+              fundingSource,
+              color,
+              initialCash: parseFloat(initialCash) || 0,
+            })
+          }
+          className="btn-botanical !px-5 !py-2 text-[12px]"
         >
           שמור שינויים
         </button>
-        <button onClick={onCancel} className="btn-botanical-ghost text-[12px] !px-4 !py-2">
+        <button onClick={onCancel} className="btn-botanical-ghost !px-4 !py-2 text-[12px]">
           ביטול
         </button>
       </div>
@@ -990,7 +1346,10 @@ function BucketEditForm({ bucket, onSave, onCancel }: {
 /* Add Form                                                      */
 /* ═══════════════════════════════════════════════════════════ */
 
-function BucketAddForm({ onSave, onCancel }: {
+function BucketAddForm({
+  onSave,
+  onCancel,
+}: {
   onSave: (input: {
     name: string;
     targetAmount: number;
@@ -1019,10 +1378,12 @@ function BucketAddForm({ onSave, onCancel }: {
   const [scope, setScope] = useState<Scope | undefined>(undefined);
   const [initialCash, setInitialCash] = useState("");
 
-  const applyPreset = (preset: typeof BUCKET_PRESETS[0]) => {
+  const applyPreset = (preset: (typeof BUCKET_PRESETS)[0]) => {
     setName(preset.name);
     setTargetAmount(preset.targetAmount.toString());
-    setTargetDate(new Date(Date.now() + preset.years * 365.25 * 24 * 3600 * 1000).toISOString().split("T")[0]);
+    setTargetDate(
+      new Date(Date.now() + preset.years * 365.25 * 24 * 3600 * 1000).toISOString().split("T")[0]
+    );
     setPriority(preset.priority);
     setFundingSource(preset.instrument);
     setColor(preset.color);
@@ -1042,17 +1403,29 @@ function BucketAddForm({ onSave, onCancel }: {
   const currentInst = INSTRUMENTS[fundingSource];
 
   return (
-    <div className="rounded-2xl p-6 space-y-5" style={{ background: "#fff", border: "2px solid #1B433233" }}>
+    <div
+      className="space-y-5 rounded-2xl p-6"
+      style={{ background: "#fff", border: "2px solid #1B433233" }}
+    >
       <h3 className="text-base font-extrabold text-verdant-ink">קופה חדשה</h3>
 
       <div>
-        <div className="text-[10px] font-bold text-verdant-muted mb-2">בחר תבנית מוכנה:</div>
+        <div className="mb-2 text-[10px] font-bold text-verdant-muted">בחר תבנית מוכנה:</div>
         <div className="flex flex-wrap gap-2">
-          {BUCKET_PRESETS.map(p => (
-            <button key={p.name} onClick={() => applyPreset(p)}
-              className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-2 rounded-lg transition-all hover:shadow-sm"
-              style={{ background: `${p.color}10`, color: "#012d1d", border: `1px solid ${p.color}30` }}>
-              <span className="material-symbols-outlined text-[14px]" style={{ color: p.color }}>{p.icon}</span>
+          {BUCKET_PRESETS.map((p) => (
+            <button
+              key={p.name}
+              onClick={() => applyPreset(p)}
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-bold transition-all hover:shadow-sm"
+              style={{
+                background: `${p.color}10`,
+                color: "#012d1d",
+                border: `1px solid ${p.color}30`,
+              }}
+            >
+              <span className="material-symbols-outlined text-[14px]" style={{ color: p.color }}>
+                {p.icon}
+              </span>
               {p.name}
             </button>
           ))}
@@ -1061,42 +1434,71 @@ function BucketAddForm({ onSave, onCancel }: {
 
       <div className="grid grid-cols-3 gap-3">
         <Field label="שם הקופה" value={name} onChange={setName} placeholder="למשל: החלפת רכב" />
-        <Field label="סכום יעד (₪)" value={targetAmount} onChange={setTargetAmount} type="number" placeholder="150000" />
+        <Field
+          label="סכום יעד (₪)"
+          value={targetAmount}
+          onChange={setTargetAmount}
+          type="number"
+          placeholder="150000"
+        />
         <Field label="תאריך יעד" value={targetDate} onChange={setTargetDate} type="date" />
-        <Field label="הפקדה חודשית (₪)" value={monthlyContribution} onChange={setMonthlyContribution} type="number" placeholder="2000" />
-        <Field label="תשואה צפויה %" value={expectedReturn} onChange={setExpectedReturn} type="number" />
+        <Field
+          label="הפקדה חודשית (₪)"
+          value={monthlyContribution}
+          onChange={setMonthlyContribution}
+          type="number"
+          placeholder="2000"
+        />
+        <Field
+          label="תשואה צפויה %"
+          value={expectedReturn}
+          onChange={setExpectedReturn}
+          type="number"
+        />
       </div>
       <div>
-        <div className="text-[9px] font-bold text-verdant-muted mb-1">סכום מזומן שיש לך היום ליעד הזה (אופציונלי)</div>
+        <div className="mb-1 text-[9px] font-bold text-verdant-muted">
+          סכום מזומן שיש לך היום ליעד הזה (אופציונלי)
+        </div>
         <input
           type="number"
           value={initialCash}
-          onChange={e => setInitialCash(e.target.value)}
+          onChange={(e) => setInitialCash(e.target.value)}
           placeholder="₪0"
-          className="w-full text-[11px] font-bold px-3 py-2 rounded-lg border outline-none focus:ring-2 focus:ring-verdant-accent/30"
+          className="w-full rounded-lg border px-3 py-2 text-[11px] font-bold outline-none focus:ring-2 focus:ring-verdant-accent/30"
           style={{ borderColor: "#d8e0d0", background: "#fff", color: "#0891b2" }}
         />
-        <div className="text-[9px] font-bold mt-1" style={{ color: "#5a7a6a" }}>
+        <div className="mt-1 text-[9px] font-bold" style={{ color: "#5a7a6a" }}>
           סכום חד-פעמי שכבר קיים בידיך — יחושב כחלק מהיעד מיידית
         </div>
       </div>
 
       <div>
-        <div className="text-[9px] font-bold text-verdant-muted mb-1">מכשיר</div>
-        <InstrumentSelect value={fundingSource} onChange={handleInstrumentChange}
-          className="w-full text-[11px] font-bold rounded-lg px-3 py-2 border outline-none"
-          style={{ borderColor: "#d8e0d0", background: "#fff" }} />
+        <div className="mb-1 text-[9px] font-bold text-verdant-muted">מכשיר</div>
+        <InstrumentSelect
+          value={fundingSource}
+          onChange={handleInstrumentChange}
+          className="w-full rounded-lg border px-3 py-2 text-[11px] font-bold outline-none"
+          style={{ borderColor: "#d8e0d0", background: "#fff" }}
+        />
         {currentInst && (
-          <div className="text-[9px] font-bold mt-1.5 leading-relaxed" style={{ color: "#5a7a6a" }}>
+          <div className="mt-1.5 text-[9px] font-bold leading-relaxed" style={{ color: "#5a7a6a" }}>
             {currentInst.taxNote}
           </div>
         )}
       </div>
 
       {tip && (
-        <div className="p-3 rounded-lg" style={{ background: "#eff6ff", border: "1px solid #93c5fd30" }}>
+        <div
+          className="rounded-lg p-3"
+          style={{ background: "#eff6ff", border: "1px solid #93c5fd30" }}
+        >
           {tip.split("\n").map((line, i) => (
-            <div key={i} className="text-[11px] font-bold leading-relaxed" style={{ color: "#1e40af" }}>
+            <div
+              key={i}
+              className="text-[11px] font-bold leading-relaxed"
+              style={{ color: "#1e40af" }}
+            >
               {line}
             </div>
           ))}
@@ -1104,23 +1506,29 @@ function BucketAddForm({ onSave, onCancel }: {
       )}
 
       <div className="flex items-center gap-3">
-        <div className="text-[9px] font-bold text-verdant-muted ml-2">עדיפות:</div>
-        {(["high", "medium", "low"] as const).map(p => (
-          <button key={p} onClick={() => setPriority(p)}
-            className="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all"
-            style={{ background: priority === p ? PRIORITY_COLORS[p].text : "#eef2e8", color: priority === p ? "#fff" : PRIORITY_COLORS[p].text }}>
+        <div className="ml-2 text-[9px] font-bold text-verdant-muted">עדיפות:</div>
+        {(["high", "medium", "low"] as const).map((p) => (
+          <button
+            key={p}
+            onClick={() => setPriority(p)}
+            className="rounded-lg px-3 py-1.5 text-[10px] font-bold transition-all"
+            style={{
+              background: priority === p ? PRIORITY_COLORS[p].text : "#eef2e8",
+              color: priority === p ? "#fff" : PRIORITY_COLORS[p].text,
+            }}
+          >
             {PRIORITY_LABELS[p]}
           </button>
         ))}
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="text-[9px] font-bold text-verdant-muted ml-2">ייעוד:</div>
-        {([
+        <div className="ml-2 text-[9px] font-bold text-verdant-muted">ייעוד:</div>
+        {[
           { key: undefined, label: "פרטי (ברירת מחדל)" },
           { key: "business" as const, label: "עסקי" },
           { key: "mixed" as const, label: "מעורב" },
-        ]).map(opt => {
+        ].map((opt) => {
           const active = scope === opt.key;
           const color = opt.key ? SCOPE_COLORS[opt.key] : SCOPE_COLORS.personal;
           return (
@@ -1128,37 +1536,42 @@ function BucketAddForm({ onSave, onCancel }: {
               key={String(opt.key)}
               type="button"
               onClick={() => setScope(opt.key)}
-              className="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all inline-flex items-center gap-1.5"
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[10px] font-bold transition-all"
               style={{ background: active ? color : "#eef2e8", color: active ? "#fff" : color }}
             >
-              <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: active ? "#fff" : color }} />
+              <span
+                className="inline-block h-1.5 w-1.5 rounded-full"
+                style={{ background: active ? "#fff" : color }}
+              />
               {opt.label}
             </button>
           );
         })}
       </div>
 
-      <div className="flex items-center gap-3 pt-3 border-t" style={{ borderColor: "#eef2e8" }}>
+      <div className="flex items-center gap-3 border-t pt-3" style={{ borderColor: "#eef2e8" }}>
         <button
           disabled={!name || !targetAmount}
-          onClick={() => onSave({
-            name,
-            targetAmount: parseFloat(targetAmount) || 0,
-            targetDate,
-            currentAmount: 0,
-            monthlyContribution: parseFloat(monthlyContribution) || 0,
-            expectedAnnualReturn: (parseFloat(expectedReturn) || 5) / 100,
-            priority,
-            fundingSource,
-            color,
-            scope,
-            initialCash: parseFloat(initialCash) || 0,
-          })}
-          className="btn-botanical text-[12px] !px-5 !py-2 disabled:opacity-40"
+          onClick={() =>
+            onSave({
+              name,
+              targetAmount: parseFloat(targetAmount) || 0,
+              targetDate,
+              currentAmount: 0,
+              monthlyContribution: parseFloat(monthlyContribution) || 0,
+              expectedAnnualReturn: (parseFloat(expectedReturn) || 5) / 100,
+              priority,
+              fundingSource,
+              color,
+              scope,
+              initialCash: parseFloat(initialCash) || 0,
+            })
+          }
+          className="btn-botanical !px-5 !py-2 text-[12px] disabled:opacity-40"
         >
           הוסף מטרה
         </button>
-        <button onClick={onCancel} className="btn-botanical-ghost text-[12px] !px-4 !py-2">
+        <button onClick={onCancel} className="btn-botanical-ghost !px-4 !py-2 text-[12px]">
           ביטול
         </button>
       </div>
@@ -1170,15 +1583,30 @@ function BucketAddForm({ onSave, onCancel }: {
 /* Field helper                                                  */
 /* ═══════════════════════════════════════════════════════════ */
 
-function Field({ label, value, onChange, type = "text", placeholder }: {
-  label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string;
+function Field({
+  label,
+  value,
+  onChange,
+  type = "text",
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+  placeholder?: string;
 }) {
   return (
     <div>
-      <div className="text-[9px] font-bold text-verdant-muted mb-1">{label}</div>
-      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        className="w-full text-[11px] font-bold px-3 py-2 rounded-lg border outline-none focus:ring-2 focus:ring-verdant-accent/30"
-        style={{ borderColor: "#d8e0d0", background: "#fff" }} />
+      <div className="mb-1 text-[9px] font-bold text-verdant-muted">{label}</div>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full rounded-lg border px-3 py-2 text-[11px] font-bold outline-none focus:ring-2 focus:ring-verdant-accent/30"
+        style={{ borderColor: "#d8e0d0", background: "#fff" }}
+      />
     </div>
   );
 }

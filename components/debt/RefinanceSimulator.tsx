@@ -16,7 +16,7 @@
 
 import { useMemo, useState } from "react";
 import { fmtILS } from "@/lib/format";
-import { pmt } from "@/lib/_shared/financial-math";
+import { pmt } from "@shared/financial-math";
 import type { MortgageTrack } from "@/lib/debt-store";
 
 interface Props {
@@ -83,56 +83,77 @@ export function RefinanceSimulator({ track, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-soft w-full max-w-3xl max-h-[92vh] overflow-y-auto"
+        className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-soft"
         onClick={(e) => e.stopPropagation()}
         dir="rtl"
       >
-        <div className="px-6 py-4 border-b v-divider flex items-center justify-between sticky top-0 bg-white z-10">
+        <div className="v-divider sticky top-0 z-10 flex items-center justify-between border-b bg-white px-6 py-4">
           <div>
-            <div className="text-[10px] font-bold text-verdant-muted uppercase tracking-[0.15em]">
+            <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
               סימולטור מיחזור / פירעון מואץ
             </div>
             <h2 className="text-lg font-extrabold text-verdant-ink">{track.name}</h2>
-            <div className="text-[11px] text-verdant-muted mt-0.5">
-              יתרה {fmtILS(baseBalance)} · החזר {fmtILS(baseMonthly)}/חודש · ריבית {baseRatePct.toFixed(2)}% · נותרו {baseMonths} חודשים
+            <div className="mt-0.5 text-[11px] text-verdant-muted">
+              יתרה {fmtILS(baseBalance)} · החזר {fmtILS(baseMonthly)}/חודש · ריבית{" "}
+              {baseRatePct.toFixed(2)}% · נותרו {baseMonths} חודשים
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-verdant-bg">
+          <button onClick={onClose} className="rounded-lg p-2 hover:bg-verdant-bg">
             <span className="material-symbols-outlined text-[20px] text-verdant-muted">close</span>
           </button>
         </div>
 
-        <div className="px-6 py-5 space-y-5">
+        <div className="space-y-5 px-6 py-5">
           {/* Inputs */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-[12px] font-bold text-verdant-ink">ריבית חדשה (מיחזור)</label>
-                <span className="text-[13px] font-extrabold tabular-nums text-verdant-ink">{newRate.toFixed(2)}%</span>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="text-[12px] font-bold text-verdant-ink">
+                  ריבית חדשה (מיחזור)
+                </label>
+                <span className="text-[13px] font-extrabold tabular-nums text-verdant-ink">
+                  {newRate.toFixed(2)}%
+                </span>
               </div>
-              <input type="range" min={1} max={Math.max(8, baseRatePct + 0.5)} step={0.1}
-                value={newRate} onChange={(e) => setNewRate(parseFloat(e.target.value))}
-                className="w-full h-1.5 accent-[#1B4332]" />
-              <div className="text-[10px] text-verdant-muted mt-0.5">
-                ריבית נוכחית: {baseRatePct.toFixed(2)}% · {newRate < baseRatePct ? "ירידה של" : "עלייה של"} {Math.abs(newRate - baseRatePct).toFixed(2)}%
+              <input
+                type="range"
+                min={1}
+                max={Math.max(8, baseRatePct + 0.5)}
+                step={0.1}
+                value={newRate}
+                onChange={(e) => setNewRate(parseFloat(e.target.value))}
+                className="h-1.5 w-full accent-[#1B4332]"
+              />
+              <div className="mt-0.5 text-[10px] text-verdant-muted">
+                ריבית נוכחית: {baseRatePct.toFixed(2)}% ·{" "}
+                {newRate < baseRatePct ? "ירידה של" : "עלייה של"}{" "}
+                {Math.abs(newRate - baseRatePct).toFixed(2)}%
               </div>
             </div>
             <div>
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="mb-1.5 flex items-center justify-between">
                 <label className="text-[12px] font-bold text-verdant-ink">פירעון חד-פעמי</label>
-                <span className="text-[13px] font-extrabold tabular-nums text-verdant-ink">{fmtILS(prepay)}</span>
+                <span className="text-[13px] font-extrabold tabular-nums text-verdant-ink">
+                  {fmtILS(prepay)}
+                </span>
               </div>
-              <input type="range" min={0} max={Math.max(50000, baseBalance * 0.5)} step={5000}
-                value={prepay} onChange={(e) => setPrepay(parseInt(e.target.value))}
-                className="w-full h-1.5 accent-[#1B4332]" />
-              <div className="text-[10px] text-verdant-muted mt-0.5">
+              <input
+                type="range"
+                min={0}
+                max={Math.max(50000, baseBalance * 0.5)}
+                step={5000}
+                value={prepay}
+                onChange={(e) => setPrepay(parseInt(e.target.value))}
+                className="h-1.5 w-full accent-[#1B4332]"
+              />
+              <div className="mt-0.5 text-[10px] text-verdant-muted">
                 סכום שאתה משלם היום מתוך כסף נזיל
               </div>
             </div>
           </div>
 
           {/* 3 scenarios side-by-side */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <ScenarioCard
               title="מיחזור בלבד"
               monthly={result.refi.monthly}
@@ -158,14 +179,18 @@ export function RefinanceSimulator({ track, onClose }: Props) {
             />
           </div>
 
-          <div className="text-[11px] text-verdant-muted leading-relaxed">
-            הערכה אינדיקטיבית. עמלות מיחזור (פתיחת תיק חדש, פרעון מוקדם) לא נלקחו בחשבון —
-            בנקים גובים בד״כ ₪500-2,500. החיסכון בפועל מעט נמוך יותר.
+          <div className="text-[11px] leading-relaxed text-verdant-muted">
+            הערכה אינדיקטיבית. עמלות מיחזור (פתיחת תיק חדש, פרעון מוקדם) לא נלקחו בחשבון — בנקים
+            גובים בד״כ ₪500-2,500. החיסכון בפועל מעט נמוך יותר.
           </div>
         </div>
 
-        <div className="px-6 py-3 border-t v-divider flex justify-end">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg text-[13px] font-bold" style={{ background: "#1B4332", color: "#fff" }}>
+        <div className="v-divider flex justify-end border-t px-6 py-3">
+          <button
+            onClick={onClose}
+            className="rounded-lg px-4 py-2 text-[13px] font-bold"
+            style={{ background: "#1B4332", color: "#fff" }}
+          >
             סגור
           </button>
         </div>
@@ -174,9 +199,22 @@ export function RefinanceSimulator({ track, onClose }: Props) {
   );
 }
 
-function ScenarioCard({ title, monthly, total, saving, extra, highlight, dim }: {
-  title: string; monthly: number; total: number; saving: number;
-  extra?: string; highlight?: boolean; dim?: boolean;
+function ScenarioCard({
+  title,
+  monthly,
+  total,
+  saving,
+  extra,
+  highlight,
+  dim,
+}: {
+  title: string;
+  monthly: number;
+  total: number;
+  saving: number;
+  extra?: string;
+  highlight?: boolean;
+  dim?: boolean;
 }) {
   const positive = saving > 0;
   return (
@@ -189,27 +227,46 @@ function ScenarioCard({ title, monthly, total, saving, extra, highlight, dim }: 
         opacity: dim ? 0.5 : 1,
       }}
     >
-      <div className="text-[10px] font-bold uppercase tracking-[0.15em] mb-2"
-           style={{ color: highlight ? "rgba(255,255,255,0.7)" : "#5a7a6a" }}>
+      <div
+        className="mb-2 text-[10px] font-bold uppercase tracking-[0.15em]"
+        style={{ color: highlight ? "rgba(255,255,255,0.7)" : "#5a7a6a" }}
+      >
         {title}
       </div>
-      <div className="text-[11px] font-medium mb-1" style={{ color: highlight ? "rgba(255,255,255,0.85)" : "#5a7a6a" }}>
+      <div
+        className="mb-1 text-[11px] font-medium"
+        style={{ color: highlight ? "rgba(255,255,255,0.85)" : "#5a7a6a" }}
+      >
         חיסכון כולל
       </div>
-      <div className="text-2xl font-extrabold tabular-nums leading-none mb-2"
-           style={{
-             color: highlight ? "#C1ECD4" : positive ? "#1B4332" : "#8B2E2E",
-             fontFamily: "Manrope, Assistant, sans-serif",
-           }}>
+      <div
+        className="mb-2 text-2xl font-extrabold tabular-nums leading-none"
+        style={{
+          color: highlight ? "#C1ECD4" : positive ? "#1B4332" : "#8B2E2E",
+          fontFamily: "Manrope, Assistant, sans-serif",
+        }}
+      >
         {positive ? fmtILS(saving) : `−${fmtILS(Math.abs(saving))}`}
       </div>
-      <div className="text-[11px] space-y-0.5" style={{ color: highlight ? "rgba(255,255,255,0.85)" : "#5a7a6a" }}>
-        <div>החזר חודשי: <strong>{fmtILS(Math.round(monthly))}</strong></div>
-        <div>סך תשלומים: <strong>{fmtILS(total)}</strong></div>
+      <div
+        className="space-y-0.5 text-[11px]"
+        style={{ color: highlight ? "rgba(255,255,255,0.85)" : "#5a7a6a" }}
+      >
+        <div>
+          החזר חודשי: <strong>{fmtILS(Math.round(monthly))}</strong>
+        </div>
+        <div>
+          סך תשלומים: <strong>{fmtILS(total)}</strong>
+        </div>
       </div>
       {extra && (
-        <div className="text-[10px] mt-2 pt-2 border-t font-medium"
-             style={{ color: highlight ? "rgba(255,255,255,0.7)" : "#5a7a6a", borderColor: highlight ? "rgba(255,255,255,0.15)" : "#eef2e8" }}>
+        <div
+          className="mt-2 border-t pt-2 text-[10px] font-medium"
+          style={{
+            color: highlight ? "rgba(255,255,255,0.7)" : "#5a7a6a",
+            borderColor: highlight ? "rgba(255,255,255,0.15)" : "#eef2e8",
+          }}
+        >
           {extra}
         </div>
       )}

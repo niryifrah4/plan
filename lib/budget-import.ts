@@ -87,9 +87,9 @@ export function loadParsedTransactions(): ParsedTransaction[] {
 export function filterByMonth(
   txs: ParsedTransaction[],
   year: number,
-  month: number,
+  month: number
 ): ParsedTransaction[] {
-  return txs.filter(t => {
+  return txs.filter((t) => {
     if (!t.date) return false;
     const d = new Date(t.date);
     if (isNaN(d.getTime())) return false;
@@ -105,14 +105,14 @@ const uid = () => "r" + Math.random().toString(36).slice(2, 9);
 
 export function importTransactionsIntoBudget(
   budget: BudgetData,
-  transactions: ParsedTransaction[],
+  transactions: ParsedTransaction[]
 ): { budget: BudgetData; summary: ImportSummary } {
   // Deep clone sections so we don't mutate input.
   const nextSections: Record<string, BudgetRow[]> = {};
   for (const k of Object.keys(budget.sections)) {
-    nextSections[k] = budget.sections[k].map(r => ({
+    nextSections[k] = budget.sections[k].map((r) => ({
       ...r,
-      subItems: r.subItems ? r.subItems.map(s => ({ ...s })) : undefined,
+      subItems: r.subItems ? r.subItems.map((s) => ({ ...s })) : undefined,
     }));
   }
 
@@ -203,7 +203,7 @@ export function importTransactionsIntoBudget(
   for (const [key, bucket] of buckets.entries()) {
     const sectionRows = nextSections[bucket.section];
     if (!sectionRows) continue;
-    const idx = sectionRows.findIndex(r => !r.locked && r.name === bucket.rowName);
+    const idx = sectionRows.findIndex((r) => !r.locked && r.name === bucket.rowName);
     if (idx === -1) continue;
     const row = sectionRows[idx];
     sectionRows[idx] = {

@@ -28,7 +28,7 @@ export const DEFAULT_ALLOCATIONS: Record<string, FundAllocation> = {
     geography: { IL: 100, US: 0, EU: 0, EM: 0, OTHER: 0 },
     assetClass: { equity: 0, bonds: 0, cash: 0, alternative: 0 },
     liquidity: "locked",
-    liquidityNote: "נדל\"ן — מימוש 3-12 חודשים",
+    liquidityNote: 'נדל"ן — מימוש 3-12 חודשים',
   },
   bitcoin: {
     currency: { ILS: 0, USD: 100, EUR: 0, OTHER: 0 },

@@ -23,12 +23,17 @@ export function GrowthChart({ currentNetWorth, growthRate = 0.06, histDecayRate 
   const bars: GrowthBar[] = [];
 
   for (let i = 5; i >= 1; i--)
-    bars.push({ year: now - i, value: currentNetWorth / Math.pow(1 + histDecayRate, i), type: "hist" });
+    bars.push({
+      year: now - i,
+      value: currentNetWorth / Math.pow(1 + histDecayRate, i),
+      type: "hist",
+    });
   bars.push({ year: now, value: currentNetWorth, type: "now" });
   for (let i = 1; i <= 6; i++)
     bars.push({ year: now + i, value: currentNetWorth * Math.pow(1 + growthRate, i), type: "fwd" });
 
-  const W = 600, H = 220;
+  const W = 600,
+    H = 220;
   const maxV = Math.max(...bars.map((b) => Math.abs(b.value)), 10);
   const gap = 8;
   const bw = (W - gap * (bars.length - 1)) / bars.length;
@@ -36,7 +41,11 @@ export function GrowthChart({ currentNetWorth, growthRate = 0.06, histDecayRate 
   return (
     <div>
       <div className="relative" style={{ height: 220 }}>
-        <svg className="w-full h-full overflow-visible" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+        <svg
+          className="h-full w-full overflow-visible"
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="none"
+        >
           {/* gridlines */}
           {[0, 0.25, 0.5, 0.75, 1].map((f) => {
             const y = H * (1 - f);
@@ -49,15 +58,26 @@ export function GrowthChart({ currentNetWorth, growthRate = 0.06, histDecayRate 
             const y = H - h;
             const fill = b.type === "hist" ? "#a7c5b5" : b.type === "now" ? "#012d1d" : "#2B694D";
             const opacity = b.type === "fwd" ? 0.55 : 1;
-            return <rect key={i} x={x} y={y} width={bw} height={h} fill={fill} opacity={opacity} rx={3} />;
+            return (
+              <rect
+                key={i}
+                x={x}
+                y={y}
+                width={bw}
+                height={h}
+                fill={fill}
+                opacity={opacity}
+                rx={3}
+              />
+            );
           })}
         </svg>
         {/* labels */}
-        <div className="absolute bottom-[-22px] w-full flex justify-between text-[10px] text-verdant-muted font-semibold px-0">
+        <div className="absolute bottom-[-22px] flex w-full justify-between px-0 text-[10px] font-semibold text-verdant-muted">
           {bars.map((b) => (
             <span
               key={b.year}
-              className={b.type === "now" ? "text-verdant-ink font-bold" : ""}
+              className={b.type === "now" ? "font-bold text-verdant-ink" : ""}
               style={{ flex: 1, textAlign: "center" }}
             >
               {b.type === "now" ? "היום" : b.year}

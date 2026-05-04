@@ -13,7 +13,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 export function usePersistedState<T>(
   key: string,
   initial: T,
-  debounceMs = 500,
+  debounceMs = 500
 ): [T, React.Dispatch<React.SetStateAction<T>>, boolean] {
   // Lazy init from localStorage
   const [value, setValue] = useState<T>(() => {

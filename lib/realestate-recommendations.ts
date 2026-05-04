@@ -41,8 +41,8 @@ export function generateRERecommendations(properties: Property[]): RERecommendat
     const netYield = value > 0 ? ((noi * 12) / value) * 100 : 0;
 
     // Find linked mortgage tracks for interest rate check
-    const linkedTracks = mortgageTracks.filter(t =>
-      t.name?.includes(prop.name) || prop.mortgageLinked
+    const linkedTracks = mortgageTracks.filter(
+      (t) => t.name?.includes(prop.name) || prop.mortgageLinked
     );
 
     // 1. Negative cashflow — DSCR < 1.0

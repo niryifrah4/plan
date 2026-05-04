@@ -15,11 +15,11 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
   ({ children, pad = true, className = "", ...rest }, ref) => (
     <div
       ref={ref}
-      className={`v-card ${pad ? "p-5 md:p-6" : ""} flex flex-col h-full ${className}`}
+      className={`v-card ${pad ? "p-5 md:p-6" : ""} flex h-full flex-col ${className}`}
       {...rest}
     >
       {children}
     </div>
-  ),
+  )
 );
 Card.displayName = "Card";

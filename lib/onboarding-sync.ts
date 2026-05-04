@@ -15,10 +15,27 @@
 
 import { loadDebtData, saveDebtData, type Loan, type MortgageData } from "./debt-store";
 import { loadRiskItems, saveRiskItems, type RiskItem, DEFAULT_RISK_ITEMS } from "./risk-store";
-import { loadPensionFunds, savePensionFunds, type PensionFund, EVENT_NAME as PENSION_EVENT } from "./pension-store";
+import {
+  loadPensionFunds,
+  savePensionFunds,
+  type PensionFund,
+  EVENT_NAME as PENSION_EVENT,
+} from "./pension-store";
 import { loadAssumptions, saveAssumptions } from "./assumptions";
-import { loadKidsSavings, saveKidsSavings, kidSavingsId, DEFAULT_MONTHLY, GOV_MONTHLY_DEPOSIT, type KidSavings } from "./kids-savings-store";
-import { loadProperties, saveProperties, type Property, EVENT_NAME as RE_EVENT } from "./realestate-store";
+import {
+  loadKidsSavings,
+  saveKidsSavings,
+  kidSavingsId,
+  DEFAULT_MONTHLY,
+  GOV_MONTHLY_DEPOSIT,
+  type KidSavings,
+} from "./kids-savings-store";
+import {
+  loadProperties,
+  saveProperties,
+  type Property,
+  EVENT_NAME as RE_EVENT,
+} from "./realestate-store";
 import { loadBuckets, saveBuckets, BUCKETS_EVENT, createBucket } from "./buckets-store";
 import { fireSync } from "./sync-engine";
 import { syncChildLifeEvents } from "./life-events";
@@ -29,20 +46,20 @@ import { loadBudgets, saveBudgets, DEFAULT_BUDGETS, type BudgetCategory } from "
 import { scopedKey } from "./client-scope";
 
 /* ── Onboarding localStorage keys ── */
-const ONB_FIELDS      = "verdant:onboarding:fields";
+const ONB_FIELDS = "verdant:onboarding:fields";
 const ONB_LIABILITIES = "verdant:onboarding:liabilities";
-const ONB_INSURANCE   = "verdant:onboarding:insurance";
-const ONB_ASSETS      = "verdant:onboarding:assets";
-const ONB_GOALS       = "verdant:onboarding:goals";
-const ONB_INCOMES     = "verdant:onboarding:incomes";
-const ONB_SYNCED_AT   = "verdant:onboarding_synced_at";
+const ONB_INSURANCE = "verdant:onboarding:insurance";
+const ONB_ASSETS = "verdant:onboarding:assets";
+const ONB_GOALS = "verdant:onboarding:goals";
+const ONB_INCOMES = "verdant:onboarding:incomes";
+const ONB_SYNCED_AT = "verdant:onboarding_synced_at";
 /**
  * Sentinel: one-shot flag meaning "the budget was already seeded from the
  * onboarding answers, never touch it again." Once set, the budget becomes
  * the single source of truth — the user edits it in the budget page and
  * the questionnaire's expense fields stop pushing data.
  */
-const BUDGET_SEEDED   = "verdant:onboarding:budget_seeded";
+const BUDGET_SEEDED = "verdant:onboarding:budget_seeded";
 const ASSUMPTIONS_SEEDED = "verdant:onboarding:assumptions_seeded";
 /**
  * Sentinel: goals (buckets) were seeded from the onboarding answers once.
@@ -51,14 +68,14 @@ const ASSUMPTIONS_SEEDED = "verdant:onboarding:assumptions_seeded";
  * rows are still added (appended) on subsequent runs so the user can keep
  * capturing goals in the questionnaire if they choose to.
  */
-const GOALS_SEEDED    = "verdant:onboarding:goals_seeded";
+const GOALS_SEEDED = "verdant:onboarding:goals_seeded";
 const EMERGENCY_SEEDED = "verdant:onboarding:emergency_seeded";
 /**
  * Sentinel: salary profile seeded from onboarding (p1_gross / p1_credit_points).
  * After seeding, the salary page owns the profile — repeating onboarding must
  * not overwrite user refinements (pension %, study-fund %, periphery, etc.).
  */
-const SALARY_SEEDED   = "verdant:onboarding:salary_seeded";
+const SALARY_SEEDED = "verdant:onboarding:salary_seeded";
 
 /* ── Helpers ── */
 function readJSON<T>(key: string, fallback: T): T {
@@ -66,7 +83,9 @@ function readJSON<T>(key: string, fallback: T): T {
     // Try scoped key first, then raw key (usePersistedState saves without scope)
     const raw = localStorage.getItem(scopedKey(key)) || localStorage.getItem(key);
     return raw ? JSON.parse(raw) : fallback;
-  } catch { return fallback; }
+  } catch {
+    return fallback;
+  }
 }
 
 /* ── Types matching onboarding form ── */
@@ -88,7 +107,7 @@ interface OnbField {
 }
 
 interface OnbLiability {
-  type: string;        // "משכנתא" | "הלוואה" | "אשראי"
+  type: string; // "משכנתא" | "הלוואה" | "אשראי"
   lender: string;
   balance: string;
   rate: string;
@@ -96,17 +115,17 @@ interface OnbLiability {
 }
 
 interface OnbInsurance {
-  type: string;        // "ביטוח חיים" | "בריאות" | "סיעוד" | "אובדן כושר עבודה" | "ביטוח אחר"
-  has: string;         // "כן" | "לא" | "לא יודע" | ""
+  type: string; // "ביטוח חיים" | "בריאות" | "סיעוד" | "אובדן כושר עבודה" | "ביטוח אחר"
+  has: string; // "כן" | "לא" | "לא יודע" | ""
   company: string;
   coverage: string;
   premium: string;
-  for?: string;        // optional — whose insurance (e.g. "בן זוג")
-  isCustom?: string;   // "1" for user-added rows
+  for?: string; // optional — whose insurance (e.g. "בן זוג")
+  isCustom?: string; // "1" for user-added rows
 }
 
 interface OnbAsset {
-  type: string;        // "נדל\"ן למגורים" | "נדל\"ן להשקעה" | ...
+  type: string; // "נדל\"ן למגורים" | "נדל\"ן להשקעה" | ...
   desc: string;
   value: string;
   /** Monthly gross rent — investment properties only (optional). */
@@ -172,15 +191,15 @@ function syncBudgetFromExpenses(fields: OnbField): void {
 
   // Aggregate onboarding fields → budget category buckets.
   const fromOnb: Record<string, number> = {
-    housing:      n("exp_housing") + n("exp_property_tax"),
-    utilities:    n("exp_utilities") + n("exp_telecom"),
-    education:    n("exp_education"),
-    insurance:    n("exp_insurance"),
-    food:         n("exp_food"),
-    transport:    n("exp_car"),
-    leisure:      n("exp_leisure") + n("exp_vacation"),
-    health:       n("exp_health"),
-    shopping:     n("exp_other"),
+    housing: n("exp_housing") + n("exp_property_tax"),
+    utilities: n("exp_utilities") + n("exp_telecom"),
+    education: n("exp_education"),
+    insurance: n("exp_insurance"),
+    food: n("exp_food"),
+    transport: n("exp_car"),
+    leisure: n("exp_leisure") + n("exp_vacation"),
+    health: n("exp_health"),
+    shopping: n("exp_other"),
   };
 
   // If no expenses provided at all, don't overwrite the user's existing setup.
@@ -237,12 +256,14 @@ function syncSalaryProfile(fields: OnbField): void {
   const gross = p1Gross > 0 ? p1Gross : p2Gross;
   if (gross <= 0) return;
 
-  const annualBonus = p1Gross > 0
-    ? parseFloat(fields.p1_annual_bonus || "0")
-    : parseFloat(fields.p2_annual_bonus || "0");
-  const creditPointsRaw = p1Gross > 0
-    ? parseFloat(fields.p1_credit_points || "")
-    : parseFloat(fields.p2_credit_points || "");
+  const annualBonus =
+    p1Gross > 0
+      ? parseFloat(fields.p1_annual_bonus || "0")
+      : parseFloat(fields.p2_annual_bonus || "0");
+  const creditPointsRaw =
+    p1Gross > 0
+      ? parseFloat(fields.p1_credit_points || "")
+      : parseFloat(fields.p2_credit_points || "");
 
   const existing = loadSalaryProfile();
   const profile = {
@@ -250,14 +271,15 @@ function syncSalaryProfile(fields: OnbField): void {
     ...existing,
     monthlyGross: gross,
     annualBonus: isFinite(annualBonus) ? annualBonus : existing.annualBonus,
-    creditPoints: isFinite(creditPointsRaw) && creditPointsRaw > 0
-      ? creditPointsRaw
-      : existing.creditPoints,
+    creditPoints:
+      isFinite(creditPointsRaw) && creditPointsRaw > 0 ? creditPointsRaw : existing.creditPoints,
   };
   // Only save if something actually changed
-  if (profile.monthlyGross !== existing.monthlyGross ||
-      profile.annualBonus !== existing.annualBonus ||
-      profile.creditPoints !== existing.creditPoints) {
+  if (
+    profile.monthlyGross !== existing.monthlyGross ||
+    profile.annualBonus !== existing.annualBonus ||
+    profile.creditPoints !== existing.creditPoints
+  ) {
     saveSalaryProfile(profile);
   }
   // Mark one-shot seed done — salary page now owns the profile.
@@ -286,10 +308,13 @@ function syncGoalsToBuckets(rows: OnboardingGoalRow[]): void {
     .map((r) => ({
       ...r,
       priority:
-        r.priority === "need"  ? "גבוהה" :
-        r.priority === "want"  ? "בינונית" :
-        r.priority === "dream" ? "נמוכה" :
-        r.priority || "בינונית",
+        r.priority === "need"
+          ? "גבוהה"
+          : r.priority === "want"
+            ? "בינונית"
+            : r.priority === "dream"
+              ? "נמוכה"
+              : r.priority || "בינונית",
     }));
 
   // No usable rows — still mark as seeded so we don't keep scanning on
@@ -311,7 +336,11 @@ function syncGoalsToBuckets(rows: OnboardingGoalRow[]): void {
     const match = byName.get(key);
     if (match) {
       // Update target values from questionnaire; preserve user's progress.
-      if (match.targetAmount !== m.targetAmount || match.targetDate !== m.targetDate || match.priority !== m.priority) {
+      if (
+        match.targetAmount !== m.targetAmount ||
+        match.targetDate !== m.targetDate ||
+        match.priority !== m.priority
+      ) {
         match.targetAmount = m.targetAmount;
         match.targetDate = m.targetDate;
         match.priority = m.priority;
@@ -353,19 +382,16 @@ function seedEmergencyFundBucket(): void {
   }
 
   const coverageMonths = 3; // default — user can flip to 6 in /goals
-  const target = monthlyIncome > 0
-    ? Math.round(monthlyIncome * coverageMonths)
-    : 30000;
+  const target = monthlyIncome > 0 ? Math.round(monthlyIncome * coverageMonths) : 30000;
 
   const existing = loadBuckets();
-  const hasIt = existing.some(b =>
-    b.name.includes("חירום") || b.name.toLowerCase().includes("emergency")
+  const hasIt = existing.some(
+    (b) => b.name.includes("חירום") || b.name.toLowerCase().includes("emergency")
   );
 
   if (!hasIt) {
     // 12-month horizon — short, so the goal stays urgent in the UI.
-    const targetDate = new Date(Date.now() + 365 * 24 * 3600 * 1000)
-      .toISOString().split("T")[0];
+    const targetDate = new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString().split("T")[0];
     const emergencyBucket = createBucket({
       name: "קרן חירום",
       icon: "shield",
@@ -421,26 +447,28 @@ function syncLiabilitiesToDebtStore(liabilities: OnbLiability[]): void {
         debt.mortgage = {
           bank: lib.lender || "לא צוין",
           propertyValue: 0,
-          tracks: [{
-            id: "onb_mortgage_1",
-            name: "מסלול ראשי",
-            interestRate: parseFloat(lib.rate) || 0,
-            indexation: "לא צמוד",
-            repaymentMethod: "שפיצר",
-            originalAmount: balance,
-            remainingBalance: balance,
-            monthlyPayment: monthly,
-            startDate: nowYM,
-            endDate: totalPayments > 0 ? addMonths(nowYM, totalPayments) : "",
-            totalPayments,
-          }],
+          tracks: [
+            {
+              id: "onb_mortgage_1",
+              name: "מסלול ראשי",
+              interestRate: parseFloat(lib.rate) || 0,
+              indexation: "לא צמוד",
+              repaymentMethod: "שפיצר",
+              originalAmount: balance,
+              remainingBalance: balance,
+              monthlyPayment: monthly,
+              startDate: nowYM,
+              endDate: totalPayments > 0 ? addMonths(nowYM, totalPayments) : "",
+              totalPayments,
+            },
+          ],
         };
         changed = true;
       }
     } else {
       // Sync as loan
       const loanId = `onb_loan_${lib.lender}_${balance}`;
-      if (!debt.loans.some(l => l.id === loanId)) {
+      if (!debt.loans.some((l) => l.id === loanId)) {
         debt.loans.push({
           id: loanId,
           lender: lib.lender || lib.type || "לא צוין",
@@ -467,18 +495,18 @@ function syncInsuranceToRiskStore(insurances: OnbInsurance[]): void {
 
   // Map onboarding insurance types to risk categories
   const TYPE_TO_CATEGORY: Record<string, string> = {
-    "חיים": "death",
+    חיים: "death",
     "ביטוח חיים": "death",
-    "בריאות": "health",
+    בריאות: "health",
     "ביטוח בריאות": "health",
-    "סיעוד": "nursing",
+    סיעוד: "nursing",
     "ביטוח סיעודי": "nursing",
     "אובדן כושר": "disability",
     "אובדן כושר עבודה": "disability",
     "מחלות קשות": "critical",
     "ביטוח מחלות קשות": "critical",
-    "דירה": "property",
-    "רכב": "property",
+    דירה: "property",
+    רכב: "property",
     "צד ג": "property",
   };
 
@@ -490,7 +518,7 @@ function syncInsuranceToRiskStore(insurances: OnbInsurance[]): void {
 
     if (category) {
       // Standard type: find a matching risk item in this category and mark as covered
-      const categoryItems = items.filter(i => i.category === category && i.status === "missing");
+      const categoryItems = items.filter((i) => i.category === category && i.status === "missing");
       if (categoryItems.length > 0) {
         const target = categoryItems[0];
         target.status = "covered";
@@ -579,8 +607,8 @@ function syncLegalDocsToRiskStore(fields: OnbField): void {
   const prenupStatus = mapAnswer(fields.prenup || "");
 
   // Find by label (the legal items aren't given fixed ids in DEFAULT_RISK_ITEMS).
-  const willItem = items.find(i => i.category === "legal" && i.label === "צוואה");
-  const prenupItem = items.find(i => i.category === "legal" && i.label === "הסכם ממון");
+  const willItem = items.find((i) => i.category === "legal" && i.label === "צוואה");
+  const prenupItem = items.find((i) => i.category === "legal" && i.label === "הסכם ממון");
 
   if (willItem && willStatus && willItem.status !== willStatus) {
     willItem.status = willStatus;
@@ -602,13 +630,13 @@ function syncPensionToPensionStore(fields: OnbField): void {
   // Check for pension product 1
   if (fields.pension_type_1 && fields.pension_balance_1) {
     const id = "onb_pension_1";
-    if (!funds.some(f => f.id === id)) {
+    if (!funds.some((f) => f.id === id)) {
       const typeMap: Record<string, PensionFund["type"]> = {
-        "פנסיה": "pension",
+        פנסיה: "pension",
         "קרן פנסיה": "pension",
         "ביטוח מנהלים": "bituach",
-        "גמל": "gemel",
-        "השתלמות": "hishtalmut",
+        גמל: "gemel",
+        השתלמות: "hishtalmut",
       };
 
       const empContrib = parseFloat(fields.pension_monthly_emp_1 || "0");
@@ -630,13 +658,13 @@ function syncPensionToPensionStore(fields: OnbField): void {
   // Check for pension product 2
   if (fields.pension_type_2 && fields.pension_balance_2) {
     const id = "onb_pension_2";
-    if (!funds.some(f => f.id === id)) {
+    if (!funds.some((f) => f.id === id)) {
       const typeMap: Record<string, PensionFund["type"]> = {
-        "פנסיה": "pension",
+        פנסיה: "pension",
         "קרן פנסיה": "pension",
         "ביטוח מנהלים": "bituach",
-        "גמל": "gemel",
-        "השתלמות": "hishtalmut",
+        גמל: "gemel",
+        השתלמות: "hishtalmut",
       };
 
       const empContrib2 = parseFloat(fields.pension_monthly_emp_2 || "0");
@@ -676,7 +704,10 @@ function syncFieldsToAssumptions(fields: OnbField): void {
     const age = parseInt(fields.age || "0");
     if (age > 0) {
       const a = loadAssumptions();
-      if (age !== a.currentAge) { a.currentAge = age; saveAssumptions(a); }
+      if (age !== a.currentAge) {
+        a.currentAge = age;
+        saveAssumptions(a);
+      }
     }
     return;
   }
@@ -696,13 +727,26 @@ function syncFieldsToAssumptions(fields: OnbField): void {
   } catch {}
   if (income === 0) {
     income =
-      n("inc_salary1") + n("inc_salary2") + n("inc_rental") +
-      n("inc_pension") + n("inc_parents") + n("inc_other");
+      n("inc_salary1") +
+      n("inc_salary2") +
+      n("inc_rental") +
+      n("inc_pension") +
+      n("inc_parents") +
+      n("inc_other");
   }
   const expenses =
-    n("exp_housing") + n("exp_property_tax") + n("exp_utilities") + n("exp_telecom") +
-    n("exp_education") + n("exp_insurance") + n("exp_food") + n("exp_car") +
-    n("exp_leisure") + n("exp_health") + n("exp_vacation") + n("exp_other");
+    n("exp_housing") +
+    n("exp_property_tax") +
+    n("exp_utilities") +
+    n("exp_telecom") +
+    n("exp_education") +
+    n("exp_insurance") +
+    n("exp_food") +
+    n("exp_car") +
+    n("exp_leisure") +
+    n("exp_health") +
+    n("exp_vacation") +
+    n("exp_other");
   const age = parseInt(fields.age || "0");
 
   if (income === 0 && expenses === 0 && age === 0) return;
@@ -734,10 +778,10 @@ function syncFieldsToAssumptions(fields: OnbField): void {
   // Five-step UI compresses to three buckets used everywhere else.
   const PENSION_RISK_TO_TOLERANCE: Record<string, "conservative" | "moderate" | "aggressive"> = {
     "שמרני מאוד": "conservative",
-    "שמרני":      "conservative",
-    "מאוזן":      "moderate",
-    "צמיחה":      "aggressive",
-    "אגרסיבי":    "aggressive",
+    שמרני: "conservative",
+    מאוזן: "moderate",
+    צמיחה: "aggressive",
+    אגרסיבי: "aggressive",
   };
   const newTolerance = PENSION_RISK_TO_TOLERANCE[fields.pension_risk?.trim() || ""];
   if (newTolerance && newTolerance !== assumptions.riskTolerance) {
@@ -759,7 +803,10 @@ function syncFieldsToAssumptions(fields: OnbField): void {
  * the moment a DOB is entered. */
 function syncChildLifeEventsFromOnb(): void {
   const ONB_CHILDREN_KEY = "verdant:onboarding:children";
-  const children = readJSON<Array<{ name?: string; dob?: string; gender?: "male" | "female" }>>(ONB_CHILDREN_KEY, []);
+  const children = readJSON<Array<{ name?: string; dob?: string; gender?: "male" | "female" }>>(
+    ONB_CHILDREN_KEY,
+    []
+  );
   syncChildLifeEvents(children);
 }
 
@@ -802,19 +849,37 @@ function syncChildrenToKidsSavings(): void {
     const provider = child.savings_provider || "";
     const track = child.savings_track || "medium";
     const currentBalance = parseFloat(child.savings_balance || "0") || 0;
-    const parentDeposit = parseFloat(child.savings_parent_deposit || String(DEFAULT_MONTHLY - GOV_MONTHLY_DEPOSIT)) || 0;
+    const parentDeposit =
+      parseFloat(child.savings_parent_deposit || String(DEFAULT_MONTHLY - GOV_MONTHLY_DEPOSIT)) ||
+      0;
     const monthlyDeposit = GOV_MONTHLY_DEPOSIT + parentDeposit;
 
     // Check if child already exists (by name match) — update if so
-    const existingIdx = existing.findIndex(k => k.childName === childName);
+    const existingIdx = existing.findIndex((k) => k.childName === childName);
     if (existingIdx >= 0) {
       // Update existing entry with latest onboarding data
       const ex = existing[existingIdx];
-      if (provider && provider !== ex.provider) { ex.provider = provider; changed = true; }
-      if (track !== ex.track) { ex.track = track; changed = true; }
-      if (currentBalance > 0 && currentBalance !== ex.currentBalance) { ex.currentBalance = currentBalance; changed = true; }
-      if (parentDeposit !== ex.parentDeposit) { ex.parentDeposit = parentDeposit; ex.monthlyDeposit = monthlyDeposit; changed = true; }
-      if (dob !== ex.dob) { ex.dob = dob; changed = true; }
+      if (provider && provider !== ex.provider) {
+        ex.provider = provider;
+        changed = true;
+      }
+      if (track !== ex.track) {
+        ex.track = track;
+        changed = true;
+      }
+      if (currentBalance > 0 && currentBalance !== ex.currentBalance) {
+        ex.currentBalance = currentBalance;
+        changed = true;
+      }
+      if (parentDeposit !== ex.parentDeposit) {
+        ex.parentDeposit = parentDeposit;
+        ex.monthlyDeposit = monthlyDeposit;
+        changed = true;
+      }
+      if (dob !== ex.dob) {
+        ex.dob = dob;
+        changed = true;
+      }
       continue;
     }
 
@@ -840,8 +905,8 @@ function syncChildrenToKidsSavings(): void {
 function syncRealEstateToPropertyStore(assets: OnbAsset[]): void {
   // Filter ONLY explicit real-estate types — must start with "נדל" to avoid
   // false positives like "קופת גמל להשקעה" which contains "השקעה" but is NOT real estate.
-  const RE_TYPES = new Set(["נדל\"ן למגורים", "נדל\"ן להשקעה"]);
-  const reAssets = assets.filter(a => RE_TYPES.has(a.type) || a.type.startsWith("נדל"));
+  const RE_TYPES = new Set(['נדל"ן למגורים', 'נדל"ן להשקעה']);
+  const reAssets = assets.filter((a) => RE_TYPES.has(a.type) || a.type.startsWith("נדל"));
   if (reAssets.length === 0) return;
 
   const existing = loadProperties();
@@ -851,7 +916,7 @@ function syncRealEstateToPropertyStore(assets: OnbAsset[]): void {
     const value = parseFloat(a.value) || 0;
     if (value === 0 && !a.desc) continue;
 
-    const isInvestment = a.type === "נדל\"ן להשקעה";
+    const isInvestment = a.type === 'נדל"ן להשקעה';
     const rent = parseFloat(a.rent || "0") || 0;
     const rentExp = parseFloat(a.rentExpenses || "0") || 0;
 
@@ -860,10 +925,9 @@ function syncRealEstateToPropertyStore(assets: OnbAsset[]): void {
     // from the older `prop_<timestamp>_<i>` migration before IDs were
     // unified. Without this fallback, updating rent in the questionnaire
     // silently creates a duplicate property.
-    const desiredType = a.type === "נדל\"ן להשקעה" ? "investment" : "residence";
-    const existingProp = existing.find(p =>
-      p.id === propId ||
-      (p.name === (a.desc || a.type) && p.type === desiredType)
+    const desiredType = a.type === 'נדל"ן להשקעה' ? "investment" : "residence";
+    const existingProp = existing.find(
+      (p) => p.id === propId || (p.name === (a.desc || a.type) && p.type === desiredType)
     );
 
     if (existingProp) {
@@ -911,12 +975,12 @@ function syncGemelAssetsToPrensionStore(assets: OnbAsset[]): void {
   // "קופת גמל להשקעה" maps to type "gemel" with a hint it's for investment
   // (not the tax-advantaged retirement gemel — PensionFund.type doesn't distinguish)
   const PENSION_ASSET_TYPES: Record<string, PensionFund["type"]> = {
-    "קופת גמל":         "gemel",
-    "קופת גמל להשקעה":  "gemel",
-    "קרן השתלמות":      "hishtalmut",
+    "קופת גמל": "gemel",
+    "קופת גמל להשקעה": "gemel",
+    "קרן השתלמות": "hishtalmut",
   };
 
-  const pensionAssets = assets.filter(a => PENSION_ASSET_TYPES[a.type]);
+  const pensionAssets = assets.filter((a) => PENSION_ASSET_TYPES[a.type]);
   if (pensionAssets.length === 0) return;
 
   const funds = loadPensionFunds();
@@ -927,7 +991,7 @@ function syncGemelAssetsToPrensionStore(assets: OnbAsset[]): void {
     if (value === 0 && !a.desc) continue;
 
     const fundId = `onb_asset_${a.type}_${a.desc || ""}`;
-    if (funds.some(f => f.id === fundId)) continue;
+    if (funds.some((f) => f.id === fundId)) continue;
 
     funds.push({
       id: fundId,

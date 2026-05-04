@@ -69,9 +69,39 @@ const SYNONYMS: Record<keyof ColumnMap, string[]> = {
   symbol: ["סימול", "סמל", "מספרנייר", "מסנייר", "מספרני", "ticker", "symbol", "isin"],
   name: ["שםנייר", "שםהנייר", "שםמוצר", "תיאור", "שם", "name", "description", "security"],
   quantity: ["כמות", "יחידות", "מספריחידות", "quantity", "qty", "units", "shares", "position"],
-  avgCost: ["עלותממוצעת", "מחירקנייהממוצע", "עלותליחידה", "מחירעלות", "avgcost", "averagecost", "costbasis"],
-  price: ["שער", "מחיר", "שערנוכחי", "שערסגירה", "price", "last", "marketprice", "currentprice", "close"],
-  marketValue: ["שוויתיק", "שוויבשח", "שוויבשקל", "שוויבשקלים", "שוויכולל", "שוויני", "שווי", "marketvalue", "value", "totalvalue", "positionvalue"],
+  avgCost: [
+    "עלותממוצעת",
+    "מחירקנייהממוצע",
+    "עלותליחידה",
+    "מחירעלות",
+    "avgcost",
+    "averagecost",
+    "costbasis",
+  ],
+  price: [
+    "שער",
+    "מחיר",
+    "שערנוכחי",
+    "שערסגירה",
+    "price",
+    "last",
+    "marketprice",
+    "currentprice",
+    "close",
+  ],
+  marketValue: [
+    "שוויתיק",
+    "שוויבשח",
+    "שוויבשקל",
+    "שוויבשקלים",
+    "שוויכולל",
+    "שוויני",
+    "שווי",
+    "marketvalue",
+    "value",
+    "totalvalue",
+    "positionvalue",
+  ],
   currency: ["מטבע", "מטבעמסחר", "currency", "ccy"],
   costBasis: ["עלותכוללת", "עלותתיק", "totalcost", "costbasisils"],
   pnl: ["רוולהפסד", "רווחהפסד", "רוחה", "רוולה", "pnl", "unrealizedpnl", "gainloss", "profitloss"],
@@ -109,12 +139,20 @@ function findHeaderRow(rows: unknown[][]): { idx: number; map: ColumnMap } | nul
       const key = matchColumn(String(cell ?? ""));
       if (key && map[key] === undefined) {
         map[key] = col;
-        score += key === "symbol" || key === "name" || key === "quantity" || key === "marketValue" || key === "price" ? 2 : 1;
+        score +=
+          key === "symbol" ||
+          key === "name" ||
+          key === "quantity" ||
+          key === "marketValue" ||
+          key === "price"
+            ? 2
+            : 1;
       }
     });
     // Need at least one identifier (symbol/name) + one numeric (quantity / marketValue / price)
     const hasId = map.symbol !== undefined || map.name !== undefined;
-    const hasNum = map.quantity !== undefined || map.marketValue !== undefined || map.price !== undefined;
+    const hasNum =
+      map.quantity !== undefined || map.marketValue !== undefined || map.price !== undefined;
     if (hasId && hasNum && score > (best?.score ?? 0)) {
       best = { idx: i, map, score };
     }
@@ -125,14 +163,19 @@ function findHeaderRow(rows: unknown[][]): { idx: number; map: ColumnMap } | nul
 function toNum(v: unknown): number {
   if (typeof v === "number" && isFinite(v)) return v;
   if (v == null) return 0;
-  const s = String(v).replace(/[₪$,\s]/g, "").replace(/[()]/g, "-").trim();
+  const s = String(v)
+    .replace(/[₪$,\s]/g, "")
+    .replace(/[()]/g, "-")
+    .trim();
   if (!s || s === "-") return 0;
   const n = Number(s);
   return isFinite(n) ? n : 0;
 }
 
 function guessCurrency(v: unknown, priceCell?: unknown, valueCell?: unknown): string {
-  const s = String(v ?? "").toUpperCase().trim();
+  const s = String(v ?? "")
+    .toUpperCase()
+    .trim();
   if (/ILS|שקל|NIS|₪/i.test(s)) return "ILS";
   if (/USD|דולר|\$/i.test(s)) return "USD";
   if (/EUR|יורו|אירו|€/i.test(s)) return "EUR";
@@ -188,20 +231,20 @@ function parseSheet(sheetName: string, rows: unknown[][], warnings: string[]): P
     const price = map.price !== undefined ? toNum(row[map.price]) : 0;
     const avgCost = map.avgCost !== undefined ? toNum(row[map.avgCost]) : 0;
     const marketValueRaw = map.marketValue !== undefined ? toNum(row[map.marketValue]) : 0;
-    const currency = map.currency !== undefined ? guessCurrency(row[map.currency], row[map.price ?? -1], row[map.marketValue ?? -1]) : guessCurrency("", row[map.price ?? -1], row[map.marketValue ?? -1]);
+    const currency =
+      map.currency !== undefined
+        ? guessCurrency(row[map.currency], row[map.price ?? -1], row[map.marketValue ?? -1])
+        : guessCurrency("", row[map.price ?? -1], row[map.marketValue ?? -1]);
     const fx = FX_FALLBACK[currency] ?? 1;
 
     // Need at least quantity OR market value to be a real holding
     if (quantity <= 0 && marketValueRaw <= 0) continue;
 
     // Derive market value: prefer explicit column, else compute from qty*price
-    const currentPrice = price || (quantity > 0 && marketValueRaw > 0 ? marketValueRaw / quantity / fx : 0);
-    const marketValueILS = marketValueRaw > 0
-      ? marketValueRaw
-      : quantity * currentPrice * fx;
-    const costBasisILS = avgCost > 0
-      ? quantity * avgCost * fx
-      : marketValueILS; // fallback: assume breakeven when cost unknown
+    const currentPrice =
+      price || (quantity > 0 && marketValueRaw > 0 ? marketValueRaw / quantity / fx : 0);
+    const marketValueILS = marketValueRaw > 0 ? marketValueRaw : quantity * currentPrice * fx;
+    const costBasisILS = avgCost > 0 ? quantity * avgCost * fx : marketValueILS; // fallback: assume breakeven when cost unknown
     const pnlILS = marketValueILS - costBasisILS;
     const pnlPct = costBasisILS > 0 ? (pnlILS / costBasisILS) * 100 : 0;
 
@@ -258,11 +301,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "לא הועלה קובץ", code: "NO_FILE" }, { status: 400 });
     }
     if (file.size > MAX_FILE_BYTES) {
-      return NextResponse.json({ error: "הקובץ גדול מדי (עד 10MB)", code: "FILE_TOO_LARGE" }, { status: 413 });
+      return NextResponse.json(
+        { error: "הקובץ גדול מדי (עד 10MB)", code: "FILE_TOO_LARGE" },
+        { status: 413 }
+      );
     }
     const name = file.name || "portfolio";
     if (!/\.(xlsx|xls|csv)$/i.test(name)) {
-      return NextResponse.json({ error: "רק קבצי Excel או CSV נתמכים", code: "INVALID_EXT" }, { status: 400 });
+      return NextResponse.json(
+        { error: "רק קבצי Excel או CSV נתמכים", code: "INVALID_EXT" },
+        { status: 400 }
+      );
     }
 
     const buf = Buffer.from(await file.arrayBuffer());
@@ -271,7 +320,10 @@ export async function POST(req: NextRequest) {
       wb = XLSX.read(buf, { type: "buffer", cellDates: false });
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
-      return NextResponse.json({ error: `לא ניתן לפתוח את הקובץ: ${reason.slice(0, 100)}`, code: "CORRUPT_FILE" }, { status: 422 });
+      return NextResponse.json(
+        { error: `לא ניתן לפתוח את הקובץ: ${reason.slice(0, 100)}`, code: "CORRUPT_FILE" },
+        { status: 422 }
+      );
     }
 
     const warnings: string[] = [];
@@ -281,7 +333,11 @@ export async function POST(req: NextRequest) {
     for (const sheetName of wb.SheetNames) {
       const sheet = wb.Sheets[sheetName];
       if (!sheet) continue;
-      const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, blankrows: false, defval: null });
+      const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+        header: 1,
+        blankrows: false,
+        defval: null,
+      });
       rawTextForBrokerDetect += " " + rows.slice(0, 10).flat().join(" ");
       const parsed = parseSheet(sheetName, rows as unknown[][], warnings);
       allRows.push(...parsed);

@@ -23,7 +23,9 @@ export default function ClientLayoutInner({
   children: React.ReactNode;
   impersonation: Impersonation | null;
 }) {
-  useEffect(() => { runFactoryResetIfNeeded(); }, []);
+  useEffect(() => {
+    runFactoryResetIfNeeded();
+  }, []);
 
   useEffect(() => {
     // When impersonating, override the active-household cache with the target
@@ -41,7 +43,13 @@ export default function ClientLayoutInner({
   }, [impersonation]);
 
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-verdant-muted">טוען...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center text-verdant-muted">
+          טוען...
+        </div>
+      }
+    >
       <ClientProvider>
         {/* `impersonation !== null` ↔ logged-in user is the advisor. Pass
             it through so the sidebar can hide CRM-only affordances for

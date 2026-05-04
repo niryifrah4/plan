@@ -14,9 +14,7 @@ export function SaveStatus({ status }: { status: SaveStatusValue }) {
       className={`inline-flex items-center gap-1 text-[11px] font-bold ${isSaving ? "text-botanical-sage" : "text-botanical-forest"}`}
       aria-live="polite"
     >
-      <span
-        className={`material-symbols-outlined text-[14px] ${isSaving ? "animate-pulse" : ""}`}
-      >
+      <span className={`material-symbols-outlined text-[14px] ${isSaving ? "animate-pulse" : ""}`}>
         {isSaving ? "cloud_sync" : "cloud_done"}
       </span>
       {isSaving ? "שומר..." : "נשמר"}

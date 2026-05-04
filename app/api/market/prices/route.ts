@@ -35,7 +35,7 @@ async function fetchYahoo(symbol: string): Promise<QuoteResult> {
     const res = await fetch(url, {
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; PlanApp/1.0)",
-        "Accept": "application/json",
+        Accept: "application/json",
       },
       next: { revalidate: 0 },
     });
@@ -83,18 +83,25 @@ export async function GET(req: NextRequest) {
   // "no env vars set" case (local dev without Supabase) is allowed through.
   // 2026-04-29 hardening per security audit — previous version swallowed all
   // errors, which meant a misconfigured prod could degrade silently to public.
-  const supabaseConfigured = !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  const supabaseConfigured = !!(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
   if (supabaseConfigured) {
     try {
       const { createClient } = await import("@/lib/supabase/server");
       const sb = createClient();
-      const { data: { user } } = await sb.auth.getUser();
+      const {
+        data: { user },
+      } = await sb.auth.getUser();
       if (!user) {
         return NextResponse.json({ error: "unauthorized" }, { status: 401 });
       }
     } catch (e: any) {
       // Configured but auth check threw — fail closed.
-      return NextResponse.json({ error: "auth check failed", detail: e?.message || "unknown" }, { status: 500 });
+      return NextResponse.json(
+        { error: "auth check failed", detail: e?.message || "unknown" },
+        { status: 500 }
+      );
     }
   }
 
@@ -102,11 +109,17 @@ export async function GET(req: NextRequest) {
   const symbolsParam = url.searchParams.get("symbols") || "";
   const cryptoParam = url.searchParams.get("crypto") || "";
 
-  const symbols = symbolsParam.split(",").map(s => s.trim()).filter(Boolean)
-    .filter(s => SYMBOL_RE.test(s))
+  const symbols = symbolsParam
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .filter((s) => SYMBOL_RE.test(s))
     .slice(0, MAX_SYMBOLS);
-  const cryptoIds = cryptoParam.split(",").map(s => s.trim()).filter(Boolean)
-    .filter(s => CRYPTO_RE.test(s))
+  const cryptoIds = cryptoParam
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .filter((s) => CRYPTO_RE.test(s))
     .slice(0, MAX_CRYPTOS);
 
   if (symbols.length === 0 && cryptoIds.length === 0) {
@@ -139,9 +152,7 @@ export async function POST(req: NextRequest) {
   const cronHeader = req.headers.get("x-vercel-cron");
   const auth = req.headers.get("authorization") || "";
   const isCron = !!cronHeader;
-  const hasSecret = process.env.CRON_SECRET
-    ? auth === `Bearer ${process.env.CRON_SECRET}`
-    : false;
+  const hasSecret = process.env.CRON_SECRET ? auth === `Bearer ${process.env.CRON_SECRET}` : false;
 
   if (!isCron && !hasSecret) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });

@@ -22,30 +22,30 @@ export interface BudgetTarget {
  */
 export const CATEGORY_TO_BUDGET: Record<string, BudgetTarget> = {
   // ── Income ──
-  salary:        { section: "income",   rowName: "משכורת נטו" },
-  refunds:       { section: "income",   rowName: "הכנסה נוספת" },
-  transfers:     { section: "income",   rowName: "הכנסה נוספת" },
+  salary: { section: "income", rowName: "משכורת נטו" },
+  refunds: { section: "income", rowName: "הכנסה נוספת" },
+  transfers: { section: "income", rowName: "הכנסה נוספת" },
 
   // ── Fixed expenses ──
-  housing:       { section: "fixed",    rowName: "משכנתא / שכירות" },
-  utilities:     { section: "fixed",    rowName: "חשמל" },
-  insurance:     { section: "fixed",    rowName: "ביטוחים" },
-  education:     { section: "fixed",    rowName: "גן / חינוך" },
-  subscriptions: { section: "fixed",    rowName: "מנויים" },
-  fees:          { section: "fixed",    rowName: "ועד בית + ארנונה" },
-  pension:       { section: "fixed",    rowName: "ביטוחים" },
+  housing: { section: "fixed", rowName: "משכנתא / שכירות" },
+  utilities: { section: "fixed", rowName: "חשמל" },
+  insurance: { section: "fixed", rowName: "ביטוחים" },
+  education: { section: "fixed", rowName: "גן / חינוך" },
+  subscriptions: { section: "fixed", rowName: "מנויים" },
+  fees: { section: "fixed", rowName: "ועד בית + ארנונה" },
+  pension: { section: "fixed", rowName: "ביטוחים" },
 
   // ── Variable expenses ──
-  food:             { section: "variable", rowName: "סופר / מזון" },
-  transport:        { section: "variable", rowName: "דלק / תחבורה" },
-  dining_out:       { section: "variable", rowName: "מסעדות" },
-  health:           { section: "variable", rowName: "בריאות" },
-  shopping:         { section: "variable", rowName: "ביגוד / קניות" },
-  leisure:          { section: "variable", rowName: "פנאי ובילוי" },
+  food: { section: "variable", rowName: "סופר / מזון" },
+  transport: { section: "variable", rowName: "דלק / תחבורה" },
+  dining_out: { section: "variable", rowName: "מסעדות" },
+  health: { section: "variable", rowName: "בריאות" },
+  shopping: { section: "variable", rowName: "ביגוד / קניות" },
+  leisure: { section: "variable", rowName: "פנאי ובילוי" },
   home_maintenance: { section: "variable", rowName: "תחזוקת בית" },
-  misc:             { section: "variable", rowName: "שונות" },
+  misc: { section: "variable", rowName: "שונות" },
 
   // ── Fallbacks ──
-  cash:          { section: "variable", rowName: "פנאי ובילוי" },
-  other:         { section: "variable", rowName: "שונות" },
+  cash: { section: "variable", rowName: "פנאי ובילוי" },
+  other: { section: "variable", rowName: "שונות" },
 };

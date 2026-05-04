@@ -122,13 +122,19 @@ export function extractBalances(text: string): { opening?: number; closing?: num
     if (opening === undefined) {
       for (const re of OPENING_PATTERNS) {
         const m = line.match(re);
-        if (m) { opening = parseNum(m[1]); break; }
+        if (m) {
+          opening = parseNum(m[1]);
+          break;
+        }
       }
     }
     if (closing === undefined) {
       for (const re of CLOSING_PATTERNS) {
         const m = line.match(re);
-        if (m) { closing = parseNum(m[1]); break; }
+        if (m) {
+          closing = parseNum(m[1]);
+          break;
+        }
       }
     }
     if (opening !== undefined && closing !== undefined) break;

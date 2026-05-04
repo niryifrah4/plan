@@ -52,6 +52,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL("/crm?gcal=connected", req.url));
   } catch (e: any) {
     console.error("[gcal/callback] Token exchange failed:", e);
-    return NextResponse.redirect(new URL(`/crm?gcal=error&reason=${encodeURIComponent(e.message)}`, req.url));
+    return NextResponse.redirect(
+      new URL(`/crm?gcal=error&reason=${encodeURIComponent(e.message)}`, req.url)
+    );
   }
 }

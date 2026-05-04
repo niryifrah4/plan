@@ -34,7 +34,7 @@ export interface MortgageTrack {
   originalAmount: number;
   remainingBalance: number;
   monthlyPayment: number;
-  startDate: string;   // YYYY-MM
+  startDate: string; // YYYY-MM
   endDate: string;
   totalPayments: number;
   [key: string]: any;
@@ -61,7 +61,7 @@ export interface MortgageData {
 export interface Loan {
   id: string;
   lender: string;
-  startDate: string;   // YYYY-MM
+  startDate: string; // YYYY-MM
   totalPayments: number;
   monthlyPayment: number;
 }
@@ -181,9 +181,11 @@ export function getDebtSummary(data?: DebtData): DebtSummary {
 
   // Weighted average mortgage interest
   const totalMortgageOrig = mortgageTracks.reduce((s, t) => s + (t.originalAmount || 0), 0);
-  const mortgageAvgInterest = totalMortgageOrig > 0
-    ? mortgageTracks.reduce((s, t) => s + (t.interestRate || 0) * (t.originalAmount || 0), 0) / totalMortgageOrig
-    : 0;
+  const mortgageAvgInterest =
+    totalMortgageOrig > 0
+      ? mortgageTracks.reduce((s, t) => s + (t.interestRate || 0) * (t.originalAmount || 0), 0) /
+        totalMortgageOrig
+      : 0;
 
   return {
     monthlyTotal: mortgageMonthly + loansMonthly + installmentsMonthly,
@@ -222,9 +224,11 @@ export function getDebtAsLiabilities(): LiabilitySummaryRow[] {
     const totalBalance = tracks.reduce((s, t) => s + (t.remainingBalance || 0), 0);
     const totalMonthly = tracks.reduce((s, t) => s + (t.monthlyPayment || 0), 0);
     const totalOrig = tracks.reduce((s, t) => s + (t.originalAmount || 0), 0);
-    const avgRate = totalOrig > 0
-      ? tracks.reduce((s, t) => s + (t.interestRate || 0) * (t.originalAmount || 0), 0) / totalOrig
-      : 0;
+    const avgRate =
+      totalOrig > 0
+        ? tracks.reduce((s, t) => s + (t.interestRate || 0) * (t.originalAmount || 0), 0) /
+          totalOrig
+        : 0;
     rows.push({
       id: "debt-mortgage",
       name: d.mortgage?.bank ? `משכנתא — ${d.mortgage.bank}` : "משכנתא",
@@ -244,7 +248,7 @@ export function getDebtAsLiabilities(): LiabilitySummaryRow[] {
       name: l.lender || "הלוואה",
       liability_group: "loans",
       balance: remain * (l.monthlyPayment || 0),
-      rate_pct: 0,   // Rate not stored per loan in current model
+      rate_pct: 0, // Rate not stored per loan in current model
       monthly_payment: l.monthlyPayment || 0,
     });
   }

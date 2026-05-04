@@ -23,12 +23,19 @@ import { syncOnboardingToStores } from "@/lib/onboarding-sync";
 const BudgetChart = dynamic(() => import("./BudgetChart"), { ssr: false });
 const BudgetPie = dynamic(() => import("./BudgetPie"), { ssr: false });
 const MonthlyInsights = dynamic(() => import("./MonthlyInsights"), { ssr: false });
-const CashflowForecast = dynamic(() => import("@/components/budget/CashflowForecast").then(m => m.CashflowForecast), { ssr: false });
+const CashflowForecast = dynamic(
+  () => import("@/components/budget/CashflowForecast").then((m) => m.CashflowForecast),
+  { ssr: false }
+);
 
 import type { BudgetAdjustment } from "./MonthlyInsights";
 import { scopedKey } from "@/lib/client-scope";
 import { type Scope, SCOPE_LABELS, SCOPE_COLORS, effectiveScope } from "@/lib/scope-types";
-import { isBusinessScopeEnabled, setBusinessScopeOverride, BUSINESS_SCOPE_EVENT } from "@/lib/business-scope";
+import {
+  isBusinessScopeEnabled,
+  setBusinessScopeOverride,
+  BUSINESS_SCOPE_EVENT,
+} from "@/lib/business-scope";
 
 /* ═══════════════════════════════════════════════════════════
    Types & Constants
@@ -68,26 +75,62 @@ interface BudgetData {
 
 type SectionKey = "income" | "fixed" | "variable" | "business";
 
-const SECTION_META: Record<SectionKey, { label: string; icon: string; type: "income" | "expense" }> = {
-  income:   { label: "הכנסות",         icon: "payments",       type: "income"  },
-  fixed:    { label: "הוצאות קבועות",  icon: "lock",           type: "expense" },
-  variable: { label: "הוצאות משתנות",  icon: "shuffle",        type: "expense" },
-  business: { label: "הוצאות עסקיות",  icon: "business_center",type: "expense" },
+const SECTION_META: Record<
+  SectionKey,
+  { label: string; icon: string; type: "income" | "expense" }
+> = {
+  income: { label: "הכנסות", icon: "payments", type: "income" },
+  fixed: { label: "הוצאות קבועות", icon: "lock", type: "expense" },
+  variable: { label: "הוצאות משתנות", icon: "shuffle", type: "expense" },
+  business: { label: "הוצאות עסקיות", icon: "business_center", type: "expense" },
 };
 
 const SECTION_ORDER: SectionKey[] = ["income", "fixed", "variable", "business"];
 
 /** Default business expense rows for self-employed clients. */
 const DEFAULT_BUSINESS_ROWS: string[] = [
-  "משכורות", "מע״מ", "מקדמות מס הכנסה", "מקדמות ביטוח לאומי",
-  "שכירות", "חשמל", "ארנונה", "רואה חשבון", "ביטוחים",
-  "טלפון ואינטרנט", "הוצאות משרד", "פרסום", "שיווק",
-  "אנשי מכירות", "ציוד וסחורות", 'עו״ד', "הוצאות דלק",
-  "כיבוד", "אגרות שונות", "חומרי גלם", "הכשרות מקצועיות",
-  "עמלות בנקים", "עמלות סליקה", "עמלות שת״פ", "עמלות כרטיסי אשראי",
-  "ריבית על הלוואה", "שירותים נוספים",
+  "משכורות",
+  "מע״מ",
+  "מקדמות מס הכנסה",
+  "מקדמות ביטוח לאומי",
+  "שכירות",
+  "חשמל",
+  "ארנונה",
+  "רואה חשבון",
+  "ביטוחים",
+  "טלפון ואינטרנט",
+  "הוצאות משרד",
+  "פרסום",
+  "שיווק",
+  "אנשי מכירות",
+  "ציוד וסחורות",
+  "עו״ד",
+  "הוצאות דלק",
+  "כיבוד",
+  "אגרות שונות",
+  "חומרי גלם",
+  "הכשרות מקצועיות",
+  "עמלות בנקים",
+  "עמלות סליקה",
+  "עמלות שת״פ",
+  "עמלות כרטיסי אשראי",
+  "ריבית על הלוואה",
+  "שירותים נוספים",
 ];
-const HE_MONTHS = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+const HE_MONTHS = [
+  "ינואר",
+  "פברואר",
+  "מרץ",
+  "אפריל",
+  "מאי",
+  "יוני",
+  "יולי",
+  "אוגוסט",
+  "ספטמבר",
+  "אוקטובר",
+  "נובמבר",
+  "דצמבר",
+];
 
 const uid = () => "r" + Math.random().toString(36).slice(2, 9);
 
@@ -96,19 +139,19 @@ const uid = () => "r" + Math.random().toString(36).slice(2, 9);
  * When a row name matches (by substring), sub-items are seeded on first use. */
 const DRILLDOWN_DEFAULTS: Record<string, string[]> = {
   // ── Fixed groups ───────────────────────────────────────
-  "דיור":            ["משכנתא / שכירות", "ועד בית", "ארנונה", "חשמל", "מים", "גז"],
-  "מנויים":          ["אינטרנט + טלוויזיה", "סלולר", "סטרימינג", "חדר כושר", "אפליקציות", "עיתונות"],
-  "ביטוחים":         ["ביטוח בריאות", "ביטוח חיים", "ביטוח רכב", "ביטוח דירה"],
-  "גן / חינוך":      ["גן", "צהרון", "חוגים"],
+  דיור: ["משכנתא / שכירות", "ועד בית", "ארנונה", "חשמל", "מים", "גז"],
+  מנויים: ["אינטרנט + טלוויזיה", "סלולר", "סטרימינג", "חדר כושר", "אפליקציות", "עיתונות"],
+  ביטוחים: ["ביטוח בריאות", "ביטוח חיים", "ביטוח רכב", "ביטוח דירה"],
+  "גן / חינוך": ["גן", "צהרון", "חוגים"],
   "חסכונות והשקעות": ["העברה לחיסכון", "קרן השתלמות", "פנסיה פרטית"],
   // ── Variable groups ────────────────────────────────────
-  "רכב":             ["דלק", "תחבורה ציבורית", "חניה ואגרות", "תחזוקת רכב"],
-  "פנאי ובילוי":     ["מסעדות", "בילויים ויציאות", "קפה ומאפיות"],
-  "תחביבים":         ["תרבות", "ספרים", "סדנאות"],
-  "בריאות":          ["תרופות", "רופאים פרטיים", "טיפולים"],
-  "טיפוח":           ["ביגוד", "נעליים", "קוסמטיקה", "מספרה"],
-  "עזרה בבית":       ["עוזרת / ניקיון", "בייביסיטר", "שיעורים פרטיים"],
-  "מתנות ותרומות":   ["מתנות", "תרומות"],
+  רכב: ["דלק", "תחבורה ציבורית", "חניה ואגרות", "תחזוקת רכב"],
+  "פנאי ובילוי": ["מסעדות", "בילויים ויציאות", "קפה ומאפיות"],
+  תחביבים: ["תרבות", "ספרים", "סדנאות"],
+  בריאות: ["תרופות", "רופאים פרטיים", "טיפולים"],
+  טיפוח: ["ביגוד", "נעליים", "קוסמטיקה", "מספרה"],
+  "עזרה בבית": ["עוזרת / ניקיון", "בייביסיטר", "שיעורים פרטיים"],
+  "מתנות ותרומות": ["מתנות", "תרומות"],
 };
 
 function getDrilldownKey(name: string): string | null {
@@ -121,15 +164,19 @@ function getDrilldownKey(name: string): string | null {
 function defaultSubItems(categoryName: string): SubItem[] {
   const key = getDrilldownKey(categoryName);
   if (!key) return [];
-  return DRILLDOWN_DEFAULTS[key].map(name => ({
-    id: uid(), name, budget: 0, actual: 0, avg3: 0,
+  return DRILLDOWN_DEFAULTS[key].map((name) => ({
+    id: uid(),
+    name,
+    budget: 0,
+    actual: 0,
+    avg3: 0,
   }));
 }
 
 /* Check if any sub-item has overspend */
 function hasSubOverspend(row: BudgetRow): boolean {
   if (!row.subItems || row.subItems.length === 0) return false;
-  return row.subItems.some(s => (Number(s.actual) || 0) > (Number(s.budget) || 0));
+  return row.subItems.some((s) => (Number(s.actual) || 0) > (Number(s.budget) || 0));
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -150,28 +197,28 @@ const EXPECTED_INCOME_ROWS: string[] = [
 /** Fixed monthly obligations — recurring at similar amount each month.
  * Grouped parents (see DRILLDOWN_DEFAULTS) expand into sub-items automatically. */
 const EXPECTED_FIXED_ROWS: string[] = [
-  "דיור",                        // drilldown: משכנתא/שכירות, ועד, ארנונה, חשמל, מים, גז
-  "מנויים",                      // drilldown: אינטרנט+טלוויזיה, סלולר, סטרימינג, כושר...
-  "ביטוחים",                     // drilldown: בריאות, חיים, רכב, דירה
-  "גן / חינוך",                  // drilldown: גן, צהרון, חוגים
+  "דיור", // drilldown: משכנתא/שכירות, ועד, ארנונה, חשמל, מים, גז
+  "מנויים", // drilldown: אינטרנט+טלוויזיה, סלולר, סטרימינג, כושר...
+  "ביטוחים", // drilldown: בריאות, חיים, רכב, דירה
+  "גן / חינוך", // drilldown: גן, צהרון, חוגים
   "תחבורה (ליסינג / מנוי)",
-  "חסכונות והשקעות",             // drilldown: העברה לחיסכון, קרן השתלמות, פנסיה פרטית
-  "החזר הלוואות",                // auto-injected from debt store (locked)
-  "עסקאות תשלומים",              // credit-card installments, furniture payments, etc.
+  "חסכונות והשקעות", // drilldown: העברה לחיסכון, קרן השתלמות, פנסיה פרטית
+  "החזר הלוואות", // auto-injected from debt store (locked)
+  "עסקאות תשלומים", // credit-card installments, furniture payments, etc.
 ];
 
 /** Variable day-to-day spending — merged & grouped for simplicity. */
 const EXPECTED_VARIABLE_ROWS: string[] = [
   "סופר / מזון",
-  "רכב",                         // drilldown: דלק, תחב״צ, חניה, תחזוקה
-  "פנאי ובילוי",                 // drilldown: מסעדות, בילויים, קפה
-  "תחביבים",                     // drilldown: תרבות, ספרים, סדנאות
-  "בריאות",                      // drilldown: תרופות, רופאים פרטיים, טיפולים
-  "טיפוח",                       // drilldown: ביגוד, נעליים, קוסמטיקה, מספרה
-  "עזרה בבית",                   // drilldown: עוזרת, בייביסיטר, שיעורים פרטיים
+  "רכב", // drilldown: דלק, תחב״צ, חניה, תחזוקה
+  "פנאי ובילוי", // drilldown: מסעדות, בילויים, קפה
+  "תחביבים", // drilldown: תרבות, ספרים, סדנאות
+  "בריאות", // drilldown: תרופות, רופאים פרטיים, טיפולים
+  "טיפוח", // drilldown: ביגוד, נעליים, קוסמטיקה, מספרה
+  "עזרה בבית", // drilldown: עוזרת, בייביסיטר, שיעורים פרטיים
   "חופשות וטיולים",
   "חיות מחמד",
-  "מתנות ותרומות",               // drilldown: מתנות, תרומות
+  "מתנות ותרומות", // drilldown: מתנות, תרומות
   "תחזוקת בית",
   "שונות",
 ];
@@ -182,25 +229,41 @@ const EXPECTED_VARIABLE_ROWS: string[] = [
  * untouched so the user never loses data. */
 const LEGACY_FLAT_ROWS: string[] = [
   // Fixed — now inside "דיור"
-  "משכנתא / שכירות", "ועד בית", "ארנונה", "חשמל", "מים", "גז",
+  "משכנתא / שכירות",
+  "ועד בית",
+  "ארנונה",
+  "חשמל",
+  "מים",
+  "גז",
   // Fixed — now inside "מנויים"
-  "אינטרנט + טלוויזיה", "סלולר",
+  "אינטרנט + טלוויזיה",
+  "סלולר",
   // Fixed — now inside "חסכונות והשקעות"
-  "חיסכון חודשי", "קרן השתלמות", "פנסיה פרטית / ביטוח מנהלים",
+  "חיסכון חודשי",
+  "קרן השתלמות",
+  "פנסיה פרטית / ביטוח מנהלים",
   // Variable — now inside "רכב"
-  "דלק", "תחבורה ציבורית", "חניה ואגרות", "תחזוקת רכב",
+  "דלק",
+  "תחבורה ציבורית",
+  "חניה ואגרות",
+  "תחזוקת רכב",
   // Variable — merged into "פנאי ובילוי"
   "מסעדות",
   // Variable — merged into "תחביבים"
   "תרבות וספרים",
   // Variable — merged into "בריאות"
-  "תרופות", "בריאות ורופאים פרטיים",
+  "תרופות",
+  "בריאות ורופאים פרטיים",
   // Variable — merged into "טיפוח"
-  "ביגוד", "נעליים", "קוסמטיקה וטיפוח", "מספרה",
+  "ביגוד",
+  "נעליים",
+  "קוסמטיקה וטיפוח",
+  "מספרה",
   // Variable — merged into "עזרה בבית"
   "שיעורים פרטיים וחוגים",
   // Variable — merged into "מתנות ותרומות"
-  "מתנות", "תרומות",
+  "מתנות",
+  "תרומות",
 ];
 
 function makeRow(name: string): BudgetRow {
@@ -215,11 +278,16 @@ function makeRow(name: string): BudgetRow {
 }
 
 const DEFAULT_SECTIONS: Record<string, BudgetRow[]> = {
-  income:   EXPECTED_INCOME_ROWS.map(makeRow),
-  fixed:    EXPECTED_FIXED_ROWS.map(makeRow),
+  income: EXPECTED_INCOME_ROWS.map(makeRow),
+  fixed: EXPECTED_FIXED_ROWS.map(makeRow),
   variable: EXPECTED_VARIABLE_ROWS.map(makeRow),
-  business: DEFAULT_BUSINESS_ROWS.map(name => ({
-    id: uid(), name, budget: 0, actual: 0, avg3: 0, scope: "business" as Scope,
+  business: DEFAULT_BUSINESS_ROWS.map((name) => ({
+    id: uid(),
+    name,
+    budget: 0,
+    actual: 0,
+    avg3: 0,
+    scope: "business" as Scope,
   })),
 };
 
@@ -236,18 +304,18 @@ function migrateBudget(data: BudgetData): BudgetData {
   //    Non-empty legacy rows (budget>0 OR actual>0 OR subItems populated)
   //    stay so the user never loses entered data.
   const isEmpty = (r: BudgetRow): boolean => {
-    const hasSub = r.subItems?.some(s => (s.budget || 0) + (s.actual || 0) > 0);
+    const hasSub = r.subItems?.some((s) => (s.budget || 0) + (s.actual || 0) > 0);
     return (r.budget || 0) === 0 && (r.actual || 0) === 0 && !hasSub && !r.locked;
   };
   for (const key of Object.keys(data.sections)) {
-    data.sections[key] = data.sections[key].filter(r =>
-      !(LEGACY_FLAT_ROWS.includes(r.name) && isEmpty(r)),
+    data.sections[key] = data.sections[key].filter(
+      (r) => !(LEGACY_FLAT_ROWS.includes(r.name) && isEmpty(r))
     );
   }
 
   // 2. Add subItems to drilldown categories that were saved without them
   for (const key of Object.keys(data.sections)) {
-    data.sections[key] = data.sections[key].map(row => {
+    data.sections[key] = data.sections[key].map((row) => {
       if (!row.subItems && getDrilldownKey(row.name)) {
         return { ...row, subItems: defaultSubItems(row.name) };
       }
@@ -266,17 +334,22 @@ function migrateBudget(data: BudgetData): BudgetData {
     const existing = data.sections[key] || [];
     const missing: BudgetRow[] = [];
     for (const name of expected) {
-      if (!existing.some(r => r.name === name)) missing.push(makeRow(name));
+      if (!existing.some((r) => r.name === name)) missing.push(makeRow(name));
     }
     if (missing.length > 0) data.sections[key] = [...existing, ...missing];
   };
-  backfillSection("income",   EXPECTED_INCOME_ROWS);
-  backfillSection("fixed",    EXPECTED_FIXED_ROWS);
+  backfillSection("income", EXPECTED_INCOME_ROWS);
+  backfillSection("fixed", EXPECTED_FIXED_ROWS);
   backfillSection("variable", EXPECTED_VARIABLE_ROWS);
   // Backfill: ensure business section exists
   if (!data.sections.business || data.sections.business.length === 0) {
-    data.sections.business = DEFAULT_BUSINESS_ROWS.map(name => ({
-      id: uid(), name, budget: 0, actual: 0, avg3: 0, scope: "business" as Scope,
+    data.sections.business = DEFAULT_BUSINESS_ROWS.map((name) => ({
+      id: uid(),
+      name,
+      budget: 0,
+      actual: 0,
+      avg3: 0,
+      scope: "business" as Scope,
     }));
   }
   return data;
@@ -308,8 +381,8 @@ function carryForward(prevBudget: BudgetData, year: number, month: number): Budg
     // Skip old debt section if still present
     if (key === "debt") continue;
     sections[key] = rows
-      .filter(r => !r.locked) // Don't carry locked debt rows — they'll be re-injected
-      .map(r => {
+      .filter((r) => !r.locked) // Don't carry locked debt rows — they'll be re-injected
+      .map((r) => {
         // 2026-04-28 per Nir: previous month's ACTUAL becomes the new budget.
         // The reasoning: the user's real-world spend is more accurate than
         // the original (often optimistic) plan. Falls back to the old plan
@@ -321,7 +394,7 @@ function carryForward(prevBudget: BudgetData, year: number, month: number): Budg
           budget: newBudget,
           actual: 0,
           avg3: r.avg3,
-          subItems: r.subItems?.map(s => ({
+          subItems: r.subItems?.map((s) => ({
             ...s,
             id: uid(),
             budget: s.actual > 0 ? Math.round(s.actual) : s.budget,
@@ -342,7 +415,7 @@ function injectDebtRows(budget: BudgetData): BudgetData {
   const summary = getDebtSummary(debt);
 
   // Remove any existing LOCKED rows (mortgage tracks). Unlocked "החזר הלוואות" stays.
-  const fixedClean = (budget.sections.fixed || []).filter(r => !r.locked);
+  const fixedClean = (budget.sections.fixed || []).filter((r) => !r.locked);
 
   const lockedRows: BudgetRow[] = [];
 
@@ -377,7 +450,7 @@ function injectDebtRows(budget: BudgetData): BudgetData {
   const installmentsMonthly = summary.installmentsMonthly || 0;
   const totalLoansMonthly = loansMonthly + installmentsMonthly;
 
-  const loanRowIdx = fixedClean.findIndex(r => r.name === "החזר הלוואות");
+  const loanRowIdx = fixedClean.findIndex((r) => r.name === "החזר הלוואות");
   if (loanRowIdx >= 0) {
     // Update actual to reflect real repayment; only overwrite budget if user hasn't set one
     const existing = fixedClean[loanRowIdx];
@@ -398,9 +471,12 @@ function injectDebtRows(budget: BudgetData): BudgetData {
   }
 
   // If there's a "משכנתא / שכירות" row with budget=0 and we have mortgage locked rows, remove it to avoid duplication
-  const hasMortgageLocked = lockedRows.some(r => r.name.startsWith("משכנתא"));
+  const hasMortgageLocked = lockedRows.some((r) => r.name.startsWith("משכנתא"));
   const finalFixed = hasMortgageLocked
-    ? fixedClean.filter(r => !(r.name.includes("משכנתא") && (Number(r.budget) || 0) === 0 && r.name !== "החזר הלוואות"))
+    ? fixedClean.filter(
+        (r) =>
+          !(r.name.includes("משכנתא") && (Number(r.budget) || 0) === 0 && r.name !== "החזר הלוואות")
+      )
     : fixedClean;
 
   return {
@@ -420,9 +496,9 @@ function injectPassiveIncomeRows(budget: BudgetData): BudgetData {
   const summary = getPassiveIncomeSummary();
 
   // Strip any previously-injected passive rows; keep manual income entries.
-  const incomeClean = (budget.sections.income || []).filter(r => r.source !== "passive");
+  const incomeClean = (budget.sections.income || []).filter((r) => r.source !== "passive");
 
-  const passiveRows: BudgetRow[] = summary.sources.map(src => ({
+  const passiveRows: BudgetRow[] = summary.sources.map((src) => ({
     id: uid(),
     name: src.label,
     budget: src.monthly,
@@ -454,25 +530,28 @@ const ONB_INCOMES_KEY = "verdant:onboarding:incomes";
 
 /** Labels that are covered by other auto-injections → skip. */
 const ONB_SKIP_LABEL_PATTERNS = [
-  /שכר\s*ב?ן?\/?ב?ת?\s*זוג/,  // "שכר בן/בת זוג 1/2 (נטו)"  — comes from salary profile
-  /^\s*שכר\s*\(/,              // plain "שכר (נטו)"
-  /^משכורת/,                   // "משכורת נטו"
-  /שכ[״""]?ד/,                 // "שכ״ד" / שכ"ד — comes from realestate passive injection
-  /שכר\s+דירה/,                // "שכר דירה"
-  /נכסים\s+מניבים/,            // "הכנסה מנכסים מניבים" — comes from realestate
+  /שכר\s*ב?ן?\/?ב?ת?\s*זוג/, // "שכר בן/בת זוג 1/2 (נטו)"  — comes from salary profile
+  /^\s*שכר\s*\(/, // plain "שכר (נטו)"
+  /^משכורת/, // "משכורת נטו"
+  /שכ[״""]?ד/, // "שכ״ד" / שכ"ד — comes from realestate passive injection
+  /שכר\s+דירה/, // "שכר דירה"
+  /נכסים\s+מניבים/, // "הכנסה מנכסים מניבים" — comes from realestate
 ];
 
 function injectOnboardingIncomeRows(budget: BudgetData): BudgetData {
   if (typeof window === "undefined") return budget;
 
   // Strip previously-injected onboarding rows; keep manual entries and other sources.
-  const incomeClean = (budget.sections.income || []).filter(r => r.source !== "onboarding");
+  const incomeClean = (budget.sections.income || []).filter((r) => r.source !== "onboarding");
 
   let list: Array<{ label?: string; value?: string }> = [];
   try {
-    const raw = localStorage.getItem(scopedKey(ONB_INCOMES_KEY)) || localStorage.getItem(ONB_INCOMES_KEY);
+    const raw =
+      localStorage.getItem(scopedKey(ONB_INCOMES_KEY)) || localStorage.getItem(ONB_INCOMES_KEY);
     if (raw) list = JSON.parse(raw);
-  } catch { /* ignore corrupt JSON */ }
+  } catch {
+    /* ignore corrupt JSON */
+  }
 
   if (!Array.isArray(list) || list.length === 0) {
     return { ...budget, sections: { ...budget.sections, income: incomeClean } };
@@ -487,7 +566,9 @@ function injectOnboardingIncomeRows(budget: BudgetData): BudgetData {
     try {
       const props = JSON.parse(localStorage.getItem(scopedKey("verdant:properties")) || "[]");
       return Array.isArray(props) && props.some((p: any) => (p.monthlyRent || 0) > 0);
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   })();
 
   const SALARY_RX = [/^משכורת/, /^\s*שכר\s*\(/, /שכר\s*ב?ן?\/?ב?ת?\s*זוג/];
@@ -499,11 +580,11 @@ function injectOnboardingIncomeRows(budget: BudgetData): BudgetData {
     const amount = Number(item?.value) || 0;
     if (!label || amount <= 0) continue;
 
-    const isSalaryLabel = SALARY_RX.some(rx => rx.test(label));
-    const isRentLabel = RENT_RX.some(rx => rx.test(label));
+    const isSalaryLabel = SALARY_RX.some((rx) => rx.test(label));
+    const isRentLabel = RENT_RX.some((rx) => rx.test(label));
 
     if (isSalaryLabel && salaryWillBeInjected) continue; // covered by injectSalaryRow
-    if (isRentLabel && rentWillBeInjected) continue;     // covered by injectPassiveIncomeRows
+    if (isRentLabel && rentWillBeInjected) continue; // covered by injectPassiveIncomeRows
 
     rows.push({
       id: uid(),
@@ -531,7 +612,7 @@ function injectOnboardingIncomeRows(budget: BudgetData): BudgetData {
 
 function injectSalaryRow(budget: BudgetData): BudgetData {
   // Strip any previously-injected salary rows; keep manual income entries.
-  const incomeClean = (budget.sections.income || []).filter(r => r.source !== "salary");
+  const incomeClean = (budget.sections.income || []).filter((r) => r.source !== "salary");
 
   if (!hasSavedSalaryProfile()) {
     return { ...budget, sections: { ...budget.sections, income: incomeClean } };
@@ -627,9 +708,11 @@ export default function BudgetPage() {
     const handler = () => {
       // Pull the freshest snapshot from the questionnaire first, then re-inject.
       syncOnboardingToStores();
-      setBudget(prev => {
+      setBudget((prev) => {
         if (!prev) return prev;
-        const updated = injectOnboardingIncomeRows(injectSalaryRow(injectPassiveIncomeRows(injectDebtRows(prev))));
+        const updated = injectOnboardingIncomeRows(
+          injectSalaryRow(injectPassiveIncomeRows(injectDebtRows(prev)))
+        );
         saveBudget(updated);
         return updated;
       });
@@ -651,7 +734,9 @@ export default function BudgetPage() {
     const existing = loadBudget(year, month);
     if (existing) {
       // Re-inject debt + passive income rows in case they changed
-      const withSync = injectOnboardingIncomeRows(injectSalaryRow(injectPassiveIncomeRows(injectDebtRows(existing))));
+      const withSync = injectOnboardingIncomeRows(
+        injectSalaryRow(injectPassiveIncomeRows(injectDebtRows(existing)))
+      );
       setBudget(withSync);
       return;
     }
@@ -659,7 +744,10 @@ export default function BudgetPage() {
     // ═══ Try carry forward from previous month ═══
     let prevMonth = month - 1;
     let prevYear = year;
-    if (prevMonth < 0) { prevMonth = 11; prevYear--; }
+    if (prevMonth < 0) {
+      prevMonth = 11;
+      prevYear--;
+    }
     const prev = loadBudget(prevYear, prevMonth);
 
     let fresh: BudgetData;
@@ -674,13 +762,20 @@ export default function BudgetPage() {
         settled: false,
       };
       // Generate fresh IDs
-      Object.values(fresh.sections).forEach(rows =>
-        rows.forEach(r => { r.id = uid(); r.subItems?.forEach(s => { s.id = uid(); }); }),
+      Object.values(fresh.sections).forEach((rows) =>
+        rows.forEach((r) => {
+          r.id = uid();
+          r.subItems?.forEach((s) => {
+            s.id = uid();
+          });
+        })
       );
     }
 
     // Inject locked debt rows + passive income
-    fresh = injectOnboardingIncomeRows(injectSalaryRow(injectPassiveIncomeRows(injectDebtRows(fresh))));
+    fresh = injectOnboardingIncomeRows(
+      injectSalaryRow(injectPassiveIncomeRows(injectDebtRows(fresh)))
+    );
 
     setBudget(fresh);
     saveBudget(fresh);
@@ -700,10 +795,10 @@ export default function BudgetPage() {
   // Update a field on a row (skip locked rows)
   const updateRow = useCallback(
     (sectionKey: string, rowId: string, field: string, value: string | number) => {
-      setBudget(prev => {
+      setBudget((prev) => {
         if (!prev) return prev;
         const next = { ...prev, sections: { ...prev.sections } };
-        next.sections[sectionKey] = next.sections[sectionKey].map(r => {
+        next.sections[sectionKey] = next.sections[sectionKey].map((r) => {
           if (r.id !== rowId || r.locked) return r;
           // Text fields stay as strings; everything else is coerced to number.
           const isText = field === "name" || field === "notes";
@@ -713,71 +808,90 @@ export default function BudgetPage() {
         return next;
       });
     },
-    [autoSave],
+    [autoSave]
   );
 
   // Set a row's scope tag directly (popover picker — no cycling guesswork)
-  const setRowScope = useCallback((sectionKey: string, rowId: string, newScope: Scope | undefined) => {
-    setBudget(prev => {
-      if (!prev) return prev;
-      const next = { ...prev, sections: { ...prev.sections } };
-      next.sections[sectionKey] = next.sections[sectionKey].map(r => {
-        if (r.id !== rowId || r.locked) return r;
-        return { ...r, scope: newScope };
+  const setRowScope = useCallback(
+    (sectionKey: string, rowId: string, newScope: Scope | undefined) => {
+      setBudget((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, sections: { ...prev.sections } };
+        next.sections[sectionKey] = next.sections[sectionKey].map((r) => {
+          if (r.id !== rowId || r.locked) return r;
+          return { ...r, scope: newScope };
+        });
+        autoSave(next);
+        return next;
       });
-      autoSave(next);
-      return next;
-    });
-    // Auto-widen filter so the row stays visible after scope change
-    if (newScope === "business" && scopeFilter === "personal") setScopeFilter("all");
-    if ((newScope === undefined || newScope === "personal") && scopeFilter === "business") setScopeFilter("all");
-  }, [autoSave, scopeFilter]);
+      // Auto-widen filter so the row stays visible after scope change
+      if (newScope === "business" && scopeFilter === "personal") setScopeFilter("all");
+      if ((newScope === undefined || newScope === "personal") && scopeFilter === "business")
+        setScopeFilter("all");
+    },
+    [autoSave, scopeFilter]
+  );
 
-  const addRow = useCallback((sectionKey: string) => {
-    setBudget(prev => {
-      if (!prev) return prev;
-      const next = { ...prev, sections: { ...prev.sections } };
-      // Determine scope for the new row:
-      // - business section always → business
-      // - otherwise inherit the active filter so the new row stays visible
-      let newScope: Scope | undefined;
-      if (sectionKey === "business") newScope = "business";
-      else if (scopeFilter === "business") newScope = "business";
-      else newScope = undefined; // personal default
-      // Insert before locked rows
-      const unlocked = (next.sections[sectionKey] || []).filter(r => !r.locked);
-      const locked = (next.sections[sectionKey] || []).filter(r => r.locked);
-      next.sections[sectionKey] = [
-        ...unlocked,
-        { id: uid(), name: "", budget: 0, actual: 0, avg3: 0, ...(newScope ? { scope: newScope } : {}) },
-        ...locked,
-      ];
-      autoSave(next);
-      return next;
-    });
-  }, [autoSave, scopeFilter]);
+  const addRow = useCallback(
+    (sectionKey: string) => {
+      setBudget((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, sections: { ...prev.sections } };
+        // Determine scope for the new row:
+        // - business section always → business
+        // - otherwise inherit the active filter so the new row stays visible
+        let newScope: Scope | undefined;
+        if (sectionKey === "business") newScope = "business";
+        else if (scopeFilter === "business") newScope = "business";
+        else newScope = undefined; // personal default
+        // Insert before locked rows
+        const unlocked = (next.sections[sectionKey] || []).filter((r) => !r.locked);
+        const locked = (next.sections[sectionKey] || []).filter((r) => r.locked);
+        next.sections[sectionKey] = [
+          ...unlocked,
+          {
+            id: uid(),
+            name: "",
+            budget: 0,
+            actual: 0,
+            avg3: 0,
+            ...(newScope ? { scope: newScope } : {}),
+          },
+          ...locked,
+        ];
+        autoSave(next);
+        return next;
+      });
+    },
+    [autoSave, scopeFilter]
+  );
 
-  const deleteRow = useCallback((sectionKey: string, rowId: string) => {
-    setBudget(prev => {
-      if (!prev) return prev;
-      const next = { ...prev, sections: { ...prev.sections } };
-      // Don't delete locked rows
-      next.sections[sectionKey] = next.sections[sectionKey].filter(r => r.id !== rowId || r.locked);
-      autoSave(next);
-      return next;
-    });
-  }, [autoSave]);
+  const deleteRow = useCallback(
+    (sectionKey: string, rowId: string) => {
+      setBudget((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, sections: { ...prev.sections } };
+        // Don't delete locked rows
+        next.sections[sectionKey] = next.sections[sectionKey].filter(
+          (r) => r.id !== rowId || r.locked
+        );
+        autoSave(next);
+        return next;
+      });
+    },
+    [autoSave]
+  );
 
   const updateSubItem = useCallback(
     (sectionKey: string, rowId: string, subId: string, field: string, value: string | number) => {
-      setBudget(prev => {
+      setBudget((prev) => {
         if (!prev) return prev;
         const next = { ...prev, sections: { ...prev.sections } };
-        next.sections[sectionKey] = next.sections[sectionKey].map(r => {
+        next.sections[sectionKey] = next.sections[sectionKey].map((r) => {
           if (r.id !== rowId || !r.subItems) return r;
           const isText = field === "name" || field === "notes";
-          const updatedSubs = r.subItems.map(s =>
-            s.id === subId ? { ...s, [field]: isText ? value : Number(value) || 0 } : s,
+          const updatedSubs = r.subItems.map((s) =>
+            s.id === subId ? { ...s, [field]: isText ? value : Number(value) || 0 } : s
           );
           const subBudget = updatedSubs.reduce((sum, s) => sum + (Number(s.budget) || 0), 0);
           const subActual = updatedSubs.reduce((sum, s) => sum + (Number(s.actual) || 0), 0);
@@ -787,37 +901,49 @@ export default function BudgetPage() {
         return next;
       });
     },
-    [autoSave],
+    [autoSave]
   );
 
-  const addSubItem = useCallback((sectionKey: string, rowId: string) => {
-    setBudget(prev => {
-      if (!prev) return prev;
-      const next = { ...prev, sections: { ...prev.sections } };
-      next.sections[sectionKey] = next.sections[sectionKey].map(r => {
-        if (r.id !== rowId) return r;
-        return { ...r, subItems: [...(r.subItems || []), { id: uid(), name: "", budget: 0, actual: 0, avg3: 0 }] };
+  const addSubItem = useCallback(
+    (sectionKey: string, rowId: string) => {
+      setBudget((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, sections: { ...prev.sections } };
+        next.sections[sectionKey] = next.sections[sectionKey].map((r) => {
+          if (r.id !== rowId) return r;
+          return {
+            ...r,
+            subItems: [
+              ...(r.subItems || []),
+              { id: uid(), name: "", budget: 0, actual: 0, avg3: 0 },
+            ],
+          };
+        });
+        autoSave(next);
+        return next;
       });
-      autoSave(next);
-      return next;
-    });
-  }, [autoSave]);
+    },
+    [autoSave]
+  );
 
-  const deleteSubItem = useCallback((sectionKey: string, rowId: string, subId: string) => {
-    setBudget(prev => {
-      if (!prev) return prev;
-      const next = { ...prev, sections: { ...prev.sections } };
-      next.sections[sectionKey] = next.sections[sectionKey].map(r => {
-        if (r.id !== rowId || !r.subItems) return r;
-        const updatedSubs = r.subItems.filter(s => s.id !== subId);
-        const subBudget = updatedSubs.reduce((sum, s) => sum + (Number(s.budget) || 0), 0);
-        const subActual = updatedSubs.reduce((sum, s) => sum + (Number(s.actual) || 0), 0);
-        return { ...r, subItems: updatedSubs, budget: subBudget, actual: subActual };
+  const deleteSubItem = useCallback(
+    (sectionKey: string, rowId: string, subId: string) => {
+      setBudget((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, sections: { ...prev.sections } };
+        next.sections[sectionKey] = next.sections[sectionKey].map((r) => {
+          if (r.id !== rowId || !r.subItems) return r;
+          const updatedSubs = r.subItems.filter((s) => s.id !== subId);
+          const subBudget = updatedSubs.reduce((sum, s) => sum + (Number(s.budget) || 0), 0);
+          const subActual = updatedSubs.reduce((sum, s) => sum + (Number(s.actual) || 0), 0);
+          return { ...r, subItems: updatedSubs, budget: subBudget, actual: subActual };
+        });
+        autoSave(next);
+        return next;
       });
-      autoSave(next);
-      return next;
-    });
-  }, [autoSave]);
+    },
+    [autoSave]
+  );
 
   // Open the import-preview modal using the currently saved parsed transactions
   const openImportPreview = useCallback(() => {
@@ -854,63 +980,74 @@ export default function BudgetPage() {
   const openNewMonth = useCallback(() => {
     let newMonth = month + 1;
     let newYear = year;
-    if (newMonth > 11) { newMonth = 0; newYear++; }
+    if (newMonth > 11) {
+      newMonth = 0;
+      newYear++;
+    }
     setYear(newYear);
     setMonth(newMonth);
   }, [month, year]);
 
   // Apply monthly insight recommendations to budget plan values
-  const applyInsights = useCallback((adjustments: BudgetAdjustment[]) => {
-    setBudget(prev => {
-      if (!prev) return prev;
-      const next = { ...prev, sections: { ...prev.sections } };
+  const applyInsights = useCallback(
+    (adjustments: BudgetAdjustment[]) => {
+      setBudget((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, sections: { ...prev.sections } };
 
-      for (const adj of adjustments) {
-        const sectionRows = next.sections[adj.sectionKey];
-        if (!sectionRows) continue;
+        for (const adj of adjustments) {
+          const sectionRows = next.sections[adj.sectionKey];
+          if (!sectionRows) continue;
 
-        next.sections[adj.sectionKey] = sectionRows.map(row => {
-          if (row.locked) return row; // Never modify locked rows
-          // Match by name (partial match to handle names like "סופר / מזון")
-          if (!row.name.includes(adj.rowName) && !adj.rowName.includes(row.name)) return row;
+          next.sections[adj.sectionKey] = sectionRows.map((row) => {
+            if (row.locked) return row; // Never modify locked rows
+            // Match by name (partial match to handle names like "סופר / מזון")
+            if (!row.name.includes(adj.rowName) && !adj.rowName.includes(row.name)) return row;
 
-          if (row.subItems && row.subItems.length > 0) {
-            const updatedSubs = row.subItems.map(sub => {
-              const currentBudget = Number(sub.budget) || 0;
-              if (currentBudget <= 0) return sub;
-              const newVal = adj.absolute != null
-                ? adj.absolute
-                : Math.round(currentBudget * (adj.multiplier || 1));
-              return { ...sub, budget: newVal };
-            });
-            const subBudget = updatedSubs.reduce((s, sub) => s + (Number(sub.budget) || 0), 0);
-            return { ...row, subItems: updatedSubs, budget: subBudget };
-          } else {
-            const currentBudget = Number(row.budget) || 0;
-            if (currentBudget <= 0 && adj.absolute == null) return row;
-            const newVal = adj.absolute != null
-              ? adj.absolute
-              : Math.round(currentBudget * (adj.multiplier || 1));
-            return { ...row, budget: newVal };
-          }
-        });
-      }
+            if (row.subItems && row.subItems.length > 0) {
+              const updatedSubs = row.subItems.map((sub) => {
+                const currentBudget = Number(sub.budget) || 0;
+                if (currentBudget <= 0) return sub;
+                const newVal =
+                  adj.absolute != null
+                    ? adj.absolute
+                    : Math.round(currentBudget * (adj.multiplier || 1));
+                return { ...sub, budget: newVal };
+              });
+              const subBudget = updatedSubs.reduce((s, sub) => s + (Number(sub.budget) || 0), 0);
+              return { ...row, subItems: updatedSubs, budget: subBudget };
+            } else {
+              const currentBudget = Number(row.budget) || 0;
+              if (currentBudget <= 0 && adj.absolute == null) return row;
+              const newVal =
+                adj.absolute != null
+                  ? adj.absolute
+                  : Math.round(currentBudget * (adj.multiplier || 1));
+              return { ...row, budget: newVal };
+            }
+          });
+        }
 
-      autoSave(next);
-      return next;
-    });
-  }, [autoSave]);
+        autoSave(next);
+        return next;
+      });
+    },
+    [autoSave]
+  );
 
   // Row visibility predicate based on the active scope filter.
   // undefined scope = "personal". Locked debt rows always visible.
-  const rowVisibleForFilter = useCallback((row: BudgetRow): boolean => {
-    if (row.locked) return true;
-    if (scopeFilter === "all") return true;
-    const eff = effectiveScope(row.scope);
-    if (scopeFilter === "personal") return eff === "personal" || eff === "mixed";
-    if (scopeFilter === "business") return eff === "business" || eff === "mixed";
-    return true;
-  }, [scopeFilter]);
+  const rowVisibleForFilter = useCallback(
+    (row: BudgetRow): boolean => {
+      if (row.locked) return true;
+      if (scopeFilter === "all") return true;
+      const eff = effectiveScope(row.scope);
+      if (scopeFilter === "personal") return eff === "personal" || eff === "mixed";
+      if (scopeFilter === "business") return eff === "business" || eff === "mixed";
+      return true;
+    },
+    [scopeFilter]
+  );
 
   // Filtered budget drives both totals and rendering, so sections
   // and overspend warnings reflect the selected scope.
@@ -930,27 +1067,45 @@ export default function BudgetPage() {
   // (unified) view, business profit (positive) becomes a virtual income line
   // — "משיכת בעלים" — bridging business → personal cashflow.
   const totals = useMemo(() => {
-    if (!filteredBudget) return { incBudget: 0, incActual: 0, expBudget: 0, expActual: 0, ownerDrawBudget: 0, ownerDrawActual: 0 };
+    if (!filteredBudget)
+      return {
+        incBudget: 0,
+        incActual: 0,
+        expBudget: 0,
+        expActual: 0,
+        ownerDrawBudget: 0,
+        ownerDrawActual: 0,
+      };
 
     if (scopeFilter === "business") {
       // Business-only: sum business section as expense, no income lines.
       const expBudget = sectionTotal(filteredBudget.sections.business || [], "budget");
       const expActual = sectionTotal(filteredBudget.sections.business || [], "actual");
-      return { incBudget: 0, incActual: 0, expBudget, expActual, ownerDrawBudget: 0, ownerDrawActual: 0 };
+      return {
+        incBudget: 0,
+        incActual: 0,
+        expBudget,
+        expActual,
+        ownerDrawBudget: 0,
+        ownerDrawActual: 0,
+      };
     }
 
     const incBudget = sectionTotal(filteredBudget.sections.income || [], "budget");
     const incActual = sectionTotal(filteredBudget.sections.income || [], "actual");
     const expBudget = (["fixed", "variable"] as const).reduce(
-      (s, k) => s + sectionTotal(filteredBudget.sections[k] || [], "budget"), 0,
+      (s, k) => s + sectionTotal(filteredBudget.sections[k] || [], "budget"),
+      0
     );
     const expActual = (["fixed", "variable"] as const).reduce(
-      (s, k) => s + sectionTotal(filteredBudget.sections[k] || [], "actual"), 0,
+      (s, k) => s + sectionTotal(filteredBudget.sections[k] || [], "actual"),
+      0
     );
 
     // Compute owner draw — business profit that flows to the family.
     // Negative profit (loss) doesn't pull from personal cashflow; clamp at 0.
-    let ownerDrawBudget = 0, ownerDrawActual = 0;
+    let ownerDrawBudget = 0,
+      ownerDrawActual = 0;
     if (scopeFilter === "all" && businessEnabled && budget) {
       // Use unfiltered budget for business rows so personal-mode users still
       // see their owner draw if they happen to have business data.
@@ -960,7 +1115,8 @@ export default function BudgetPage() {
       // For now we approximate business income as 0 (the future business
       // section will carry its own income rows). Owner draw = -expense?
       // No — better: don't double-count. Skip until business income exists.
-      void bizExpB; void bizExpA;
+      void bizExpB;
+      void bizExpA;
     }
 
     return { incBudget, incActual, expBudget, expActual, ownerDrawBudget, ownerDrawActual };
@@ -1001,7 +1157,12 @@ export default function BudgetPage() {
       variable: "#d97706",
       business: "#1B4332",
     };
-    type RawSlice = { label: string; value: number; color: string; section: "fixed" | "variable" | "business" };
+    type RawSlice = {
+      label: string;
+      value: number;
+      color: string;
+      section: "fixed" | "variable" | "business";
+    };
     const rawBudget: RawSlice[] = [];
     const rawActual: RawSlice[] = [];
     const sectionCounts: Record<string, number> = { fixed: 0, variable: 0, business: 0 };
@@ -1034,17 +1195,22 @@ export default function BudgetPage() {
   if (!budget || !filteredBudget) {
     // Loading skeleton — matches final layout so there's no flash-of-wrong-content.
     return (
-      <div className="max-w-4xl mx-auto" dir="rtl">
+      <div className="mx-auto max-w-4xl" dir="rtl">
         <section
-          className="rounded-3xl mb-5 p-8 animate-pulse"
-          style={{ background: "linear-gradient(135deg, #1B4332 0%, #012D1D 100%)", minHeight: 180 }}
+          className="mb-5 animate-pulse rounded-3xl p-8"
+          style={{
+            background: "linear-gradient(135deg, #1B4332 0%, #012D1D 100%)",
+            minHeight: 180,
+          }}
         >
-          <div className="h-3 w-32 rounded bg-white/20 mb-4" />
-          <div className="h-10 w-48 rounded bg-white/20 mb-3" />
+          <div className="mb-4 h-3 w-32 rounded bg-white/20" />
+          <div className="mb-3 h-10 w-48 rounded bg-white/20" />
           <div className="h-3 w-24 rounded bg-white/15" />
         </section>
-        <div className="card-pad flex items-center gap-3 text-verdant-muted text-[13px]">
-          <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+        <div className="card-pad flex items-center gap-3 text-[13px] text-verdant-muted">
+          <span className="material-symbols-outlined animate-spin text-[18px]">
+            progress_activity
+          </span>
           טוען תקציב...
         </div>
       </div>
@@ -1055,67 +1221,88 @@ export default function BudgetPage() {
 
   // ─── Month navigation helpers ───────────────────────────────
   const goPrevMonth = () => {
-    let m = month - 1; let y = year;
-    if (m < 0) { m = 11; y--; }
-    setMonth(m); setYear(y);
+    let m = month - 1;
+    let y = year;
+    if (m < 0) {
+      m = 11;
+      y--;
+    }
+    setMonth(m);
+    setYear(y);
   };
   const goNextMonth = () => {
-    let m = month + 1; let y = year;
-    if (m > 11) { m = 0; y++; }
-    setMonth(m); setYear(y);
+    let m = month + 1;
+    let y = year;
+    if (m > 11) {
+      m = 0;
+      y++;
+    }
+    setMonth(m);
+    setYear(y);
   };
 
-  const balancePct = totals.incBudget > 0
-    ? Math.max(0, Math.min(100, (balance / totals.incBudget) * 100))
-    : 0;
+  const balancePct =
+    totals.incBudget > 0 ? Math.max(0, Math.min(100, (balance / totals.incBudget) * 100)) : 0;
 
   return (
-    <div className="max-w-4xl mx-auto" dir="rtl">
+    <div className="mx-auto max-w-4xl" dir="rtl">
       {/* ═══════════════════════════════════════════════════════════
           HERO — one clear number per screen, Finav-inspired
           ═══════════════════════════════════════════════════════════ */}
       <section
-        className="rounded-2xl mb-4 relative overflow-hidden"
+        className="relative mb-4 overflow-hidden rounded-2xl"
         style={{
-          background: balance >= 0
-            ? "linear-gradient(135deg, #1B4332 0%, #012D1D 100%)"
-            : "linear-gradient(135deg, #7a1818 0%, #4a0e0e 100%)",
+          background:
+            balance >= 0
+              ? "linear-gradient(135deg, #1B4332 0%, #012D1D 100%)"
+              : "linear-gradient(135deg, #7a1818 0%, #4a0e0e 100%)",
           color: "#F9FAF2",
           padding: "14px 22px",
         }}
       >
         {/* Top row — month nav + save indicator */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-1">
             <button
               onClick={goPrevMonth}
-              className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:bg-white/10"
+              className="flex h-8 w-8 items-center justify-center rounded-full transition-all hover:bg-white/10"
               style={{ color: "rgba(255,255,255,0.85)" }}
               title="חודש קודם"
             >
               <span className="material-symbols-outlined text-[18px]">chevron_right</span>
             </button>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ background: "rgba(255,255,255,0.08)" }}>
+            <div
+              className="flex items-center gap-2 rounded-full px-3 py-1.5"
+              style={{ background: "rgba(255,255,255,0.08)" }}
+            >
               <select
                 value={month}
-                onChange={e => setMonth(Number(e.target.value))}
-                className="bg-transparent border-none text-[14px] font-bold cursor-pointer focus:outline-none"
+                onChange={(e) => setMonth(Number(e.target.value))}
+                className="cursor-pointer border-none bg-transparent text-[14px] font-bold focus:outline-none"
                 style={{ color: "#F9FAF2" }}
               >
-                {HE_MONTHS.map((m, i) => <option key={i} value={i} style={{ color: "#012d1d" }}>{m}</option>)}
+                {HE_MONTHS.map((m, i) => (
+                  <option key={i} value={i} style={{ color: "#012d1d" }}>
+                    {m}
+                  </option>
+                ))}
               </select>
               <select
                 value={year}
-                onChange={e => setYear(Number(e.target.value))}
-                className="bg-transparent border-none text-[14px] font-bold cursor-pointer focus:outline-none"
+                onChange={(e) => setYear(Number(e.target.value))}
+                className="cursor-pointer border-none bg-transparent text-[14px] font-bold focus:outline-none"
                 style={{ color: "#F9FAF2" }}
               >
-                {yearOptions.map(y => <option key={y} value={y} style={{ color: "#012d1d" }}>{y}</option>)}
+                {yearOptions.map((y) => (
+                  <option key={y} value={y} style={{ color: "#012d1d" }}>
+                    {y}
+                  </option>
+                ))}
               </select>
             </div>
             <button
               onClick={goNextMonth}
-              className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:bg-white/10"
+              className="flex h-8 w-8 items-center justify-center rounded-full transition-all hover:bg-white/10"
               style={{ color: "rgba(255,255,255,0.85)" }}
               title="חודש הבא"
             >
@@ -1128,7 +1315,9 @@ export default function BudgetPage() {
               className="inline-flex items-center gap-1 text-[11px] font-bold"
               style={{ color: "rgba(255,255,255,0.75)" }}
             >
-              <span className={`material-symbols-outlined text-[14px] ${saveStatus === "saving" ? "animate-pulse" : ""}`}>
+              <span
+                className={`material-symbols-outlined text-[14px] ${saveStatus === "saving" ? "animate-pulse" : ""}`}
+              >
                 {saveStatus === "saving" ? "cloud_sync" : "cloud_done"}
               </span>
               {saveStatus === "saving" ? "שומר..." : "נשמר"}
@@ -1138,10 +1327,10 @@ export default function BudgetPage() {
 
         {/* Hero — compact (2026-04-28: was eating half-screen). One row:
             big number on right, in/out + daily allowance on left. */}
-        <div className="flex items-center justify-between gap-6 flex-wrap">
+        <div className="flex flex-wrap items-center justify-between gap-6">
           <div>
             <div
-              className="text-[10px] font-bold uppercase tracking-[0.18em] mb-1"
+              className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em]"
               style={{ color: "rgba(255,255,255,0.7)" }}
             >
               {balance >= 0 ? "נשאר בחודש" : "חריגה בחודש"}
@@ -1153,24 +1342,24 @@ export default function BudgetPage() {
               {fmtILS(Math.abs(balance))}
             </div>
             <div className="mt-1.5 text-[12px]" style={{ color: "rgba(255,255,255,0.8)" }}>
-              הכנסות <span className="tabular-nums font-bold">{fmtILS(totals.incBudget)}</span>
+              הכנסות <span className="font-bold tabular-nums">{fmtILS(totals.incBudget)}</span>
               {" · "}
-              הוצאות <span className="tabular-nums font-bold">{fmtILS(totals.expBudget)}</span>
+              הוצאות <span className="font-bold tabular-nums">{fmtILS(totals.expBudget)}</span>
               {" · "}
-              חיסכון <span className="tabular-nums font-bold">{savingsRate.toFixed(0)}%</span>
+              חיסכון <span className="font-bold tabular-nums">{savingsRate.toFixed(0)}%</span>
             </div>
           </div>
 
           {dailyAllowance && (
-            <div
-              className="text-left pl-4 border-l border-white/15 pr-4"
-              style={{ minWidth: 140 }}
-            >
-              <div className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: "rgba(255,255,255,0.65)" }}>
+            <div className="border-l border-white/15 pl-4 pr-4 text-left" style={{ minWidth: 140 }}>
+              <div
+                className="text-[10px] font-bold uppercase tracking-[0.16em]"
+                style={{ color: "rgba(255,255,255,0.65)" }}
+              >
                 להיום
               </div>
               <div
-                className="text-[22px] font-extrabold tabular-nums leading-none mt-0.5"
+                className="mt-0.5 text-[22px] font-extrabold tabular-nums leading-none"
                 style={{
                   color: dailyAllowance.overPace ? "#fecaca" : "#D6EFDC",
                   fontFamily: "Manrope, Assistant, system-ui, sans-serif",
@@ -1179,7 +1368,7 @@ export default function BudgetPage() {
                 {fmtILS(Math.round(dailyAllowance.perDay))}
                 <span className="text-[12px] font-bold opacity-70">/יום</span>
               </div>
-              <div className="text-[10px] mt-1" style={{ color: "rgba(255,255,255,0.7)" }}>
+              <div className="mt-1 text-[10px]" style={{ color: "rgba(255,255,255,0.7)" }}>
                 {dailyAllowance.daysRemaining} ימים{dailyAllowance.overPace && " · חורג"}
               </div>
             </div>
@@ -1190,11 +1379,11 @@ export default function BudgetPage() {
       {/* ═══════════════════════════════════════════════════════════
           MANAGE STRIP — subtle action row
           ═══════════════════════════════════════════════════════════ */}
-      <div className="flex items-center justify-between gap-2 mb-5 flex-wrap">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
         <div className="flex gap-1.5">
           <button
             onClick={openImportPreview}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold rounded-full transition-all"
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-all"
             style={{ background: "#f0f4ec", color: "#1B4332", border: "1px solid #e2e8d8" }}
             title="ייבא תנועות מקובץ בנק/אשראי שהועלה"
           >
@@ -1202,8 +1391,8 @@ export default function BudgetPage() {
             ייבא תנועות
           </button>
           <button
-            onClick={() => setShowChart(v => !v)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold rounded-full transition-all"
+            onClick={() => setShowChart((v) => !v)}
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-all"
             style={{
               background: showChart ? "#1B4332" : "#f0f4ec",
               color: showChart ? "#fff" : "#5a7a6a",
@@ -1214,8 +1403,8 @@ export default function BudgetPage() {
             גרפים
           </button>
           <button
-            onClick={() => setShowInsights(v => !v)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold rounded-full transition-all"
+            onClick={() => setShowInsights((v) => !v)}
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-all"
             style={{
               background: showInsights ? "#1B4332" : "#f0f4ec",
               color: showInsights ? "#fff" : "#5a7a6a",
@@ -1230,24 +1419,31 @@ export default function BudgetPage() {
         {/* Scope filter — only shown when business scope enabled */}
         {businessEnabled && (
           <div className="flex items-center gap-1">
-            {([
-              { key: "all",      label: "הכל" },
-              { key: "personal", label: "פרטי" },
-              { key: "business", label: "עסקי" },
-            ] as const).map(tab => {
+            {(
+              [
+                { key: "all", label: "הכל" },
+                { key: "personal", label: "פרטי" },
+                { key: "business", label: "עסקי" },
+              ] as const
+            ).map((tab) => {
               const active = scopeFilter === tab.key;
               return (
                 <button
                   key={tab.key}
                   onClick={() => setScopeFilter(tab.key)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-full transition-all"
+                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-all"
                   style={{
                     background: active ? "#012d1d" : "transparent",
                     color: active ? "#fff" : "#5a7a6a",
                     border: active ? "1px solid #012d1d" : "1px solid #e2e8d8",
                   }}
                 >
-                  {tab.key === "business" && <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: active ? "#fff" : SCOPE_COLORS.business }} />}
+                  {tab.key === "business" && (
+                    <span
+                      className="inline-block h-1.5 w-1.5 rounded-full"
+                      style={{ background: active ? "#fff" : SCOPE_COLORS.business }}
+                    />
+                  )}
                   {tab.label}
                 </button>
               );
@@ -1260,7 +1456,7 @@ export default function BudgetPage() {
           CHARTS (toggleable)
           ═══════════════════════════════════════════════════════════ */}
       {showChart && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
+        <div className="mb-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <BudgetChart
             incBudget={totals.incBudget}
             incActual={totals.incActual}
@@ -1278,9 +1474,7 @@ export default function BudgetPage() {
       {/* ═══════════════════════════════════════════════════════════
           INSIGHTS (toggleable)
           ═══════════════════════════════════════════════════════════ */}
-      {showInsights && (
-        <MonthlyInsights month={month} year={year} onApply={applyInsights} />
-      )}
+      {showInsights && <MonthlyInsights month={month} year={year} onApply={applyInsights} />}
 
       {/* 12-month cashflow forecast (2026-05-02). */}
       <CashflowForecast />
@@ -1295,25 +1489,25 @@ export default function BudgetPage() {
       {/* ═══════════════════════════════════════════════════════════
           BUDGET SECTIONS — collapsible disclosures, Finav-style
           ═══════════════════════════════════════════════════════════ */}
-      {SECTION_ORDER
-        .filter(sk => !(sk === "business" && (!businessEnabled || scopeFilter === "personal")))
-        .map((sectionKey, idx) => (
-          <BudgetSection
-            key={sectionKey}
-            sectionKey={sectionKey}
-            meta={SECTION_META[sectionKey]}
-            rows={filteredBudget.sections[sectionKey] || []}
-            onUpdate={updateRow}
-            onAdd={addRow}
-            onDelete={deleteRow}
-            onUpdateSub={updateSubItem}
-            onAddSub={addSubItem}
-            onDeleteSub={deleteSubItem}
-            onSetScope={setRowScope}
-            showScopePicker={businessEnabled}
-            defaultOpen={idx < 2}
-          />
-        ))}
+      {SECTION_ORDER.filter(
+        (sk) => !(sk === "business" && (!businessEnabled || scopeFilter === "personal"))
+      ).map((sectionKey, idx) => (
+        <BudgetSection
+          key={sectionKey}
+          sectionKey={sectionKey}
+          meta={SECTION_META[sectionKey]}
+          rows={filteredBudget.sections[sectionKey] || []}
+          onUpdate={updateRow}
+          onAdd={addRow}
+          onDelete={deleteRow}
+          onUpdateSub={updateSubItem}
+          onAddSub={addSubItem}
+          onDeleteSub={deleteSubItem}
+          onSetScope={setRowScope}
+          showScopePicker={businessEnabled}
+          defaultOpen={idx < 2}
+        />
+      ))}
 
       {/* ═══════ Import Preview Modal ═══════ */}
       {importPreview && (
@@ -1323,37 +1517,48 @@ export default function BudgetPage() {
           onClick={cancelImport}
         >
           <div
-            className="w-full max-w-lg rounded-organic shadow-soft p-6"
+            className="w-full max-w-lg rounded-organic p-6 shadow-soft"
             style={{ background: "#ffffff" }}
-            onClick={e => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4">
-              <div className="text-[10px] uppercase tracking-[0.18em] font-extrabold mb-1" style={{ color: "#5a7a6a" }}>
+              <div
+                className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.18em]"
+                style={{ color: "#5a7a6a" }}
+              >
                 Import Transactions
               </div>
-              <h2 className="text-[18px] font-extrabold tracking-tight" style={{ color: "#012d1d" }}>
+              <h2
+                className="text-[18px] font-extrabold tracking-tight"
+                style={{ color: "#012d1d" }}
+              >
                 ייבוא תנועות לתקציב
               </h2>
-              <p className="text-xs mt-2" style={{ color: "#5a7a6a" }}>
-                נמצאו {importPreview.summary.matched + importPreview.summary.unmatched} תנועות
-                לחודש {HE_MONTHS[month]} {year}
+              <p className="mt-2 text-xs" style={{ color: "#5a7a6a" }}>
+                נמצאו {importPreview.summary.matched + importPreview.summary.unmatched} תנועות לחודש{" "}
+                {HE_MONTHS[month]} {year}
               </p>
             </div>
 
             <div
-              className="max-h-72 overflow-y-auto rounded-lg p-3 mb-4"
+              className="mb-4 max-h-72 overflow-y-auto rounded-lg p-3"
               style={{ background: "#f0f4ec", border: "1px solid #e2e8d8" }}
             >
               {importPreview.summary.byRow.length === 0 ? (
-                <div className="text-xs" style={{ color: "#5a7a6a" }}>אין תנועות לתצוגה.</div>
+                <div className="text-xs" style={{ color: "#5a7a6a" }}>
+                  אין תנועות לתצוגה.
+                </div>
               ) : (
                 <ul className="space-y-1.5">
                   {importPreview.summary.byRow.map((r, i) => (
                     <li key={i} className="flex items-center justify-between text-xs">
-                      <span className="font-bold truncate" style={{ color: "#012d1d" }}>
+                      <span className="truncate font-bold" style={{ color: "#012d1d" }}>
                         {r.rowName}
                       </span>
-                      <span className="flex items-center gap-3 tabular-nums shrink-0" style={{ color: "#5a7a6a" }}>
+                      <span
+                        className="flex shrink-0 items-center gap-3 tabular-nums"
+                        style={{ color: "#5a7a6a" }}
+                      >
                         <span>{r.count} תנועות</span>
                         <span className="font-extrabold" style={{ color: "#012d1d" }}>
                           {fmtILS(r.total)}
@@ -1367,7 +1572,7 @@ export default function BudgetPage() {
 
             {importPreview.summary.unmatched > 0 && (
               <div
-                className="text-xs rounded-lg p-2.5 mb-4"
+                className="mb-4 rounded-lg p-2.5 text-xs"
                 style={{ background: "#fff7ed", color: "#9a3412", border: "1px solid #fed7aa" }}
               >
                 <span className="font-bold">שים לב: </span>
@@ -1397,7 +1602,7 @@ export default function BudgetPage() {
       {/* ═══════ Import Toast ═══════ */}
       {importToast && (
         <div
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg text-xs font-bold shadow-lg"
+          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg px-4 py-2.5 text-xs font-bold shadow-lg"
           style={{ background: "#012d1d", color: "#ffffff" }}
         >
           {importToast}
@@ -1431,7 +1636,13 @@ function BudgetSection({
   onUpdate: (section: string, rowId: string, field: string, value: string | number) => void;
   onAdd: (section: string) => void;
   onDelete: (section: string, rowId: string) => void;
-  onUpdateSub: (section: string, rowId: string, subId: string, field: string, value: string | number) => void;
+  onUpdateSub: (
+    section: string,
+    rowId: string,
+    subId: string,
+    field: string,
+    value: string | number
+  ) => void;
   onAddSub: (section: string, rowId: string) => void;
   onDeleteSub: (section: string, rowId: string, subId: string) => void;
   onSetScope: (section: string, rowId: string, scope: Scope | undefined) => void;
@@ -1447,22 +1658,28 @@ function BudgetSection({
   const over = !ok && !isIncome;
 
   // Accent color per section type
-  const accent = isIncome ? "#2B694D" : sectionKey === "fixed" ? "#B45309" : sectionKey === "business" ? "#5C6058" : "#1B4332";
+  const accent = isIncome
+    ? "#2B694D"
+    : sectionKey === "fixed"
+      ? "#B45309"
+      : sectionKey === "business"
+        ? "#5C6058"
+        : "#1B4332";
   const accentSoft = isIncome ? "#D6EFDC" : sectionKey === "fixed" ? "#FEF3C7" : "#f0f4ec";
 
   const toggleExpand = (rowId: string) => {
-    setExpanded(prev => ({ ...prev, [rowId]: !prev[rowId] }));
+    setExpanded((prev) => ({ ...prev, [rowId]: !prev[rowId] }));
   };
 
   return (
     <section
-      className="bg-white rounded-2xl mb-3 overflow-hidden"
+      className="mb-3 overflow-hidden rounded-2xl bg-white"
       style={{ border: "1px solid #e2e8d8", boxShadow: "0 1px 2px rgba(1,45,29,.04)" }}
     >
       {/* Clickable section header (disclosure) */}
       <button
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-3 px-5 py-4 transition-colors hover:bg-[#fafbf7]"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-3 px-5 py-4 transition-colors hover:bg-[#fafbf7]"
         aria-expanded={open}
       >
         {/* Chevron */}
@@ -1475,7 +1692,7 @@ function BudgetSection({
 
         {/* Icon circle */}
         <span
-          className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl"
           style={{ background: accentSoft }}
         >
           <span className="material-symbols-outlined text-[18px]" style={{ color: accent }}>
@@ -1488,21 +1705,19 @@ function BudgetSection({
           <div className="text-[15px] font-extrabold" style={{ color: "#012d1d" }}>
             {meta.label}
           </div>
-          <div className="text-[11px] font-semibold mt-0.5" style={{ color: "#5a7a6a" }}>
+          <div className="mt-0.5 text-[11px] font-semibold" style={{ color: "#5a7a6a" }}>
             {rows.length} {rows.length === 1 ? "שורה" : "שורות"}
             {over && (
               <>
                 {" · "}
-                <span style={{ color: "#b91c1c" }}>
-                  חריגה {fmtILS(secActual - secBudget)}
-                </span>
+                <span style={{ color: "#b91c1c" }}>חריגה {fmtILS(secActual - secBudget)}</span>
               </>
             )}
           </div>
         </div>
 
         {/* Big total */}
-        <div className="text-left shrink-0">
+        <div className="shrink-0 text-left">
           <div
             className="text-[18px] font-extrabold tabular-nums leading-none"
             style={{ color: isIncome ? "#2B694D" : over ? "#b91c1c" : "#012d1d" }}
@@ -1510,7 +1725,7 @@ function BudgetSection({
             {fmtILS(secBudget)}
           </div>
           {secActual > 0 && secActual !== secBudget && (
-            <div className="text-[10px] font-bold tabular-nums mt-1" style={{ color: "#5a7a6a" }}>
+            <div className="mt-1 text-[10px] font-bold tabular-nums" style={{ color: "#5a7a6a" }}>
               בפועל <span style={{ color: ok ? "#1B4332" : "#b91c1c" }}>{fmtILS(secActual)}</span>
             </div>
           )}
@@ -1519,291 +1734,386 @@ function BudgetSection({
 
       {/* Collapsed → stop here */}
       {!open ? null : (
-      <div className="px-5 pb-5 pt-1">
+        <div className="px-5 pb-5 pt-1">
+          {/* Income section explainer — passive income is auto-synced from assets */}
+          {/* Passive-income note removed 2026-04-28 — info already in tooltip on locked rows. */}
 
-      {/* Income section explainer — passive income is auto-synced from assets */}
-      {/* Passive-income note removed 2026-04-28 — info already in tooltip on locked rows. */}
-
-      {/* Column headers — 5 columns. Label uses natural width so it sits
+          {/* Column headers — 5 columns. Label uses natural width so it sits
           tight next to the numbers; notes takes remaining space. */}
-      <div
-        className="grid items-center pb-1 mb-1 text-[10px] font-extrabold uppercase tracking-[0.08em]"
-        style={{
-          gridTemplateColumns: "minmax(120px,auto) 70px 70px 70px minmax(80px,1fr)",
-          color: "#5a7a6a",
-          borderBottom: "1px solid #eef2e8",
-          columnGap: "10px",
-        }}
-      >
-        <div>קטגוריה</div>
-        <div className="text-left tabular-nums">תקציב</div>
-        <div className="text-left tabular-nums">בפועל</div>
-        <div className="text-left tabular-nums">הפרש</div>
-        <div className="text-right">הערות</div>
-      </div>
+          <div
+            className="mb-1 grid items-center pb-1 text-[10px] font-extrabold uppercase tracking-[0.08em]"
+            style={{
+              gridTemplateColumns: "minmax(120px,auto) 70px 70px 70px minmax(80px,1fr)",
+              color: "#5a7a6a",
+              borderBottom: "1px solid #eef2e8",
+              columnGap: "10px",
+            }}
+          >
+            <div>קטגוריה</div>
+            <div className="text-left tabular-nums">תקציב</div>
+            <div className="text-left tabular-nums">בפועל</div>
+            <div className="text-left tabular-nums">הפרש</div>
+            <div className="text-right">הערות</div>
+          </div>
 
-      {/* Rows */}
-      {rows.map(row => {
-        const hasSubs = row.subItems && row.subItems.length > 0;
-        const isExpanded = expanded[row.id] ?? false;
-        const isLocked = row.locked === true;
-        const b = hasSubs ? rowEffective(row, "budget") : (Number(row.budget) || 0);
-        const a = hasSubs ? rowEffective(row, "actual") : (Number(row.actual) || 0);
-        const gap = b - a;
-        const gapPositive = isIncome ? gap <= 0 : gap >= 0;
-        const gapStr = (gap > 0 ? "+" : gap < 0 ? "−" : "") + fmtILS(Math.abs(gap));
-        const subOverspend = hasSubOverspend(row);
+          {/* Rows */}
+          {rows.map((row) => {
+            const hasSubs = row.subItems && row.subItems.length > 0;
+            const isExpanded = expanded[row.id] ?? false;
+            const isLocked = row.locked === true;
+            const b = hasSubs ? rowEffective(row, "budget") : Number(row.budget) || 0;
+            const a = hasSubs ? rowEffective(row, "actual") : Number(row.actual) || 0;
+            const gap = b - a;
+            const gapPositive = isIncome ? gap <= 0 : gap >= 0;
+            const gapStr = (gap > 0 ? "+" : gap < 0 ? "−" : "") + fmtILS(Math.abs(gap));
+            const subOverspend = hasSubOverspend(row);
 
-        return (
-          <div key={row.id}>
-            {/* Parent row — same 5-col grid as the header above */}
-            <div
-              className="grid items-center py-1.5 group relative"
-              style={{
-                gridTemplateColumns: "minmax(120px,auto) 70px 70px 70px minmax(80px,1fr)",
-                borderBottom: isExpanded ? "none" : "1px solid #eef2e8",
-                columnGap: "10px",
-                opacity: isLocked ? 0.85 : 1,
-              }}
-            >
-              {/* Name */}
-              <div className="flex items-center gap-1.5">
-                {isLocked ? (
-                  row.source === "passive" ? (
-                    <div className="flex items-center gap-1.5 text-[13px] font-semibold" style={{ color: "#1B4332" }}
-                      title="מסונכרן מנדל״ן">
-                      <span className="material-symbols-outlined text-[13px]" style={{ color: "#2B694D" }}>home_work</span>
-                      {row.name}
-                      <span className="material-symbols-outlined text-[11px]" style={{ color: "#8aab99" }}>sync</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 text-[13px] font-semibold" style={{ color: "#5a7a6a" }}
-                      title="הוצאה קשיחה — נמשכת מדף חובות">
-                      <span className="material-symbols-outlined text-[13px]" style={{ color: "#9a6458" }}>lock</span>
-                      {row.name}
-                    </div>
-                  )
-                ) : hasSubs ? (
-                  <button
-                    onClick={() => toggleExpand(row.id)}
-                    className="flex items-center gap-1 text-[13px] font-semibold bg-transparent border-none cursor-pointer hover:opacity-80 transition-opacity"
-                    style={{ color: subOverspend ? "#b91c1c" : "#012d1d" }}
-                  >
-                    <span
-                      className="material-symbols-outlined text-[14px] transition-transform"
-                      style={{ transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)", color: "#5a7a6a" }}
-                    >
-                      chevron_left
-                    </span>
-                    {row.name}
-                    {subOverspend && (
-                      <span className="material-symbols-outlined text-[12px] mr-0.5" style={{ color: "#b91c1c" }}>error</span>
-                    )}
-                  </button>
-                ) : (
-                  <input
-                    type="text"
-                    value={row.name}
-                    onChange={e => onUpdate(sectionKey, row.id, "name", e.target.value)}
-                    placeholder="שם קטגוריה"
-                    className="bg-transparent border-none text-[13px] font-semibold w-full focus:outline-none"
-                    style={{ color: "#012d1d", borderBottom: "1px dotted transparent" }}
-                    onFocus={e => { e.currentTarget.style.borderBottomColor = "#2B694D"; }}
-                    onBlur={e => { e.currentTarget.style.borderBottomColor = "transparent"; }}
-                  />
-                )}
-              </div>
-              {/* Budget */}
-              {isLocked || hasSubs ? (
-                <div className="text-[13px] font-bold text-left tabular-nums" style={{ color: isLocked ? (row.source === "passive" ? "#1B4332" : "#9a6458") : "#012d1d" }}>{fmtILS(b)}</div>
-              ) : (
-                <input
-                  type="number"
-                  value={row.budget || ""}
-                  onChange={e => onUpdate(sectionKey, row.id, "budget", e.target.value)}
-                  placeholder="0"
-                  className="bg-transparent border-none text-[13px] font-bold text-left tabular-nums w-full focus:outline-none"
-                  style={{ color: "#012d1d", borderBottom: "1px dotted transparent" }}
-                  onFocus={e => { e.currentTarget.style.borderBottomColor = "#2B694D"; }}
-                  onBlur={e => { e.currentTarget.style.borderBottomColor = "transparent"; }}
-                />
-              )}
-              {/* Actual */}
-              {isLocked || hasSubs ? (
-                <div className="text-[13px] font-bold text-left tabular-nums" style={{ color: isLocked ? "#9a6458" : subOverspend ? "#b91c1c" : "#012d1d" }}>{fmtILS(a)}</div>
-              ) : (
-                <input
-                  type="number"
-                  value={row.actual || ""}
-                  onChange={e => onUpdate(sectionKey, row.id, "actual", e.target.value)}
-                  placeholder="0"
-                  className="bg-transparent border-none text-[13px] font-bold text-left tabular-nums w-full focus:outline-none"
-                  style={{ color: "#012d1d", borderBottom: "1px dotted transparent" }}
-                  onFocus={e => { e.currentTarget.style.borderBottomColor = "#2B694D"; }}
-                  onBlur={e => { e.currentTarget.style.borderBottomColor = "transparent"; }}
-                />
-              )}
-              {/* Gap */}
-              <div
-                className="text-[12px] font-extrabold text-left tabular-nums"
-                style={{ color: isLocked ? "#5a7a6a" : gapPositive ? "#1B4332" : "#b91c1c" }}
-              >
-                {isLocked ? "₪0" : gapStr}
-              </div>
-              {/* Notes + delete */}
-              <div className="flex items-center gap-1">
-                <input
-                  type="text"
-                  value={row.notes || ""}
-                  onChange={e => onUpdate(sectionKey, row.id, "notes", e.target.value)}
-                  placeholder="הערה…"
-                  disabled={isLocked}
-                  className="bg-transparent border-none text-[11px] text-right w-full focus:outline-none"
+            return (
+              <div key={row.id}>
+                {/* Parent row — same 5-col grid as the header above */}
+                <div
+                  className="group relative grid items-center py-1.5"
                   style={{
-                    color: "#5a7a6a",
-                    borderBottom: "1px dotted transparent",
+                    gridTemplateColumns: "minmax(120px,auto) 70px 70px 70px minmax(80px,1fr)",
+                    borderBottom: isExpanded ? "none" : "1px solid #eef2e8",
+                    columnGap: "10px",
+                    opacity: isLocked ? 0.85 : 1,
                   }}
-                  onFocus={e => { e.currentTarget.style.borderBottomColor = "#2B694D"; }}
-                  onBlur={e => { e.currentTarget.style.borderBottomColor = "transparent"; }}
-                />
-                {/* Scope picker — explicit popover, no cycling guesswork; hidden when business scope not enabled */}
-                {!isLocked && showScopePicker && (
-                  <ScopePicker
-                    current={row.scope}
-                    onPick={(s) => onSetScope(sectionKey, row.id, s)}
-                  />
-                )}
-                {/* Delete — hover only, never for locked rows */}
-                {!isLocked && (
-                  <button
-                    onClick={() => onDelete(sectionKey, row.id)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                    style={{ color: "#5a7a6a" }}
-                    title="מחק"
-                  >
-                    <span className="material-symbols-outlined text-[14px] hover:text-red-600 transition-colors">close</span>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Expanded sub-items */}
-            {hasSubs && isExpanded && (
-              <div
-                className="mr-6 mb-2 rounded-xl overflow-hidden"
-                style={{ background: "#f8faf5", border: "1px solid #eef2e8" }}
-              >
-                {row.subItems!.map(sub => {
-                  const sb = Number(sub.budget) || 0;
-                  const sa = Number(sub.actual) || 0;
-                  const sg = sb - sa;
-                  const sgPositive = isIncome ? sg <= 0 : sg >= 0;
-                  const sgStr = (sg > 0 ? "+" : sg < 0 ? "−" : "") + fmtILS(Math.abs(sg));
-                  const subOver = !isIncome && sa > sb && sb > 0;
-
-                  return (
-                    <div
-                      key={sub.id}
-                      className="grid items-center py-1.5 px-3 group/sub relative"
-                      style={{
-                        gridTemplateColumns: "minmax(110px,auto) 70px 70px 70px minmax(80px,1fr)",
-                        borderBottom: "1px solid #eef2e8",
-                        columnGap: "10px",
-                      }}
-                    >
-                      {/* Sub name */}
+                >
+                  {/* Name */}
+                  <div className="flex items-center gap-1.5">
+                    {isLocked ? (
+                      row.source === "passive" ? (
+                        <div
+                          className="flex items-center gap-1.5 text-[13px] font-semibold"
+                          style={{ color: "#1B4332" }}
+                          title="מסונכרן מנדל״ן"
+                        >
+                          <span
+                            className="material-symbols-outlined text-[13px]"
+                            style={{ color: "#2B694D" }}
+                          >
+                            home_work
+                          </span>
+                          {row.name}
+                          <span
+                            className="material-symbols-outlined text-[11px]"
+                            style={{ color: "#8aab99" }}
+                          >
+                            sync
+                          </span>
+                        </div>
+                      ) : (
+                        <div
+                          className="flex items-center gap-1.5 text-[13px] font-semibold"
+                          style={{ color: "#5a7a6a" }}
+                          title="הוצאה קשיחה — נמשכת מדף חובות"
+                        >
+                          <span
+                            className="material-symbols-outlined text-[13px]"
+                            style={{ color: "#9a6458" }}
+                          >
+                            lock
+                          </span>
+                          {row.name}
+                        </div>
+                      )
+                    ) : hasSubs ? (
+                      <button
+                        onClick={() => toggleExpand(row.id)}
+                        className="flex cursor-pointer items-center gap-1 border-none bg-transparent text-[13px] font-semibold transition-opacity hover:opacity-80"
+                        style={{ color: subOverspend ? "#b91c1c" : "#012d1d" }}
+                      >
+                        <span
+                          className="material-symbols-outlined text-[14px] transition-transform"
+                          style={{
+                            transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                            color: "#5a7a6a",
+                          }}
+                        >
+                          chevron_left
+                        </span>
+                        {row.name}
+                        {subOverspend && (
+                          <span
+                            className="material-symbols-outlined mr-0.5 text-[12px]"
+                            style={{ color: "#b91c1c" }}
+                          >
+                            error
+                          </span>
+                        )}
+                      </button>
+                    ) : (
                       <input
                         type="text"
-                        value={sub.name}
-                        onChange={e => onUpdateSub(sectionKey, row.id, sub.id, "name", e.target.value)}
-                        placeholder="פריט"
-                        className="bg-transparent border-none text-[12px] font-semibold w-full focus:outline-none"
-                        style={{ color: subOver ? "#b91c1c" : "#5a7a6a", borderBottom: "1px dotted transparent" }}
-                        onFocus={e => { e.currentTarget.style.borderBottomColor = "#2B694D"; }}
-                        onBlur={e => { e.currentTarget.style.borderBottomColor = "transparent"; }}
-                      />
-                      {/* Sub budget */}
-                      <input
-                        type="number"
-                        value={sub.budget || ""}
-                        onChange={e => onUpdateSub(sectionKey, row.id, sub.id, "budget", e.target.value)}
-                        placeholder="0"
-                        className="bg-transparent border-none text-[12px] font-bold text-left tabular-nums w-full focus:outline-none"
+                        value={row.name}
+                        onChange={(e) => onUpdate(sectionKey, row.id, "name", e.target.value)}
+                        placeholder="שם קטגוריה"
+                        className="w-full border-none bg-transparent text-[13px] font-semibold focus:outline-none"
                         style={{ color: "#012d1d", borderBottom: "1px dotted transparent" }}
-                        onFocus={e => { e.currentTarget.style.borderBottomColor = "#2B694D"; }}
-                        onBlur={e => { e.currentTarget.style.borderBottomColor = "transparent"; }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderBottomColor = "#2B694D";
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderBottomColor = "transparent";
+                        }}
                       />
-                      {/* Sub actual */}
-                      <input
-                        type="number"
-                        value={sub.actual || ""}
-                        onChange={e => onUpdateSub(sectionKey, row.id, sub.id, "actual", e.target.value)}
-                        placeholder="0"
-                        className="bg-transparent border-none text-[12px] font-bold text-left tabular-nums w-full focus:outline-none"
-                        style={{ color: subOver ? "#b91c1c" : "#012d1d", borderBottom: "1px dotted transparent" }}
-                        onFocus={e => { e.currentTarget.style.borderBottomColor = "#2B694D"; }}
-                        onBlur={e => { e.currentTarget.style.borderBottomColor = "transparent"; }}
-                      />
-                      {/* Sub gap */}
-                      <div
-                        className="text-[11px] font-extrabold text-left tabular-nums"
-                        style={{ color: sgPositive ? "#1B4332" : "#b91c1c" }}
-                      >
-                        {sgStr}
-                      </div>
-                      {/* Sub notes + delete */}
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="text"
-                          value={sub.notes || ""}
-                          onChange={e => onUpdateSub(sectionKey, row.id, sub.id, "notes", e.target.value)}
-                          placeholder="הערה…"
-                          className="bg-transparent border-none text-[10px] text-right w-full focus:outline-none"
-                          style={{
-                            color: "#5a7a6a",
-                            borderBottom: "1px dotted transparent",
-                          }}
-                          onFocus={e => { e.currentTarget.style.borderBottomColor = "#2B694D"; }}
-                          onBlur={e => { e.currentTarget.style.borderBottomColor = "transparent"; }}
-                        />
-                        {/* Delete sub — hover only */}
-                        <button
-                          onClick={() => onDeleteSub(sectionKey, row.id, sub.id)}
-                          className="opacity-0 group-hover/sub:opacity-100 transition-opacity shrink-0"
-                          style={{ color: "#5a7a6a" }}
-                          title="מחק פריט"
-                        >
-                          <span className="material-symbols-outlined text-[13px] hover:text-red-600 transition-colors">close</span>
-                        </button>
-                      </div>
+                    )}
+                  </div>
+                  {/* Budget */}
+                  {isLocked || hasSubs ? (
+                    <div
+                      className="text-left text-[13px] font-bold tabular-nums"
+                      style={{
+                        color: isLocked
+                          ? row.source === "passive"
+                            ? "#1B4332"
+                            : "#9a6458"
+                          : "#012d1d",
+                      }}
+                    >
+                      {fmtILS(b)}
                     </div>
-                  );
-                })}
-                {/* Add sub-item */}
-                <button
-                  onClick={() => onAddSub(sectionKey, row.id)}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold transition-colors hover:underline"
-                  style={{ color: "#1B4332" }}
-                >
-                  <span className="material-symbols-outlined text-[11px]">add</span>
-                  הוסף פריט
-                </button>
-              </div>
-            )}
-          </div>
-        );
-      })}
+                  ) : (
+                    <input
+                      type="number"
+                      value={row.budget || ""}
+                      onChange={(e) => onUpdate(sectionKey, row.id, "budget", e.target.value)}
+                      placeholder="0"
+                      className="w-full border-none bg-transparent text-left text-[13px] font-bold tabular-nums focus:outline-none"
+                      style={{ color: "#012d1d", borderBottom: "1px dotted transparent" }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderBottomColor = "#2B694D";
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderBottomColor = "transparent";
+                      }}
+                    />
+                  )}
+                  {/* Actual */}
+                  {isLocked || hasSubs ? (
+                    <div
+                      className="text-left text-[13px] font-bold tabular-nums"
+                      style={{ color: isLocked ? "#9a6458" : subOverspend ? "#b91c1c" : "#012d1d" }}
+                    >
+                      {fmtILS(a)}
+                    </div>
+                  ) : (
+                    <input
+                      type="number"
+                      value={row.actual || ""}
+                      onChange={(e) => onUpdate(sectionKey, row.id, "actual", e.target.value)}
+                      placeholder="0"
+                      className="w-full border-none bg-transparent text-left text-[13px] font-bold tabular-nums focus:outline-none"
+                      style={{ color: "#012d1d", borderBottom: "1px dotted transparent" }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderBottomColor = "#2B694D";
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderBottomColor = "transparent";
+                      }}
+                    />
+                  )}
+                  {/* Gap */}
+                  <div
+                    className="text-left text-[12px] font-extrabold tabular-nums"
+                    style={{ color: isLocked ? "#5a7a6a" : gapPositive ? "#1B4332" : "#b91c1c" }}
+                  >
+                    {isLocked ? "₪0" : gapStr}
+                  </div>
+                  {/* Notes + delete */}
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="text"
+                      value={row.notes || ""}
+                      onChange={(e) => onUpdate(sectionKey, row.id, "notes", e.target.value)}
+                      placeholder="הערה…"
+                      disabled={isLocked}
+                      className="w-full border-none bg-transparent text-right text-[11px] focus:outline-none"
+                      style={{
+                        color: "#5a7a6a",
+                        borderBottom: "1px dotted transparent",
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderBottomColor = "#2B694D";
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderBottomColor = "transparent";
+                      }}
+                    />
+                    {/* Scope picker — explicit popover, no cycling guesswork; hidden when business scope not enabled */}
+                    {!isLocked && showScopePicker && (
+                      <ScopePicker
+                        current={row.scope}
+                        onPick={(s) => onSetScope(sectionKey, row.id, s)}
+                      />
+                    )}
+                    {/* Delete — hover only, never for locked rows */}
+                    {!isLocked && (
+                      <button
+                        onClick={() => onDelete(sectionKey, row.id)}
+                        className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                        style={{ color: "#5a7a6a" }}
+                        title="מחק"
+                      >
+                        <span className="material-symbols-outlined text-[14px] transition-colors hover:text-red-600">
+                          close
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                </div>
 
-      {/* Add row */}
-      <button
-        onClick={() => onAdd(sectionKey)}
-        className="inline-flex items-center gap-1 pt-2 text-[11px] font-bold transition-colors hover:underline"
-        style={{ color: "#1B4332" }}
-      >
-        <span className="material-symbols-outlined text-[12px]">add</span>
-        הוסף שורה
-      </button>
-      </div>
+                {/* Expanded sub-items */}
+                {hasSubs && isExpanded && (
+                  <div
+                    className="mb-2 mr-6 overflow-hidden rounded-xl"
+                    style={{ background: "#f8faf5", border: "1px solid #eef2e8" }}
+                  >
+                    {row.subItems!.map((sub) => {
+                      const sb = Number(sub.budget) || 0;
+                      const sa = Number(sub.actual) || 0;
+                      const sg = sb - sa;
+                      const sgPositive = isIncome ? sg <= 0 : sg >= 0;
+                      const sgStr = (sg > 0 ? "+" : sg < 0 ? "−" : "") + fmtILS(Math.abs(sg));
+                      const subOver = !isIncome && sa > sb && sb > 0;
+
+                      return (
+                        <div
+                          key={sub.id}
+                          className="group/sub relative grid items-center px-3 py-1.5"
+                          style={{
+                            gridTemplateColumns:
+                              "minmax(110px,auto) 70px 70px 70px minmax(80px,1fr)",
+                            borderBottom: "1px solid #eef2e8",
+                            columnGap: "10px",
+                          }}
+                        >
+                          {/* Sub name */}
+                          <input
+                            type="text"
+                            value={sub.name}
+                            onChange={(e) =>
+                              onUpdateSub(sectionKey, row.id, sub.id, "name", e.target.value)
+                            }
+                            placeholder="פריט"
+                            className="w-full border-none bg-transparent text-[12px] font-semibold focus:outline-none"
+                            style={{
+                              color: subOver ? "#b91c1c" : "#5a7a6a",
+                              borderBottom: "1px dotted transparent",
+                            }}
+                            onFocus={(e) => {
+                              e.currentTarget.style.borderBottomColor = "#2B694D";
+                            }}
+                            onBlur={(e) => {
+                              e.currentTarget.style.borderBottomColor = "transparent";
+                            }}
+                          />
+                          {/* Sub budget */}
+                          <input
+                            type="number"
+                            value={sub.budget || ""}
+                            onChange={(e) =>
+                              onUpdateSub(sectionKey, row.id, sub.id, "budget", e.target.value)
+                            }
+                            placeholder="0"
+                            className="w-full border-none bg-transparent text-left text-[12px] font-bold tabular-nums focus:outline-none"
+                            style={{ color: "#012d1d", borderBottom: "1px dotted transparent" }}
+                            onFocus={(e) => {
+                              e.currentTarget.style.borderBottomColor = "#2B694D";
+                            }}
+                            onBlur={(e) => {
+                              e.currentTarget.style.borderBottomColor = "transparent";
+                            }}
+                          />
+                          {/* Sub actual */}
+                          <input
+                            type="number"
+                            value={sub.actual || ""}
+                            onChange={(e) =>
+                              onUpdateSub(sectionKey, row.id, sub.id, "actual", e.target.value)
+                            }
+                            placeholder="0"
+                            className="w-full border-none bg-transparent text-left text-[12px] font-bold tabular-nums focus:outline-none"
+                            style={{
+                              color: subOver ? "#b91c1c" : "#012d1d",
+                              borderBottom: "1px dotted transparent",
+                            }}
+                            onFocus={(e) => {
+                              e.currentTarget.style.borderBottomColor = "#2B694D";
+                            }}
+                            onBlur={(e) => {
+                              e.currentTarget.style.borderBottomColor = "transparent";
+                            }}
+                          />
+                          {/* Sub gap */}
+                          <div
+                            className="text-left text-[11px] font-extrabold tabular-nums"
+                            style={{ color: sgPositive ? "#1B4332" : "#b91c1c" }}
+                          >
+                            {sgStr}
+                          </div>
+                          {/* Sub notes + delete */}
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={sub.notes || ""}
+                              onChange={(e) =>
+                                onUpdateSub(sectionKey, row.id, sub.id, "notes", e.target.value)
+                              }
+                              placeholder="הערה…"
+                              className="w-full border-none bg-transparent text-right text-[10px] focus:outline-none"
+                              style={{
+                                color: "#5a7a6a",
+                                borderBottom: "1px dotted transparent",
+                              }}
+                              onFocus={(e) => {
+                                e.currentTarget.style.borderBottomColor = "#2B694D";
+                              }}
+                              onBlur={(e) => {
+                                e.currentTarget.style.borderBottomColor = "transparent";
+                              }}
+                            />
+                            {/* Delete sub — hover only */}
+                            <button
+                              onClick={() => onDeleteSub(sectionKey, row.id, sub.id)}
+                              className="shrink-0 opacity-0 transition-opacity group-hover/sub:opacity-100"
+                              style={{ color: "#5a7a6a" }}
+                              title="מחק פריט"
+                            >
+                              <span className="material-symbols-outlined text-[13px] transition-colors hover:text-red-600">
+                                close
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {/* Add sub-item */}
+                    <button
+                      onClick={() => onAddSub(sectionKey, row.id)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold transition-colors hover:underline"
+                      style={{ color: "#1B4332" }}
+                    >
+                      <span className="material-symbols-outlined text-[11px]">add</span>
+                      הוסף פריט
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Add row */}
+          <button
+            onClick={() => onAdd(sectionKey)}
+            className="inline-flex items-center gap-1 pt-2 text-[11px] font-bold transition-colors hover:underline"
+            style={{ color: "#1B4332" }}
+          >
+            <span className="material-symbols-outlined text-[12px]">add</span>
+            הוסף שורה
+          </button>
+        </div>
       )}
     </section>
   );
@@ -1838,36 +2148,39 @@ function ScopePicker({
   const title = eff ? `${SCOPE_LABELS[eff]} — לחץ לשינוי` : "הגדר סיווג";
 
   const opts: { key: Scope | undefined; label: string; color: string }[] = [
-    { key: undefined, label: "פרטי",  color: SCOPE_COLORS.personal },
+    { key: undefined, label: "פרטי", color: SCOPE_COLORS.personal },
     { key: "business", label: "עסקי", color: SCOPE_COLORS.business },
-    { key: "mixed",    label: "מעורב", color: SCOPE_COLORS.mixed },
+    { key: "mixed", label: "מעורב", color: SCOPE_COLORS.mixed },
   ];
 
   return (
     <div ref={ref} className="relative shrink-0">
       <button
-        onClick={() => setOpen(v => !v)}
-        className="flex items-center justify-center w-4 h-4 rounded-full transition-all hover:scale-110"
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-4 w-4 items-center justify-center rounded-full transition-all hover:scale-110"
         style={{ background: color, border: `1.5px solid ${border}` }}
         title={title}
         aria-label={title}
       />
       {open && (
         <div
-          className="absolute top-5 right-0 z-20 rounded-lg shadow-lg bg-white p-1 flex flex-col gap-0.5"
+          className="absolute right-0 top-5 z-20 flex flex-col gap-0.5 rounded-lg bg-white p-1 shadow-lg"
           style={{ border: "1px solid #eef2e8", minWidth: "100px" }}
         >
-          {opts.map(opt => {
+          {opts.map((opt) => {
             const isActive = (eff ?? undefined) === opt.key || (opt.key === undefined && !eff);
             return (
               <button
                 key={opt.label}
-                onClick={() => { onPick(opt.key); setOpen(false); }}
-                className="flex items-center gap-2 px-2 py-1.5 rounded text-[11px] font-bold text-right hover:bg-[#f4f7ed] transition-colors"
+                onClick={() => {
+                  onPick(opt.key);
+                  setOpen(false);
+                }}
+                className="flex items-center gap-2 rounded px-2 py-1.5 text-right text-[11px] font-bold transition-colors hover:bg-[#f4f7ed]"
                 style={{ color: "#012d1d" }}
               >
                 <span
-                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
                   style={{
                     background: opt.color,
                     border: isActive ? `2px solid ${opt.color}` : `1px solid ${opt.color}80`,

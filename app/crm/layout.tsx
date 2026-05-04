@@ -17,7 +17,9 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
 
   if (isConfigured) {
     const sb = createClient();
-    const { data: { user } } = await sb.auth.getUser();
+    const {
+      data: { user },
+    } = await sb.auth.getUser();
     if (!user) redirect("/login");
 
     const { data: advisor } = await sb

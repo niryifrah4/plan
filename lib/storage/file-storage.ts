@@ -56,7 +56,8 @@ export function classifyFile(name: string): DocumentKind {
   if (n.includes("ביטוח") || n.includes("פוליס")) return "insurance_policy";
   if (n.includes("ברוקר") || n.includes("השקע")) return "broker_report";
   if (n.includes("מס ") || n.includes("דוח שנת")) return "tax_report";
-  if (n.includes("בנק") || n.includes("עובר-ושב") || n.includes("עובר ושב") || n.includes("אשראי")) return "bank_statement";
+  if (n.includes("בנק") || n.includes("עובר-ושב") || n.includes("עובר ושב") || n.includes("אשראי"))
+    return "bank_statement";
   if (n.endsWith(".pdf")) return "bank_statement"; // best guess
   return "other";
 }
@@ -67,7 +68,7 @@ export function classifyFile(name: string): DocumentKind {
  */
 export async function uploadFile(
   file: File,
-  kind: DocumentKind = "other",
+  kind: DocumentKind = "other"
 ): Promise<StoredDocument | null> {
   if (!isSupabaseConfigured()) return null;
   const hh = getHouseholdId();

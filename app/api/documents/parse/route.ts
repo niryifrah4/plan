@@ -91,7 +91,10 @@ export async function POST(req: NextRequest) {
         result = await parseDocument(buffer, file.name);
       } catch {
         return NextResponse.json(
-          { error: `לא ניתן לקרוא את הקובץ ${file.name} — ייתכן שהוא פגום או מוצפן`, code: "CORRUPT_FILE" },
+          {
+            error: `לא ניתן לקרוא את הקובץ ${file.name} — ייתכן שהוא פגום או מוצפן`,
+            code: "CORRUPT_FILE",
+          },
           { status: 422 }
         );
       }
@@ -104,7 +107,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Multi-file — merge & deduplicate
-    const txArrays = parsedDocs.map(d => ({
+    const txArrays = parsedDocs.map((d) => ({
       transactions: d.transactions,
       sourceFile: d.filename,
     }));
@@ -112,13 +115,15 @@ export async function POST(req: NextRequest) {
     const { merged, duplicatesRemoved, sourceFiles } = deduplicateTransactions(txArrays);
 
     // Combine warnings from all documents
-    const allWarnings = parsedDocs.flatMap(d => d.warnings.map(w => `[${d.filename}] ${w}`));
+    const allWarnings = parsedDocs.flatMap((d) => d.warnings.map((w) => `[${d.filename}] ${w}`));
     if (duplicatesRemoved > 0) {
       allWarnings.push(`זוהו ${duplicatesRemoved} תנועות כפולות בין הקבצים — הוסרו אוטומטית`);
     }
 
     // Combine bank hints
-    const bankHints = [...new Set(parsedDocs.map(d => d.bankHint).filter(h => h !== "לא זוהה"))];
+    const bankHints = [
+      ...new Set(parsedDocs.map((d) => d.bankHint).filter((h) => h !== "לא זוהה")),
+    ];
     const bankHint = bankHints.length > 0 ? bankHints.join(" + ") : "לא זוהה";
 
     // Merge instruments (deduplicate across files)
@@ -135,9 +140,14 @@ export async function POST(req: NextRequest) {
     }
 
     // Calculate totals from merged set
-    const totalDebit = merged.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-    const totalCredit = merged.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
-    const dates = merged.map(t => t.date).filter(Boolean).sort();
+    const totalDebit = merged.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+    const totalCredit = merged
+      .filter((t) => t.amount < 0)
+      .reduce((s, t) => s + Math.abs(t.amount), 0);
+    const dates = merged
+      .map((t) => t.date)
+      .filter(Boolean)
+      .sort();
 
     const result: ParsedDocument & { sourceFiles: string[]; duplicatesRemoved: number } = {
       filename: sourceFiles.join(" + "),

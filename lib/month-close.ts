@@ -9,14 +9,12 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { runRules, persistTasks } from "./tasks-engine";
-import {
-  getCashflowSummary, getNetWorth, listGoals, listLiabilities, listAssets,
-} from "./queries";
+import { getCashflowSummary, getNetWorth, listGoals, listLiabilities, listAssets } from "./queries";
 
 export async function closeMonthAndSync(
   sb: SupabaseClient,
   householdId: string,
-  monthId: string,
+  monthId: string
 ): Promise<{ closed: true; goalsUpdated: number; tasksRefreshed: number }> {
   // 1. Close the month on the server (triggers goal FV re-projection)
   const { error: closeErr } = await sb.rpc("close_month", { p_month_id: monthId });

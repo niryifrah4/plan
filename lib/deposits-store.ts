@@ -19,22 +19,18 @@
  */
 
 import { scopedKey } from "./client-scope";
-import {
-  loadPensionFunds,
-  savePensionFunds,
-  type PensionFund,
-} from "./pension-store";
+import { loadPensionFunds, savePensionFunds, type PensionFund } from "./pension-store";
 
 /* ─────────────────────────────────────────────────────────────
    Types
    ───────────────────────────────────────────────────────────── */
 
 export type DepositTargetKind =
-  | "pension"        // bumps a PensionFund balance
-  | "hishtalmut"     // bumps a PensionFund balance (type=hishtalmut)
-  | "gemel"          // bumps a PensionFund balance (type=gemel)
-  | "securities"     // informational — investments page owns the balance
-  | "savings";       // informational — bank account / goal
+  | "pension" // bumps a PensionFund balance
+  | "hishtalmut" // bumps a PensionFund balance (type=hishtalmut)
+  | "gemel" // bumps a PensionFund balance (type=gemel)
+  | "securities" // informational — investments page owns the balance
+  | "savings"; // informational — bank account / goal
 
 export interface DepositTarget {
   kind: DepositTargetKind;
@@ -79,7 +75,7 @@ export interface DepositEntry {
    ───────────────────────────────────────────────────────────── */
 
 const PLANS_KEY = "verdant:deposits:plans";
-const LOG_KEY   = "verdant:deposits:log";
+const LOG_KEY = "verdant:deposits:log";
 
 export const DEPOSITS_EVENT = "verdant:deposits:updated";
 
@@ -131,14 +127,14 @@ export function addPlan(input: Omit<DepositPlan, "id" | "createdAt" | "updatedAt
 
 export function updatePlan(id: string, patch: Partial<DepositPlan>): void {
   const plans = loadPlans();
-  const idx = plans.findIndex(p => p.id === id);
+  const idx = plans.findIndex((p) => p.id === id);
   if (idx < 0) return;
   plans[idx] = { ...plans[idx], ...patch, updatedAt: nowIso() };
   savePlans(plans);
 }
 
 export function deletePlan(id: string): void {
-  savePlans(loadPlans().filter(p => p.id !== id));
+  savePlans(loadPlans().filter((p) => p.id !== id));
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -166,7 +162,7 @@ export function saveEntries(entries: DepositEntry[]): void {
 
 /** Entries for a given month (YYYY-MM). */
 export function entriesForMonth(month: string): DepositEntry[] {
-  return loadEntries().filter(e => e.month === month);
+  return loadEntries().filter((e) => e.month === month);
 }
 
 /**
@@ -184,11 +180,13 @@ export function entriesForMonth(month: string): DepositEntry[] {
  *  - plan exists but bucket changed amount → update plan
  *  - plan exists but bucket was deleted → deactivate plan (keep history)
  */
-export function syncGoalsToDepositPlans(buckets: Array<{
-  id: string;
-  name: string;
-  monthlyContribution?: number;
-}>): { created: number; updated: number; deactivated: number } {
+export function syncGoalsToDepositPlans(
+  buckets: Array<{
+    id: string;
+    name: string;
+    monthlyContribution?: number;
+  }>
+): { created: number; updated: number; deactivated: number } {
   if (typeof window === "undefined") return { created: 0, updated: 0, deactivated: 0 };
 
   const plans = loadPlans();
@@ -197,7 +195,9 @@ export function syncGoalsToDepositPlans(buckets: Array<{
     if (p.target.kind === "savings") planByRefId.set(p.target.refId, p);
   }
 
-  let created = 0, updated = 0, deactivated = 0;
+  let created = 0,
+    updated = 0,
+    deactivated = 0;
   const liveBucketIds = new Set<string>();
 
   for (const b of buckets) {
@@ -216,7 +216,11 @@ export function syncGoalsToDepositPlans(buckets: Array<{
         updatedAt: nowIso(),
       });
       created++;
-    } else if (existing.monthlyAmount !== monthly || existing.target.label !== b.name || !existing.active) {
+    } else if (
+      existing.monthlyAmount !== monthly ||
+      existing.target.label !== b.name ||
+      !existing.active
+    ) {
       existing.monthlyAmount = monthly;
       existing.target.label = b.name;
       existing.active = true;
@@ -240,10 +244,10 @@ export function syncGoalsToDepositPlans(buckets: Array<{
 }
 
 export function seedMonth(month: string = currentMonthKey()): DepositEntry[] {
-  const plans = loadPlans().filter(p => p.active);
+  const plans = loadPlans().filter((p) => p.active);
   const entries = loadEntries();
   const existingByPlan = new Set(
-    entries.filter(e => e.month === month && e.planId).map(e => e.planId!)
+    entries.filter((e) => e.month === month && e.planId).map((e) => e.planId!)
   );
 
   let changed = false;
@@ -262,7 +266,7 @@ export function seedMonth(month: string = currentMonthKey()): DepositEntry[] {
     changed = true;
   }
   if (changed) saveEntries(entries);
-  return entries.filter(e => e.month === month);
+  return entries.filter((e) => e.month === month);
 }
 
 /**
@@ -271,7 +275,7 @@ export function seedMonth(month: string = currentMonthKey()): DepositEntry[] {
  */
 export function confirmEntry(entryId: string, amount?: number): DepositEntry | null {
   const entries = loadEntries();
-  const idx = entries.findIndex(e => e.id === entryId);
+  const idx = entries.findIndex((e) => e.id === entryId);
   if (idx < 0) return null;
 
   const prev = entries[idx];
@@ -303,7 +307,7 @@ export function confirmEntry(entryId: string, amount?: number): DepositEntry | n
 /** Mark an entry as unconfirmed (skipped). Reverses balance bumps if previously confirmed. */
 export function unconfirmEntry(entryId: string): DepositEntry | null {
   const entries = loadEntries();
-  const idx = entries.findIndex(e => e.id === entryId);
+  const idx = entries.findIndex((e) => e.id === entryId);
   if (idx < 0) return null;
 
   const prev = entries[idx];
@@ -328,7 +332,7 @@ export function unconfirmEntry(entryId: string): DepositEntry | null {
  */
 export function deleteEntry(entryId: string): void {
   const entries = loadEntries();
-  const idx = entries.findIndex(e => e.id === entryId);
+  const idx = entries.findIndex((e) => e.id === entryId);
   if (idx < 0) return;
   const prev = entries[idx];
   if (prev.confirmed) applyToTarget(prev.target, -prev.amount);
@@ -337,11 +341,13 @@ export function deleteEntry(entryId: string): void {
 }
 
 /** Upsert a one-off entry (e.g. a deposit not tied to a plan). */
-export function upsertEntry(input: Omit<DepositEntry, "id" | "createdAt" | "updatedAt"> & { id?: string }): DepositEntry {
+export function upsertEntry(
+  input: Omit<DepositEntry, "id" | "createdAt" | "updatedAt"> & { id?: string }
+): DepositEntry {
   const entries = loadEntries();
   const now = nowIso();
   if (input.id) {
-    const idx = entries.findIndex(e => e.id === input.id);
+    const idx = entries.findIndex((e) => e.id === input.id);
     if (idx >= 0) {
       entries[idx] = { ...entries[idx], ...input, updatedAt: now } as DepositEntry;
       saveEntries(entries);
@@ -382,7 +388,7 @@ function applyToTarget(target: DepositTarget, delta: number): void {
 
   if (target.kind === "pension" || target.kind === "hishtalmut" || target.kind === "gemel") {
     const funds = loadPensionFunds();
-    const idx = funds.findIndex(f => f.id === target.refId);
+    const idx = funds.findIndex((f) => f.id === target.refId);
     if (idx >= 0) {
       const fund: PensionFund = funds[idx];
       funds[idx] = { ...fund, balance: Math.max(0, (fund.balance || 0) + delta) };
@@ -420,7 +426,7 @@ function syncConfirmedTotalToBudget(month: string): void {
     if (!data?.sections?.fixed || !Array.isArray(data.sections.fixed)) return;
 
     const rows: Array<{ name: string; actual?: number }> = data.sections.fixed;
-    const idx = rows.findIndex(r => r.name === BUDGET_ROW_NAME);
+    const idx = rows.findIndex((r) => r.name === BUDGET_ROW_NAME);
     if (idx < 0) return;
 
     rows[idx] = { ...rows[idx], actual: total };
@@ -445,14 +451,16 @@ export interface MonthSummary {
 export function summaryForMonth(month: string = currentMonthKey()): MonthSummary {
   // Seeding is safe & idempotent — ensures UI always shows the plans for the active month.
   const entries = seedMonth(month);
-  const confirmedTotal = entries.filter(e => e.confirmed).reduce((s, e) => s + (e.amount || 0), 0);
-  const total          = entries.reduce((s, e) => s + (e.amount || 0), 0);
+  const confirmedTotal = entries
+    .filter((e) => e.confirmed)
+    .reduce((s, e) => s + (e.amount || 0), 0);
+  const total = entries.reduce((s, e) => s + (e.amount || 0), 0);
   return {
     month,
     total,
     confirmedTotal,
-    confirmedCount: entries.filter(e => e.confirmed).length,
-    plannedCount:   entries.length,
+    confirmedCount: entries.filter((e) => e.confirmed).length,
+    plannedCount: entries.length,
     entries,
   };
 }
@@ -460,6 +468,6 @@ export function summaryForMonth(month: string = currentMonthKey()): MonthSummary
 /** Sum of confirmed savings-type deposits for a month (for budget actual). */
 export function confirmedSavingsActualForMonth(month: string = currentMonthKey()): number {
   return loadEntries()
-    .filter(e => e.month === month && e.confirmed)
+    .filter((e) => e.month === month && e.confirmed)
     .reduce((s, e) => s + (e.amount || 0), 0);
 }

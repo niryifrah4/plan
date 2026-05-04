@@ -7,10 +7,25 @@ import { RealEstateCalc } from "./RealEstateCalc";
 import { MortgageCalc } from "./MortgageCalc";
 
 const SUB_TABS = [
-  { id: "affordability", label: "יכולת רכישה", icon: "real_estate_agent", description: "מחיר דירה מקסימלי לפי הון וכושר החזר" },
-  { id: "mortgage",      label: "משכנתא",        icon: "home",              description: "מסלולי הלוואה, החזרים חודשיים וריבית" },
-  { id: "second",        label: "דירה שנייה",   icon: "domain_add",        description: "מס רכישה, מימון ותשואה" },
-  { id: "advanced",      label: "ניתוח השקעה",  icon: "apartment",         description: "IRR, Equity Multiple ותחזית יציאה" },
+  {
+    id: "affordability",
+    label: "יכולת רכישה",
+    icon: "real_estate_agent",
+    description: "מחיר דירה מקסימלי לפי הון וכושר החזר",
+  },
+  {
+    id: "mortgage",
+    label: "משכנתא",
+    icon: "home",
+    description: "מסלולי הלוואה, החזרים חודשיים וריבית",
+  },
+  { id: "second", label: "דירה שנייה", icon: "domain_add", description: "מס רכישה, מימון ותשואה" },
+  {
+    id: "advanced",
+    label: "ניתוח השקעה",
+    icon: "apartment",
+    description: "IRR, Equity Multiple ותחזית יציאה",
+  },
 ];
 
 export function RealEstateLab() {
@@ -19,19 +34,24 @@ export function RealEstateLab() {
   return (
     <div style={{ fontFamily: "'Assistant', sans-serif" }}>
       {/* Header */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg,#012d1d,#1B4332)" }}>
+      <div className="mb-8 flex items-center gap-3">
+        <div
+          className="flex h-11 w-11 items-center justify-center rounded-xl"
+          style={{ background: "linear-gradient(135deg,#012d1d,#1B4332)" }}
+        >
           <span className="material-symbols-outlined text-[24px] text-white">home_work</span>
         </div>
         <div>
           <h2 className="text-base font-extrabold text-verdant-ink">מעבדת נדל״ן</h2>
-          <p className="text-[11px] text-verdant-muted">יכולת רכישה · משכנתא · דירה שנייה · ניתוח השקעה מתקדם</p>
+          <p className="text-[11px] text-verdant-muted">
+            יכולת רכישה · משכנתא · דירה שנייה · ניתוח השקעה מתקדם
+          </p>
         </div>
       </div>
 
       {/* Sub-tabs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-        {SUB_TABS.map(tab => {
+      <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
+        {SUB_TABS.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
             <button
@@ -44,11 +64,18 @@ export function RealEstateLab() {
                 color: isActive ? "#fff" : "#012d1d",
               }}
             >
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="material-symbols-outlined text-[20px]" style={{ color: isActive ? "#2B694D" : "#1B4332" }}>{tab.icon}</span>
+              <div className="mb-1.5 flex items-center gap-2">
+                <span
+                  className="material-symbols-outlined text-[20px]"
+                  style={{ color: isActive ? "#2B694D" : "#1B4332" }}
+                >
+                  {tab.icon}
+                </span>
                 <span className="text-[12px] font-extrabold">{tab.label}</span>
               </div>
-              <div className="text-[10px] font-bold" style={{ opacity: isActive ? 0.7 : 0.5 }}>{tab.description}</div>
+              <div className="text-[10px] font-bold" style={{ opacity: isActive ? 0.7 : 0.5 }}>
+                {tab.description}
+              </div>
             </button>
           );
         })}

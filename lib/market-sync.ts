@@ -29,7 +29,7 @@ export interface TickerQuote {
   price: number;
   currency: string;
   name: string;
-  changePct: number;  // day change %
+  changePct: number; // day change %
 }
 
 export interface PerformanceAnalysis {
@@ -77,7 +77,7 @@ export async function fetchQuotesBulk(symbols: string[]): Promise<Record<string,
   const concurrency = 5;
   for (let i = 0; i < unique.length; i += concurrency) {
     const batch = unique.slice(i, i + concurrency);
-    const quotes = await Promise.all(batch.map(s => fetchQuote(s)));
+    const quotes = await Promise.all(batch.map((s) => fetchQuote(s)));
     quotes.forEach((q, idx) => {
       if (q) result[batch[idx].toUpperCase()] = q;
     });
@@ -159,7 +159,7 @@ export { fetchCryptoPricesBulk, toYahooTicker };
 // ─── Snapshot storage: keeps a daily net-worth trail for performance charting ───
 
 interface Snapshot {
-  date: string;       // ISO date
+  date: string; // ISO date
   totalValue: number;
 }
 
@@ -172,7 +172,7 @@ export function recordSnapshot(totalValue: number) {
     const raw = localStorage.getItem(scopedKey(SNAPSHOT_KEY));
     const snaps: Snapshot[] = raw ? JSON.parse(raw) : [];
     // Replace today's entry if exists
-    const filtered = snaps.filter(s => s.date !== today);
+    const filtered = snaps.filter((s) => s.date !== today);
     filtered.push({ date: today, totalValue });
     // Keep last 365 entries
     const trimmed = filtered.slice(-365);

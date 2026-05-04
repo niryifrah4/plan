@@ -9,7 +9,13 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
-  CashflowSummary, NetWorth, Goal, Liability, Asset, Task, TaskSeverity,
+  CashflowSummary,
+  NetWorth,
+  Goal,
+  Liability,
+  Asset,
+  Task,
+  TaskSeverity,
 } from "@/types/db";
 import { SAFETY_THRESHOLD_ILS } from "./safety-margin";
 
@@ -185,8 +191,8 @@ export function runRules(snapshot: Snapshot): TaskDraft[] {
 export function healthScore(tasks: Pick<Task, "severity" | "status">[]): number {
   const open = tasks.filter((t) => t.status === "open");
   const high = open.filter((t) => t.severity === "high").length;
-  const med  = open.filter((t) => t.severity === "medium").length;
-  const low  = open.filter((t) => t.severity === "low").length;
+  const med = open.filter((t) => t.severity === "medium").length;
+  const low = open.filter((t) => t.severity === "low").length;
   return Math.max(0, Math.min(100, 100 - high * 20 - med * 8 - low * 3));
 }
 
@@ -197,7 +203,7 @@ export function healthScore(tasks: Pick<Task, "severity" | "status">[]): number 
 export async function persistTasks(
   sb: SupabaseClient,
   householdId: string,
-  drafts: TaskDraft[],
+  drafts: TaskDraft[]
 ): Promise<void> {
   const rows = drafts.map((d) => ({
     household_id: householdId,
@@ -209,9 +215,7 @@ export async function persistTasks(
     status: "open" as const,
   }));
   if (rows.length > 0) {
-    const { error } = await sb
-      .from("tasks")
-      .upsert(rows, { onConflict: "household_id,rule_id" });
+    const { error } = await sb.from("tasks").upsert(rows, { onConflict: "household_id,rule_id" });
     if (error) throw error;
   }
   // Auto-close rules no longer triggered
@@ -226,6 +230,9 @@ export async function persistTasks(
     await sb
       .from("tasks")
       .update({ status: "done", done_at: new Date().toISOString() })
-      .in("id", toClose.map((t) => t.id));
+      .in(
+        "id",
+        toClose.map((t) => t.id)
+      );
   }
 }

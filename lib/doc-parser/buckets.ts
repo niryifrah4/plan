@@ -20,44 +20,74 @@ export interface BucketInfo {
 }
 
 export const BUCKET_META: Record<Bucket, BucketInfo> = {
-  fixed:        { key: "fixed",        label: "הוצאות קבועות",   icon: "lock",           color: "#1B4332", bgLight: "#eef7f1" },
-  variable:     { key: "variable",     label: "הוצאות משתנות",   icon: "shuffle",        color: "#f59e0b", bgLight: "#fffbeb" },
-  installments: { key: "installments", label: "תשלומים",         icon: "credit_score",   color: "#3b82f6", bgLight: "#eff6ff" },
-  loans:        { key: "loans",        label: "הלוואות",         icon: "account_balance", color: "#b91c1c", bgLight: "#fef2f2" },
-  unmapped:     { key: "unmapped",     label: "לא מופו",         icon: "help_outline",   color: "#94a3b8", bgLight: "#f8fafc" },
+  fixed: {
+    key: "fixed",
+    label: "הוצאות קבועות",
+    icon: "lock",
+    color: "#1B4332",
+    bgLight: "#eef7f1",
+  },
+  variable: {
+    key: "variable",
+    label: "הוצאות משתנות",
+    icon: "shuffle",
+    color: "#f59e0b",
+    bgLight: "#fffbeb",
+  },
+  installments: {
+    key: "installments",
+    label: "תשלומים",
+    icon: "credit_score",
+    color: "#3b82f6",
+    bgLight: "#eff6ff",
+  },
+  loans: {
+    key: "loans",
+    label: "הלוואות",
+    icon: "account_balance",
+    color: "#b91c1c",
+    bgLight: "#fef2f2",
+  },
+  unmapped: {
+    key: "unmapped",
+    label: "לא מופו",
+    icon: "help_outline",
+    color: "#94a3b8",
+    bgLight: "#f8fafc",
+  },
 };
 
 /** Map category key → bucket */
 const CAT_TO_BUCKET: Record<string, Bucket> = {
   // Fixed
-  housing:       "fixed",
-  utilities:     "fixed",
-  insurance:     "fixed",
-  education:     "fixed",
+  housing: "fixed",
+  utilities: "fixed",
+  insurance: "fixed",
+  education: "fixed",
   subscriptions: "fixed",
 
   // Variable
-  food:          "variable",
-  transport:     "variable",
-  health:        "variable",
-  leisure:       "variable",
-  shopping:      "variable",
-  cash:           "variable",
-  dining_out:     "variable",
+  food: "variable",
+  transport: "variable",
+  health: "variable",
+  leisure: "variable",
+  shopping: "variable",
+  cash: "variable",
+  dining_out: "variable",
   home_maintenance: "variable",
-  misc:           "variable",
+  misc: "variable",
 
   // Fixed — fees & pension
-  fees:          "fixed",      // bank fees/interest are recurring fixed costs
-  pension:       "fixed",      // pension deductions are fixed
-  salary:        "variable",   // income, treated as variable context
+  fees: "fixed", // bank fees/interest are recurring fixed costs
+  pension: "fixed", // pension deductions are fixed
+  salary: "variable", // income, treated as variable context
 
   // Refunds — variable (offsets expenses)
-  refunds:       "variable",
+  refunds: "variable",
 
   // Transfers — unmapped by default
-  transfers:     "unmapped",
-  other:         "unmapped",
+  transfers: "unmapped",
+  other: "unmapped",
 };
 
 /** Get the bucket for a given category key. */
@@ -75,12 +105,7 @@ const INSTALLMENT_PATTERNS = [
 ];
 
 /** Detect loan patterns. */
-const LOAN_PATTERNS = [
-  /הלוואה/i,
-  /החזר\s*הלוואה/i,
-  /loan/i,
-  /משכנתא/i,
-];
+const LOAN_PATTERNS = [/הלוואה/i, /החזר\s*הלוואה/i, /loan/i, /משכנתא/i];
 
 /**
  * Smart bucket assignment — checks description patterns first, then category mapping.
@@ -89,8 +114,8 @@ export function assignBucket(categoryKey: string, description: string): Bucket {
   const lower = description.toLowerCase().replace(/[\u200F\u200E"]/g, "");
 
   // Pattern-based overrides (highest priority)
-  if (LOAN_PATTERNS.some(rx => rx.test(lower))) return "loans";
-  if (INSTALLMENT_PATTERNS.some(rx => rx.test(lower))) return "installments";
+  if (LOAN_PATTERNS.some((rx) => rx.test(lower))) return "loans";
+  if (INSTALLMENT_PATTERNS.some((rx) => rx.test(lower))) return "installments";
 
   return CAT_TO_BUCKET[categoryKey] || "unmapped";
 }

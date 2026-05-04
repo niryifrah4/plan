@@ -41,7 +41,7 @@ const PRIORITY_RANK = { high: 0, medium: 1, low: 2 };
  */
 export function pickImpactGoal(goals: ImpactGoal[]): ImpactGoal | null {
   if (!goals.length) return null;
-  const active = goals.filter(g => g.monthlyContrib > 0);
+  const active = goals.filter((g) => g.monthlyContrib > 0);
   const pool = active.length > 0 ? active : goals;
   return [...pool].sort((a, b) => {
     const pDiff = PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];

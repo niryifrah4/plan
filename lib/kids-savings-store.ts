@@ -52,53 +52,83 @@ export const KIDS_SAVINGS_EVENT = "verdant:kids_savings:updated";
 export interface KidsTrack {
   key: string;
   label: string;
-  expectedReturn: number;  // annual %
+  expectedReturn: number; // annual %
   description: string;
 }
 
 export const KIDS_TRACKS: KidsTrack[] = [
-  { key: "low",    label: "סיכון מועט",   expectedReturn: 0.03, description: "אג\"ח ממשלתי ופיקדונות — יציב, תשואה צפויה ~3% בשנה" },
-  { key: "medium", label: "סיכון בינוני", expectedReturn: 0.07, description: "שילוב אג\"ח ומניות — איזון סיכון/תשואה. תשואה צפויה ~7% בשנה" },
-  { key: "high",   label: "חיסכון מוגבר", expectedReturn: 0.10, description: "דגש על מניות — תשואה צפויה ~10% בשנה, תנודתיות גבוהה" },
-  { key: "halacha", label: "הלכתי (כשר)", expectedReturn: 0.06, description: "השקעות לפי ההלכה — ללא ריבית, ללא חברות אסורות" },
+  {
+    key: "low",
+    label: "סיכון מועט",
+    expectedReturn: 0.03,
+    description: 'אג"ח ממשלתי ופיקדונות — יציב, תשואה צפויה ~3% בשנה',
+  },
+  {
+    key: "medium",
+    label: "סיכון בינוני",
+    expectedReturn: 0.07,
+    description: 'שילוב אג"ח ומניות — איזון סיכון/תשואה. תשואה צפויה ~7% בשנה',
+  },
+  {
+    key: "high",
+    label: "חיסכון מוגבר",
+    expectedReturn: 0.1,
+    description: "דגש על מניות — תשואה צפויה ~10% בשנה, תנודתיות גבוהה",
+  },
+  {
+    key: "halacha",
+    label: "הלכתי (כשר)",
+    expectedReturn: 0.06,
+    description: "השקעות לפי ההלכה — ללא ריבית, ללא חברות אסורות",
+  },
 ];
 
 /* ── Major investment houses ── */
 
 export const KIDS_PROVIDERS = [
-  "מגדל", "הראל", "כלל", "הפניקס", "מנורה מבטחים",
-  "אלטשולר שחם", "מיטב דש", "פסגות", "אנליסט", "ילין לפידות",
-  "מור", "IBI", "אחר",
+  "מגדל",
+  "הראל",
+  "כלל",
+  "הפניקס",
+  "מנורה מבטחים",
+  "אלטשולר שחם",
+  "מיטב דש",
+  "פסגות",
+  "אנליסט",
+  "ילין לפידות",
+  "מור",
+  "IBI",
+  "אחר",
 ];
 
 /* ── Monthly deposit amounts (2025, צמוד למדד) ── */
-export const GOV_MONTHLY_DEPOSIT = 57;    // ביטוח לאומי
-export const PARENT_MONTHLY_MAX = 57;     // הורים יכולים להתאים סכום זהה
+export const GOV_MONTHLY_DEPOSIT = 57; // ביטוח לאומי
+export const PARENT_MONTHLY_MAX = 57; // הורים יכולים להתאים סכום זהה
 export const DEFAULT_MONTHLY = GOV_MONTHLY_DEPOSIT + PARENT_MONTHLY_MAX; // ₪114
 
 /* ── Milestone bonuses ── */
-export const BONUS_AGE_3 = 250;           // הפקדה חד-פעמית בגיל 3
-export const BONUS_BAR_MITZVA = 250;      // הפקדה חד-פעמית בר/בת מצווה
-export const BONUS_AGE_21 = 568;          // בונוס אחרי שירות בגיל 21
+export const BONUS_AGE_3 = 250; // הפקדה חד-פעמית בגיל 3
+export const BONUS_BAR_MITZVA = 250; // הפקדה חד-פעמית בר/בת מצווה
+export const BONUS_AGE_21 = 568; // בונוס אחרי שירות בגיל 21
 
 /* ── Tax rates ── */
-export const TAX_BANK = 0.15;             // 15% מס רווחי הון — בנקאי
-export const TAX_GEMEL = 0.25;            // 25% מס רווחי הון — קופת גמל
+export const TAX_BANK = 0.15; // 15% מס רווחי הון — בנקאי
+export const TAX_GEMEL = 0.25; // 25% מס רווחי הון — קופת גמל
 
 /* ── Per-child savings record ── */
 
 export interface KidSavings {
   id: string;
   childName: string;
-  dob: string;              // YYYY-MM-DD
-  provider: string;         // investment house
-  track: string;            // key from KIDS_TRACKS
-  currentBalance: number;   // current known balance
-  monthlyDeposit: number;   // ₪57-114 (gov + parent)
-  parentDeposit: number;    // ₪0-57 (parent's share)
-  giftTarget?: number;      // יעד מתנה לגיל 21 (e.g. ₪300,000)
-  extraMonthly?: number;    // הפקדה נוספת מעבר לחיסכון לכל ילד (קופ"ג/תיק)
-  extraVehicle?: string;    // "gemel" | "broker" — כלי ההשקעה הנוסף
+  dob: string; // YYYY-MM-DD
+  provider: string; // investment house
+  track: string; // key from KIDS_TRACKS
+  currentBalance: number; // current known balance
+  monthlyDeposit: number; // ₪57-114 (gov + parent)
+  parentDeposit: number; // ₪0-57 (parent's share)
+  giftTarget?: number; // יעד מתנה לגיל 21 (e.g. ₪300,000)
+  extraMonthly?: number; // הפקדה נוספת מעבר לחיסכון לכל ילד (קופ"ג/תיק)
+  extraVehicle?: string; // "gemel" | "broker" — כלי ההשקעה הנוסף
   notes?: string;
 }
 
@@ -106,24 +136,24 @@ export interface KidSavings {
 
 export interface KidProjection {
   childName: string;
-  currentAge: number;        // years (fractional)
+  currentAge: number; // years (fractional)
   yearsTo18: number;
   yearsTo21: number;
-  projectedAt18: number;     // ₪ at age 18 (gross)
-  projectedAt21: number;     // ₪ at age 21 (with service grant, gross)
+  projectedAt18: number; // ₪ at age 18 (gross)
+  projectedAt21: number; // ₪ at age 21 (with service grant, gross)
   projectedAt21NoGrant: number; // ₪ at 21 without grant
-  netAt18: number;           // ₪ at age 18 after tax on gains
-  netAt21: number;           // ₪ at age 21 after tax on gains
+  netAt18: number; // ₪ at age 18 after tax on gains
+  netAt21: number; // ₪ at age 21 after tax on gains
   monthlyDeposit: number;
   track: KidsTrack;
   currentBalance: number;
   // Extra investment channel
-  extraAt21: number;         // ₪ from extra monthly investment at age 21
-  extraNetAt21: number;      // after tax
-  totalNetAt21: number;      // kids savings net + extra net
+  extraAt21: number; // ₪ from extra monthly investment at age 21
+  extraNetAt21: number; // after tax
+  totalNetAt21: number; // kids savings net + extra net
   // Gift target
-  giftTarget: number;        // target amount
-  giftGap: number;           // how much is missing (negative = surplus)
+  giftTarget: number; // target amount
+  giftGap: number; // how much is missing (negative = surplus)
   giftMonthlyNeeded: number; // extra monthly to close the gap
 }
 
@@ -132,7 +162,7 @@ function futureValue(
   presentValue: number,
   monthlyContrib: number,
   annualRate: number,
-  years: number,
+  years: number
 ): number {
   if (years <= 0) return presentValue;
   const r = annualRate / 12;
@@ -160,7 +190,7 @@ function netAfterTax(grossValue: number, totalDeposited: number, taxRate: number
 
 /** Project a single child's savings to age 18 and 21 */
 export function projectKidSavings(kid: KidSavings): KidProjection {
-  const track = KIDS_TRACKS.find(t => t.key === kid.track) || KIDS_TRACKS[1];
+  const track = KIDS_TRACKS.find((t) => t.key === kid.track) || KIDS_TRACKS[1];
   const age = childAge(kid.dob);
   const yearsTo18 = Math.max(0, 18 - age);
   const yearsTo21 = Math.max(0, 21 - age);
@@ -203,7 +233,8 @@ export function projectKidSavings(kid: KidSavings): KidProjection {
   const extraMonthly = kid.extraMonthly || 0;
   const extraVehicle = kid.extraVehicle || "gemel";
   const extraTaxRate = extraVehicle === "broker" ? 0.25 : TAX_GEMEL; // 25% both, but broker has no lock
-  const extraGross21 = extraMonthly > 0 ? futureValue(0, extraMonthly, track.expectedReturn, yearsTo21) : 0;
+  const extraGross21 =
+    extraMonthly > 0 ? futureValue(0, extraMonthly, track.expectedReturn, yearsTo21) : 0;
   const extraDeposited = extraMonthly * yearsTo21 * 12;
   const extraNetAt21 = Math.round(netAfterTax(extraGross21, extraDeposited, extraTaxRate));
 
@@ -218,11 +249,12 @@ export function projectKidSavings(kid: KidSavings): KidProjection {
     const r = track.expectedReturn / 12;
     const n = yearsTo21 * 12;
     // FV of annuity = PMT * ((1+r)^n - 1) / r → PMT = FV * r / ((1+r)^n - 1)
-    const grossNeeded = giftGap / (1 - extraTaxRate * (1 - extraDeposited / Math.max(extraGross21, 1)));
+    const grossNeeded =
+      giftGap / (1 - extraTaxRate * (1 - extraDeposited / Math.max(extraGross21, 1)));
     // Simplified: assume ~75% of future gains are taxable
     const adjustedGap = giftGap / (1 - extraTaxRate * 0.5); // rough after-tax adjustment
     if (r > 0) {
-      giftMonthlyNeeded = Math.round(adjustedGap * r / (Math.pow(1 + r, n) - 1));
+      giftMonthlyNeeded = Math.round((adjustedGap * r) / (Math.pow(1 + r, n) - 1));
     } else {
       giftMonthlyNeeded = Math.round(adjustedGap / n);
     }
@@ -278,7 +310,9 @@ export async function hydrateKidsSavingsFromRemote(): Promise<boolean> {
     localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(remote));
     fireSync(KIDS_SAVINGS_EVENT);
     return true;
-  } catch { return false; }
+  } catch {
+    return false;
+  }
 }
 
 export function addKidSavings(item: KidSavings): void {
@@ -289,13 +323,13 @@ export function addKidSavings(item: KidSavings): void {
 
 export function updateKidSavings(id: string, patch: Partial<KidSavings>): void {
   const items = loadKidsSavings();
-  const idx = items.findIndex(k => k.id === id);
+  const idx = items.findIndex((k) => k.id === id);
   if (idx >= 0) items[idx] = { ...items[idx], ...patch };
   saveKidsSavings(items);
 }
 
 export function deleteKidSavings(id: string): void {
-  saveKidsSavings(loadKidsSavings().filter(k => k.id !== id));
+  saveKidsSavings(loadKidsSavings().filter((k) => k.id !== id));
 }
 
 /** Generate a unique ID */

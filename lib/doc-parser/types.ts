@@ -6,12 +6,12 @@
 import type { Scope } from "../scope-types";
 
 export interface ParsedTransaction {
-  date: string;           // ISO yyyy-mm-dd
-  description: string;    // original merchant / action text
-  amount: number;         // positive = expense (debit), negative = income (credit)
-  category: string;       // auto-assigned category key
-  categoryLabel: string;  // Hebrew display name
-  raw?: string;           // original line for debugging
+  date: string; // ISO yyyy-mm-dd
+  description: string; // original merchant / action text
+  amount: number; // positive = expense (debit), negative = income (credit)
+  category: string; // auto-assigned category key
+  categoryLabel: string; // Hebrew display name
+  raw?: string; // original line for debugging
   /** Business / personal / mixed tag. Undefined = personal. */
   scope?: Scope;
   /** ID of the source document (history entry) — lets us trace back to origin file. */
@@ -33,13 +33,18 @@ export interface ParsedTransaction {
 export interface ParsedDocument {
   filename: string;
   type: "pdf" | "xlsx" | "csv";
-  bankHint: string;        // detected bank name or "unknown"
+  bankHint: string; // detected bank name or "unknown"
   transactions: ParsedTransaction[];
   totalDebit: number;
   totalCredit: number;
   dateRange: { from: string; to: string };
   warnings: string[];
-  instruments?: { type: "bank_account" | "credit_card"; institution: string; identifier: string; label: string }[];
+  instruments?: {
+    type: "bank_account" | "credit_card";
+    institution: string;
+    identifier: string;
+    label: string;
+  }[];
   /** Declared opening balance extracted from source (for reconciliation) */
   openingBalance?: number;
   /** Declared closing balance extracted from source (for reconciliation) */

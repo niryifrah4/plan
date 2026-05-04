@@ -16,12 +16,12 @@ import { createClient } from "@/lib/supabase/server";
 
 const ALLOWED_STAGES = new Set(["onboarding", "active", "review", "archived"]);
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient();
-  const { data: { user }, error: authErr } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authErr,
+  } = await supabase.auth.getUser();
   if (!user || authErr) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
@@ -44,10 +44,7 @@ export async function POST(
   }
 
   // RLS does the auth check on the household row — we just narrow by id.
-  const { error } = await supabase
-    .from("households")
-    .update({ stage })
-    .eq("id", householdId);
+  const { error } = await supabase.from("households").update({ stage }).eq("id", householdId);
 
   if (error) {
     return NextResponse.json({ error: "update_failed" }, { status: 500 });

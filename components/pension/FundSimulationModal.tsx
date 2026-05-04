@@ -26,65 +26,79 @@ export function FundSimulationModal({ fund, onClose }: Props) {
 
   // Baseline = current state of this fund (no overrides). Sim sliders compare
   // against this.
-  const baseline: SimInputs = useMemo(() => ({
-    expectedReturnPct: 6,                                  // sensible default
-    mgmtFeeBalancePct: fund.mgmtFeeBalance || 0.5,
-    monthlyContrib: fund.monthlyContrib || 0,
-    yearsToRetirement: yearsToRetire,
-    conversionFactor: fund.conversionFactor || defaultFactorByType(fund.type),
-  }), [fund, yearsToRetire]);
+  const baseline: SimInputs = useMemo(
+    () => ({
+      expectedReturnPct: 6, // sensible default
+      mgmtFeeBalancePct: fund.mgmtFeeBalance || 0.5,
+      monthlyContrib: fund.monthlyContrib || 0,
+      yearsToRetirement: yearsToRetire,
+      conversionFactor: fund.conversionFactor || defaultFactorByType(fund.type),
+    }),
+    [fund, yearsToRetire]
+  );
 
   const [inputs, setInputs] = useState<SimInputs>(baseline);
 
   const result = useMemo(() => simulateFund(fund, inputs, baseline), [fund, inputs, baseline]);
 
   const set = <K extends keyof SimInputs>(key: K, v: SimInputs[K]) =>
-    setInputs(prev => ({ ...prev, [key]: v }));
+    setInputs((prev) => ({ ...prev, [key]: v }));
 
   const reset = () => setInputs(baseline);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      onClick={onClose}
+    >
       <div
-        className="bg-white rounded-2xl shadow-soft w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-soft"
         onClick={(e) => e.stopPropagation()}
         dir="rtl"
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b v-divider flex items-center justify-between sticky top-0 bg-white">
+        <div className="v-divider sticky top-0 flex items-center justify-between border-b bg-white px-6 py-4">
           <div>
-            <div className="text-[10px] font-bold text-verdant-muted uppercase tracking-[0.15em]">
+            <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
               סימולציה
             </div>
             <h2 className="text-lg font-extrabold text-verdant-ink">{fund.company}</h2>
-            <div className="text-[11px] text-verdant-muted mt-0.5">{fund.track || "מסלול לא מצוין"}</div>
+            <div className="mt-0.5 text-[11px] text-verdant-muted">
+              {fund.track || "מסלול לא מצוין"}
+            </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-verdant-bg">
+          <button onClick={onClose} className="rounded-lg p-2 hover:bg-verdant-bg">
             <span className="material-symbols-outlined text-[20px] text-verdant-muted">close</span>
           </button>
         </div>
 
         {/* Inputs */}
-        <div className="px-6 py-5 space-y-4">
+        <div className="space-y-4 px-6 py-5">
           <SliderRow
             label="תשואה צפויה (שנתית)"
             unit="%"
             value={inputs.expectedReturnPct}
-            min={0} max={12} step={0.25}
+            min={0}
+            max={12}
+            step={0.25}
             onChange={(v) => set("expectedReturnPct", v)}
           />
           <SliderRow
             label="דמי ניהול מצבירה"
             unit="%"
             value={inputs.mgmtFeeBalancePct}
-            min={0} max={2} step={0.05}
+            min={0}
+            max={2}
+            step={0.05}
             onChange={(v) => set("mgmtFeeBalancePct", v)}
           />
           <SliderRow
             label="הפקדה חודשית"
             unit="₪"
             value={inputs.monthlyContrib}
-            min={0} max={10000} step={100}
+            min={0}
+            max={10000}
+            step={100}
             onChange={(v) => set("monthlyContrib", v)}
             valueFormatter={fmtILS}
           />
@@ -92,13 +106,15 @@ export function FundSimulationModal({ fund, onClose }: Props) {
             label="שנים לפרישה"
             unit="שנים"
             value={inputs.yearsToRetirement}
-            min={1} max={50} step={1}
+            min={1}
+            max={50}
+            step={1}
             onChange={(v) => set("yearsToRetirement", v)}
           />
         </div>
 
         {/* Results */}
-        <div className="px-6 py-4 border-t v-divider" style={{ background: "#F9FAF2" }}>
+        <div className="v-divider border-t px-6 py-4" style={{ background: "#F9FAF2" }}>
           <div className="grid grid-cols-2 gap-4">
             <ResultCard
               label="צבירה צפויה בפרישה"
@@ -117,7 +133,7 @@ export function FundSimulationModal({ fund, onClose }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t v-divider flex items-center justify-between">
+        <div className="v-divider flex items-center justify-between border-t px-6 py-3">
           <button
             onClick={reset}
             className="text-[12px] font-bold text-verdant-emerald hover:underline"
@@ -126,7 +142,7 @@ export function FundSimulationModal({ fund, onClose }: Props) {
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-lg text-[12px] font-bold"
+            className="rounded-lg px-4 py-2 text-[12px] font-bold"
             style={{ background: "#1B4332", color: "#fff" }}
           >
             סגור
@@ -138,18 +154,27 @@ export function FundSimulationModal({ fund, onClose }: Props) {
 }
 
 function SliderRow({
-  label, unit, value, min, max, step, onChange, valueFormatter,
+  label,
+  unit,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+  valueFormatter,
 }: {
   label: string;
   unit: string;
   value: number;
-  min: number; max: number; step: number;
+  min: number;
+  max: number;
+  step: number;
   onChange: (v: number) => void;
   valueFormatter?: (n: number) => string;
 }) {
   return (
     <div>
-      <div className="flex items-center justify-between mb-1.5">
+      <div className="mb-1.5 flex items-center justify-between">
         <label className="text-[12px] font-bold text-verdant-ink">{label}</label>
         <div className="text-[13px] font-extrabold tabular-nums text-verdant-ink">
           {valueFormatter ? valueFormatter(value) : `${value} ${unit}`}
@@ -157,16 +182,23 @@ function SliderRow({
       </div>
       <input
         type="range"
-        min={min} max={max} step={step} value={value}
+        min={min}
+        max={max}
+        step={step}
+        value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="w-full h-1.5 accent-[#1B4332]"
+        className="h-1.5 w-full accent-[#1B4332]"
       />
     </div>
   );
 }
 
 function ResultCard({
-  label, value, sub, delta, deltaPct,
+  label,
+  value,
+  sub,
+  delta,
+  deltaPct,
 }: {
   label: string;
   value: string;
@@ -179,17 +211,21 @@ function ResultCard({
   const color = positive ? "#1B4332" : negative ? "#8B2E2E" : "#5a7a6a";
   const sign = positive ? "+" : "";
   return (
-    <div className="bg-white rounded-xl p-4" style={{ border: "1px solid #eef2e8" }}>
-      <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted mb-1">
+    <div className="rounded-xl bg-white p-4" style={{ border: "1px solid #eef2e8" }}>
+      <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
         {label}
       </div>
-      <div className="text-2xl font-extrabold tabular-nums text-verdant-ink"
-           style={{ fontFamily: "Manrope, Assistant, system-ui, sans-serif" }}>
+      <div
+        className="text-2xl font-extrabold tabular-nums text-verdant-ink"
+        style={{ fontFamily: "Manrope, Assistant, system-ui, sans-serif" }}
+      >
         {value}
       </div>
-      {sub && <div className="text-[11px] text-verdant-muted mt-0.5">{sub}</div>}
-      <div className="text-[12px] font-bold mt-1.5 tabular-nums" style={{ color }}>
-        {Math.abs(delta) < 1 ? "ללא שינוי" : `${sign}${Math.round(delta).toLocaleString()} ₪ (${sign}${deltaPct.toFixed(1)}%)`}
+      {sub && <div className="mt-0.5 text-[11px] text-verdant-muted">{sub}</div>}
+      <div className="mt-1.5 text-[12px] font-bold tabular-nums" style={{ color }}>
+        {Math.abs(delta) < 1
+          ? "ללא שינוי"
+          : `${sign}${Math.round(delta).toLocaleString()} ₪ (${sign}${deltaPct.toFixed(1)}%)`}
       </div>
     </div>
   );

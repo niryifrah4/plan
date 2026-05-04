@@ -18,6 +18,8 @@ interface PageHeaderProps {
  * Props kept on the signature so callers don't break.
  */
 export function PageHeader({ subtitle, title, description }: PageHeaderProps) {
-  void subtitle; void title; void description;
+  void subtitle;
+  void title;
+  void description;
   return null;
 }

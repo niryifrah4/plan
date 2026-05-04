@@ -70,11 +70,11 @@ export function getClientIp(headers: Headers): string {
 /** Rate-limit presets (tuned for abuse vs. UX) */
 export const RATE_LIMITS = {
   // Doc upload — expensive parsing
-  UPLOAD: { limit: 10, windowMs: 60_000 },     // 10/min
+  UPLOAD: { limit: 10, windowMs: 60_000 }, // 10/min
   // Doc parsing API
-  PARSE: { limit: 20, windowMs: 60_000 },      // 20/min
+  PARSE: { limit: 20, windowMs: 60_000 }, // 20/min
   // Auth endpoints (future)
-  AUTH: { limit: 5, windowMs: 60_000 },        // 5/min — brute force defense
+  AUTH: { limit: 5, windowMs: 60_000 }, // 5/min — brute force defense
   // Generic API
-  GENERIC: { limit: 60, windowMs: 60_000 },    // 60/min
+  GENERIC: { limit: 60, windowMs: 60_000 }, // 60/min
 } as const;

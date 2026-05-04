@@ -59,7 +59,14 @@ export {
   totalMonthlyContributions,
   migrateOnboardingGoals,
 };
-export type { Bucket, BucketContribution, BucketStatus, BucketPriority, BucketSnapshot, OnboardingGoalRow };
+export type {
+  Bucket,
+  BucketContribution,
+  BucketStatus,
+  BucketPriority,
+  BucketSnapshot,
+  OnboardingGoalRow,
+};
 export const BUCKETS_EVENT = BUCKETS_EVENT_NAME;
 
 /* ═══════════════════════════════════════════════════════════ */
@@ -75,7 +82,7 @@ export function loadBuckets(): Bucket[] {
     const raw = localStorage.getItem(scopedKey(BUCKETS_STORAGE_KEY));
     if (raw) {
       const parsed = JSON.parse(raw) as Bucket[];
-      if (Array.isArray(parsed)) return parsed.filter(b => !b.archived);
+      if (Array.isArray(parsed)) return parsed.filter((b) => !b.archived);
     }
   } catch {}
 

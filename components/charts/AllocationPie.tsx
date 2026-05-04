@@ -18,7 +18,7 @@ export interface PieSlice {
   key: string;
   label: string;
   value: number;
-  pct: number;     // 0..100
+  pct: number; // 0..100
   color: string;
 }
 
@@ -54,7 +54,7 @@ export function AllocationPie({
   if (!slices.length || total === 0) {
     return (
       <div className="card-pad">
-        <div className="text-[11px] font-bold uppercase tracking-[0.15em] text-verdant-muted mb-3">
+        <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
           {title}
         </div>
         <div className="flex items-center justify-center py-8 text-sm text-verdant-muted">
@@ -67,11 +67,11 @@ export function AllocationPie({
   let offset = 0;
   return (
     <div className="card-pad">
-      <div className="text-[11px] font-bold uppercase tracking-[0.15em] text-verdant-muted mb-3">
+      <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
         {title}
       </div>
 
-      <div className="flex items-center justify-center mb-4 relative" style={{ minHeight: px }}>
+      <div className="relative mb-4 flex items-center justify-center" style={{ minHeight: px }}>
         <svg width={px} height={px} viewBox="0 0 42 42" className="-rotate-90">
           <circle cx="21" cy="21" r="15.9155" fill="transparent" stroke="#eef2e8" strokeWidth="5" />
           {slices.map((s, i) => {
@@ -94,13 +94,11 @@ export function AllocationPie({
             return el;
           })}
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <div className="text-[10px] uppercase tracking-[0.15em] text-verdant-muted font-bold">
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
             סה״כ
           </div>
-          <div className="text-base font-extrabold text-verdant-ink tabular-nums">
-            {center}
-          </div>
+          <div className="text-base font-extrabold tabular-nums text-verdant-ink">{center}</div>
         </div>
       </div>
 
@@ -112,13 +110,13 @@ export function AllocationPie({
             style={{ cursor: onSliceClick ? "pointer" : "default" }}
             onClick={onSliceClick ? () => onSliceClick(s.key) : undefined}
           >
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: s.color }} />
-              <span className="text-verdant-ink font-semibold truncate">{s.label}</span>
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: s.color }} />
+              <span className="truncate font-semibold text-verdant-ink">{s.label}</span>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-[11px] text-verdant-muted tabular-nums">{fmtILS(s.value)}</span>
-              <span className="text-verdant-ink font-extrabold tabular-nums w-9 text-left">
+            <div className="flex shrink-0 items-center gap-2">
+              <span className="text-[11px] tabular-nums text-verdant-muted">{fmtILS(s.value)}</span>
+              <span className="w-9 text-left font-extrabold tabular-nums text-verdant-ink">
                 {Math.round(s.pct)}%
               </span>
             </div>

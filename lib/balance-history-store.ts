@@ -25,18 +25,18 @@ export const BALANCE_HISTORY_EVENT = "verdant:balance_history:updated";
 /* ── Types ── */
 
 export interface NetWorthBreakdown {
-  cash: number;         // bank accounts − credit card charges
-  investments: number;  // securities total value (TODO: pending real source)
-  pension: number;      // sum of pension fund balances
-  realestate: number;   // sum of property currentValue
-  goals: number;        // sum of bucket balances (earmarked cash)
-  debt: number;         // non-mortgage debt (loans + installments)
-  mortgages: number;    // mortgage balances
+  cash: number; // bank accounts − credit card charges
+  investments: number; // securities total value (TODO: pending real source)
+  pension: number; // sum of pension fund balances
+  realestate: number; // sum of property currentValue
+  goals: number; // sum of bucket balances (earmarked cash)
+  debt: number; // non-mortgage debt (loans + installments)
+  mortgages: number; // mortgage balances
 }
 
 export interface NetWorthSnapshot {
   id: string;
-  date: string;            // ISO YYYY-MM-DD
+  date: string; // ISO YYYY-MM-DD
   breakdown: NetWorthBreakdown;
   totalAssets: number;
   totalLiabilities: number;
@@ -65,8 +65,13 @@ function monthKey(iso: string): string {
 
 export function computeCurrentNetWorth(): NetWorthBreakdown {
   const empty: NetWorthBreakdown = {
-    cash: 0, investments: 0, pension: 0, realestate: 0,
-    goals: 0, debt: 0, mortgages: 0,
+    cash: 0,
+    investments: 0,
+    pension: 0,
+    realestate: 0,
+    goals: 0,
+    debt: 0,
+    mortgages: 0,
   };
   if (typeof window === "undefined") return empty;
 
@@ -100,8 +105,7 @@ export function computeCurrentNetWorth(): NetWorthBreakdown {
   let mortgages = 0;
   try {
     const d = loadDebtData();
-    mortgages = (d.mortgage?.tracks || [])
-      .reduce((s, t) => s + (t.remainingBalance || 0), 0);
+    mortgages = (d.mortgage?.tracks || []).reduce((s, t) => s + (t.remainingBalance || 0), 0);
     const totalAll = getTotalLiabilities();
     debt = Math.max(0, totalAll - mortgages);
   } catch {}
@@ -147,7 +151,7 @@ export function loadHistory(): NetWorthSnapshot[] {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
     return (parsed as NetWorthSnapshot[])
-      .filter(s => s && typeof s.date === "string")
+      .filter((s) => s && typeof s.date === "string")
       .sort((a, b) => a.date.localeCompare(b.date));
   } catch {
     return [];
@@ -172,21 +176,23 @@ export async function hydrateHistoryFromRemote(): Promise<boolean> {
     localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(remote));
     if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(BALANCE_HISTORY_EVENT));
     return true;
-  } catch { return false; }
+  } catch {
+    return false;
+  }
 }
 
 export function addSnapshot(snapshot: NetWorthSnapshot): NetWorthSnapshot[] {
   const existing = loadHistory();
   const key = monthKey(snapshot.date);
   // One snapshot per month — replace if same YYYY-MM exists
-  const filtered = existing.filter(s => monthKey(s.date) !== key);
+  const filtered = existing.filter((s) => monthKey(s.date) !== key);
   const next = [...filtered, snapshot].sort((a, b) => a.date.localeCompare(b.date));
   saveHistory(next);
   return next;
 }
 
 export function deleteSnapshot(id: string): NetWorthSnapshot[] {
-  const next = loadHistory().filter(s => s.id !== id);
+  const next = loadHistory().filter((s) => s.id !== id);
   saveHistory(next);
   return next;
 }

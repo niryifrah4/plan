@@ -9,9 +9,9 @@
 export const SAFETY_THRESHOLD_ILS = 1000;
 
 export const GAP_COLOURS = {
-  shortfall: "#b91c1c",   // red
-  warning:   "#f59e0b",   // amber/orange
-  safe:      "#1B4332",   // verdant accent
+  shortfall: "#b91c1c", // red
+  warning: "#f59e0b", // amber/orange
+  safe: "#1B4332", // verdant accent
 } as const;
 
 export function gapColor(gap: number): string {

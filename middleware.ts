@@ -19,9 +19,9 @@ const PUBLIC_ROUTES = ["/login", "/auth/callback", "/privacy", "/terms"];
 // All other /api/* must call auth.getUser() internally (route-level).
 // We keep this list tight: auth callbacks and OAuth callbacks only.
 const PUBLIC_API_ROUTES = [
-  "/api/auth/",       // login / magic-link callbacks (Supabase handles internally)
+  "/api/auth/", // login / magic-link callbacks (Supabase handles internally)
   "/api/gcal/callback", // Google OAuth callback (validates state internally)
-  "/api/health",      // Render healthcheck — must be reachable unauthenticated
+  "/api/health", // Render healthcheck — must be reachable unauthenticated
 ];
 
 function isPublicApi(pathname: string): boolean {
@@ -88,10 +88,10 @@ export async function middleware(request: NextRequest) {
   if (!user) {
     // API routes expect JSON, not an HTML redirect.
     if (pathname.startsWith("/api/")) {
-      return new NextResponse(
-        JSON.stringify({ error: "unauthenticated" }),
-        { status: 401, headers: { "content-type": "application/json" } },
-      );
+      return new NextResponse(JSON.stringify({ error: "unauthenticated" }), {
+        status: 401,
+        headers: { "content-type": "application/json" },
+      });
     }
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
@@ -113,10 +113,10 @@ export async function middleware(request: NextRequest) {
       .maybeSingle();
     if (!advisor) {
       if (pathname.startsWith("/api/")) {
-        return new NextResponse(
-          JSON.stringify({ error: "forbidden" }),
-          { status: 403, headers: { "content-type": "application/json" } },
-        );
+        return new NextResponse(JSON.stringify({ error: "forbidden" }), {
+          status: 403,
+          headers: { "content-type": "application/json" },
+        });
       }
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
@@ -126,7 +126,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };

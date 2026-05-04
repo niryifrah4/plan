@@ -18,33 +18,26 @@
  * The `tone` prop is preserved for callers but no longer drives bg.
  */
 
-export type KpiTone =
-  | "forest"
-  | "emerald"
-  | "mint"
-  | "sage"
-  | "red"
-  | "amber"
-  | "ink";
+export type KpiTone = "forest" | "emerald" | "mint" | "sage" | "red" | "amber" | "ink";
 
 const ACCENT_COLOR: Record<KpiTone, string> = {
-  forest:  "#1B4332",
+  forest: "#1B4332",
   emerald: "#2B694D",
-  mint:    "#7FA68D",
-  sage:    "#94a3b8",
-  red:     "#8B2E2E",
-  amber:   "#B45309",
-  ink:     "#012D1D",
+  mint: "#7FA68D",
+  sage: "#94a3b8",
+  red: "#8B2E2E",
+  amber: "#B45309",
+  ink: "#012D1D",
 };
 
 const VALUE_COLOR: Record<KpiTone, string> = {
-  forest:  "#012D1D",
+  forest: "#012D1D",
   emerald: "#012D1D",
-  mint:    "#012D1D",
-  sage:    "#1F2937",
-  red:     "#8B2E2E",
-  amber:   "#B45309",
-  ink:     "#012D1D",
+  mint: "#012D1D",
+  sage: "#1F2937",
+  red: "#8B2E2E",
+  amber: "#B45309",
+  ink: "#012D1D",
 };
 
 export interface SolidKpiProps {
@@ -63,7 +56,7 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg }: Solid
   if (bg) {
     return (
       <div
-        className="p-4 relative overflow-hidden transition-all duration-200 hover:shadow-md"
+        className="relative overflow-hidden p-4 transition-all duration-200 hover:shadow-md"
         style={{
           background: bg,
           color: "#FFFFFF",
@@ -71,20 +64,33 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg }: Solid
           boxShadow: "0 1px 2px rgba(27, 67, 50, 0.06)",
         }}
       >
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: "rgba(255,255,255,0.7)" }}>
+        <div className="mb-2 flex items-center justify-between">
+          <div
+            className="text-[10px] font-bold uppercase tracking-[0.15em]"
+            style={{ color: "rgba(255,255,255,0.7)" }}
+          >
             {label}
           </div>
           {icon && (
-            <span className="material-symbols-outlined text-[18px]" style={{ color: "rgba(255,255,255,0.85)" }}>
+            <span
+              className="material-symbols-outlined text-[18px]"
+              style={{ color: "rgba(255,255,255,0.85)" }}
+            >
               {icon}
             </span>
           )}
         </div>
-        <div className="text-2xl font-extrabold tabular-nums leading-tight" style={{ color: "#FFFFFF", fontFamily: "Manrope, Assistant, system-ui, sans-serif" }}>
+        <div
+          className="text-2xl font-extrabold tabular-nums leading-tight"
+          style={{ color: "#FFFFFF", fontFamily: "Manrope, Assistant, system-ui, sans-serif" }}
+        >
           {value}
         </div>
-        {sub && <div className="text-[11px] mt-1" style={{ color: "rgba(255,255,255,0.85)" }}>{sub}</div>}
+        {sub && (
+          <div className="mt-1 text-[11px]" style={{ color: "rgba(255,255,255,0.85)" }}>
+            {sub}
+          </div>
+        )}
       </div>
     );
   }
@@ -92,7 +98,7 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg }: Solid
   // Bank-style default: white card with thin tone accent on the right edge.
   return (
     <div
-      className="bg-white px-5 py-4 relative overflow-hidden transition-shadow duration-200 hover:shadow-sm"
+      className="relative overflow-hidden bg-white px-5 py-4 transition-shadow duration-200 hover:shadow-sm"
       style={{
         borderRadius: "0.75rem",
         border: "1px solid #eef2e8",
@@ -101,7 +107,7 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg }: Solid
       {/* Right-edge accent — single thin stripe carrying the tone (RTL). */}
       <span
         aria-hidden
-        className="absolute top-3 bottom-3 right-0 rounded-l"
+        className="absolute bottom-3 right-0 top-3 rounded-l"
         style={{
           width: 3,
           background: ACCENT_COLOR[tone],
@@ -109,7 +115,7 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg }: Solid
         }}
       />
 
-      <div className="flex items-center justify-between mb-2">
+      <div className="mb-2 flex items-center justify-between">
         <div
           className="text-[10px] font-bold uppercase tracking-[0.18em]"
           style={{ color: "#5a7a6a" }}
@@ -138,10 +144,7 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg }: Solid
       </div>
 
       {sub && (
-        <div
-          className="text-[11px] mt-1 font-medium"
-          style={{ color: "#5a7a6a" }}
-        >
+        <div className="mt-1 text-[11px] font-medium" style={{ color: "#5a7a6a" }}>
           {sub}
         </div>
       )}
@@ -150,9 +153,5 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg }: Solid
 }
 
 export function SolidKpiRow({ children }: { children: React.ReactNode }) {
-  return (
-    <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-      {children}
-    </section>
-  );
+  return <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">{children}</section>;
 }

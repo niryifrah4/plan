@@ -15,10 +15,10 @@
 export type ScheduleType = "spitzer" | "equal_principal" | "bullet";
 
 export interface LoanInput {
-  principal: number;          // original principal ₪
-  annualRate: number;         // decimal, e.g. 0.045 = 4.5%
+  principal: number; // original principal ₪
+  annualRate: number; // decimal, e.g. 0.045 = 4.5%
   termMonths: number;
-  startDate: string;          // ISO
+  startDate: string; // ISO
   type: ScheduleType;
   /** Optional: CPI multiplier applied to outstanding principal (1.0 = none) */
   cpiMultiplier?: number;
@@ -27,12 +27,12 @@ export interface LoanInput {
 }
 
 export interface ScheduleRow {
-  month: number;              // 1..termMonths
-  date: string;               // ISO
-  payment: number;            // total installment
+  month: number; // 1..termMonths
+  date: string; // ISO
+  payment: number; // total installment
   interest: number;
-  principal: number;          // principal portion of payment
-  balance: number;            // remaining principal after this payment
+  principal: number; // principal portion of payment
+  balance: number; // remaining principal after this payment
 }
 
 export interface AmortizationResult {
@@ -72,16 +72,21 @@ export function buildSchedule(input: LoanInput): AmortizationResult {
       const principalPaid = isLast ? balance : 0;
       const payment = monthlyInterest + principalPaid;
       balance = balance - principalPaid;
-      rows.push({ month: m, date, payment, interest: monthlyInterest, principal: principalPaid, balance: Math.max(0, balance) });
+      rows.push({
+        month: m,
+        date,
+        payment,
+        interest: monthlyInterest,
+        principal: principalPaid,
+        balance: Math.max(0, balance),
+      });
       totalInterest += monthlyInterest;
       totalPaid += payment;
       if (m === 1) firstPayment = payment;
     }
   } else if (type === "spitzer") {
     // Equal monthly payment: PMT = P · r / (1 − (1+r)^−n)
-    const pmt = r === 0
-      ? balance / termMonths
-      : balance * r / (1 - Math.pow(1 + r, -termMonths));
+    const pmt = r === 0 ? balance / termMonths : (balance * r) / (1 - Math.pow(1 + r, -termMonths));
     firstPayment = pmt;
     for (let m = 1; m <= termMonths; m++) {
       const date = addMonths(start, m).toISOString().slice(0, 10);
@@ -108,9 +113,8 @@ export function buildSchedule(input: LoanInput): AmortizationResult {
   }
 
   const monthsPaid = Math.min(input.monthsPaid ?? 0, termMonths);
-  const currentBalance = monthsPaid > 0
-    ? (rows[monthsPaid - 1]?.balance ?? 0)
-    : principal * cpiMult;
+  const currentBalance =
+    monthsPaid > 0 ? (rows[monthsPaid - 1]?.balance ?? 0) : principal * cpiMult;
 
   return { rows, currentBalance, totalInterest, totalPaid, firstPayment };
 }
@@ -119,10 +123,7 @@ export function buildSchedule(input: LoanInput): AmortizationResult {
  * Given a detected payment history (e.g. from bank records), infer the
  * current outstanding balance by matching payments to scheduled rows.
  */
-export function inferBalanceFromPayments(
-  schedule: ScheduleRow[],
-  paymentsMade: number
-): number {
+export function inferBalanceFromPayments(schedule: ScheduleRow[], paymentsMade: number): number {
   if (paymentsMade <= 0) return schedule[0]?.balance ?? 0;
   if (paymentsMade >= schedule.length) return 0;
   return schedule[paymentsMade - 1].balance;

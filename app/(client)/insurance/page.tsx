@@ -20,10 +20,13 @@ import {
 
 /* ── Status config ── */
 
-const STATUS_CONFIG: Record<CoverageStatus, { label: string; color: string; bg: string; icon: string }> = {
-  covered:      { label: "מכוסה",     color: "#2B694D", bg: "#ecfdf5", icon: "check_circle" },
-  partial:      { label: "חלקי",      color: "#f59e0b", bg: "#fffbeb", icon: "warning" },
-  missing:      { label: "חסר",       color: "#ef4444", bg: "#fef2f2", icon: "cancel" },
+const STATUS_CONFIG: Record<
+  CoverageStatus,
+  { label: string; color: string; bg: string; icon: string }
+> = {
+  covered: { label: "מכוסה", color: "#2B694D", bg: "#ecfdf5", icon: "check_circle" },
+  partial: { label: "חלקי", color: "#f59e0b", bg: "#fffbeb", icon: "warning" },
+  missing: { label: "חסר", color: "#ef4444", bg: "#fef2f2", icon: "cancel" },
   not_relevant: { label: "לא רלוונטי", color: "#94a3b8", bg: "#f8fafc", icon: "do_not_disturb_on" },
 };
 
@@ -31,8 +34,7 @@ const STATUS_ORDER: CoverageStatus[] = ["covered", "partial", "missing", "not_re
 
 /* ── Formatters ── */
 
-const fmtCurrency = (n: number) =>
-  n ? `₪${n.toLocaleString("he-IL")}` : "—";
+const fmtCurrency = (n: number) => (n ? `₪${n.toLocaleString("he-IL")}` : "—");
 
 /* ── Main Page ── */
 
@@ -56,7 +58,7 @@ export default function RiskManagementPage() {
   /* ── Handlers ── */
 
   const cycleStatus = (id: string) => {
-    const item = items.find(i => i.id === id);
+    const item = items.find((i) => i.id === id);
     if (!item) return;
     const idx = STATUS_ORDER.indexOf(item.status);
     const next = STATUS_ORDER[(idx + 1) % STATUS_ORDER.length];
@@ -71,7 +73,10 @@ export default function RiskManagementPage() {
 
   const handleAdd = (category: string) => {
     if (!newLabel.trim()) return;
-    const maxSort = Math.max(0, ...items.filter(i => i.category === category).map(i => i.sortOrder));
+    const maxSort = Math.max(
+      0,
+      ...items.filter((i) => i.category === category).map((i) => i.sortOrder)
+    );
     addRiskItem({
       id: `risk_${Date.now()}`,
       category,
@@ -95,7 +100,7 @@ export default function RiskManagementPage() {
   const pct = Math.round(stats.coveragePct * 100);
 
   return (
-    <div className="max-w-5xl mx-auto pb-20" dir="rtl">
+    <div className="mx-auto max-w-5xl pb-20" dir="rtl">
       <PageHeader
         subtitle="Risk Management · ניהול סיכונים"
         title="ניהול סיכונים"
@@ -114,9 +119,19 @@ export default function RiskManagementPage() {
           bg={pct >= 80 ? "#012D1D" : pct >= 50 ? "#B45309" : "#8B2E2E"}
           sub={pct >= 80 ? "כיסוי מלא" : pct >= 50 ? "פערים חלקיים" : "פערים מהותיים"}
         />
-        <SolidKpi label="מכוסים"        value={String(stats.covered)}                  icon="check_circle" tone="emerald" />
-        <SolidKpi label="דורשים טיפול"  value={String(stats.partial + stats.missing)} icon="warning"      tone={(stats.partial + stats.missing) > 0 ? "amber" : "sage"} />
-        <SolidKpi label="עלות חודשית"   value={fmtCurrency(stats.totalMonthlyCost)}    icon="payments"     tone="ink" />
+        <SolidKpi label="מכוסים" value={String(stats.covered)} icon="check_circle" tone="emerald" />
+        <SolidKpi
+          label="דורשים טיפול"
+          value={String(stats.partial + stats.missing)}
+          icon="warning"
+          tone={stats.partial + stats.missing > 0 ? "amber" : "sage"}
+        />
+        <SolidKpi
+          label="עלות חודשית"
+          value={fmtCurrency(stats.totalMonthlyCost)}
+          icon="payments"
+          tone="ink"
+        />
       </SolidKpiRow>
 
       {/* ── Category Cards ── */}
@@ -125,7 +140,7 @@ export default function RiskManagementPage() {
           <CategoryCard
             key={cat.key}
             category={cat}
-            items={items.filter(i => i.category === cat.key)}
+            items={items.filter((i) => i.category === cat.key)}
             stats={getCategoryStats(items, cat.key)}
             isExpanded={expandedCat === cat.key}
             onToggle={() => setExpandedCat(expandedCat === cat.key ? null : cat.key)}
@@ -145,16 +160,23 @@ export default function RiskManagementPage() {
 
       {/* ── Legend ── */}
       <div className="card-pad mt-8">
-        <div className="text-xs font-bold mb-2" style={{ color: "var(--verdant-muted)" }}>מקרא סטטוסים</div>
+        <div className="mb-2 text-xs font-bold" style={{ color: "var(--verdant-muted)" }}>
+          מקרא סטטוסים
+        </div>
         <div className="flex flex-wrap gap-4">
-          {STATUS_ORDER.map(s => {
+          {STATUS_ORDER.map((s) => {
             const c = STATUS_CONFIG[s];
             return (
               <div key={s} className="flex items-center gap-1.5">
-                <span className="material-symbols-outlined" style={{ fontSize: 16, color: c.color }}>
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 16, color: c.color }}
+                >
                   {c.icon}
                 </span>
-                <span className="text-xs" style={{ color: "var(--verdant-ink)" }}>{c.label}</span>
+                <span className="text-xs" style={{ color: "var(--verdant-ink)" }}>
+                  {c.label}
+                </span>
               </div>
             );
           })}
@@ -185,9 +207,21 @@ interface CategoryCardProps {
 }
 
 function CategoryCard({
-  category, items, stats, isExpanded, onToggle,
-  editingItem, onEditItem, onCycleStatus, onFieldChange, onDelete,
-  addingTo, onAddingTo, newLabel, onNewLabelChange, onAdd,
+  category,
+  items,
+  stats,
+  isExpanded,
+  onToggle,
+  editingItem,
+  onEditItem,
+  onCycleStatus,
+  onFieldChange,
+  onDelete,
+  addingTo,
+  onAddingTo,
+  newLabel,
+  onNewLabelChange,
+  onAdd,
 }: CategoryCardProps) {
   const catPct = Math.round(stats.coveragePct * 100);
   const barColor = catPct >= 80 ? "#2B694D" : catPct >= 50 ? "#f59e0b" : "#ef4444";
@@ -197,16 +231,13 @@ function CategoryCard({
       {/* Header */}
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-3 p-4 hover:bg-gray-50/60 transition-colors text-right"
+        className="flex w-full items-center gap-3 p-4 text-right transition-colors hover:bg-gray-50/60"
       >
-        <span
-          className="material-symbols-outlined"
-          style={{ fontSize: 28, color: barColor }}
-        >
+        <span className="material-symbols-outlined" style={{ fontSize: 28, color: barColor }}>
           {category.icon}
         </span>
-        <div className="flex-1 min-w-0">
-          <div className="font-bold text-sm" style={{ color: "var(--verdant-ink)" }}>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-bold" style={{ color: "var(--verdant-ink)" }}>
             {category.label}
           </div>
           <div className="text-xs" style={{ color: "var(--verdant-muted)" }}>
@@ -220,17 +251,21 @@ function CategoryCard({
             {stats.covered > 0 && (
               <span className="text-xs font-bold" style={{ color: "#2B694D" }}>
                 {stats.covered}
-                <span className="material-symbols-outlined align-middle" style={{ fontSize: 14 }}>check_circle</span>
+                <span className="material-symbols-outlined align-middle" style={{ fontSize: 14 }}>
+                  check_circle
+                </span>
               </span>
             )}
             {stats.missing > 0 && (
               <span className="text-xs font-bold" style={{ color: "#ef4444" }}>
                 {stats.missing}
-                <span className="material-symbols-outlined align-middle" style={{ fontSize: 14 }}>cancel</span>
+                <span className="material-symbols-outlined align-middle" style={{ fontSize: 14 }}>
+                  cancel
+                </span>
               </span>
             )}
           </div>
-          <div className="w-16 h-2 rounded-full bg-gray-200 overflow-hidden">
+          <div className="h-2 w-16 overflow-hidden rounded-full bg-gray-200">
             <div
               className="h-full rounded-full transition-all"
               style={{ width: `${catPct}%`, background: barColor }}
@@ -261,7 +296,7 @@ function CategoryCard({
               return (
                 <div key={ri.id}>
                   <div
-                    className="flex items-center gap-3 px-4 py-3 border-b hover:bg-gray-50/40 transition-colors"
+                    className="flex items-center gap-3 border-b px-4 py-3 transition-colors hover:bg-gray-50/40"
                     style={{ borderColor: "var(--verdant-border)" }}
                   >
                     {/* Status button */}
@@ -279,8 +314,11 @@ function CategoryCard({
                     </button>
 
                     {/* Label */}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold" style={{ color: "var(--verdant-ink)" }}>
+                    <div className="min-w-0 flex-1">
+                      <div
+                        className="text-sm font-semibold"
+                        style={{ color: "var(--verdant-ink)" }}
+                      >
                         {ri.label}
                       </div>
                       {ri.description && (
@@ -289,19 +327,28 @@ function CategoryCard({
                         </div>
                       )}
                       {/* Inline info tags */}
-                      <div className="flex flex-wrap gap-2 mt-1">
+                      <div className="mt-1 flex flex-wrap gap-2">
                         {ri.provider && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "#f1f5f9", color: "#64748b" }}>
+                          <span
+                            className="rounded px-1.5 py-0.5 text-[10px]"
+                            style={{ background: "#f1f5f9", color: "#64748b" }}
+                          >
                             {ri.provider}
                           </span>
                         )}
                         {ri.coverageAmount ? (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "#ecfdf5", color: "#2B694D" }}>
+                          <span
+                            className="rounded px-1.5 py-0.5 text-[10px]"
+                            style={{ background: "#ecfdf5", color: "#2B694D" }}
+                          >
                             כיסוי: {fmtCurrency(ri.coverageAmount)}
                           </span>
                         ) : null}
                         {ri.monthlyCost ? (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "#eff6ff", color: "#3b82f6" }}>
+                          <span
+                            className="rounded px-1.5 py-0.5 text-[10px]"
+                            style={{ background: "#eff6ff", color: "#3b82f6" }}
+                          >
                             {fmtCurrency(ri.monthlyCost)}/חודש
                           </span>
                         ) : null}
@@ -310,7 +357,7 @@ function CategoryCard({
 
                     {/* Status badge */}
                     <span
-                      className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+                      className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold"
                       style={{ background: sc.bg, color: sc.color }}
                     >
                       {sc.label}
@@ -333,14 +380,14 @@ function CategoryCard({
                   {/* Edit panel */}
                   {isEditing && (
                     <div
-                      className="px-6 py-4 grid grid-cols-2 md:grid-cols-3 gap-3 border-b"
+                      className="grid grid-cols-2 gap-3 border-b px-6 py-4 md:grid-cols-3"
                       style={{ background: "#fafbfc", borderColor: "var(--verdant-border)" }}
                     >
                       <Field label="ספק / חברה">
                         <input
                           className="v-input text-sm"
                           value={ri.provider || ""}
-                          onChange={e => onFieldChange(ri.id, "provider", e.target.value)}
+                          onChange={(e) => onFieldChange(ri.id, "provider", e.target.value)}
                           placeholder="מנורה, הראל..."
                         />
                       </Field>
@@ -349,7 +396,9 @@ function CategoryCard({
                           type="number"
                           className="v-input text-sm"
                           value={ri.coverageAmount || ""}
-                          onChange={e => onFieldChange(ri.id, "coverageAmount", Number(e.target.value))}
+                          onChange={(e) =>
+                            onFieldChange(ri.id, "coverageAmount", Number(e.target.value))
+                          }
                         />
                       </Field>
                       <Field label="עלות חודשית ₪">
@@ -357,21 +406,23 @@ function CategoryCard({
                           type="number"
                           className="v-input text-sm"
                           value={ri.monthlyCost || ""}
-                          onChange={e => onFieldChange(ri.id, "monthlyCost", Number(e.target.value))}
+                          onChange={(e) =>
+                            onFieldChange(ri.id, "monthlyCost", Number(e.target.value))
+                          }
                         />
                       </Field>
                       <Field label="מספר פוליסה">
                         <input
                           className="v-input text-sm"
                           value={ri.policyNumber || ""}
-                          onChange={e => onFieldChange(ri.id, "policyNumber", e.target.value)}
+                          onChange={(e) => onFieldChange(ri.id, "policyNumber", e.target.value)}
                         />
                       </Field>
                       <Field label="תוקף (YYYY-MM)">
                         <input
                           className="v-input text-sm"
                           value={ri.expiryDate || ""}
-                          onChange={e => onFieldChange(ri.id, "expiryDate", e.target.value)}
+                          onChange={(e) => onFieldChange(ri.id, "expiryDate", e.target.value)}
                           placeholder="2026-12"
                         />
                       </Field>
@@ -379,15 +430,17 @@ function CategoryCard({
                         <input
                           className="v-input text-sm"
                           value={ri.notes || ""}
-                          onChange={e => onFieldChange(ri.id, "notes", e.target.value)}
+                          onChange={(e) => onFieldChange(ri.id, "notes", e.target.value)}
                         />
                       </Field>
                       <div className="col-span-full flex justify-end">
                         <button
                           onClick={() => onDelete(ri.id)}
-                          className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
+                          className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700"
                         >
-                          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>delete</span>
+                          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                            delete
+                          </span>
                           מחק פריט
                         </button>
                       </div>
@@ -403,20 +456,23 @@ function CategoryCard({
               <div className="flex items-center gap-2">
                 <input
                   autoFocus
-                  className="v-input text-sm flex-1"
+                  className="v-input flex-1 text-sm"
                   value={newLabel}
-                  onChange={e => onNewLabelChange(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && onAdd(category.key)}
+                  onChange={(e) => onNewLabelChange(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && onAdd(category.key)}
                   placeholder="שם הפריט החדש..."
                 />
                 <button
                   onClick={() => onAdd(category.key)}
-                  className="btn-botanical text-xs !px-3 !py-1.5"
+                  className="btn-botanical !px-3 !py-1.5 text-xs"
                 >
                   הוסף
                 </button>
                 <button
-                  onClick={() => { onAddingTo(null); onNewLabelChange(""); }}
+                  onClick={() => {
+                    onAddingTo(null);
+                    onNewLabelChange("");
+                  }}
                   className="text-xs text-gray-400"
                 >
                   ביטול
@@ -425,10 +481,12 @@ function CategoryCard({
             ) : (
               <button
                 onClick={() => onAddingTo(category.key)}
-                className="text-xs flex items-center gap-1 hover:opacity-70"
+                className="flex items-center gap-1 text-xs hover:opacity-70"
                 style={{ color: "var(--verdant-emerald)" }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add_circle</span>
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                  add_circle
+                </span>
                 הוסף פריט
               </button>
             )}
@@ -444,7 +502,10 @@ function CategoryCard({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="text-[10px] font-bold block mb-0.5" style={{ color: "var(--verdant-muted)" }}>
+      <label
+        className="mb-0.5 block text-[10px] font-bold"
+        style={{ color: "var(--verdant-muted)" }}
+      >
         {label}
       </label>
       {children}

@@ -24,11 +24,11 @@ import type { Bucket, BucketStatus } from "./buckets-core";
 /* ═══════════════════════════════════════════════════════════ */
 
 export type RecommendationType =
-  | "free_up"       // Goal is ahead — client can reduce monthly contribution
-  | "increase"      // Goal is behind — client needs to add more
-  | "extend_date"   // Goal is unreachable without extending timeline
-  | "on_track"      // No action needed
-  | "reach_now";    // Already reached — can stop contributing
+  | "free_up" // Goal is ahead — client can reduce monthly contribution
+  | "increase" // Goal is behind — client needs to add more
+  | "extend_date" // Goal is unreachable without extending timeline
+  | "on_track" // No action needed
+  | "reach_now"; // Already reached — can stop contributing
 
 export interface BucketRecommendation {
   type: RecommendationType;
@@ -204,8 +204,9 @@ function buildRecommendation(
       type: "reach_now",
       amount: currentMonthly,
       title: "🎉 הגעת ליעד",
-      message: `הקופה "${bucket.name}" הגיעה ליעד ${target.toLocaleString("he-IL")}₪. ` +
-               `אפשר לעצור את ההפקדה החודשית של ${currentMonthly.toLocaleString("he-IL")}₪ ולכוון אותה למטרה אחרת.`,
+      message:
+        `הקופה "${bucket.name}" הגיעה ליעד ${target.toLocaleString("he-IL")}₪. ` +
+        `אפשר לעצור את ההפקדה החודשית של ${currentMonthly.toLocaleString("he-IL")}₪ ולכוון אותה למטרה אחרת.`,
       confidence,
     };
   }
@@ -222,9 +223,10 @@ function buildRecommendation(
         type: "free_up",
         amount: roundedExcess,
         title: "✨ שחרור תזרים",
-        message: `הקופה "${bucket.name}" מקדימה את התכנית. ` +
-                 `אפשר להוריד את ההפקדה החודשית מ-${currentMonthly.toLocaleString("he-IL")}₪ ל-${newMonthly.toLocaleString("he-IL")}₪ ` +
-                 `ועדיין להגיע ליעד בזמן. זה משחרר ${roundedExcess.toLocaleString("he-IL")}₪ בחודש לתזרים הפנוי שלך.`,
+        message:
+          `הקופה "${bucket.name}" מקדימה את התכנית. ` +
+          `אפשר להוריד את ההפקדה החודשית מ-${currentMonthly.toLocaleString("he-IL")}₪ ל-${newMonthly.toLocaleString("he-IL")}₪ ` +
+          `ועדיין להגיע ליעד בזמן. זה משחרר ${roundedExcess.toLocaleString("he-IL")}₪ בחודש לתזרים הפנוי שלך.`,
         confidence,
       };
     }
@@ -242,9 +244,10 @@ function buildRecommendation(
         type: "increase",
         amount: roundedShortfall,
         title: "⚠️ חסר בתקציב",
-        message: `הקופה "${bucket.name}" בפיגור. ` +
-                 `כדי להגיע ליעד בזמן צריך להעלות את ההפקדה החודשית מ-${currentMonthly.toLocaleString("he-IL")}₪ ל-${newMonthly.toLocaleString("he-IL")}₪ ` +
-                 `(תוספת של ${roundedShortfall.toLocaleString("he-IL")}₪ לחודש).`,
+        message:
+          `הקופה "${bucket.name}" בפיגור. ` +
+          `כדי להגיע ליעד בזמן צריך להעלות את ההפקדה החודשית מ-${currentMonthly.toLocaleString("he-IL")}₪ ל-${newMonthly.toLocaleString("he-IL")}₪ ` +
+          `(תוספת של ${roundedShortfall.toLocaleString("he-IL")}₪ לחודש).`,
         confidence,
       };
     }
@@ -260,9 +263,10 @@ function buildRecommendation(
         type: "extend_date",
         suggestedDate: newTargetDate.toISOString().split("T")[0],
         title: "📅 דחיית יעד",
-        message: `בקצב הנוכחי הקופה "${bucket.name}" לא תגיע ליעד בזמן. ` +
-                 `בהפקדה של ${currentMonthly.toLocaleString("he-IL")}₪ לחודש, המטרה תושג בעוד ${monthsNeeded} חודשים ` +
-                 `(דחייה של ${delta} חודשים). אפשר להוסיף לתזרים או לדחות את היעד.`,
+        message:
+          `בקצב הנוכחי הקופה "${bucket.name}" לא תגיע ליעד בזמן. ` +
+          `בהפקדה של ${currentMonthly.toLocaleString("he-IL")}₪ לחודש, המטרה תושג בעוד ${monthsNeeded} חודשים ` +
+          `(דחייה של ${delta} חודשים). אפשר להוסיף לתזרים או לדחות את היעד.`,
         confidence,
       };
     }
@@ -272,8 +276,9 @@ function buildRecommendation(
       type: "increase",
       amount: roundedShortfall,
       title: "⚠️ יעד בסיכון",
-      message: `הקופה "${bucket.name}" בסיכון גבוה. צריך להגדיל את ההפקדה ב-${roundedShortfall.toLocaleString("he-IL")}₪ לחודש ` +
-               `או לבחון מחדש את היעד יחד עם המתכנן הפיננסי שלך.`,
+      message:
+        `הקופה "${bucket.name}" בסיכון גבוה. צריך להגדיל את ההפקדה ב-${roundedShortfall.toLocaleString("he-IL")}₪ לחודש ` +
+        `או לבחון מחדש את היעד יחד עם המתכנן הפיננסי שלך.`,
       confidence: "low",
     };
   }
@@ -315,12 +320,7 @@ export function projectBucket(bucket: Bucket): BucketProjection {
   );
 
   // What monthly payment would be needed to hit target exactly
-  const reqMonthly = requiredPmt(
-    bucket.currentAmount,
-    bucket.targetAmount,
-    effectiveRate,
-    months
-  );
+  const reqMonthly = requiredPmt(bucket.currentAmount, bucket.targetAmount, effectiveRate, months);
 
   // When will the plan ACTUALLY reach target (with current PMT + rate)?
   const monthsToTarget = monthsToReach(
@@ -340,9 +340,10 @@ export function projectBucket(bucket: Bucket): BucketProjection {
   const monthsVsTarget = months - monthsToTarget;
 
   // Progress percentage
-  const progressPct = bucket.targetAmount > 0
-    ? Math.min(100, Math.round((bucket.currentAmount / bucket.targetAmount) * 100))
-    : 0;
+  const progressPct =
+    bucket.targetAmount > 0
+      ? Math.min(100, Math.round((bucket.currentAmount / bucket.targetAmount) * 100))
+      : 0;
 
   // Gap (positive = shortfall)
   const gap = bucket.targetAmount - projectedFinal;
@@ -388,7 +389,7 @@ export function projectAll(buckets: Bucket[]): BucketProjection[] {
  */
 export function totalFreeUpPotential(buckets: Bucket[]): number {
   return projectAll(buckets)
-    .filter(p => p.recommendation.type === "free_up" && p.recommendation.amount)
+    .filter((p) => p.recommendation.type === "free_up" && p.recommendation.amount)
     .reduce((sum, p) => sum + (p.recommendation.amount || 0), 0);
 }
 
@@ -397,7 +398,7 @@ export function totalFreeUpPotential(buckets: Bucket[]): number {
  */
 export function totalDeficitContribution(buckets: Bucket[]): number {
   return projectAll(buckets)
-    .filter(p => p.recommendation.type === "increase" && p.recommendation.amount)
+    .filter((p) => p.recommendation.type === "increase" && p.recommendation.amount)
     .reduce((sum, p) => sum + (p.recommendation.amount || 0), 0);
 }
 
@@ -410,9 +411,7 @@ export function deriveActualReturn(bucket: Bucket): number | null {
   const snaps = bucket.balanceSnapshots;
   if (!snaps || snaps.length < 2) return null;
 
-  const sorted = [...snaps].sort((a, b) =>
-    new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
+  const sorted = [...snaps].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   const first = sorted[0];
   const last = sorted[sorted.length - 1];
 
@@ -422,7 +421,7 @@ export function deriveActualReturn(bucket: Bucket): number | null {
 
   // Total contributions between first and last snapshot
   const contribs = bucket.contributionHistory
-    .filter(c => {
+    .filter((c) => {
       const d = new Date(c.confirmedAt).getTime();
       return d >= new Date(first.date).getTime() && d <= new Date(last.date).getTime();
     })

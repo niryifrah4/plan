@@ -27,7 +27,7 @@ export async function loadAllInstruments(householdId?: string): Promise<Financia
           .eq("household_id", householdId);
 
         if (!error && data && data.length > 0) {
-          return data.map(row => ({
+          return data.map((row) => ({
             type: row.type as FinancialInstrument["type"],
             institution: row.institution,
             identifier: row.identifier,
@@ -50,7 +50,7 @@ export async function loadAllInstruments(householdId?: string): Promise<Financia
 export async function saveInstruments(
   instruments: FinancialInstrument[],
   householdId?: string,
-  sourceFile?: string,
+  sourceFile?: string
 ): Promise<FinancialInstrument[]> {
   // Always save to localStorage
   const merged = mergeLocalStorage(instruments);
@@ -60,7 +60,7 @@ export async function saveInstruments(
     try {
       const sb = getSupabaseBrowser();
       if (sb) {
-        const rows = instruments.map(inst => ({
+        const rows = instruments.map((inst) => ({
           household_id: householdId,
           type: inst.type,
           institution: inst.institution,
@@ -69,12 +69,10 @@ export async function saveInstruments(
           source_file: sourceFile || null,
         }));
 
-        await sb
-          .from("client_instruments")
-          .upsert(rows, {
-            onConflict: "household_id,type,institution,identifier",
-            ignoreDuplicates: true,
-          });
+        await sb.from("client_instruments").upsert(rows, {
+          onConflict: "household_id,type,institution,identifier",
+          ignoreDuplicates: true,
+        });
       }
     } catch {
       // localStorage already saved as fallback

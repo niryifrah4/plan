@@ -21,10 +21,10 @@ interface Props {
 
 /* ── Color scheme ── */
 const C = {
-  incPlan: "#a7f3d0",   // green light — income plan
-  incActual: "#012d1d",  // emerald dark — income actual
-  expPlan: "#fecaca",    // red light — expense plan
-  expActual: "#dc2626",  // red strong — expense actual
+  incPlan: "#a7f3d0", // green light — income plan
+  incActual: "#012d1d", // emerald dark — income actual
+  expPlan: "#fecaca", // red light — expense plan
+  expActual: "#dc2626", // red strong — expense actual
 };
 
 /* ── Custom bar shapes — income=green, expense=red per group ── */
@@ -64,8 +64,15 @@ function IncomeLabel(props: any) {
   if (!value || value <= 0) return <text />;
   const color = index === 0 ? "#065f46" : "#012d1d";
   return (
-    <text x={x + width / 2} y={y - 18} textAnchor="middle"
-      fontSize={11} fontWeight={700} fontFamily="Assistant" fill={color}>
+    <text
+      x={x + width / 2}
+      y={y - 18}
+      textAnchor="middle"
+      fontSize={11}
+      fontWeight={700}
+      fontFamily="Assistant"
+      fill={color}
+    >
       {fmtILS(value)}
     </text>
   );
@@ -76,8 +83,15 @@ function ExpenseLabel(props: any) {
   if (!value || value <= 0) return <text />;
   const color = index === 0 ? "#b91c1c" : "#dc2626";
   return (
-    <text x={x + width / 2} y={y - 6} textAnchor="middle"
-      fontSize={11} fontWeight={700} fontFamily="Assistant" fill={color}>
+    <text
+      x={x + width / 2}
+      y={y - 6}
+      textAnchor="middle"
+      fontSize={11}
+      fontWeight={700}
+      fontFamily="Assistant"
+      fill={color}
+    >
       {fmtILS(value)}
     </text>
   );
@@ -87,12 +101,12 @@ export default function BudgetChart({ incBudget, incActual, expBudget, expActual
   /* Two groups: תכנון (plan/simulation) on right, ביצוע (actual) on left */
   const data = [
     { name: "תכנון / הדמיה", income: incBudget, expense: expBudget },
-    { name: "ביצוע בפועל",   income: incActual, expense: expActual },
+    { name: "ביצוע בפועל", income: incActual, expense: expActual },
   ];
 
   return (
     <section
-      className="rounded-2xl p-5 md:p-7 mb-4"
+      className="mb-4 rounded-2xl p-5 md:p-7"
       style={{
         background: "#f9faf2",
         border: "1px solid #e2e8d8",
@@ -100,13 +114,18 @@ export default function BudgetChart({ incBudget, incActual, expBudget, expActual
       }}
     >
       <div className="mb-4">
-        <div className="text-base font-extrabold" style={{ color: "#012d1d" }}>תמונת מצב חודשית</div>
-        <div className="text-[11px] font-semibold mt-0.5" style={{ color: "#5a7a6a" }}>
+        <div className="text-base font-extrabold" style={{ color: "#012d1d" }}>
+          תמונת מצב חודשית
+        </div>
+        <div className="mt-0.5 text-[11px] font-semibold" style={{ color: "#5a7a6a" }}>
           הדמיית תכנון לעומת ביצוע — ירוק = הכנסות, אדום = הוצאות
         </div>
       </div>
 
-      <div className="bg-white rounded-xl p-3" style={{ width: "100%", height: 300, direction: "ltr" }}>
+      <div
+        className="rounded-xl bg-white p-3"
+        style={{ width: "100%", height: 300, direction: "ltr" }}
+      >
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data}
@@ -124,10 +143,13 @@ export default function BudgetChart({ incBudget, incActual, expBudget, expActual
               tick={{ fontSize: 11, fontWeight: 700, fontFamily: "Assistant", fill: "#5a7a6a" }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(v: number) => v >= 1000 ? `₪${Math.round(v / 1000)}K` : `₪${v}`}
+              tickFormatter={(v: number) => (v >= 1000 ? `₪${Math.round(v / 1000)}K` : `₪${v}`)}
               width={55}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(1,45,29,0.04)", radius: 8 }} />
+            <Tooltip
+              content={<CustomTooltip />}
+              cursor={{ fill: "rgba(1,45,29,0.04)", radius: 8 }}
+            />
             <Legend content={<CustomLegend />} />
 
             {/* Income bars — green per group */}
@@ -163,34 +185,46 @@ function CustomTooltip({ active, payload, label }: any) {
       className="rounded-xl px-4 py-3 shadow-lg"
       style={{ background: "#fff", border: "1px solid #e2e8d8", direction: "rtl", minWidth: 200 }}
     >
-      <div className="text-[13px] font-extrabold mb-2" style={{ color: "#012d1d" }}>{label}</div>
+      <div className="mb-2 text-[13px] font-extrabold" style={{ color: "#012d1d" }}>
+        {label}
+      </div>
 
       {/* Income row */}
-      <div className="flex items-center justify-between gap-4 mb-1">
+      <div className="mb-1 flex items-center justify-between gap-4">
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-sm" style={{ background: incColor }} />
-          <span className="text-[11px] font-semibold" style={{ color: "#5a7a6a" }}>הכנסות</span>
+          <div className="h-2.5 w-2.5 rounded-sm" style={{ background: incColor }} />
+          <span className="text-[11px] font-semibold" style={{ color: "#5a7a6a" }}>
+            הכנסות
+          </span>
         </div>
-        <span className="text-[13px] font-bold tabular-nums" style={{ color: "#012d1d", fontFamily: "Assistant" }}>
+        <span
+          className="text-[13px] font-bold tabular-nums"
+          style={{ color: "#012d1d", fontFamily: "Assistant" }}
+        >
           {fmtILS(income)}
         </span>
       </div>
 
       {/* Expense row */}
-      <div className="flex items-center justify-between gap-4 mb-2">
+      <div className="mb-2 flex items-center justify-between gap-4">
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-sm" style={{ background: expColor }} />
-          <span className="text-[11px] font-semibold" style={{ color: "#5a7a6a" }}>הוצאות</span>
+          <div className="h-2.5 w-2.5 rounded-sm" style={{ background: expColor }} />
+          <span className="text-[11px] font-semibold" style={{ color: "#5a7a6a" }}>
+            הוצאות
+          </span>
         </div>
-        <span className="text-[13px] font-bold tabular-nums" style={{ color: "#dc2626", fontFamily: "Assistant" }}>
+        <span
+          className="text-[13px] font-bold tabular-nums"
+          style={{ color: "#dc2626", fontFamily: "Assistant" }}
+        >
           {fmtILS(expense)}
         </span>
       </div>
 
       {/* Balance badge */}
-      <div className="border-t pt-2 mt-1" style={{ borderColor: "#eef2e8" }}>
+      <div className="mt-1 border-t pt-2" style={{ borderColor: "#eef2e8" }}>
         <div
-          className="text-[12px] font-bold text-center rounded-md px-2 py-1.5"
+          className="rounded-md px-2 py-1.5 text-center text-[12px] font-bold"
           style={{
             background: isPositive ? "#d1fae5" : "#fee2e2",
             color: isPositive ? "#065f46" : "#991b1b",
@@ -201,9 +235,7 @@ function CustomTooltip({ active, payload, label }: any) {
             {fmtILS(Math.abs(balance))}
           </span>
           {income > 0 && (
-            <span className="text-[10px] mr-1">
-              ({((balance / income) * 100).toFixed(1)}%)
-            </span>
+            <span className="mr-1 text-[10px]">({((balance / income) * 100).toFixed(1)}%)</span>
           )}
         </div>
       </div>
@@ -214,22 +246,30 @@ function CustomTooltip({ active, payload, label }: any) {
 /* ── Custom Legend ── */
 function CustomLegend() {
   return (
-    <div className="flex items-center justify-center gap-5 mt-2" style={{ direction: "rtl" }}>
+    <div className="mt-2 flex items-center justify-center gap-5" style={{ direction: "rtl" }}>
       <div className="flex items-center gap-1.5">
-        <div className="w-3 h-3 rounded-sm" style={{ background: C.incPlan }} />
-        <span className="text-[11px] font-bold" style={{ color: "#5a7a6a" }}>הכנסות תכנון</span>
+        <div className="h-3 w-3 rounded-sm" style={{ background: C.incPlan }} />
+        <span className="text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
+          הכנסות תכנון
+        </span>
       </div>
       <div className="flex items-center gap-1.5">
-        <div className="w-3 h-3 rounded-sm" style={{ background: C.expPlan }} />
-        <span className="text-[11px] font-bold" style={{ color: "#5a7a6a" }}>הוצאות תכנון</span>
+        <div className="h-3 w-3 rounded-sm" style={{ background: C.expPlan }} />
+        <span className="text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
+          הוצאות תכנון
+        </span>
       </div>
       <div className="flex items-center gap-1.5">
-        <div className="w-3 h-3 rounded-sm" style={{ background: C.incActual }} />
-        <span className="text-[11px] font-bold" style={{ color: "#5a7a6a" }}>הכנסות ביצוע</span>
+        <div className="h-3 w-3 rounded-sm" style={{ background: C.incActual }} />
+        <span className="text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
+          הכנסות ביצוע
+        </span>
       </div>
       <div className="flex items-center gap-1.5">
-        <div className="w-3 h-3 rounded-sm" style={{ background: C.expActual }} />
-        <span className="text-[11px] font-bold" style={{ color: "#5a7a6a" }}>הוצאות ביצוע</span>
+        <div className="h-3 w-3 rounded-sm" style={{ background: C.expActual }} />
+        <span className="text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
+          הוצאות ביצוע
+        </span>
       </div>
     </div>
   );

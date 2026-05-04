@@ -5,7 +5,13 @@
 
 export { parseExcel } from "./parse-excel";
 export { parsePDF } from "./parse-pdf";
-export { categorize, CATEGORIES, getCategoryByKey, learnOverride, getOverrides } from "./categorizer";
+export {
+  categorize,
+  CATEGORIES,
+  getCategoryByKey,
+  learnOverride,
+  getOverrides,
+} from "./categorizer";
 export type { Category, CategoryOverride } from "./categorizer";
 export { matchSynonym, detectBank } from "./synonyms";
 export { parseILNumber, parseILDate, cleanAmount } from "./number-utils";
@@ -13,13 +19,31 @@ export { detectRecurring, tagRecurring } from "./recurring";
 export type { RecurringGroup } from "./recurring";
 export { analyzeBurnRate } from "./burn-rate";
 export type { BurnRateAnalysis, BurnRateAlert, MonthlyBreakdown } from "./burn-rate";
-export { normalizeSupplier, isInternalTransfer, filterInternalTransfers, getTier, groupByTier, TIER_INFO } from "./normalizer";
+export {
+  normalizeSupplier,
+  isInternalTransfer,
+  filterInternalTransfers,
+  getTier,
+  groupByTier,
+  TIER_INFO,
+} from "./normalizer";
 export type { ExpenseTier, TierInfo } from "./normalizer";
 export { deduplicateTransactions } from "./dedup";
-export { assignSubCategory, learnSubRule, loadSubRules, SUB_CATEGORIES, SUB_CATEGORIES_BY_BUCKET } from "./sub-categories";
+export {
+  assignSubCategory,
+  learnSubRule,
+  loadSubRules,
+  SUB_CATEGORIES,
+  SUB_CATEGORIES_BY_BUCKET,
+} from "./sub-categories";
 export type { SubCategory, SubCategoryRule } from "./sub-categories";
 export type { ParsedDocument, ParsedTransaction, ColumnMapping } from "./types";
-export { extractInstruments, loadInstruments, mergeAndSaveInstruments, getInstrumentSummary } from "./instruments";
+export {
+  extractInstruments,
+  loadInstruments,
+  mergeAndSaveInstruments,
+  getInstrumentSummary,
+} from "./instruments";
 export type { FinancialInstrument, InstrumentType, StoredInstruments } from "./instruments";
 
 import { parseExcel } from "./parse-excel";

@@ -28,25 +28,25 @@ import type { PensionFund } from "./pension-store";
 /* ── Parsed intermediate type ── */
 
 export interface ParsedMislakaProduct {
-  company: string;           // SHEM-YATZRAN
-  productType: number;       // SUG-MUTZAR
-  employer?: string;         // SHEM-MAASIK (active employer)
-  balance: number;           // TOTAL-CHISACHON-MITZTABER-TZAFUY or sum of tracks
+  company: string; // SHEM-YATZRAN
+  productType: number; // SUG-MUTZAR
+  employer?: string; // SHEM-MAASIK (active employer)
+  balance: number; // TOTAL-CHISACHON-MITZTABER-TZAFUY or sum of tracks
   tracks: {
-    name: string;            // SHEM-MASLUL-HASHKAA
-    balance: number;         // TOTAL-CHISACHON-MTZBR
-    returnPct?: number;      // TSUA-NETO
+    name: string; // SHEM-MASLUL-HASHKAA
+    balance: number; // TOTAL-CHISACHON-MTZBR
+    returnPct?: number; // TSUA-NETO
   }[];
-  mgmtFeeDeposit: number;   // MEMOTZA-SHEUR-DMEI-NIHUL-HAFKADA
-  mgmtFeeBalance: number;   // SHEUR-DMEI-NIHUL-TZVIRA (avg)
-  monthlyContrib: number;    // Derived from annual contributions / 12
+  mgmtFeeDeposit: number; // MEMOTZA-SHEUR-DMEI-NIHUL-HAFKADA
+  mgmtFeeBalance: number; // SHEUR-DMEI-NIHUL-TZVIRA (avg)
+  monthlyContrib: number; // Derived from annual contributions / 12
   insuranceCover?: {
     death: boolean;
     disability: boolean;
     lossOfWork: boolean;
   };
-  returnPct?: number;        // SHEUR-TSUA-NETO
-  openingDate?: string;      // TAARICH-HATZTRFUT or TAARICH-PTICHA (YYYY-MM-DD)
+  returnPct?: number; // SHEUR-TSUA-NETO
+  openingDate?: string; // TAARICH-HATZTRFUT or TAARICH-PTICHA (YYYY-MM-DD)
 }
 
 export interface ParsedMislakaBundle {
@@ -63,7 +63,11 @@ function txt(el: Element, tag: string): string {
   if (!child) return "";
   const val = child.textContent?.trim() ?? "";
   // Check for xsi:nil="true"
-  if (child.getAttribute("xsi:nil") === "true" || child.getAttributeNS("http://www.w3.org/2001/XMLSchema-instance", "nil") === "true") return "";
+  if (
+    child.getAttribute("xsi:nil") === "true" ||
+    child.getAttributeNS("http://www.w3.org/2001/XMLSchema-instance", "nil") === "true"
+  )
+    return "";
   return val;
 }
 
@@ -74,43 +78,67 @@ function num(el: Element, tag: string): number {
 
 function mapProductType(sugMutzar: number): PensionFund["type"] {
   switch (sugMutzar) {
-    case 1: return "pension";   // ותיקה
-    case 2: return "pension";   // חדשה
-    case 3: return "bituach";   // ביטוח מנהלים
-    case 4: return "gemel";     // קופת גמל
-    case 5: return "hishtalmut";
-    case 6: return "bituach";   // ביטוח חיים
-    case 7: return "bituach";   // ביטוח מנהלים חדש
-    default: return "gemel";
+    case 1:
+      return "pension"; // ותיקה
+    case 2:
+      return "pension"; // חדשה
+    case 3:
+      return "bituach"; // ביטוח מנהלים
+    case 4:
+      return "gemel"; // קופת גמל
+    case 5:
+      return "hishtalmut";
+    case 6:
+      return "bituach"; // ביטוח חיים
+    case 7:
+      return "bituach"; // ביטוח מנהלים חדש
+    default:
+      return "gemel";
   }
 }
 
 function mapSubtype(sugMutzar: number): PensionFund["subtype"] {
   switch (sugMutzar) {
-    case 1: return "pension_vatika";
-    case 2: return "pension_hadasha";
-    case 3: return "bituach_classic";
-    case 7: return "bituach_2004";
-    default: return undefined;
+    case 1:
+      return "pension_vatika";
+    case 2:
+      return "pension_hadasha";
+    case 3:
+      return "bituach_classic";
+    case 7:
+      return "bituach_2004";
+    default:
+      return undefined;
   }
 }
 
 function productLabel(sugMutzar: number): string {
   switch (sugMutzar) {
-    case 1: return "קרן פנסיה ותיקה";
-    case 2: return "קרן פנסיה";
-    case 3: return "ביטוח מנהלים";
-    case 4: return "קופת גמל";
-    case 5: return "קרן השתלמות";
-    case 6: return "ביטוח חיים";
-    case 7: return "ביטוח מנהלים";
-    default: return "מוצר פנסיוני";
+    case 1:
+      return "קרן פנסיה ותיקה";
+    case 2:
+      return "קרן פנסיה";
+    case 3:
+      return "ביטוח מנהלים";
+    case 4:
+      return "קופת גמל";
+    case 5:
+      return "קרן השתלמות";
+    case 6:
+      return "ביטוח חיים";
+    case 7:
+      return "ביטוח מנהלים";
+    default:
+      return "מוצר פנסיוני";
   }
 }
 
 /* ── Main parser ── */
 
-export function parseMislakaXml(xmlStr: string, fileName: string): { products: ParsedMislakaProduct[]; ownerName?: string; warnings: string[] } {
+export function parseMislakaXml(
+  xmlStr: string,
+  fileName: string
+): { products: ParsedMislakaProduct[]; ownerName?: string; warnings: string[] } {
   const warnings: string[] = [];
   const products: ParsedMislakaProduct[] = [];
   let ownerName: string | undefined;
@@ -156,7 +184,10 @@ export function parseMislakaXml(xmlStr: string, fileName: string): { products: P
 
   // Owner name — try YeshutLakoach first (most reliable), then PirteiOved/PirteiMevutach
   const lakoach = doc.getElementsByTagName("YeshutLakoach")[0];
-  const oved = lakoach || doc.getElementsByTagName("PirteiOved")[0] || doc.getElementsByTagName("PirteiMevutach")[0];
+  const oved =
+    lakoach ||
+    doc.getElementsByTagName("PirteiOved")[0] ||
+    doc.getElementsByTagName("PirteiMevutach")[0];
   if (oved) {
     const firstName = txt(oved, "SHEM-PRATI");
     const lastName = txt(oved, "SHEM-MISHPACHA");
@@ -202,7 +233,9 @@ export function parseMislakaXml(xmlStr: string, fileName: string): { products: P
     if (projectedBalance < 100000) {
       overallBalance = projectedBalance;
     } else {
-      warnings.push(`${fileName}: ${company} — צבירה צפויה ${Math.round(projectedBalance).toLocaleString()}₪ (ייתכן שזה צפי לפרישה, לא יתרה נוכחית)`);
+      warnings.push(
+        `${fileName}: ${company} — צבירה צפויה ${Math.round(projectedBalance).toLocaleString()}₪ (ייתכן שזה צפי לפרישה, לא יתרה נוכחית)`
+      );
     }
   }
 
@@ -218,7 +251,8 @@ export function parseMislakaXml(xmlStr: string, fileName: string): { products: P
     if (tzvira > mgmtFeeBalance) mgmtFeeBalance = tzvira;
   }
   // Fallback: look at direct children
-  if (mgmtFeeDeposit === 0) mgmtFeeDeposit = num(doc.documentElement, "MEMOTZA-SHEUR-DMEI-NIHUL-HAFKADA");
+  if (mgmtFeeDeposit === 0)
+    mgmtFeeDeposit = num(doc.documentElement, "MEMOTZA-SHEUR-DMEI-NIHUL-HAFKADA");
   if (mgmtFeeBalance === 0) mgmtFeeBalance = num(doc.documentElement, "SHEUR-DMEI-NIHUL-TZVIRA");
 
   // Monthly contributions — sum annual then /12
@@ -269,8 +303,11 @@ export function parseMislakaXml(xmlStr: string, fileName: string): { products: P
   // Opening date — try multiple possible tags
   let openingDate: string | undefined;
   const dateTagCandidates = [
-    "TAARICH-HATZTRFUT", "TAARICH-PTICHA", "TAARICH-TCHILAT-BITUACH",
-    "TAARICH-TCHILAT-POLISA", "TAARICH-HAFKADA-RISHONA",
+    "TAARICH-HATZTRFUT",
+    "TAARICH-PTICHA",
+    "TAARICH-TCHILAT-BITUACH",
+    "TAARICH-TCHILAT-POLISA",
+    "TAARICH-HAFKADA-RISHONA",
   ];
   for (const tag of dateTagCandidates) {
     const dateStr = txt(doc.documentElement, tag);
@@ -328,15 +365,16 @@ export function mislakaProductsToFunds(products: ParsedMislakaProduct[]): Pensio
   return products.map((p) => {
     const type = mapProductType(p.productType);
     const subtype = mapSubtype(p.productType);
-    const trackName = p.tracks.length > 0
-      ? p.tracks.map(t => t.name).join(", ")
-      : productLabel(p.productType);
+    const trackName =
+      p.tracks.length > 0 ? p.tracks.map((t) => t.name).join(", ") : productLabel(p.productType);
 
     // 2026-04-28: try to auto-link to fund-registry so the new risk + geo
     // pies on /pension light up immediately. Mislaka XML gives only free-
     // text track names, so we fuzzy-match against the registry.
     let registeredFundId: string | undefined;
-    let matchedTracks: Array<{ name: string; balance: number; registeredFundId?: string; returnPct?: number }> | undefined;
+    let matchedTracks:
+      | Array<{ name: string; balance: number; registeredFundId?: string; returnPct?: number }>
+      | undefined;
     try {
       // Inline import avoids circular-dep risk at module load time.
       // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -345,7 +383,7 @@ export function mislakaProductsToFunds(products: ParsedMislakaProduct[]): Pensio
       // Match each track individually so multi-track funds (e.g. 60% מנייתי
       // + 40% אג"ח) get the correct weighted allocation.
       if (p.tracks.length > 0) {
-        matchedTracks = p.tracks.map(t => {
+        matchedTracks = p.tracks.map((t) => {
           const m = matchFundByTrack(t.name, p.company, type);
           return {
             name: t.name,
@@ -355,9 +393,7 @@ export function mislakaProductsToFunds(products: ParsedMislakaProduct[]): Pensio
           };
         });
         // Top-level registeredFundId reflects the LARGEST track (back-compat).
-        const dominant = matchedTracks
-          .slice()
-          .sort((a, b) => b.balance - a.balance)[0];
+        const dominant = matchedTracks.slice().sort((a, b) => b.balance - a.balance)[0];
         if (dominant?.registeredFundId) registeredFundId = dominant.registeredFundId;
       } else {
         const m = matchFundByTrack(trackName, p.company, type);
@@ -402,7 +438,9 @@ export async function parseMislakaFiles(files: File[]): Promise<ParsedMislakaBun
       allProducts.push(...result.products);
       allWarnings.push(...result.warnings);
       if (result.ownerName && !ownerName) ownerName = result.ownerName;
-      console.log(`[pension-xml] ${file.name}: ${result.products.length} products, ${result.warnings.length} warnings`);
+      console.log(
+        `[pension-xml] ${file.name}: ${result.products.length} products, ${result.warnings.length} warnings`
+      );
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e);
       allWarnings.push(`שגיאה בקריאת ${file.name}: ${errMsg}`);

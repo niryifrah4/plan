@@ -31,7 +31,10 @@ export function fireSync(event: SyncEvent, detail?: Record<string, unknown>) {
 }
 
 /** Subscribe to a sync event. Returns unsubscribe function. */
-export function onSync(event: SyncEvent, handler: (detail?: Record<string, unknown>) => void): () => void {
+export function onSync(
+  event: SyncEvent,
+  handler: (detail?: Record<string, unknown>) => void
+): () => void {
   const listener = (e: Event) => handler((e as CustomEvent).detail);
   window.addEventListener(event, listener);
   return () => window.removeEventListener(event, listener);
@@ -53,11 +56,26 @@ export function triggerFullSync() {
   fireSync("verdant:docs:updated");
   markUpdated("docs");
   // Slight delays to allow each stage to process
-  setTimeout(() => { fireSync("verdant:cashflow:updated"); markUpdated("cashflow"); }, 50);
-  setTimeout(() => { fireSync("verdant:budgets:updated"); markUpdated("budget"); }, 100);
-  setTimeout(() => { fireSync("verdant:goals:updated"); markUpdated("goals"); }, 150);
-  setTimeout(() => { fireSync("verdant:investments:updated"); markUpdated("investments"); }, 200);
-  setTimeout(() => { fireSync("verdant:networth:updated"); markUpdated("networth"); }, 250);
+  setTimeout(() => {
+    fireSync("verdant:cashflow:updated");
+    markUpdated("cashflow");
+  }, 50);
+  setTimeout(() => {
+    fireSync("verdant:budgets:updated");
+    markUpdated("budget");
+  }, 100);
+  setTimeout(() => {
+    fireSync("verdant:goals:updated");
+    markUpdated("goals");
+  }, 150);
+  setTimeout(() => {
+    fireSync("verdant:investments:updated");
+    markUpdated("investments");
+  }, 200);
+  setTimeout(() => {
+    fireSync("verdant:networth:updated");
+    markUpdated("networth");
+  }, 250);
 }
 
 /**
@@ -67,7 +85,10 @@ export function triggerFullSync() {
 export function triggerInvestmentSync() {
   fireSync("verdant:investments:updated");
   markUpdated("investments");
-  setTimeout(() => { fireSync("verdant:networth:updated"); markUpdated("networth"); }, 50);
+  setTimeout(() => {
+    fireSync("verdant:networth:updated");
+    markUpdated("networth");
+  }, 50);
 }
 
 /**
@@ -86,5 +107,7 @@ export function lastUpdated(domain: string): number {
   try {
     const raw = localStorage.getItem(TIMESTAMP_PREFIX + domain);
     return raw ? Number(raw) : 0;
-  } catch { return 0; }
+  } catch {
+    return 0;
+  }
 }

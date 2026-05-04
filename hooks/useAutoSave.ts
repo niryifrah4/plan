@@ -35,9 +35,7 @@ export function useAutoSave({ table, idField = "id", debounceMs = 1500 }: AutoSa
       if (supabase) {
         setStatus("saving");
         try {
-          const { error } = await supabase
-            .from(table)
-            .upsert(data, { onConflict: idField });
+          const { error } = await supabase.from(table).upsert(data, { onConflict: idField });
           if (error) throw error;
           setStatus("saved");
         } catch (e) {
@@ -64,7 +62,7 @@ export function useAutoSave({ table, idField = "id", debounceMs = 1500 }: AutoSa
       // Reset to idle after 2s
       setTimeout(() => setStatus("idle"), 2000);
     },
-    [table, idField],
+    [table, idField]
   );
 
   const triggerSave = useCallback(
@@ -75,7 +73,7 @@ export function useAutoSave({ table, idField = "id", debounceMs = 1500 }: AutoSa
         if (latestData.current) save(latestData.current);
       }, debounceMs);
     },
-    [save, debounceMs],
+    [save, debounceMs]
   );
 
   // Cleanup

@@ -24,11 +24,12 @@ export function irr(cashflows: number[], guess = 0.1, maxIter = 100): number {
   // Newton-Raphson
   let r = guess;
   for (let i = 0; i < maxIter; i++) {
-    let f = 0, df = 0;
+    let f = 0,
+      df = 0;
     for (let t = 0; t < cashflows.length; t++) {
       const d = Math.pow(1 + r, t);
-      f  += cashflows[t] / d;
-      df += -t * cashflows[t] / (d * (1 + r));
+      f += cashflows[t] / d;
+      df += (-t * cashflows[t]) / (d * (1 + r));
     }
     if (Math.abs(df) < 1e-12) break;
     const rNext = r - f / df;
@@ -38,21 +39,33 @@ export function irr(cashflows: number[], guess = 0.1, maxIter = 100): number {
   }
 
   // Bisection fallback on [-0.99, 10]
-  let lo = -0.99, hi = 10;
-  let fLo = npv(lo, cashflows), fHi = npv(hi, cashflows);
+  let lo = -0.99,
+    hi = 10;
+  let fLo = npv(lo, cashflows),
+    fHi = npv(hi, cashflows);
   if (fLo * fHi > 0) return NaN;
   for (let i = 0; i < 200; i++) {
     const mid = (lo + hi) / 2;
     const fMid = npv(mid, cashflows);
     if (Math.abs(fMid) < 1e-7) return mid;
-    if (fLo * fMid < 0) { hi = mid; fHi = fMid; }
-    else                { lo = mid; fLo = fMid; }
+    if (fLo * fMid < 0) {
+      hi = mid;
+      fHi = fMid;
+    } else {
+      lo = mid;
+      fLo = fMid;
+    }
   }
   return (lo + hi) / 2;
 }
 
 /** Future-value of lump + monthly contributions at annual rate `r`, over `years`. */
-export function futureValue(lump: number, monthly: number, annualRate: number, years: number): number {
+export function futureValue(
+  lump: number,
+  monthly: number,
+  annualRate: number,
+  years: number
+): number {
   const r = annualRate / 12;
   const n = years * 12;
   const fvLump = lump * Math.pow(1 + r, n);
@@ -94,20 +107,20 @@ export function amortSchedule(principal: number, annualRate: number, months: num
 // ---------- Real-estate investment ----------------------------------------
 
 export interface RealEstateInputs {
-  purchasePrice: number;     // מחיר הנכס
-  downPayment: number;       // הון עצמי
-  closingCosts: number;      // מס רכישה + עו"ד + תיווך
-  mortgageRate: number;      // 0.045 = 4.5%
+  purchasePrice: number; // מחיר הנכס
+  downPayment: number; // הון עצמי
+  closingCosts: number; // מס רכישה + עו"ד + תיווך
+  mortgageRate: number; // 0.045 = 4.5%
   mortgageYears: number;
   monthlyRent: number;
-  vacancyPct: number;        // 0.05 = 5%
-  monthlyExpenses: number;   // ועד, ביטוח, תחזוקה, ניהול
-  annualAppreciation: number;// 0.03 = 3%
-  annualRentGrowth: number;  // 0.02
-  annualExpenseGrowth: number;// 0.02
-  holdYears: number;         // תקופת החזקה
-  exitCostPct: number;       // 0.07 = 7% (עלויות מכירה)
-  taxOnSalePct: number;      // 0.25 = מס שבח (על השבח הריאלי)
+  vacancyPct: number; // 0.05 = 5%
+  monthlyExpenses: number; // ועד, ביטוח, תחזוקה, ניהול
+  annualAppreciation: number; // 0.03 = 3%
+  annualRentGrowth: number; // 0.02
+  annualExpenseGrowth: number; // 0.02
+  holdYears: number; // תקופת החזקה
+  exitCostPct: number; // 0.07 = 7% (עלויות מכירה)
+  taxOnSalePct: number; // 0.25 = מס שבח (על השבח הריאלי)
   /**
    * Optional — if provided, capital-gains tax is applied to the REAL gain
    * (nominal gain minus the inflation component of the basis), per Israeli
@@ -121,19 +134,19 @@ export interface RealEstateOutputs {
   equityInvested: number;
   loanAmount: number;
   monthlyPMT: number;
-  annualNOI: number;         // Net Operating Income (pre-debt)
-  monthlyCashflow: number;   // NOI - PMT
-  capRate: number;           // NOI / purchasePrice
-  cashOnCash: number;        // annual cashflow / equity
-  grossYield: number;        // annual rent / purchasePrice
-  netYield: number;          // NOI / purchasePrice (same as capRate)
+  annualNOI: number; // Net Operating Income (pre-debt)
+  monthlyCashflow: number; // NOI - PMT
+  capRate: number; // NOI / purchasePrice
+  cashOnCash: number; // annual cashflow / equity
+  grossYield: number; // annual rent / purchasePrice
+  netYield: number; // NOI / purchasePrice (same as capRate)
   exitValue: number;
   netProceedsOnExit: number;
   totalCashflowsRecv: number;
   totalProfit: number;
   equityMultiple: number;
-  irr: number;               // annual IRR
-  cashflows: number[];       // yearly cashflow series (yr0 = -equity, yrN includes exit)
+  irr: number; // annual IRR
+  cashflows: number[]; // yearly cashflow series (yr0 = -equity, yrN includes exit)
 }
 
 export function analyzeRealEstate(i: RealEstateInputs): RealEstateOutputs {
@@ -144,15 +157,15 @@ export function analyzeRealEstate(i: RealEstateInputs): RealEstateOutputs {
 
   // Year-1 figures
   const grossRentY1 = i.monthlyRent * 12 * (1 - i.vacancyPct);
-  const expensesY1  = i.monthlyExpenses * 12;
-  const noiY1       = grossRentY1 - expensesY1;
-  const cfY1        = noiY1 - monthlyPMT * 12;
+  const expensesY1 = i.monthlyExpenses * 12;
+  const noiY1 = grossRentY1 - expensesY1;
+  const cfY1 = noiY1 - monthlyPMT * 12;
 
   // Yearly cashflows to investor (equity perspective)
   const cashflows: number[] = [-equity];
   let bal = loan;
   let rent = i.monthlyRent * 12 * (1 - i.vacancyPct);
-  let exp  = i.monthlyExpenses * 12;
+  let exp = i.monthlyExpenses * 12;
   let totalCF = 0;
 
   for (let y = 1; y <= i.holdYears; y++) {
@@ -186,7 +199,7 @@ export function analyzeRealEstate(i: RealEstateInputs): RealEstateOutputs {
       cashflows.push(cf + netProceeds);
     }
     rent *= 1 + i.annualRentGrowth;
-    exp  *= 1 + i.annualExpenseGrowth;
+    exp *= 1 + i.annualExpenseGrowth;
   }
 
   const exitValue = i.purchasePrice * Math.pow(1 + i.annualAppreciation, i.holdYears);
@@ -231,22 +244,19 @@ export function analyzeRealEstate(i: RealEstateInputs): RealEstateOutputs {
 /** Investment / non-primary property — 8% / 10% from first shekel. */
 const PURCHASE_TAX_BRACKETS_INVESTOR = [
   { limit: 6_055_070, rate: 0.08 },
-  { limit: Infinity, rate: 0.10 },
+  { limit: Infinity, rate: 0.1 },
 ];
 
 /** Primary (single) residence — progressive, 0% until ~1.98M. */
 const PURCHASE_TAX_BRACKETS_PRIMARY = [
-  { limit: 1_978_745, rate: 0.00 },
+  { limit: 1_978_745, rate: 0.0 },
   { limit: 2_347_040, rate: 0.035 },
   { limit: 6_055_070, rate: 0.05 },
   { limit: 20_183_565, rate: 0.08 },
-  { limit: Infinity, rate: 0.10 },
+  { limit: Infinity, rate: 0.1 },
 ];
 
-function applyBrackets(
-  price: number,
-  brackets: { limit: number; rate: number }[],
-): number {
+function applyBrackets(price: number, brackets: { limit: number; rate: number }[]): number {
   let tax = 0;
   let prev = 0;
   for (const b of brackets) {
@@ -265,14 +275,9 @@ function applyBrackets(
  *              "investor" for non-primary / additional property (8% → 10%)
  * Defaults to "investor" for backward compatibility with existing callers.
  */
-export function calcPurchaseTax(
-  price: number,
-  kind: "primary" | "investor" = "investor",
-): number {
+export function calcPurchaseTax(price: number, kind: "primary" | "investor" = "investor"): number {
   const brackets =
-    kind === "primary"
-      ? PURCHASE_TAX_BRACKETS_PRIMARY
-      : PURCHASE_TAX_BRACKETS_INVESTOR;
+    kind === "primary" ? PURCHASE_TAX_BRACKETS_PRIMARY : PURCHASE_TAX_BRACKETS_INVESTOR;
   return applyBrackets(price, brackets);
 }
 
@@ -288,20 +293,20 @@ export function calcPurchaseTaxPrimary(price: number): number {
 
 export interface CapitalGainsInputs {
   purchasePrice: number;
-  purchaseCosts?: number;     // עלויות רכישה (עו"ד, תיווך, מס רכישה)
-  improvements?: number;      // השבחות מוכרות
+  purchaseCosts?: number; // עלויות רכישה (עו"ד, תיווך, מס רכישה)
+  improvements?: number; // השבחות מוכרות
   sellingPrice: number;
-  sellingCosts?: number;      // עלויות מכירה (תיווך, עו"ד)
-  cpiAtPurchase: number;      // מדד במועד רכישה
-  cpiAtSale: number;          // מדד במועד מכירה
+  sellingCosts?: number; // עלויות מכירה (תיווך, עו"ד)
+  cpiAtPurchase: number; // מדד במועד רכישה
+  cpiAtSale: number; // מדד במועד מכירה
 }
 
 export interface CapitalGainsOutputs {
   nominalGain: number;
   inflationComponent: number;
   realGain: number;
-  tax: number;                // 25% על השבח הריאלי
-  effectiveRate: number;      // tax / nominalGain
+  tax: number; // 25% על השבח הריאלי
+  effectiveRate: number; // tax / nominalGain
 }
 
 export function calcCapitalGainsTax(i: CapitalGainsInputs): CapitalGainsOutputs {
@@ -395,10 +400,10 @@ export function emergencyFundMonths(liquid: number, monthlyExpenses: number): nu
 export function capitalGainsTax(
   costBasisIls: number,
   marketValueIls: number,
-  opts: { substantial?: boolean } = {},
+  opts: { substantial?: boolean } = {}
 ): { gain: number; tax: number; netAfterTax: number } {
   const gain = Math.max(0, marketValueIls - costBasisIls);
-  const rate = opts.substantial ? 0.30 : 0.25;
+  const rate = opts.substantial ? 0.3 : 0.25;
   const tax = gain * rate;
   return { gain, tax, netAfterTax: marketValueIls - tax };
 }

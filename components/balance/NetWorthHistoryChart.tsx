@@ -1,7 +1,13 @@
 "use client";
 
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
 } from "recharts";
 import { fmtILS } from "@/lib/format";
 import type { NetWorthSnapshot } from "@/lib/balance-history-store";
@@ -24,14 +30,9 @@ function fmtFullDate(iso: string): string {
 export function NetWorthHistoryChart({ snapshots }: Props) {
   if (snapshots.length === 0) {
     return (
-      <div
-        className="card-pad text-center"
-        style={{ background: "#f4f7ed" }}
-      >
-        <div className="text-3xl mb-2">📈</div>
-        <div className="text-sm font-extrabold text-verdant-ink mb-1">
-          עדיין אין היסטוריה
-        </div>
+      <div className="card-pad text-center" style={{ background: "#f4f7ed" }}>
+        <div className="mb-2 text-3xl">📈</div>
+        <div className="mb-1 text-sm font-extrabold text-verdant-ink">עדיין אין היסטוריה</div>
         <div className="text-xs text-verdant-muted">
           לחץ על &quot;עדכון מהיר&quot; כדי לשמור את הצילום הראשון שלך.
         </div>
@@ -39,7 +40,7 @@ export function NetWorthHistoryChart({ snapshots }: Props) {
     );
   }
 
-  const data = snapshots.map(s => ({
+  const data = snapshots.map((s) => ({
     date: s.date,
     month: fmtMonth(s.date),
     netWorth: s.netWorth,
@@ -50,22 +51,18 @@ export function NetWorthHistoryChart({ snapshots }: Props) {
 
   // YTD delta
   const thisYear = new Date().getFullYear();
-  const ytdFirst = snapshots.find(s => s.date.startsWith(`${thisYear}-`));
+  const ytdFirst = snapshots.find((s) => s.date.startsWith(`${thisYear}-`));
   let ytdPct: number | null = null;
   if (ytdFirst && ytdFirst.netWorth !== 0) {
     ytdPct = ((current - ytdFirst.netWorth) / Math.abs(ytdFirst.netWorth)) * 100;
   }
-  const ytdColor =
-    ytdPct === null ? "#5a7a6a" : ytdPct >= 0 ? "#1B4332" : "#dc2626";
+  const ytdColor = ytdPct === null ? "#5a7a6a" : ytdPct >= 0 ? "#1B4332" : "#dc2626";
 
   return (
     <div>
       <div className="w-full" style={{ direction: "ltr" }}>
         <ResponsiveContainer width="100%" height={240}>
-          <AreaChart
-            data={data}
-            margin={{ top: 12, right: 16, left: 12, bottom: 8 }}
-          >
+          <AreaChart data={data} margin={{ top: 12, right: 16, left: 12, bottom: 8 }}>
             <defs>
               <linearGradient id="nwFill" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#1B4332" stopOpacity={0.35} />
@@ -114,13 +111,13 @@ export function NetWorthHistoryChart({ snapshots }: Props) {
         </ResponsiveContainer>
       </div>
 
-      <div className="flex items-center justify-center gap-3 mt-3 text-[11px] text-verdant-muted font-bold">
+      <div className="mt-3 flex items-center justify-center gap-3 text-[11px] font-bold text-verdant-muted">
         <span>
-          מצב נוכחי: <span className="text-verdant-ink tabular">{fmtILS(current)}</span>
+          מצב נוכחי: <span className="tabular text-verdant-ink">{fmtILS(current)}</span>
         </span>
         <span className="opacity-40">·</span>
         <span>
-          שיא: <span className="text-verdant-ink tabular">{fmtILS(peak)}</span>
+          שיא: <span className="tabular text-verdant-ink">{fmtILS(peak)}</span>
         </span>
         {ytdPct !== null && (
           <>

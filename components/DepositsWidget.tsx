@@ -22,8 +22,18 @@ import {
 } from "@/lib/deposits-store";
 
 const HE_MONTHS = [
-  "ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני",
-  "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר",
+  "ינואר",
+  "פברואר",
+  "מרץ",
+  "אפריל",
+  "מאי",
+  "יוני",
+  "יולי",
+  "אוגוסט",
+  "ספטמבר",
+  "אוקטובר",
+  "נובמבר",
+  "דצמבר",
 ];
 
 function heLabelForMonth(ym: string): string {
@@ -79,22 +89,25 @@ export function DepositsWidget() {
   if (plannedCount === 0) {
     return (
       <div className="card-pad">
-        <div className="flex items-start gap-3 mb-4">
+        <div className="mb-4 flex items-start gap-3">
           <div className="icon-sm icon-forest">
             <span className="material-symbols-outlined text-[20px]">savings</span>
           </div>
           <div>
             <div className="caption">הפקדות חודשיות</div>
-            <div className="text-sm font-bold mt-0.5" style={{ color: "#012d1d" }}>
+            <div className="mt-0.5 text-sm font-bold" style={{ color: "#012d1d" }}>
               {heLabelForMonth(month)}
             </div>
           </div>
         </div>
-        <div className="rounded-xl py-5 px-4 text-center" style={{ background: "#f6faf2", border: "1px dashed #d8e0d0" }}>
-          <div className="text-[13px] font-bold mb-1" style={{ color: "#012d1d" }}>
+        <div
+          className="rounded-xl px-4 py-5 text-center"
+          style={{ background: "#f6faf2", border: "1px dashed #d8e0d0" }}
+        >
+          <div className="mb-1 text-[13px] font-bold" style={{ color: "#012d1d" }}>
             עוד לא הוגדרו הפקדות חודשיות
           </div>
-          <div className="text-[11px] mb-3" style={{ color: "#5a7a6a" }}>
+          <div className="mb-3 text-[11px]" style={{ color: "#5a7a6a" }}>
             הגדר פעם אחת — אשר כל חודש בלחיצה
           </div>
           <Link
@@ -112,14 +125,14 @@ export function DepositsWidget() {
 
   return (
     <div className="card-pad">
-      <div className="flex items-start justify-between mb-5">
+      <div className="mb-5 flex items-start justify-between">
         <div className="flex items-start gap-3">
           <div className="icon-sm icon-forest">
             <span className="material-symbols-outlined text-[20px]">savings</span>
           </div>
           <div>
             <div className="caption">הפקדות · {heLabelForMonth(month)}</div>
-            <div className="flex items-baseline gap-2 mt-1">
+            <div className="mt-1 flex items-baseline gap-2">
               <span className="kpi-value">{fmtILS(confirmedTotal)}</span>
               <span className="text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
                 / {fmtILS(total)}
@@ -129,17 +142,19 @@ export function DepositsWidget() {
         </div>
         <div className="flex flex-col items-end gap-1">
           <span
-            className="text-[11px] font-extrabold tabular"
+            className="tabular text-[11px] font-extrabold"
             style={{ color: confirmedCount === plannedCount ? "#1B4332" : "#f59e0b" }}
           >
             {confirmedCount}/{plannedCount}
           </span>
-          <span className="text-[9px] font-bold" style={{ color: "#8aab99" }}>אושרו</span>
+          <span className="text-[9px] font-bold" style={{ color: "#8aab99" }}>
+            אושרו
+          </span>
         </div>
       </div>
 
       {/* Progress bar */}
-      <div className="w-full h-1.5 rounded-full mb-5" style={{ background: "#eef2e8" }}>
+      <div className="mb-5 h-1.5 w-full rounded-full" style={{ background: "#eef2e8" }}>
         <div
           className="h-full rounded-full transition-all duration-700"
           style={{
@@ -151,17 +166,17 @@ export function DepositsWidget() {
 
       {/* Entries — compact rows */}
       <div className="space-y-1.5">
-        {entries.map(e => {
+        {entries.map((e) => {
           const kindLabel = KIND_LABEL[e.target.kind] || e.target.kind;
-          const kindIcon  = KIND_ICON[e.target.kind]  || "savings";
+          const kindIcon = KIND_ICON[e.target.kind] || "savings";
           return (
             <div
               key={e.id}
-              className="flex items-center gap-2 py-1.5 px-2 rounded-lg transition-colors hover:bg-[var(--mint-50,#f0f7ec)]"
+              className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-[var(--mint-50,#f0f7ec)]"
             >
               <button
                 onClick={() => handleToggle(e)}
-                className="shrink-0 w-5 h-5 rounded-md flex items-center justify-center transition-all"
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md transition-all"
                 style={{
                   background: e.confirmed ? "#1B4332" : "transparent",
                   border: e.confirmed ? "1px solid #1B4332" : "1px solid #d8e0d0",
@@ -169,7 +184,9 @@ export function DepositsWidget() {
                 aria-label={e.confirmed ? "בטל אישור" : "אשר הפקדה"}
               >
                 {e.confirmed && (
-                  <span className="material-symbols-outlined text-[13px] text-white font-bold">check</span>
+                  <span className="material-symbols-outlined text-[13px] font-bold text-white">
+                    check
+                  </span>
                 )}
               </button>
 
@@ -180,20 +197,22 @@ export function DepositsWidget() {
                 {kindIcon}
               </span>
 
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0 flex-1">
                 <div
-                  className="text-[12px] font-bold truncate"
+                  className="truncate text-[12px] font-bold"
                   style={{
                     color: e.confirmed ? "#012d1d" : "#5a7a6a",
                   }}
                 >
                   {e.target.label}
                 </div>
-                <div className="text-[10px]" style={{ color: "#8aab99" }}>{kindLabel}</div>
+                <div className="text-[10px]" style={{ color: "#8aab99" }}>
+                  {kindLabel}
+                </div>
               </div>
 
               <span
-                className="text-[12px] font-extrabold tabular"
+                className="tabular text-[12px] font-extrabold"
                 style={{ color: e.confirmed ? "#1B4332" : "#5a7a6a" }}
               >
                 {fmtILS(e.amount)}
@@ -206,7 +225,7 @@ export function DepositsWidget() {
       {/* Footer CTA */}
       <Link
         href={"/deposits" as any}
-        className="mt-4 pt-3 border-t flex items-center justify-between text-[11px] font-extrabold transition-colors"
+        className="mt-4 flex items-center justify-between border-t pt-3 text-[11px] font-extrabold transition-colors"
         style={{ borderColor: "#eef2e8", color: "#0a7a4a" }}
       >
         <span>עדכון חודשי מלא</span>

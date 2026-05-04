@@ -22,8 +22,8 @@ import { scopedKey } from "@/lib/client-scope";
 type Tab = "documents" | "queue";
 
 const TABS: { key: Tab; label: string; icon: string }[] = [
-  { key: "documents", label: "מסמכים",    icon: "fact_check" },
-  { key: "queue",     label: "תור פענוח", icon: "inbox" },
+  { key: "documents", label: "מסמכים", icon: "fact_check" },
+  { key: "queue", label: "תור פענוח", icon: "inbox" },
 ];
 
 const UNMAPPED_KEYS = new Set(["other", "transfers"]);
@@ -39,7 +39,10 @@ function computeQueueCount(): number {
     if (!Array.isArray(arr)) return 0;
     let n = 0;
     for (const t of arr) {
-      if (UNMAPPED_KEYS.has(t.category)) { n++; continue; }
+      if (UNMAPPED_KEYS.has(t.category)) {
+        n++;
+        continue;
+      }
       if (typeof t.confidence === "number" && t.confidence < CONFIDENCE_THRESHOLD) n++;
     }
     return n;
@@ -55,7 +58,7 @@ export default function DocumentsPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const t = params.get("tab") as Tab;
-    if (t && TABS.some(x => x.key === t)) setTab(t);
+    if (t && TABS.some((x) => x.key === t)) setTab(t);
   }, []);
 
   useEffect(() => {
@@ -70,20 +73,16 @@ export default function DocumentsPage() {
   }, []);
 
   return (
-    <div className="max-w-6xl mx-auto" dir="rtl">
-      <PageHeader
-        subtitle="מסמכים"
-        title="מסמכים"
-        description="גרור לכאן קובץ — אני אדאג לשאר"
-      />
+    <div className="mx-auto max-w-6xl" dir="rtl">
+      <PageHeader subtitle="מסמכים" title="מסמכים" description="גרור לכאן קובץ — אני אדאג לשאר" />
 
       {/* Tab bar */}
-      <div className="flex gap-1 mb-6 p-1 rounded-xl" style={{ background: "rgba(1,45,29,0.04)" }}>
+      <div className="mb-6 flex gap-1 rounded-xl p-1" style={{ background: "rgba(1,45,29,0.04)" }}>
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-all ${
               tab === t.key
                 ? "bg-white text-verdant-ink shadow-sm"
                 : "text-verdant-muted hover:text-verdant-ink"
@@ -93,7 +92,10 @@ export default function DocumentsPage() {
             <span className="material-symbols-outlined text-[18px]">{t.icon}</span>
             {t.label}
             {t.key === "queue" && queueCount > 0 && (
-              <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full" style={{ background: "#B45309", color: "#fff", minWidth: 18, textAlign: "center" }}>
+              <span
+                className="rounded-full px-1.5 py-0.5 text-[10px] font-extrabold"
+                style={{ background: "#B45309", color: "#fff", minWidth: 18, textAlign: "center" }}
+              >
                 {queueCount > 99 ? "99+" : queueCount}
               </span>
             )}
@@ -103,7 +105,7 @@ export default function DocumentsPage() {
 
       {/* Tab content */}
       {tab === "documents" && <DocumentsTab />}
-      {tab === "queue"     && <UnmappedQueueTab />}
+      {tab === "queue" && <UnmappedQueueTab />}
     </div>
   );
 }

@@ -11,7 +11,11 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { parseAnnualReportBundle, type AnnualPolicy } from "@/lib/doc-parser/annual-report-parser";
-import { parseMaslakaPdf, maslakaPdfToFunds, type MaslakaPdfResult } from "@/lib/doc-parser/maslaka-pdf-parser";
+import {
+  parseMaslakaPdf,
+  maslakaPdfToFunds,
+  type MaslakaPdfResult,
+} from "@/lib/doc-parser/maslaka-pdf-parser";
 import { requireUser } from "@/lib/supabase/require-user";
 
 export const runtime = "nodejs";
@@ -34,14 +38,8 @@ interface Summary {
 
 function buildSummary(policies: AnnualPolicy[], fileCount: number): Summary {
   const totalBalance = policies.reduce((s, p) => s + (p.balance || 0), 0);
-  const totalProjectedPension = policies.reduce(
-    (s, p) => s + (p.projectedPensionAmount || 0),
-    0,
-  );
-  const totalMonthlyContrib = policies.reduce(
-    (s, p) => s + (p.monthlyContrib || 0),
-    0,
-  );
+  const totalProjectedPension = policies.reduce((s, p) => s + (p.projectedPensionAmount || 0), 0);
+  const totalMonthlyContrib = policies.reduce((s, p) => s + (p.monthlyContrib || 0), 0);
   const providers = new Set(policies.map((p) => p.providerName));
 
   const balanceFees = policies
@@ -52,18 +50,12 @@ function buildSummary(policies: AnnualPolicy[], fileCount: number): Summary {
     .filter((v): v is number => typeof v === "number");
 
   const avgMgmtFeeBalance =
-    balanceFees.length > 0
-      ? balanceFees.reduce((a, b) => a + b, 0) / balanceFees.length
-      : 0;
+    balanceFees.length > 0 ? balanceFees.reduce((a, b) => a + b, 0) / balanceFees.length : 0;
   const avgMgmtFeeDeposit =
-    depositFees.length > 0
-      ? depositFees.reduce((a, b) => a + b, 0) / depositFees.length
-      : 0;
+    depositFees.length > 0 ? depositFees.reduce((a, b) => a + b, 0) / depositFees.length : 0;
 
   const sumByTypes = (types: string[]) =>
-    policies
-      .filter((p) => types.includes(p.productType))
-      .reduce((s, p) => s + (p.balance || 0), 0);
+    policies.filter((p) => types.includes(p.productType)).reduce((s, p) => s + (p.balance || 0), 0);
 
   return {
     totalBalance,
@@ -132,7 +124,8 @@ export async function POST(req: NextRequest) {
     try {
       const peek = await pdfParse(files[0].buffer);
       const peekText = peek.text || "";
-      isMaslaka = peekText.includes("דוח ריכוז מוצרים פנסיונים") || peekText.includes("מסלקה פנסיונית");
+      isMaslaka =
+        peekText.includes("דוח ריכוז מוצרים פנסיונים") || peekText.includes("מסלקה פנסיונית");
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
       console.error("[parse-pdf] pdf-parse peek failed:", reason);

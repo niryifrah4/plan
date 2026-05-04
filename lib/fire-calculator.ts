@@ -97,22 +97,21 @@ export function computeFireTrajectory(
     reNetYield?: number;
     retirementAge?: number;
     pensionConversionFactor?: number;
-  } = {},
+  } = {}
 ): FireResult {
   const includeRE = opts.includeRealEstate ?? true;
   const reYield = opts.reNetYield ?? 0.035;
   const retirementAge = opts.retirementAge ?? 67;
   const pensionFactor = opts.pensionConversionFactor ?? 200;
 
-  const line: FirePoint[] = trajectory.map(p => {
+  const line: FirePoint[] = trajectory.map((p) => {
     const liqPassive = (p.liquid * swr) / 12;
     const rePassive = includeRE ? estimateRealEstatePassive(p.realestate, reYield) : 0;
     // Pension annuity only flows AFTER retirement age — the corpus is
     // illiquid before then, and post-retirement the corpus in the
     // trajectory is being drawn down, so `p.pension` is the live balance.
-    const pensionPassive = p.age >= retirementAge
-      ? estimatePensionAnnuity(p.pension, pensionFactor)
-      : 0;
+    const pensionPassive =
+      p.age >= retirementAge ? estimatePensionAnnuity(p.pension, pensionFactor) : 0;
     return {
       age: p.age,
       year: p.year,

@@ -22,19 +22,22 @@ import pg from "pg";
 import { createClient } from "@supabase/supabase-js";
 
 const need = (k) => {
-  if (!process.env[k]) { console.error(`❌ Missing ${k}`); process.exit(1); }
+  if (!process.env[k]) {
+    console.error(`❌ Missing ${k}`);
+    process.exit(1);
+  }
   return process.env[k];
 };
 
 if (process.env.CONFIRM !== "RESET") {
   console.error("❌ Refusing to run without CONFIRM=RESET");
-  console.error('   Usage:  CONFIRM=RESET node scripts/supabase/reset-db.mjs');
+  console.error("   Usage:  CONFIRM=RESET node scripts/supabase/reset-db.mjs");
   process.exit(1);
 }
 
 const DATABASE_URL = need("DATABASE_URL");
 const SUPABASE_URL = need("SUPABASE_URL");
-const SERVICE_KEY  = need("SUPABASE_SERVICE_ROLE_KEY");
+const SERVICE_KEY = need("SUPABASE_SERVICE_ROLE_KEY");
 
 const mask = (u) => u.replace(/\/\/([^:]+):([^@]+)@/, "//$1:****@");
 console.log(`🧨 Target: ${mask(DATABASE_URL)}`);
@@ -44,10 +47,14 @@ const sb = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 {
-  let page = 1, total = 0;
+  let page = 1,
+    total = 0;
   while (true) {
     const { data, error } = await sb.auth.admin.listUsers({ page, perPage: 200 });
-    if (error) { console.error("❌ listUsers:", error.message); process.exit(1); }
+    if (error) {
+      console.error("❌ listUsers:", error.message);
+      process.exit(1);
+    }
     if (!data?.users?.length) break;
     for (const u of data.users) {
       const { error: delErr } = await sb.auth.admin.deleteUser(u.id);
@@ -84,7 +91,7 @@ try {
     await client.query(`DELETE FROM storage.objects;`);
     console.log("✅ Cleared storage.objects");
   } catch (e) {
-    console.log(`ℹ️  storage.objects not cleared (${e.message.split('\n')[0]})`);
+    console.log(`ℹ️  storage.objects not cleared (${e.message.split("\n")[0]})`);
   }
 } finally {
   await client.end();

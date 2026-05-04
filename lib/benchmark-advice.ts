@@ -22,11 +22,11 @@ import { fmtILS } from "./format";
 export interface Nudge {
   id: string;
   severity: "critical" | "warning" | "info" | "opportunity";
-  icon: string;       // material-symbols name
-  title: string;      // short headline
-  detail: string;     // 1-2 sentence why
-  href?: string;      // page to act on it
-  rank: number;       // higher = more urgent
+  icon: string; // material-symbols name
+  title: string; // short headline
+  detail: string; // 1-2 sentence why
+  href?: string; // page to act on it
+  rank: number; // higher = more urgent
 }
 
 function ageBucket(age: number): "young" | "mid" | "preretire" | "retired" {
@@ -62,7 +62,10 @@ export function buildNudges(): Nudge[] {
   const cashTotal = totalBankBalance(accounts);
   const securitiesTotal = totalSecuritiesValue(securities);
   const pensionTotal = pensions.reduce((s, f) => s + (f.balance || 0), 0);
-  const reEquity = properties.reduce((s, p) => s + Math.max(0, (p.currentValue || 0) - (p.mortgageBalance || 0)), 0);
+  const reEquity = properties.reduce(
+    (s, p) => s + Math.max(0, (p.currentValue || 0) - (p.mortgageBalance || 0)),
+    0
+  );
 
   const nudges: Nudge[] = [];
 
@@ -84,7 +87,7 @@ export function buildNudges(): Nudge[] {
   }
 
   // ── 2. Emergency fund coverage ──
-  const emergency = buckets.find(b => b.isEmergency);
+  const emergency = buckets.find((b) => b.isEmergency);
   if (monthlyExpenses > 0) {
     const monthsOfExpenses = cashTotal / monthlyExpenses;
     if (monthsOfExpenses < 1) {
@@ -97,7 +100,10 @@ export function buildNudges(): Nudge[] {
         href: "/goals",
         rank: 95,
       });
-    } else if (monthsOfExpenses < 3 && (!emergency || (emergency.currentAmount || 0) < emergency.targetAmount * 0.5)) {
+    } else if (
+      monthsOfExpenses < 3 &&
+      (!emergency || (emergency.currentAmount || 0) < emergency.targetAmount * 0.5)
+    ) {
       nudges.push({
         id: "emergency-thin",
         severity: "warning",
@@ -129,9 +135,11 @@ export function buildNudges(): Nudge[] {
 
   // ── 4. Pension fees ──
   const totalPenBalance = pensions.reduce((s, f) => s + (f.balance || 0), 0);
-  const weightedFee = totalPenBalance > 0
-    ? pensions.reduce((s, f) => s + (f.mgmtFeeBalance || 0) * (f.balance || 0), 0) / totalPenBalance
-    : 0;
+  const weightedFee =
+    totalPenBalance > 0
+      ? pensions.reduce((s, f) => s + (f.mgmtFeeBalance || 0) * (f.balance || 0), 0) /
+        totalPenBalance
+      : 0;
   if (weightedFee > 0.5 && totalPenBalance > 100_000) {
     const annualFeeCost = totalPenBalance * (weightedFee / 100);
     nudges.push({
@@ -179,8 +187,12 @@ export function buildNudges(): Nudge[] {
     // Rough: if most pension is in "מסלול כללי" (treated as moderate) but
     // the user is "aggressive" → suggest equity track. The opposite (user
     // is conservative but pension is equity-heavy) — flag too.
-    const aggressiveTrack = pensions.filter(f => /מנייתי|אגרסיבי|stock|equity/i.test(f.track || "")).length;
-    const conservativeTrack = pensions.filter(f => /אג["׳]ח|שמרני|conservative|bonds?/i.test(f.track || "")).length;
+    const aggressiveTrack = pensions.filter((f) =>
+      /מנייתי|אגרסיבי|stock|equity/i.test(f.track || "")
+    ).length;
+    const conservativeTrack = pensions.filter((f) =>
+      /אג["׳]ח|שמרני|conservative|bonds?/i.test(f.track || "")
+    ).length;
     const isAggUser = a.riskTolerance === "aggressive";
     const isConsUser = a.riskTolerance === "conservative";
     if (isAggUser && aggressiveTrack === 0 && pensions.length > 0) {

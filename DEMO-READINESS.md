@@ -24,6 +24,7 @@
 ### 2. איסוף credentials
 
 מתוך Settings של הפרויקט:
+
 - [ ] **Settings → API** — העתק `URL`, `anon key`, `service_role key`
 - [ ] **Settings → Database → Connection string → URI** — העתק (זה ה-`DATABASE_URL`)
 
@@ -84,11 +85,11 @@ node scripts/supabase/seed-demo-advisor.mjs
 
 ## 🧯 פלאן B — אם משהו נשבר בזמן הדמו
 
-| תסריט | פעולה |
-|---|---|
+| תסריט                        | פעולה                                                                |
+| ---------------------------- | -------------------------------------------------------------------- |
 | הלקוח רואה שגיאה / דאטה מוזר | `./scripts/supabase/restore.sh backups/baseline-client-001-*.sql.gz` |
-| `npm run start` נופל | גבה ל-`.env.local.dev.backup` ו-`npm run dev` |
-| Auth תקוע | מ-dashboard של Supabase → Auth → Users → reset password |
+| `npm run start` נופל         | גבה ל-`.env.local.dev.backup` ו-`npm run dev`                        |
+| Auth תקוע                    | מ-dashboard של Supabase → Auth → Users → reset password              |
 
 ---
 

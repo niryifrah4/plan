@@ -18,8 +18,12 @@ export function ImpersonationBanner({ familyName }: { familyName: string }) {
       }}
     >
       <span className="material-symbols-outlined text-[18px]">visibility</span>
-      <span>אתה צופה כלקוח: <span className="font-extrabold">{familyName}</span></span>
-      <span className="opacity-75 text-[11px] font-medium">— כל שינוי יישמר במשק הבית של הלקוח</span>
+      <span>
+        אתה צופה כלקוח: <span className="font-extrabold">{familyName}</span>
+      </span>
+      <span className="text-[11px] font-medium opacity-75">
+        — כל שינוי יישמר במשק הבית של הלקוח
+      </span>
     </div>
   );
 }

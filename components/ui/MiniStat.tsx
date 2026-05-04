@@ -21,7 +21,7 @@ interface MiniStatProps {
 export function MiniStat({ label, value, sub, color }: MiniStatProps) {
   return (
     <div
-      className="p-3 rounded-xl"
+      className="rounded-xl p-3"
       style={{
         background: "rgba(1,45,29,0.03)",
         border: "1px solid rgba(1,45,29,0.06)",
@@ -31,14 +31,12 @@ export function MiniStat({ label, value, sub, color }: MiniStatProps) {
         {label}
       </div>
       <div
-        className="text-[15px] font-extrabold tabular mt-1"
+        className="tabular mt-1 text-[15px] font-extrabold"
         style={{ color: color ?? "#012D1D" }}
       >
         {value}
       </div>
-      {sub && (
-        <div className="text-[10px] text-verdant-muted mt-0.5">{sub}</div>
-      )}
+      {sub && <div className="mt-0.5 text-[10px] text-verdant-muted">{sub}</div>}
     </div>
   );
 }

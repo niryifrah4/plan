@@ -15,27 +15,27 @@ import type { SecurityRow } from "./securities-store";
 import type { PieSlice } from "@/components/charts/AllocationPie";
 
 const KIND_LABEL: Record<string, string> = {
-  rsu:    "RSU",
+  rsu: "RSU",
   option: "אופציות",
-  espp:   "ESPP",
-  stock:  "מניה",
-  etf:    "ETF",
-  bond:   "אג״ח",
+  espp: "ESPP",
+  stock: "מניה",
+  etf: "ETF",
+  bond: "אג״ח",
   crypto: "קריפטו",
-  fund:   "קרן",
-  other:  "אחר",
+  fund: "קרן",
+  other: "אחר",
 };
 
 const KIND_COLOR: Record<string, string> = {
-  rsu:    "#1B4332",
+  rsu: "#1B4332",
   option: "#2B694D",
-  espp:   "#4A8F6F",
-  stock:  "#7C2D12",
-  etf:    "#0F766E",
-  bond:   "#1E3A8A",
+  espp: "#4A8F6F",
+  stock: "#7C2D12",
+  etf: "#0F766E",
+  bond: "#1E3A8A",
   crypto: "#B45309",
-  fund:   "#6B21A8",
-  other:  "#94a3b8",
+  fund: "#6B21A8",
+  other: "#94a3b8",
 };
 
 const CURRENCY_TO_GEO_LABEL: Record<string, string> = {
@@ -47,11 +47,11 @@ const CURRENCY_TO_GEO_LABEL: Record<string, string> = {
 };
 
 const GEO_COLOR_BY_LABEL: Record<string, string> = {
-  "ישראל":   "#1B4332",
-  "ארה״ב":   "#0F766E",
-  "אירופה":  "#7C2D12",
-  "בריטניה": "#6B21A8",
-  "אחר":     "#94a3b8",
+  ישראל: "#1B4332",
+  "ארה״ב": "#0F766E",
+  אירופה: "#7C2D12",
+  בריטניה: "#6B21A8",
+  אחר: "#94a3b8",
 };
 
 export interface SecuritiesAllocations {

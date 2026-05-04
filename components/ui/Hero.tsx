@@ -45,36 +45,29 @@ export interface HeroProps {
 }
 
 const TONE_BG: Record<HeroTone, string> = {
-  forest:  "linear-gradient(135deg, #012D1D 0%, #1B4332 100%)",
+  forest: "linear-gradient(135deg, #012D1D 0%, #1B4332 100%)",
   emerald: "linear-gradient(135deg, #1B4332 0%, #2B694D 100%)",
-  danger:  "linear-gradient(135deg, #4A0E0E 0%, #7A1818 100%)",
-  muted:   "linear-gradient(135deg, #1B4332 0%, #5C6058 100%)",
+  danger: "linear-gradient(135deg, #4A0E0E 0%, #7A1818 100%)",
+  muted: "linear-gradient(135deg, #1B4332 0%, #5C6058 100%)",
 };
 
-export function Hero({
-  eyebrow,
-  value,
-  sub,
-  action,
-  tone = "forest",
-  centered = true,
-}: HeroProps) {
+export function Hero({ eyebrow, value, sub, action, tone = "forest", centered = true }: HeroProps) {
   return (
     <section
-      className={`rounded-3xl px-6 py-7 md:px-10 md:py-9 mb-4 ${centered ? "text-center" : "text-right"}`}
+      className={`mb-4 rounded-3xl px-6 py-7 md:px-10 md:py-9 ${centered ? "text-center" : "text-right"}`}
       style={{ background: TONE_BG[tone], color: "#F9FAF2" }}
       dir="rtl"
     >
-      <div className={action ? "flex items-center gap-6 flex-wrap" : ""}>
-        <div className="flex-1 min-w-0">
+      <div className={action ? "flex flex-wrap items-center gap-6" : ""}>
+        <div className="min-w-0 flex-1">
           <div
-            className="text-[12px] md:text-[13px] font-bold uppercase tracking-[0.16em] mb-3"
+            className="mb-3 text-[12px] font-bold uppercase tracking-[0.16em] md:text-[13px]"
             style={{ color: "rgba(255,255,255,0.65)" }}
           >
             {eyebrow}
           </div>
           <div
-            className="font-extrabold tabular leading-none"
+            className="tabular font-extrabold leading-none"
             style={{
               fontSize: "clamp(2.5rem, 7vw, 4rem)",
               letterSpacing: "-0.02em",
@@ -85,7 +78,7 @@ export function Hero({
           </div>
           {sub && (
             <div
-              className="text-[13px] md:text-[14px] mt-3 font-medium"
+              className="mt-3 text-[13px] font-medium md:text-[14px]"
               style={{ color: "rgba(255,255,255,0.75)" }}
             >
               {sub}

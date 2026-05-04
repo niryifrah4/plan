@@ -37,14 +37,14 @@ export interface MiluimOutputs {
 }
 
 // 2024 constants (ILS). Advisor to refresh annually.
-const DAILY_GRANT_ILS          = 340;   // ≈ base grant rate per day (simplified)
-const LONG_STRETCH_BONUS       = 5000;  // extra if single stretch ≥ 60 days
-const EXTRA_CREDIT_POINTS_FULL = 0.5;   // per-point value × 2,976 ≈ 1,488 ₪/yr
-const POINT_VALUE_ANNUAL       = 2976;
+const DAILY_GRANT_ILS = 340; // ≈ base grant rate per day (simplified)
+const LONG_STRETCH_BONUS = 5000; // extra if single stretch ≥ 60 days
+const EXTRA_CREDIT_POINTS_FULL = 0.5; // per-point value × 2,976 ≈ 1,488 ₪/yr
+const POINT_VALUE_ANNUAL = 2976;
 
 export function simulateMiluim(i: MiluimInputs): MiluimOutputs {
-  const grant = i.reserveDays * DAILY_GRANT_ILS
-    + (i.longestStretchDays >= 60 ? LONG_STRETCH_BONUS : 0);
+  const grant =
+    i.reserveDays * DAILY_GRANT_ILS + (i.longestStretchDays >= 60 ? LONG_STRETCH_BONUS : 0);
 
   // Scale extra credit points by days served (max 0.5 points at ≥30 days)
   const pointsEarned = Math.min(EXTRA_CREDIT_POINTS_FULL, (i.reserveDays / 30) * 0.25);
@@ -62,7 +62,9 @@ export function simulateMiluim(i: MiluimInputs): MiluimOutputs {
   if (i.longestStretchDays >= 60) {
     entitlements.push(`בונוס רצף ארוך (60+ ימים): ₪${LONG_STRETCH_BONUS.toLocaleString("en-US")}`);
   }
-  entitlements.push(`נקודות זיכוי נוספות: ${pointsEarned.toFixed(2)} × ₪${POINT_VALUE_ANNUAL.toLocaleString("en-US")}`);
+  entitlements.push(
+    `נקודות זיכוי נוספות: ${pointsEarned.toFixed(2)} × ₪${POINT_VALUE_ANNUAL.toLocaleString("en-US")}`
+  );
   if (i.selfEmployed) {
     entitlements.push("החזר ביטוח לאומי לעצמאים על ימי מילואים");
   }

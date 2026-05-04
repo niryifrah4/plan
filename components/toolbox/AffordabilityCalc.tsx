@@ -54,7 +54,7 @@ export function AffordabilityCalc() {
       // Reverse PMT: find max principal for given payment
       const r = rate / 12;
       if (r > 0) {
-        adjustedMortgage = maxPaymentAllowed * (1 - Math.pow(1 + r, -months)) / r;
+        adjustedMortgage = (maxPaymentAllowed * (1 - Math.pow(1 + r, -months))) / r;
       } else {
         adjustedMortgage = maxPaymentAllowed * months;
       }
@@ -102,23 +102,56 @@ export function AffordabilityCalc() {
   return (
     <div className="space-y-8" style={{ fontFamily: "'Assistant', sans-serif" }}>
       {/* Inputs */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-2 gap-5 lg:grid-cols-3">
         <InputField label="הון עצמי זמין" value={equity} onChange={setEquity} suffix="₪" />
-        <InputField label="הכנסה חודשית נטו (זוגית)" value={monthlyIncome} onChange={setMonthlyIncome} suffix="₪" />
-        <InputField label="החזרי הלוואות קיימים" value={existingDebts} onChange={setExistingDebts} suffix="₪/חודש" />
-        <InputField label="ריבית משכנתא צפויה" value={mortgageRate} onChange={setMortgageRate} suffix="%" step={0.1} />
-        <InputField label="תקופת משכנתא" value={mortgageYears} onChange={setMortgageYears} suffix="שנים" />
+        <InputField
+          label="הכנסה חודשית נטו (זוגית)"
+          value={monthlyIncome}
+          onChange={setMonthlyIncome}
+          suffix="₪"
+        />
+        <InputField
+          label="החזרי הלוואות קיימים"
+          value={existingDebts}
+          onChange={setExistingDebts}
+          suffix="₪/חודש"
+        />
+        <InputField
+          label="ריבית משכנתא צפויה"
+          value={mortgageRate}
+          onChange={setMortgageRate}
+          suffix="%"
+          step={0.1}
+        />
+        <InputField
+          label="תקופת משכנתא"
+          value={mortgageYears}
+          onChange={setMortgageYears}
+          suffix="שנים"
+        />
       </div>
 
       {/* Affordability Alert */}
       {!results.isAffordable && (
-        <div className="rounded-xl p-5 flex items-start gap-3" style={{ background: "#fef2f2", border: "1px solid #fecaca" }}>
-          <span className="material-symbols-outlined text-[22px] mt-0.5" style={{ color: "#b91c1c" }}>warning</span>
+        <div
+          className="flex items-start gap-3 rounded-xl p-5"
+          style={{ background: "#fef2f2", border: "1px solid #fecaca" }}
+        >
+          <span
+            className="material-symbols-outlined mt-0.5 text-[22px]"
+            style={{ color: "#b91c1c" }}
+          >
+            warning
+          </span>
           <div>
-            <div className="text-[12px] font-extrabold" style={{ color: "#b91c1c" }}>חריגה מכושר החזר</div>
-            <div className="text-[11px] font-bold text-verdant-muted mt-1 leading-relaxed">
-              לפי 75% מימון, ההחזר החודשי ({fmtILS(Math.round(results.monthlyPayment))}) עולה על 35% מההכנסה הפנויה ({fmtILS(Math.round(results.maxPaymentAllowed))}).
-              <br />המערכת חישבה מחיר מקסימלי מותאם בהתבסס על כושר ההחזר שלכם.
+            <div className="text-[12px] font-extrabold" style={{ color: "#b91c1c" }}>
+              חריגה מכושר החזר
+            </div>
+            <div className="mt-1 text-[11px] font-bold leading-relaxed text-verdant-muted">
+              לפי 75% מימון, ההחזר החודשי ({fmtILS(Math.round(results.monthlyPayment))}) עולה על 35%
+              מההכנסה הפנויה ({fmtILS(Math.round(results.maxPaymentAllowed))}).
+              <br />
+              המערכת חישבה מחיר מקסימלי מותאם בהתבסס על כושר ההחזר שלכם.
             </div>
           </div>
         </div>
@@ -148,31 +181,57 @@ export function AffordabilityCalc() {
       </div>
 
       {/* Details */}
-      <div className="rounded-xl p-6 space-y-4" style={{ background: "#f9faf2", border: "1px solid #d8e0d0" }}>
+      <div
+        className="space-y-4 rounded-xl p-6"
+        style={{ background: "#f9faf2", border: "1px solid #d8e0d0" }}
+      >
         <div className="caption">פירוט</div>
-        <div className="grid grid-cols-2 gap-y-3 gap-x-8">
-          <DetailRow label="הכנסה פנויה (נטו - חובות)" value={fmtILS(Math.round(results.disposable))} />
-          <DetailRow label="תקרת החזר (35%)" value={fmtILS(Math.round(results.maxPaymentAllowed))} />
-          <DetailRow label="יחס החזר/הכנסה" value={`${results.paymentToIncomeRatio.toFixed(1)}%`}
-            color={results.paymentToIncomeRatio > 35 ? "#b91c1c" : results.paymentToIncomeRatio > 30 ? "#f59e0b" : "#1B4332"} />
+        <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+          <DetailRow
+            label="הכנסה פנויה (נטו - חובות)"
+            value={fmtILS(Math.round(results.disposable))}
+          />
+          <DetailRow
+            label="תקרת החזר (35%)"
+            value={fmtILS(Math.round(results.maxPaymentAllowed))}
+          />
+          <DetailRow
+            label="יחס החזר/הכנסה"
+            value={`${results.paymentToIncomeRatio.toFixed(1)}%`}
+            color={
+              results.paymentToIncomeRatio > 35
+                ? "#b91c1c"
+                : results.paymentToIncomeRatio > 30
+                  ? "#f59e0b"
+                  : "#1B4332"
+            }
+          />
           <DetailRow label="סה״כ ריבית לתקופה" value={fmtILS(Math.round(results.totalInterest))} />
           <DetailRow label="LTV (אחוז מימון)" value="75%" />
           <DetailRow label="ריבית שוק (מהנחות יסוד)" value={`${mortgageRate}%`} />
         </div>
 
         {/* Visual: Payment ratio bar */}
-        <div className="pt-4 border-t" style={{ borderColor: "#d8e0d0" }}>
-          <div className="flex justify-between text-[10px] font-bold text-verdant-muted mb-2">
+        <div className="border-t pt-4" style={{ borderColor: "#d8e0d0" }}>
+          <div className="mb-2 flex justify-between text-[10px] font-bold text-verdant-muted">
             <span>יחס החזר מהכנסה פנויה</span>
             <span className="tabular">{results.paymentToIncomeRatio.toFixed(1)}% מתוך 35%</span>
           </div>
-          <div className="h-3 rounded-full overflow-hidden" style={{ background: "#eef2e8" }}>
-            <div className="h-full rounded-full transition-all duration-500" style={{
-              width: `${Math.min(100, (results.paymentToIncomeRatio / 35) * 100)}%`,
-              background: results.paymentToIncomeRatio > 35 ? "#ef4444" : results.paymentToIncomeRatio > 30 ? "#f59e0b" : "#1B4332",
-            }} />
+          <div className="h-3 overflow-hidden rounded-full" style={{ background: "#eef2e8" }}>
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${Math.min(100, (results.paymentToIncomeRatio / 35) * 100)}%`,
+                background:
+                  results.paymentToIncomeRatio > 35
+                    ? "#ef4444"
+                    : results.paymentToIncomeRatio > 30
+                      ? "#f59e0b"
+                      : "#1B4332",
+              }}
+            />
           </div>
-          <div className="flex justify-between text-[9px] font-bold text-verdant-muted mt-1">
+          <div className="mt-1 flex justify-between text-[9px] font-bold text-verdant-muted">
             <span>0%</span>
             <span style={{ color: "#f59e0b" }}>30%</span>
             <span style={{ color: "#b91c1c" }}>35% (תקרה)</span>
@@ -182,7 +241,9 @@ export function AffordabilityCalc() {
 
       {/* Export button */}
       <button onClick={handleExport} className="btn-botanical flex items-center gap-2">
-        <span className="material-symbols-outlined text-[18px]">{exported ? "check" : "file_export"}</span>
+        <span className="material-symbols-outlined text-[18px]">
+          {exported ? "check" : "file_export"}
+        </span>
         {exported ? "נשמר בהמלצות" : "ייצא לסיכום"}
       </button>
     </div>
@@ -191,33 +252,69 @@ export function AffordabilityCalc() {
 
 /* ─── Sub-components ─── */
 
-function InputField({ label, value, onChange, suffix, step = 1 }: {
-  label: string; value: number; onChange: (v: number) => void; suffix: string; step?: number;
+function InputField({
+  label,
+  value,
+  onChange,
+  suffix,
+  step = 1,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  suffix: string;
+  step?: number;
 }) {
   return (
     <div>
-      <div className="text-[10px] font-bold text-verdant-muted mb-1.5">{label}</div>
-      <div className="flex items-center gap-2 rounded-xl border px-4 py-2.5" style={{ borderColor: "#d8e0d0", background: "#fff" }}>
-        <input type="number" value={value} step={step}
-          onChange={e => onChange(parseFloat(e.target.value) || 0)}
-          className="flex-1 text-[13px] font-extrabold tabular text-verdant-ink outline-none bg-transparent" />
+      <div className="mb-1.5 text-[10px] font-bold text-verdant-muted">{label}</div>
+      <div
+        className="flex items-center gap-2 rounded-xl border px-4 py-2.5"
+        style={{ borderColor: "#d8e0d0", background: "#fff" }}
+      >
+        <input
+          type="number"
+          value={value}
+          step={step}
+          onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+          className="tabular flex-1 bg-transparent text-[13px] font-extrabold text-verdant-ink outline-none"
+        />
         <span className="text-[10px] font-bold text-verdant-muted">{suffix}</span>
       </div>
     </div>
   );
 }
 
-function ResultCard({ label, value, icon, color, highlight }: {
-  label: string; value: string; icon: string; color: string; highlight?: boolean;
+function ResultCard({
+  label,
+  value,
+  icon,
+  color,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  icon: string;
+  color: string;
+  highlight?: boolean;
 }) {
   return (
-    <div className="rounded-xl p-5 text-center" style={{
-      background: highlight ? `linear-gradient(135deg, ${color}08, ${color}04)` : "#fff",
-      border: `1px solid ${highlight ? color + "30" : "#eef2e8"}`,
-    }}>
-      <span className="material-symbols-outlined text-[24px] mb-2" style={{ color }}>{icon}</span>
-      <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-verdant-muted mb-1">{label}</div>
-      <div className="text-xl font-extrabold tabular" style={{ color }}>{value}</div>
+    <div
+      className="rounded-xl p-5 text-center"
+      style={{
+        background: highlight ? `linear-gradient(135deg, ${color}08, ${color}04)` : "#fff",
+        border: `1px solid ${highlight ? color + "30" : "#eef2e8"}`,
+      }}
+    >
+      <span className="material-symbols-outlined mb-2 text-[24px]" style={{ color }}>
+        {icon}
+      </span>
+      <div className="mb-1 text-[9px] font-bold uppercase tracking-[0.12em] text-verdant-muted">
+        {label}
+      </div>
+      <div className="tabular text-xl font-extrabold" style={{ color }}>
+        {value}
+      </div>
     </div>
   );
 }
@@ -226,7 +323,9 @@ function DetailRow({ label, value, color }: { label: string; value: string; colo
   return (
     <div className="flex items-center justify-between">
       <span className="text-[11px] font-bold text-verdant-muted">{label}</span>
-      <span className="text-[12px] font-extrabold tabular" style={{ color: color || "#012d1d" }}>{value}</span>
+      <span className="tabular text-[12px] font-extrabold" style={{ color: color || "#012d1d" }}>
+        {value}
+      </span>
     </div>
   );
 }

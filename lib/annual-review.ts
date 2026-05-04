@@ -74,13 +74,17 @@ function saveSnapshots(snaps: AnnualSnapshot[]): void {
   try {
     localStorage.setItem(scopedKey(SNAPSHOTS_KEY), JSON.stringify(snaps));
   } catch {}
-  try { window.dispatchEvent(new Event(ANNUAL_REVIEW_EVENT)); } catch {}
+  try {
+    window.dispatchEvent(new Event(ANNUAL_REVIEW_EVENT));
+  } catch {}
 }
 
 /** Compute the "forecast" inputs for a given snapshot using whatever the
  *  system currently models — net worth + income + expenses + assumed return. */
-export function captureCurrentForecast(): Pick<AnnualSnapshot,
-  "forecastNetWorth" | "forecastIncome" | "forecastExpenses" | "forecastReturnPct"> {
+export function captureCurrentForecast(): Pick<
+  AnnualSnapshot,
+  "forecastNetWorth" | "forecastIncome" | "forecastExpenses" | "forecastReturnPct"
+> {
   const a = loadAssumptions();
   const accounts = loadAccounts();
   const pensions = loadPensionFunds();
@@ -113,7 +117,7 @@ export function captureCurrentForecast(): Pick<AnnualSnapshot,
  */
 export function recordAnnualSnapshot(input: Omit<AnnualSnapshot, "recordedAt">): AnnualSnapshot {
   const snap: AnnualSnapshot = { ...input, recordedAt: new Date().toISOString() };
-  const all = loadAnnualSnapshots().filter(s => s.year !== snap.year);
+  const all = loadAnnualSnapshots().filter((s) => s.year !== snap.year);
   all.push(snap);
   all.sort((a, b) => a.year - b.year);
   saveSnapshots(all);
@@ -145,8 +149,8 @@ export function analyzeSnapshot(snap: AnnualSnapshot): AnnualVerdict {
   // Recommendation — find the highest-priority active bucket that the
   // surplus could meaningfully shorten.
   const buckets = loadBuckets()
-    .filter(b => !b.archived)
-    .filter(b => (b.targetAmount || 0) > (b.currentAmount || 0));
+    .filter((b) => !b.archived)
+    .filter((b) => (b.targetAmount || 0) > (b.currentAmount || 0));
 
   const rank: Record<string, number> = { high: 0, medium: 1, low: 2 };
   buckets.sort((a, b) => (rank[a.priority] || 1) - (rank[b.priority] || 1));
@@ -179,9 +183,20 @@ export function analyzeSnapshot(snap: AnnualSnapshot): AnnualVerdict {
     recommendation = `הפיגור משמעותי. שקול הקטנת הוצאות או הגדלת הפקדות החודש הבא.`;
   }
 
-  return { excessReturn, expenseSurplus, totalSurplus, headline, recommendation, fastTrackedGoals: fastTracked };
+  return {
+    excessReturn,
+    expenseSurplus,
+    totalSurplus,
+    headline,
+    recommendation,
+    fastTrackedGoals: fastTracked,
+  };
 }
 
 function fmt(n: number): string {
-  return new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 0 }).format(n);
+  return new Intl.NumberFormat("he-IL", {
+    style: "currency",
+    currency: "ILS",
+    maximumFractionDigits: 0,
+  }).format(n);
 }

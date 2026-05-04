@@ -7,14 +7,14 @@
 import type { ParsedTransaction } from "./types";
 
 export interface RecurringGroup {
-  description: string;     // representative description
-  amount: number;          // consistent amount
+  description: string; // representative description
+  amount: number; // consistent amount
   category: string;
   categoryLabel: string;
   frequency: "monthly" | "bi-monthly" | "quarterly";
-  dayOfMonth: number;      // average day (1–31)
-  matchCount: number;      // how many occurrences found
-  occurrences: string[];   // dates of each occurrence
+  dayOfMonth: number; // average day (1–31)
+  matchCount: number; // how many occurrences found
+  occurrences: string[]; // dates of each occurrence
 }
 
 /**
@@ -28,11 +28,12 @@ export function detectRecurring(transactions: ParsedTransaction[]): RecurringGro
   if (transactions.length < 2) return [];
 
   // Only look at expenses (positive amounts)
-  const expenses = transactions.filter(t => t.amount > 0 && t.date);
+  const expenses = transactions.filter((t) => t.amount > 0 && t.date);
 
   // Normalize description for grouping (trim numbers, lowercase, collapse spaces)
   const normalize = (d: string) =>
-    d.toLowerCase()
+    d
+      .toLowerCase()
       .replace(/[\u200F\u200E"]/g, "")
       .replace(/\d{4,}/g, "") // remove long numbers (phone, reference)
       .replace(/\s+/g, " ")
@@ -51,7 +52,7 @@ export function detectRecurring(transactions: ParsedTransaction[]): RecurringGro
     categoryLabel: string;
   }
 
-  const entries: GroupEntry[] = expenses.map(t => {
+  const entries: GroupEntry[] = expenses.map((t) => {
     const [y, m, d] = t.date.split("-");
     return {
       desc: normalize(t.description),
@@ -93,13 +94,13 @@ export function detectRecurring(transactions: ParsedTransaction[]): RecurringGro
     if (group.length < 2) continue;
 
     // Check if entries span different months
-    const months = new Set(group.map(g => g.month));
+    const months = new Set(group.map((g) => g.month));
     if (months.size < 2) continue;
 
     // Check day-of-month consistency (±3 days)
-    const days = group.map(g => g.day);
+    const days = group.map((g) => g.day);
     const avgDay = Math.round(days.reduce((a, b) => a + b, 0) / days.length);
-    const allClose = days.every(d => Math.abs(d - avgDay) <= 3 || Math.abs(d - avgDay + 30) <= 3);
+    const allClose = days.every((d) => Math.abs(d - avgDay) <= 3 || Math.abs(d - avgDay + 30) <= 3);
     if (!allClose) continue;
 
     // Determine frequency
@@ -110,7 +111,7 @@ export function detectRecurring(transactions: ParsedTransaction[]): RecurringGro
       for (let i = 1; i < sortedMonths.length; i++) {
         const [y1, m1] = sortedMonths[i - 1].split("-").map(Number);
         const [y2, m2] = sortedMonths[i].split("-").map(Number);
-        gaps.push((y2 * 12 + m2) - (y1 * 12 + m1));
+        gaps.push(y2 * 12 + m2 - (y1 * 12 + m1));
       }
       const avgGap = gaps.reduce((a, b) => a + b, 0) / gaps.length;
       if (avgGap >= 2.5) frequency = "quarterly";
@@ -125,7 +126,7 @@ export function detectRecurring(transactions: ParsedTransaction[]): RecurringGro
       frequency,
       dayOfMonth: avgDay,
       matchCount: group.length,
-      occurrences: group.map(g => g.date).sort(),
+      occurrences: group.map((g) => g.date).sort(),
     });
   }
 
@@ -146,7 +147,7 @@ export function tagRecurring(
     for (const d of g.occurrences) recurDates.add(d + "|" + Math.round(g.amount));
   }
 
-  return transactions.map(t => ({
+  return transactions.map((t) => ({
     ...t,
     isRecurring: recurDates.has(t.date + "|" + Math.round(t.amount)),
   }));

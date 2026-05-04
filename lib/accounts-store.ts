@@ -20,8 +20,8 @@ export interface BankAccount {
   accountNumber: string;
   branchNumber: string;
   balance: number;
-  creditLimit?: number;  // מסגרת אשראי (overdraft)
-  lastUpdated: string;   // YYYY-MM-DD
+  creditLimit?: number; // מסגרת אשראי (overdraft)
+  lastUpdated: string; // YYYY-MM-DD
   isMain: boolean;
   notes: string;
   /**
@@ -39,7 +39,7 @@ export interface CreditCard {
   lastFourDigits: string;
   creditLimit: number;
   currentCharge: number;
-  billingDay: number;      // 1-28
+  billingDay: number; // 1-28
   linkedBankId: string;
   lastUpdated: string;
   notes: string;
@@ -53,14 +53,21 @@ export interface AccountsData {
 
 /* ── Israeli banks & credit companies ── */
 export const ISRAELI_BANKS = [
-  "הפועלים", "לאומי", "דיסקונט", "מזרחי טפחות", "הבינלאומי",
-  "מרכנתיל", "יהב", "אוצר החייל", "ירושלים", "דיגיבנק",
-  "ONE ZERO", "פרי בנק",
+  "הפועלים",
+  "לאומי",
+  "דיסקונט",
+  "מזרחי טפחות",
+  "הבינלאומי",
+  "מרכנתיל",
+  "יהב",
+  "אוצר החייל",
+  "ירושלים",
+  "דיגיבנק",
+  "ONE ZERO",
+  "פרי בנק",
 ];
 
-export const CREDIT_COMPANIES = [
-  "ישראכרט", "כאל", "מקס (לאומי קארד)", "אמריקן אקספרס", "דיינרס",
-];
+export const CREDIT_COMPANIES = ["ישראכרט", "כאל", "מקס (לאומי קארד)", "אמריקן אקספרס", "דיינרס"];
 
 /* ── CRUD ── */
 
@@ -107,14 +114,14 @@ export function addBankAccount(bank: Omit<BankAccount, "id">): void {
 
 export function updateBankAccount(id: string, patch: Partial<BankAccount>): void {
   const data = loadAccounts();
-  const idx = data.banks.findIndex(b => b.id === id);
+  const idx = data.banks.findIndex((b) => b.id === id);
   if (idx >= 0) data.banks[idx] = { ...data.banks[idx], ...patch };
   save(data);
 }
 
 export function deleteBankAccount(id: string): void {
   const data = loadAccounts();
-  data.banks = data.banks.filter(b => b.id !== id);
+  data.banks = data.banks.filter((b) => b.id !== id);
   save(data);
 }
 
@@ -127,14 +134,14 @@ export function addCreditCard(card: Omit<CreditCard, "id">): void {
 
 export function updateCreditCard(id: string, patch: Partial<CreditCard>): void {
   const data = loadAccounts();
-  const idx = data.creditCards.findIndex(c => c.id === id);
+  const idx = data.creditCards.findIndex((c) => c.id === id);
   if (idx >= 0) data.creditCards[idx] = { ...data.creditCards[idx], ...patch };
   save(data);
 }
 
 export function deleteCreditCard(id: string): void {
   const data = loadAccounts();
-  data.creditCards = data.creditCards.filter(c => c.id !== id);
+  data.creditCards = data.creditCards.filter((c) => c.id !== id);
   save(data);
 }
 

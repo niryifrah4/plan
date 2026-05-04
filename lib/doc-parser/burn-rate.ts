@@ -7,11 +7,11 @@ import type { ParsedTransaction } from "./types";
 import { savingsRate as calcSavingsRate, monthlyNetSavings } from "@/lib/financial-math";
 
 export interface MonthlyBreakdown {
-  month: string;        // yyyy-mm
+  month: string; // yyyy-mm
   totalIncome: number;
   totalExpense: number;
   netCashflow: number;
-  savingRate: number;   // 0–1 (% saved)
+  savingRate: number; // 0–1 (% saved)
 }
 
 export interface BurnRateAnalysis {
@@ -76,13 +76,22 @@ export function analyzeBurnRate(transactions: ParsedTransaction[]): BurnRateAnal
     }));
 
   if (months.length === 0) {
-    return { months, avgMonthlyExpense: 0, avgMonthlyIncome: 0, avgSavingRate: 0, latestMonth: null, alert: null };
+    return {
+      months,
+      avgMonthlyExpense: 0,
+      avgMonthlyIncome: 0,
+      avgSavingRate: 0,
+      latestMonth: null,
+      alert: null,
+    };
   }
 
   // Calculate averages (use last 3 months or all if less)
   const recentMonths = months.slice(-3);
-  const avgMonthlyExpense = recentMonths.reduce((s, m) => s + m.totalExpense, 0) / recentMonths.length;
-  const avgMonthlyIncome = recentMonths.reduce((s, m) => s + m.totalIncome, 0) / recentMonths.length;
+  const avgMonthlyExpense =
+    recentMonths.reduce((s, m) => s + m.totalExpense, 0) / recentMonths.length;
+  const avgMonthlyIncome =
+    recentMonths.reduce((s, m) => s + m.totalIncome, 0) / recentMonths.length;
   const avgSavingRate = calcSavingsRate(avgMonthlyIncome, avgMonthlyExpense);
 
   const latestMonth = months[months.length - 1];

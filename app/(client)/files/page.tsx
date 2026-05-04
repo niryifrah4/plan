@@ -18,13 +18,13 @@ import { UnmappedQueueTab } from "../balance/UnmappedQueueTab";
 
 export default function FilesPage() {
   return (
-    <div className="max-w-6xl mx-auto" dir="rtl">
+    <div className="mx-auto max-w-6xl" dir="rtl">
       {/* Documents = master file list (banks/credit/Mislaka/PDFs).
           UnmappedQueueTab handles row-level triage of imported transactions. */}
       <DocumentsTab />
 
-      <div className="mt-10 pt-6 border-t v-divider">
-        <div className="flex items-center gap-2 mb-4">
+      <div className="v-divider mt-10 border-t pt-6">
+        <div className="mb-4 flex items-center gap-2">
           <span className="material-symbols-outlined text-[20px] text-verdant-emerald">inbox</span>
           <h2 className="text-base font-extrabold text-verdant-ink">תור פענוח — לא מופה</h2>
         </div>

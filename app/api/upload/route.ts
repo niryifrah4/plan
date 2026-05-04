@@ -58,10 +58,16 @@ export async function POST(req: NextRequest) {
 
     // ── Validation: file size + MIME type ──
     if (file.size > MAX_FILE_BYTES) {
-      return NextResponse.json({ error: "הקובץ גדול מדי — מקסימום 10MB", code: "FILE_TOO_LARGE" }, { status: 413 });
+      return NextResponse.json(
+        { error: "הקובץ גדול מדי — מקסימום 10MB", code: "FILE_TOO_LARGE" },
+        { status: 413 }
+      );
     }
     if (file.type && !ALLOWED_MIMES.has(file.type)) {
-      return NextResponse.json({ error: "סוג קובץ לא נתמך — ניתן להעלות PDF, תמונה, Excel או CSV", code: "INVALID_TYPE" }, { status: 415 });
+      return NextResponse.json(
+        { error: "סוג קובץ לא נתמך — ניתן להעלות PDF, תמונה, Excel או CSV", code: "INVALID_TYPE" },
+        { status: 415 }
+      );
     }
 
     // Ensure uploads directory exists
@@ -94,6 +100,9 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Upload error:", error);
-    return NextResponse.json({ error: "שגיאה בהעלאת הקובץ — נסה שוב", code: "UPLOAD_FAILED" }, { status: 500 });
+    return NextResponse.json(
+      { error: "שגיאה בהעלאת הקובץ — נסה שוב", code: "UPLOAD_FAILED" },
+      { status: 500 }
+    );
   }
 }

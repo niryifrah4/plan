@@ -35,7 +35,10 @@ export async function getCurrentUser(): Promise<AppUser | null> {
   const sb = getSupabaseBrowser();
   if (!sb) return DEMO_USER;
 
-  const { data: { user }, error } = await sb.auth.getUser();
+  const {
+    data: { user },
+    error,
+  } = await sb.auth.getUser();
   if (error || !user) return null;
 
   return {
@@ -83,22 +86,22 @@ export function onAuthStateChange(
   const sb = getSupabaseBrowser();
   if (!sb) return undefined;
 
-  const { data: { subscription } } = sb.auth.onAuthStateChange(
-    async (event, session) => {
-      if (session?.user) {
-        const u = session.user;
-        callback({
-          id: u.id,
-          email: u.email || "",
-          fullName: u.user_metadata?.full_name || u.email || "",
-          role: (u.user_metadata?.role as AppUser["role"]) || "advisor",
-          avatarUrl: u.user_metadata?.avatar_url,
-        });
-      } else {
-        callback(null);
-      }
+  const {
+    data: { subscription },
+  } = sb.auth.onAuthStateChange(async (event, session) => {
+    if (session?.user) {
+      const u = session.user;
+      callback({
+        id: u.id,
+        email: u.email || "",
+        fullName: u.user_metadata?.full_name || u.email || "",
+        role: (u.user_metadata?.role as AppUser["role"]) || "advisor",
+        avatarUrl: u.user_metadata?.avatar_url,
+      });
+    } else {
+      callback(null);
     }
-  );
+  });
 
   return () => subscription.unsubscribe();
 }

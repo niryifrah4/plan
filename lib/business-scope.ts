@@ -35,13 +35,12 @@ export function isBusinessScopeEnabled(): boolean {
     // 2. Derive from onboarding employment type. 2026-04-29 fix: read via
     //    scopedKey so the answer is per-client (was global, leaking between
     //    clients in the same advisor's session).
-    const raw = localStorage.getItem(scopedKey(ONBOARDING_KEY))
-             || localStorage.getItem(ONBOARDING_KEY);
+    const raw =
+      localStorage.getItem(scopedKey(ONBOARDING_KEY)) || localStorage.getItem(ONBOARDING_KEY);
     if (raw) {
       const fields = JSON.parse(raw) as Record<string, string>;
       const isSelfOrMixed = (v?: string) =>
-        v === "עצמאי/ת" || v === "שכיר/ה + עצמאי/ת"
-        || v === "self_employed" || v === "mixed";
+        v === "עצמאי/ת" || v === "שכיר/ה + עצמאי/ת" || v === "self_employed" || v === "mixed";
       if (isSelfOrMixed(fields.p1_emp_type) || isSelfOrMixed(fields.p2_emp_type)) {
         return true;
       }

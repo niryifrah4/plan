@@ -66,7 +66,7 @@ export function GoalContextStrip({ domain, title }: Props) {
 
   return (
     <div
-      className="rounded-2xl p-5 mb-6 relative overflow-hidden"
+      className="relative mb-6 overflow-hidden rounded-2xl p-5"
       style={{
         background: "linear-gradient(135deg,#012d1d 0%,#064e32 100%)",
         color: "#fff",
@@ -74,12 +74,17 @@ export function GoalContextStrip({ domain, title }: Props) {
     >
       <div
         className="absolute inset-0 opacity-[0.04]"
-        style={{ backgroundImage: "radial-gradient(circle at 85% 20%, #2B694D 0%, transparent 60%)" }}
+        style={{
+          backgroundImage: "radial-gradient(circle at 85% 20%, #2B694D 0%, transparent 60%)",
+        }}
       />
       <div className="relative">
-        <div className="flex items-start justify-between gap-4 mb-4">
+        <div className="mb-4 flex items-start justify-between gap-4">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] font-bold mb-1" style={{ color: "#2B694D" }}>
+            <div
+              className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em]"
+              style={{ color: "#2B694D" }}
+            >
               Wealth Architecture · הכלי ביחס לחיים
             </div>
             <h4 className="text-[14px] font-extrabold leading-snug">
@@ -88,34 +93,47 @@ export function GoalContextStrip({ domain, title }: Props) {
           </div>
           <Link
             href={"/goals" as any}
-            className="text-[10px] font-bold px-3 py-1.5 rounded-full whitespace-nowrap transition-colors hover:bg-white/10"
-            style={{ background: "rgba(88,225,176,0.12)", color: "#2B694D", border: "1px solid rgba(88,225,176,0.25)" }}
+            className="whitespace-nowrap rounded-full px-3 py-1.5 text-[10px] font-bold transition-colors hover:bg-white/10"
+            style={{
+              background: "rgba(88,225,176,0.12)",
+              color: "#2B694D",
+              border: "1px solid rgba(88,225,176,0.25)",
+            }}
           >
             כל היעדים →
           </Link>
         </div>
 
         {displayGoals.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3">
             {displayGoals.map((g) => {
-              const years = Math.max(0, (new Date(g.targetDate).getTime() - Date.now()) / (365.25 * 24 * 3600 * 1000));
+              const years = Math.max(
+                0,
+                (new Date(g.targetDate).getTime() - Date.now()) / (365.25 * 24 * 3600 * 1000)
+              );
               return (
                 <div
                   key={g.id}
-                  className="rounded-xl p-3 flex items-center gap-3"
-                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}
+                  className="flex items-center gap-3 rounded-xl p-3"
+                  style={{
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
                 >
                   <div
-                    className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
                     style={{ background: "rgba(88,225,176,0.15)" }}
                   >
-                    <span className="material-symbols-outlined text-[18px]" style={{ color: "#2B694D" }}>
+                    <span
+                      className="material-symbols-outlined text-[18px]"
+                      style={{ color: "#2B694D" }}
+                    >
                       {g.icon}
                     </span>
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[12px] font-extrabold truncate">{g.name}</div>
-                    <div className="text-[10px] opacity-60 font-bold">
+                    <div className="truncate text-[12px] font-extrabold">{g.name}</div>
+                    <div className="text-[10px] font-bold opacity-60">
                       {fmtILS(g.targetAmount)} · בעוד {years.toFixed(1)} שנים
                     </div>
                   </div>
@@ -125,11 +143,15 @@ export function GoalContextStrip({ domain, title }: Props) {
           </div>
         ) : (
           <div
-            className="text-[11px] font-bold p-3 rounded-xl text-center"
+            className="rounded-xl p-3 text-center text-[11px] font-bold"
             style={{ background: "rgba(255,255,255,0.06)", color: "#9ec9b7" }}
           >
             עדיין לא הוגדרו יעדים.{" "}
-            <Link href={"/goals" as any} className="underline font-extrabold" style={{ color: "#2B694D" }}>
+            <Link
+              href={"/goals" as any}
+              className="font-extrabold underline"
+              style={{ color: "#2B694D" }}
+            >
               הגדר יעדים
             </Link>{" "}
             כדי שהכלי הזה יקבל משמעות אמיתית.

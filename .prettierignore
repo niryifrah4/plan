@@ -1,0 +1,28 @@
+# Dependencies & build outputs
+node_modules/
+.next/
+dist/
+build/
+coverage/
+out/
+
+# Lockfiles
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Generated
+next-env.d.ts
+*.tsbuildinfo
+public/
+types/supabase.ts
+
+# Test artifacts
+test-results/
+playwright-report/
+
+# Misc
+*.min.js
+*.min.css
+.git/
+.vercel/

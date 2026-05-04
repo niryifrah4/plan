@@ -19,7 +19,12 @@
 
 import { loadAssumptions } from "./assumptions";
 import { loadDebtData } from "./debt-store";
-import { buildBudgetLines, totalBudget, deriveMonthlyIncomeFromBudget, deriveMonthlyExpensesFromBudget } from "./budget-store";
+import {
+  buildBudgetLines,
+  totalBudget,
+  deriveMonthlyIncomeFromBudget,
+  deriveMonthlyExpensesFromBudget,
+} from "./budget-store";
 
 export interface ForecastMonth {
   /** YYYY-MM */
@@ -38,7 +43,20 @@ export interface ForecastMonth {
   status: "good" | "tight" | "negative";
 }
 
-const HE_MONTHS = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"];
+const HE_MONTHS = [
+  "ינואר",
+  "פברואר",
+  "מרץ",
+  "אפריל",
+  "מאי",
+  "יוני",
+  "יולי",
+  "אוגוסט",
+  "ספטמבר",
+  "אוקטובר",
+  "נובמבר",
+  "דצמבר",
+];
 
 function addMonths(date: Date, n: number): Date {
   const d = new Date(date);
@@ -60,12 +78,13 @@ export function buildForecast(): ForecastMonth[] {
   // Base monthly numbers — derived from current budget.
   const lines = buildBudgetLines(0);
   const totals = totalBudget(lines);
-  const baseIncome = deriveMonthlyIncomeFromBudget(a.monthlyIncome || 0)
-                   || (a.monthlyIncome || 0)
-                   || totals.budget;
-  const baseExpenses = deriveMonthlyExpensesFromBudget(a.monthlyExpenses || 0)
-                     || (a.monthlyExpenses || 0)
-                     || totals.actual;
+  const baseIncome =
+    deriveMonthlyIncomeFromBudget(a.monthlyIncome || 0) || a.monthlyIncome || 0 || totals.budget;
+  const baseExpenses =
+    deriveMonthlyExpensesFromBudget(a.monthlyExpenses || 0) ||
+    a.monthlyExpenses ||
+    0 ||
+    totals.actual;
 
   // Salary growth — applied as monthly compounding to be smooth.
   const annualGrowth = a.salaryGrowthRate || 0;
@@ -74,7 +93,7 @@ export function buildForecast(): ForecastMonth[] {
   // Loan payments — sum of monthly mortgage + loan installments active each month.
   // For each loan, figure out how many monthly payments remain. If the loan
   // ends mid-window, mark the month with an event and drop the payment.
-  const loanScheds = (debt.loans || []).map(l => {
+  const loanScheds = (debt.loans || []).map((l) => {
     const monthly = l.monthlyPayment || 0;
     const remainingPays = Math.max(0, l.totalPayments || 0);
     return { lender: l.lender, monthly, remainingPays };
@@ -85,10 +104,13 @@ export function buildForecast(): ForecastMonth[] {
   const mortgageTracks = debt.mortgage?.tracks || [];
   let mortgageMonthly = mortgageTracks.reduce((s, t) => s + (t.monthlyPayment || 0), 0);
   const mortgageBalance = mortgageTracks.reduce((s, t) => s + (t.remainingBalance || 0), 0);
-  const mortgageRate = mortgageTracks.length > 0
-    ? mortgageTracks.reduce((s, t) => s + (t.interestRate || 0.05) * (t.remainingBalance || 0), 0)
-      / Math.max(1, mortgageBalance)
-    : 0.05;
+  const mortgageRate =
+    mortgageTracks.length > 0
+      ? mortgageTracks.reduce(
+          (s, t) => s + (t.interestRate || 0.05) * (t.remainingBalance || 0),
+          0
+        ) / Math.max(1, mortgageBalance)
+      : 0.05;
   const originalMortgageMonthly = mortgageMonthly;
   const mortgageMonthsLeft = (() => {
     if (!mortgageMonthly || !mortgageBalance) return 0;
@@ -127,7 +149,9 @@ export function buildForecast(): ForecastMonth[] {
       if (ls.remainingPays > 0) {
         ls.remainingPays--;
         if (ls.remainingPays === 0 && ls.monthly > 0) {
-          events.push(`✅ סיום הלוואה ${ls.lender} — ₪${Math.round(ls.monthly).toLocaleString()}/חודש מתפנה`);
+          events.push(
+            `✅ סיום הלוואה ${ls.lender} — ₪${Math.round(ls.monthly).toLocaleString()}/חודש מתפנה`
+          );
         }
       }
     }

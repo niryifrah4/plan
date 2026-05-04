@@ -30,18 +30,20 @@ const MAX_AGE_SECONDS = 60 * 60 * 8; // 8 hours
 
 export async function POST(req: NextRequest) {
   const sb = createClient();
-  const { data: { user } } = await sb.auth.getUser();
+  const {
+    data: { user },
+  } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
-  const { data: advisor } = await sb
-    .from("advisors")
-    .select("id")
-    .eq("id", user.id)
-    .maybeSingle();
+  const { data: advisor } = await sb.from("advisors").select("id").eq("id", user.id).maybeSingle();
   if (!advisor) return NextResponse.json({ error: "not_advisor" }, { status: 403 });
 
   let body: { householdId?: string };
-  try { body = await req.json(); } catch { return NextResponse.json({ error: "bad_json" }, { status: 400 }); }
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "bad_json" }, { status: 400 });
+  }
 
   const householdId = (body.householdId || "").trim();
   if (!householdId) return NextResponse.json({ error: "missing_household_id" }, { status: 400 });

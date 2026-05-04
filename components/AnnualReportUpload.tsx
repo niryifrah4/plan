@@ -6,11 +6,13 @@ import { fmtILS } from "@/lib/format";
 import { loadPensionFunds, savePensionFunds } from "@/lib/pension-store";
 import { uploadFile } from "@/lib/storage/file-storage";
 import { mergeAnnualIntoFunds } from "@/lib/doc-parser/annual-to-pension";
-import { parseMislakaFiles, mislakaProductsToFunds, type ParsedMislakaBundle, type ParsedMislakaProduct } from "@/lib/pension-xml-parser";
-import type {
-  ParsedAnnualBundle,
-  AnnualPolicy,
-} from "@/lib/doc-parser/annual-report-parser";
+import {
+  parseMislakaFiles,
+  mislakaProductsToFunds,
+  type ParsedMislakaBundle,
+  type ParsedMislakaProduct,
+} from "@/lib/pension-xml-parser";
+import type { ParsedAnnualBundle, AnnualPolicy } from "@/lib/doc-parser/annual-report-parser";
 
 /**
  * Pension data upload panel.
@@ -105,7 +107,7 @@ export function AnnualReportUpload() {
       return;
     }
     if (accepted.length === 0 && rejected.length > 0) {
-      setErrorMsg(`סוג קובץ לא נתמך: ${rejected.map(f => f.name).join(", ")} — נדרש XML או PDF`);
+      setErrorMsg(`סוג קובץ לא נתמך: ${rejected.map((f) => f.name).join(", ")} — נדרש XML או PDF`);
       return;
     }
     if (accepted.length > 0) setFiles(accepted);
@@ -122,8 +124,8 @@ export function AnnualReportUpload() {
   }
 
   // Detect file types
-  const hasXml = files.some(f => f.name.endsWith(".xml"));
-  const hasPdf = files.some(f => f.name.toLowerCase().endsWith(".pdf"));
+  const hasXml = files.some((f) => f.name.endsWith(".xml"));
+  const hasPdf = files.some((f) => f.name.toLowerCase().endsWith(".pdf"));
   const mode: UploadMode = files.length === 0 ? "idle" : hasXml ? "xml" : "pdf";
 
   // Auto-parse when files are selected
@@ -134,7 +136,7 @@ export function AnnualReportUpload() {
       if (hasXml) handleParseXml();
       else if (hasPdf) handleParsePdf();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [files]);
 
   // Maslaka PDF state
@@ -150,7 +152,7 @@ export function AnnualReportUpload() {
     setMaslakaPdfProducts(null);
     setSavedInfo(null);
     try {
-      const pdfFiles = files.filter(f => f.name.toLowerCase().endsWith(".pdf"));
+      const pdfFiles = files.filter((f) => f.name.toLowerCase().endsWith(".pdf"));
 
       // Client-side validation before sending
       const validationError = validatePdfFiles(pdfFiles);
@@ -183,14 +185,24 @@ export function AnnualReportUpload() {
         const funds = data.funds || [];
         if (funds.length > 0) {
           const existing = loadPensionFunds();
-          let added = 0, updated = 0;
+          let added = 0,
+            updated = 0;
           const merged = [...existing];
           for (const nf of funds) {
-            const idx = merged.findIndex((e: any) =>
-              e.company.includes(nf.company.slice(0, 10)) && e.type === nf.type
+            const idx = merged.findIndex(
+              (e: any) => e.company.includes(nf.company.slice(0, 10)) && e.type === nf.type
             );
             if (idx >= 0) {
-              merged[idx] = { ...merged[idx], balance: nf.balance, mgmtFeeDeposit: nf.mgmtFeeDeposit, mgmtFeeBalance: nf.mgmtFeeBalance, monthlyContrib: nf.monthlyContrib, track: nf.track, insuranceCover: nf.insuranceCover, openingDate: nf.openingDate || merged[idx].openingDate };
+              merged[idx] = {
+                ...merged[idx],
+                balance: nf.balance,
+                mgmtFeeDeposit: nf.mgmtFeeDeposit,
+                mgmtFeeBalance: nf.mgmtFeeBalance,
+                monthlyContrib: nf.monthlyContrib,
+                track: nf.track,
+                insuranceCover: nf.insuranceCover,
+                openingDate: nf.openingDate || merged[idx].openingDate,
+              };
               updated++;
             } else {
               merged.push(nf);
@@ -212,7 +224,9 @@ export function AnnualReportUpload() {
         if (data.bundle.warnings?.length) {
           setMsg(`עיבוד הושלם עם ${data.bundle.warnings.length} אזהרות`);
         } else {
-          setMsg(`עובדו ${data.bundle.policies.length} פוליסות מ-${data.bundle.files.length} קבצים`);
+          setMsg(
+            `עובדו ${data.bundle.policies.length} פוליסות מ-${data.bundle.files.length} קבצים`
+          );
         }
       }
     } catch (e) {
@@ -230,25 +244,34 @@ export function AnnualReportUpload() {
     setXmlBundle(null);
     setSavedInfo(null);
     try {
-      const xmlFiles = files.filter(f => f.name.endsWith(".xml"));
+      const xmlFiles = files.filter((f) => f.name.endsWith(".xml"));
       const result = await parseMislakaFiles(xmlFiles);
       setXmlBundle(result);
       if (result.products.length === 0) {
-        setMsg(result.warnings.length > 0
-          ? result.warnings.join(" · ")
-          : "לא נמצאו מוצרים בקבצים");
+        setMsg(result.warnings.length > 0 ? result.warnings.join(" · ") : "לא נמצאו מוצרים בקבצים");
       } else {
         // Auto-save to pension store immediately
         const newFunds = mislakaProductsToFunds(result.products);
         const existing = loadPensionFunds();
-        let added = 0, updated = 0;
+        let added = 0,
+          updated = 0;
         const merged = [...existing];
         for (const nf of newFunds) {
-          const idx = merged.findIndex(e =>
-            e.company.includes(nf.company.slice(0, 10)) && e.type === nf.type
+          const idx = merged.findIndex(
+            (e) => e.company.includes(nf.company.slice(0, 10)) && e.type === nf.type
           );
           if (idx >= 0) {
-            merged[idx] = { ...merged[idx], balance: nf.balance, mgmtFeeDeposit: nf.mgmtFeeDeposit, mgmtFeeBalance: nf.mgmtFeeBalance, monthlyContrib: nf.monthlyContrib, track: nf.track, insuranceCover: nf.insuranceCover, subtype: nf.subtype, openingDate: nf.openingDate || merged[idx].openingDate };
+            merged[idx] = {
+              ...merged[idx],
+              balance: nf.balance,
+              mgmtFeeDeposit: nf.mgmtFeeDeposit,
+              mgmtFeeBalance: nf.mgmtFeeBalance,
+              monthlyContrib: nf.monthlyContrib,
+              track: nf.track,
+              insuranceCover: nf.insuranceCover,
+              subtype: nf.subtype,
+              openingDate: nf.openingDate || merged[idx].openingDate,
+            };
             updated++;
           } else {
             merged.push(nf);
@@ -256,7 +279,14 @@ export function AnnualReportUpload() {
           }
         }
         savePensionFunds(merged);
-        console.log("[pension-xml] auto-saved", merged.length, "funds. Added:", added, "Updated:", updated);
+        console.log(
+          "[pension-xml] auto-saved",
+          merged.length,
+          "funds. Added:",
+          added,
+          "Updated:",
+          updated
+        );
 
         // Upload raw files to Supabase Storage (fire-and-forget; no-op in demo mode)
         for (const f of xmlFiles) {
@@ -264,7 +294,9 @@ export function AnnualReportUpload() {
         }
 
         const ownerPrefix = result.ownerName ? `${result.ownerName} · ` : "";
-        setMsg(`${ownerPrefix}נמצאו ${result.products.length} מוצרים מ-${result.files.length} קבצים`);
+        setMsg(
+          `${ownerPrefix}נמצאו ${result.products.length} מוצרים מ-${result.files.length} קבצים`
+        );
         setSavedInfo(`נשמר: ${added} חדשים, ${updated} עודכנו`);
       }
     } catch (e) {
@@ -285,8 +317,10 @@ export function AnnualReportUpload() {
     const existing = loadPensionFunds();
     const result = mergeAnnualIntoFunds(existing, pdfBundle);
     savePensionFunds(result.funds);
-    setSavedInfo(`נשמר: ${result.added} חדשים, ${result.updated} עודכנו` +
-      (result.unchanged > 0 ? `, ${result.unchanged} ללא שינוי` : ""));
+    setSavedInfo(
+      `נשמר: ${result.added} חדשים, ${result.updated} עודכנו` +
+        (result.unchanged > 0 ? `, ${result.unchanged} ללא שינוי` : "")
+    );
   }
 
   /* handleSaveXml removed — XML auto-saves during parse */
@@ -302,17 +336,18 @@ export function AnnualReportUpload() {
     setSavedInfo(null);
   }
 
-  const showPreview = pdfBundle || (xmlBundle && xmlBundle.products.length > 0) || (maslakaPdfProducts && maslakaPdfProducts.length > 0);
+  const showPreview =
+    pdfBundle ||
+    (xmlBundle && xmlBundle.products.length > 0) ||
+    (maslakaPdfProducts && maslakaPdfProducts.length > 0);
 
   return (
     <Card>
-      <div className="flex items-baseline justify-between mb-4">
-        <span className="text-[11px] uppercase tracking-[0.2em] text-verdant-muted font-bold">
+      <div className="mb-4 flex items-baseline justify-between">
+        <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-verdant-muted">
           {mode === "xml" ? "מסלקה" : "PDF / XML"}
         </span>
-        <h3 className="text-lg font-extrabold text-verdant-ink">
-          העלאת נתוני פנסיה
-        </h3>
+        <h3 className="text-lg font-extrabold text-verdant-ink">העלאת נתוני פנסיה</h3>
       </div>
 
       <label
@@ -320,9 +355,9 @@ export function AnnualReportUpload() {
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        className={`flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${errorMsg ? "border-red-300 bg-red-50/50" : dragOver ? "border-verdant-accent bg-verdant-accent/5" : "v-divider hover:bg-gray-50"}`}
+        className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 text-center transition-colors ${errorMsg ? "border-red-300 bg-red-50/50" : dragOver ? "border-verdant-accent bg-verdant-accent/5" : "v-divider hover:bg-gray-50"}`}
       >
-        <span className="material-symbols-outlined text-verdant-accent text-[36px] mb-2">
+        <span className="material-symbols-outlined mb-2 text-[36px] text-verdant-accent">
           cloud_upload
         </span>
         <span className="text-sm font-extrabold text-verdant-ink">
@@ -331,13 +366,13 @@ export function AnnualReportUpload() {
             : "בחר קבצי XML מהמסלקה או PDF דיוור שנתי"}
         </span>
         {files.length > 0 && (
-          <span className="text-[11px] text-verdant-muted font-bold mt-1">
+          <span className="mt-1 text-[11px] font-bold text-verdant-muted">
             {(totalSize / 1024).toFixed(1)} KB סה&quot;כ
             {mode === "xml" && " · קבצי מסלקה פנסיונית"}
             {mode === "pdf" && " · דיוור שנתי PDF"}
           </span>
         )}
-        <span className="text-[10px] text-verdant-muted mt-1">
+        <span className="mt-1 text-[10px] text-verdant-muted">
           אם קיבלת ZIP מהמסלקה — חלץ תחילה ובחר את קבצי ה-XML
         </span>
         <input
@@ -355,7 +390,9 @@ export function AnnualReportUpload() {
               return;
             }
             if (accepted.length === 0 && rejected.length > 0) {
-              setErrorMsg(`סוג קובץ לא נתמך: ${rejected.map(f => f.name).join(", ")} — נדרש XML או PDF`);
+              setErrorMsg(
+                `סוג קובץ לא נתמך: ${rejected.map((f) => f.name).join(", ")} — נדרש XML או PDF`
+              );
               return;
             }
             setFiles(accepted);
@@ -364,9 +401,9 @@ export function AnnualReportUpload() {
       </label>
 
       {files.length > 0 && !showPreview && (
-        <ul className="mt-3 space-y-1 text-[11px] text-verdant-muted text-right">
+        <ul className="mt-3 space-y-1 text-right text-[11px] text-verdant-muted">
           {files.map((f, i) => (
-            <li key={i} className="truncate flex items-center gap-1.5">
+            <li key={i} className="flex items-center gap-1.5 truncate">
               <span className="material-symbols-outlined text-[12px]">
                 {f.name.endsWith(".xml") ? "code" : "picture_as_pdf"}
               </span>
@@ -380,48 +417,52 @@ export function AnnualReportUpload() {
         <button
           disabled={files.length === 0 || busy}
           onClick={handleParse}
-          className="btn-botanical text-sm py-2.5 px-4 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="btn-botanical px-4 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-40"
         >
           {busy ? "מעבד…" : "טען קבצים"}
         </button>
         <button
           disabled={busy || (files.length === 0 && !showPreview)}
           onClick={reset}
-          className="btn-botanical-ghost text-sm py-2.5 px-4 disabled:opacity-40"
+          className="btn-botanical-ghost px-4 py-2.5 text-sm disabled:opacity-40"
         >
           נקה
         </button>
       </div>
 
       {errorMsg && (
-        <div className="mt-3 flex items-start gap-2 p-3 rounded-lg border border-red-200 bg-red-50 text-right">
-          <span className="material-symbols-outlined text-red-500 text-[16px] mt-0.5 shrink-0">error</span>
-          <span className="text-[12px] font-bold text-red-700 leading-snug">{errorMsg}</span>
+        <div className="mt-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-right">
+          <span className="material-symbols-outlined mt-0.5 shrink-0 text-[16px] text-red-500">
+            error
+          </span>
+          <span className="text-[12px] font-bold leading-snug text-red-700">{errorMsg}</span>
         </div>
       )}
 
       {msg && !errorMsg && (
-        <div className="mt-3 text-[12px] font-bold text-right text-verdant-muted">
-          {msg}
-        </div>
+        <div className="mt-3 text-right text-[12px] font-bold text-verdant-muted">{msg}</div>
       )}
 
       {/* ── PDF Preview ── */}
       {pdfBundle && pdfSummary && (
-        <div className="mt-5 pt-4 border-t v-divider">
-          <div className="grid grid-cols-2 gap-2 mb-4">
+        <div className="v-divider mt-5 border-t pt-4">
+          <div className="mb-4 grid grid-cols-2 gap-2">
             <Stat label="סה״כ צבירה" value={fmtILS(pdfSummary.totalBalance)} />
             <Stat label="קצבה חזויה" value={`${fmtILS(pdfSummary.totalProjectedPension)}/ח`} />
             <Stat label="הפקדה חודשית" value={fmtILS(pdfSummary.totalMonthlyContrib)} />
             <Stat label="דמי ניהול (צבירה)" value={`${pdfSummary.avgMgmtFeeBalance.toFixed(2)}%`} />
           </div>
-          <div className="text-[11px] font-bold text-verdant-muted text-right mb-2">
-            {pdfSummary.policyCount} פוליסות • {pdfSummary.providerCount} יצרנים • {pdfSummary.fileCount} קבצים
+          <div className="mb-2 text-right text-[11px] font-bold text-verdant-muted">
+            {pdfSummary.policyCount} פוליסות • {pdfSummary.providerCount} יצרנים •{" "}
+            {pdfSummary.fileCount} קבצים
           </div>
-          <div className="max-h-64 overflow-y-auto space-y-2">
+          <div className="max-h-64 space-y-2 overflow-y-auto">
             {pdfBundle.policies.map((p: AnnualPolicy) => (
-              <div key={p.id} className="p-2 rounded border v-divider text-right text-[11px] bg-gray-50">
-                <div className="flex justify-between items-baseline">
+              <div
+                key={p.id}
+                className="v-divider rounded border bg-gray-50 p-2 text-right text-[11px]"
+              >
+                <div className="flex items-baseline justify-between">
                   <span className="font-bold text-verdant-ink">{fmtILS(p.balance)}</span>
                   <span className="font-extrabold text-verdant-ink">{p.providerName}</span>
                 </div>
@@ -438,19 +479,30 @@ export function AnnualReportUpload() {
 
       {/* ── XML (מסלקה) Preview ── */}
       {xmlBundle && xmlBundle.products.length > 0 && (
-        <div className="mt-5 pt-4 border-t v-divider">
-          <div className="grid grid-cols-2 gap-2 mb-4">
-            <Stat label="סה״כ צבירה" value={fmtILS(xmlBundle.products.reduce((s, p) => s + p.balance, 0))} />
-            <Stat label="הפקדה חודשית" value={fmtILS(xmlBundle.products.reduce((s, p) => s + p.monthlyContrib, 0))} />
+        <div className="v-divider mt-5 border-t pt-4">
+          <div className="mb-4 grid grid-cols-2 gap-2">
+            <Stat
+              label="סה״כ צבירה"
+              value={fmtILS(xmlBundle.products.reduce((s, p) => s + p.balance, 0))}
+            />
+            <Stat
+              label="הפקדה חודשית"
+              value={fmtILS(xmlBundle.products.reduce((s, p) => s + p.monthlyContrib, 0))}
+            />
             <Stat label="מוצרים" value={String(xmlBundle.products.length)} />
             <Stat label="קבצים" value={String(xmlBundle.files.length)} />
           </div>
 
-          <div className="max-h-72 overflow-y-auto space-y-2">
+          <div className="max-h-72 space-y-2 overflow-y-auto">
             {xmlBundle.products.map((p: ParsedMislakaProduct, i: number) => (
-              <div key={i} className="p-3 rounded-lg border v-divider text-right text-[11px] bg-gray-50 hover:bg-white transition-colors">
-                <div className="flex justify-between items-baseline mb-1">
-                  <span className="font-extrabold text-verdant-ink tabular-nums">{fmtILS(p.balance)}</span>
+              <div
+                key={i}
+                className="v-divider rounded-lg border bg-gray-50 p-3 text-right text-[11px] transition-colors hover:bg-white"
+              >
+                <div className="mb-1 flex items-baseline justify-between">
+                  <span className="font-extrabold tabular-nums text-verdant-ink">
+                    {fmtILS(p.balance)}
+                  </span>
                   <span className="font-extrabold text-verdant-ink">{p.company}</span>
                 </div>
                 <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-verdant-muted">
@@ -462,10 +514,10 @@ export function AnnualReportUpload() {
                 </div>
                 {p.tracks.length > 0 && (
                   <div className="mt-1 text-[10px] text-verdant-muted">
-                    מסלולים: {p.tracks.map(t => t.name).join(", ")}
+                    מסלולים: {p.tracks.map((t) => t.name).join(", ")}
                   </div>
                 )}
-                <div className="flex gap-3 mt-1 text-[10px]">
+                <div className="mt-1 flex gap-3 text-[10px]">
                   {p.mgmtFeeDeposit > 0 && (
                     <span>ד.ניהול הפקדה: {p.mgmtFeeDeposit.toFixed(2)}%</span>
                   )}
@@ -474,7 +526,14 @@ export function AnnualReportUpload() {
                   )}
                   {p.insuranceCover && (
                     <span>
-                      ביטוח: {[p.insuranceCover.death && "שאירים", p.insuranceCover.disability && "נכות", p.insuranceCover.lossOfWork && "אכ״ע"].filter(Boolean).join(", ") || "—"}
+                      ביטוח:{" "}
+                      {[
+                        p.insuranceCover.death && "שאירים",
+                        p.insuranceCover.disability && "נכות",
+                        p.insuranceCover.lossOfWork && "אכ״ע",
+                      ]
+                        .filter(Boolean)
+                        .join(", ") || "—"}
                     </span>
                   )}
                 </div>
@@ -484,12 +543,14 @@ export function AnnualReportUpload() {
 
           {xmlBundle.warnings.length > 0 && (
             <details className="mt-3 text-[11px]">
-              <summary className="font-bold text-amber-700 cursor-pointer text-right">
+              <summary className="cursor-pointer text-right font-bold text-amber-700">
                 {xmlBundle.warnings.length} אזהרות
               </summary>
-              <ul className="mt-1 text-verdant-muted space-y-0.5">
+              <ul className="mt-1 space-y-0.5 text-verdant-muted">
                 {xmlBundle.warnings.map((w, i) => (
-                  <li key={i} className="text-right">• {w}</li>
+                  <li key={i} className="text-right">
+                    • {w}
+                  </li>
                 ))}
               </ul>
             </details>
@@ -499,22 +560,36 @@ export function AnnualReportUpload() {
 
       {/* ── Maslaka PDF Preview ── */}
       {maslakaPdfProducts && maslakaPdfProducts.length > 0 && (
-        <div className="mt-5 pt-4 border-t v-divider">
-          <div className="grid grid-cols-2 gap-2 mb-4">
-            <Stat label="סה״כ צבירה" value={fmtILS(maslakaPdfProducts.reduce((s: number, p: any) => s + (p.balance || 0), 0))} />
+        <div className="v-divider mt-5 border-t pt-4">
+          <div className="mb-4 grid grid-cols-2 gap-2">
+            <Stat
+              label="סה״כ צבירה"
+              value={fmtILS(
+                maslakaPdfProducts.reduce((s: number, p: any) => s + (p.balance || 0), 0)
+              )}
+            />
             <Stat label="מוצרים" value={String(maslakaPdfProducts.length)} />
           </div>
 
-          <div className="max-h-72 overflow-y-auto space-y-2">
+          <div className="max-h-72 space-y-2 overflow-y-auto">
             {maslakaPdfProducts.map((p: any, i: number) => (
-              <div key={i} className="p-3 rounded-lg border v-divider text-right text-[11px] bg-gray-50 hover:bg-white transition-colors">
-                <div className="flex justify-between items-baseline mb-1">
-                  <span className="font-extrabold text-verdant-ink tabular">{fmtILS(p.balance || 0)}</span>
+              <div
+                key={i}
+                className="v-divider rounded-lg border bg-gray-50 p-3 text-right text-[11px] transition-colors hover:bg-white"
+              >
+                <div className="mb-1 flex items-baseline justify-between">
+                  <span className="tabular font-extrabold text-verdant-ink">
+                    {fmtILS(p.balance || 0)}
+                  </span>
                   <span className="font-extrabold text-verdant-ink">{p.company}</span>
                 </div>
                 <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-verdant-muted">
-                  <span className="font-bold" style={{ color: "#1B4332" }}>{p.productType}</span>
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${p.status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                  <span className="font-bold" style={{ color: "#1B4332" }}>
+                    {p.productType}
+                  </span>
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${p.status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}
+                  >
                     {p.status === "active" ? "פעיל" : "לא פעיל"}
                   </span>
                   {p.employer && <span>מעסיק: {p.employer}</span>}
@@ -543,7 +618,7 @@ export function AnnualReportUpload() {
           <button
             onClick={handleSavePdf}
             disabled={!!savedInfo}
-            className="btn-botanical w-full text-sm py-2.5 disabled:opacity-50"
+            className="btn-botanical w-full py-2.5 text-sm disabled:opacity-50"
           >
             {savedInfo ? "נשמר ✓" : "שמור במערכת הפנסיה"}
           </button>
@@ -552,14 +627,15 @@ export function AnnualReportUpload() {
 
       {/* ── Auto-save confirmation ── */}
       {savedInfo && (
-        <div className="mt-3 flex items-center gap-1.5 justify-end text-[12px] font-bold text-verdant-emerald">
+        <div className="mt-3 flex items-center justify-end gap-1.5 text-[12px] font-bold text-verdant-emerald">
           <span className="material-symbols-outlined text-[14px]">check_circle</span>
           {savedInfo}
         </div>
       )}
 
-      <div className="mt-4 pt-4 border-t v-divider text-[11px] text-verdant-muted font-bold text-right leading-relaxed">
-        <strong>XML מהמסלקה:</strong> הורד קבצי XML מאתר המסלקה הפנסיונית (gemel.mof.gov.il) — המערכת תקרא אוטומטית: חברה, צבירה, דמי ניהול, מסלולי השקעה וביטוחים.
+      <div className="v-divider mt-4 border-t pt-4 text-right text-[11px] font-bold leading-relaxed text-verdant-muted">
+        <strong>XML מהמסלקה:</strong> הורד קבצי XML מאתר המסלקה הפנסיונית (gemel.mof.gov.il) —
+        המערכת תקרא אוטומטית: חברה, צבירה, דמי ניהול, מסלולי השקעה וביטוחים.
         <br />
         <strong>PDF דיוור שנתי:</strong> העלה את הדיוור המפורט שמתקבל מהקרן פעם בשנה.
       </div>
@@ -569,13 +645,11 @@ export function AnnualReportUpload() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="p-2 rounded border v-divider bg-white text-right">
-      <div className="text-[10px] uppercase tracking-wider text-verdant-muted font-bold">
+    <div className="v-divider rounded border bg-white p-2 text-right">
+      <div className="text-[10px] font-bold uppercase tracking-wider text-verdant-muted">
         {label}
       </div>
-      <div className="text-sm font-extrabold text-verdant-ink mt-0.5">
-        {value}
-      </div>
+      <div className="mt-0.5 text-sm font-extrabold text-verdant-ink">{value}</div>
     </div>
   );
 }

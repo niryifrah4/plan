@@ -14,12 +14,24 @@ import { useState, useEffect, useMemo } from "react";
 import { Card } from "./ui/Card";
 import { fmtILS } from "@/lib/format";
 import {
-  loadKidsSavings, addKidSavings, updateKidSavings, deleteKidSavings,
-  kidSavingsId, projectKidSavings, childAge,
-  KIDS_TRACKS, KIDS_PROVIDERS, GOV_MONTHLY_DEPOSIT, PARENT_MONTHLY_MAX,
-  BONUS_AGE_3, BONUS_BAR_MITZVA, BONUS_AGE_21, TAX_GEMEL,
+  loadKidsSavings,
+  addKidSavings,
+  updateKidSavings,
+  deleteKidSavings,
+  kidSavingsId,
+  projectKidSavings,
+  childAge,
+  KIDS_TRACKS,
+  KIDS_PROVIDERS,
+  GOV_MONTHLY_DEPOSIT,
+  PARENT_MONTHLY_MAX,
+  BONUS_AGE_3,
+  BONUS_BAR_MITZVA,
+  BONUS_AGE_21,
+  TAX_GEMEL,
   KIDS_SAVINGS_EVENT,
-  type KidSavings, type KidProjection,
+  type KidSavings,
+  type KidProjection,
 } from "@/lib/kids-savings-store";
 
 /* ── Helpers ── */
@@ -53,37 +65,40 @@ export function KidsSavingsSection() {
     return () => window.removeEventListener(KIDS_SAVINGS_EVENT, handler);
   }, []);
 
-  const projections = useMemo(
-    () => kids.map(k => projectKidSavings(k)),
-    [kids],
-  );
+  const projections = useMemo(() => kids.map((k) => projectKidSavings(k)), [kids]);
 
   /* Empty state */
   if (kids.length === 0 && !showAdd) {
     return (
       <Card>
-        <div className="flex items-center justify-between mb-3">
+        <div className="mb-3 flex items-center justify-between">
           <button
             onClick={() => setShowAdd(true)}
-            className="text-[11px] font-bold text-verdant-emerald hover:underline flex items-center gap-1"
+            className="flex items-center gap-1 text-[11px] font-bold text-verdant-emerald hover:underline"
           >
             <span className="material-symbols-outlined text-[14px]">add</span>
             הוסף ילד/ה
           </button>
-          <h3 className="text-lg font-extrabold text-verdant-ink flex items-center gap-2">
+          <h3 className="flex items-center gap-2 text-lg font-extrabold text-verdant-ink">
             <span className="material-symbols-outlined text-verdant-emerald">child_care</span>
             חיסכון לכל ילד
           </h3>
         </div>
-        <div className="text-center py-8 text-verdant-muted text-sm">
-          <span className="material-symbols-outlined text-[40px] mb-2 block opacity-30">savings</span>
+        <div className="py-8 text-center text-sm text-verdant-muted">
+          <span className="material-symbols-outlined mb-2 block text-[40px] opacity-30">
+            savings
+          </span>
           לא הוגדרו חסכונות ילדים.
           <br />
           <span className="text-[11px]">הוסף ילדים בשאלון או ידנית כאן.</span>
         </div>
         {showAdd && (
           <AddKidForm
-            onAdd={(kid) => { addKidSavings(kid); setKids(loadKidsSavings()); setShowAdd(false); }}
+            onAdd={(kid) => {
+              addKidSavings(kid);
+              setKids(loadKidsSavings());
+              setShowAdd(false);
+            }}
             onCancel={() => setShowAdd(false)}
           />
         )}
@@ -94,15 +109,20 @@ export function KidsSavingsSection() {
   return (
     <Card>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <button
-          onClick={() => { setShowAdd(v => !v); setEditingId(null); }}
-          className="text-[11px] font-bold text-verdant-emerald hover:underline flex items-center gap-1"
+          onClick={() => {
+            setShowAdd((v) => !v);
+            setEditingId(null);
+          }}
+          className="flex items-center gap-1 text-[11px] font-bold text-verdant-emerald hover:underline"
         >
-          <span className="material-symbols-outlined text-[14px]">{showAdd ? "remove" : "add"}</span>
+          <span className="material-symbols-outlined text-[14px]">
+            {showAdd ? "remove" : "add"}
+          </span>
           {showAdd ? "בטל" : "הוסף ילד/ה"}
         </button>
-        <h3 className="text-lg font-extrabold text-verdant-ink flex items-center gap-2">
+        <h3 className="flex items-center gap-2 text-lg font-extrabold text-verdant-ink">
           <span className="material-symbols-outlined text-verdant-emerald">child_care</span>
           חיסכון לכל ילד
         </h3>
@@ -112,7 +132,11 @@ export function KidsSavingsSection() {
       {showAdd && (
         <div className="mb-4">
           <AddKidForm
-            onAdd={(kid) => { addKidSavings(kid); setKids(loadKidsSavings()); setShowAdd(false); }}
+            onAdd={(kid) => {
+              addKidSavings(kid);
+              setKids(loadKidsSavings());
+              setShowAdd(false);
+            }}
             onCancel={() => setShowAdd(false)}
           />
         </div>
@@ -127,8 +151,15 @@ export function KidsSavingsSection() {
             projection={projections[i]}
             isEditing={editingId === kid.id}
             onToggle={() => setEditingId(editingId === kid.id ? null : kid.id)}
-            onSave={(updated) => { updateKidSavings(kid.id, updated); setKids(loadKidsSavings()); setEditingId(null); }}
-            onDelete={() => { deleteKidSavings(kid.id); setKids(loadKidsSavings()); }}
+            onSave={(updated) => {
+              updateKidSavings(kid.id, updated);
+              setKids(loadKidsSavings());
+              setEditingId(null);
+            }}
+            onDelete={() => {
+              deleteKidSavings(kid.id);
+              setKids(loadKidsSavings());
+            }}
           />
         ))}
       </div>
@@ -140,7 +171,14 @@ export function KidsSavingsSection() {
    KidCard — clean summary + collapsible edit panel
    ════════════════════════════════════════════════════════════ */
 
-function KidCard({ kid, projection, isEditing, onToggle, onSave, onDelete }: {
+function KidCard({
+  kid,
+  projection,
+  isEditing,
+  onToggle,
+  onSave,
+  onDelete,
+}: {
   kid: KidSavings;
   projection: KidProjection;
   isEditing: boolean;
@@ -153,13 +191,18 @@ function KidCard({ kid, projection, isEditing, onToggle, onSave, onDelete }: {
   const totalMonthly = kid.monthlyDeposit + (kid.extraMonthly || 0);
   const progressPct = hasGift
     ? Math.min(100, Math.round((projection.totalNetAt21 / (kid.giftTarget || 1)) * 100))
-    : Math.min(100, projection.yearsTo18 > 0 ? Math.round((kid.currentBalance / projection.projectedAt18) * 100) : 100);
+    : Math.min(
+        100,
+        projection.yearsTo18 > 0
+          ? Math.round((kid.currentBalance / projection.projectedAt18) * 100)
+          : 100
+      );
 
   return (
-    <div className="rounded-xl border v-divider bg-white overflow-hidden">
+    <div className="v-divider overflow-hidden rounded-xl border bg-white">
       {/* ── Summary row — always visible ── */}
       <div
-        className="flex items-center justify-between px-4 py-3.5 cursor-pointer hover:bg-gray-50 transition-colors"
+        className="flex cursor-pointer items-center justify-between px-4 py-3.5 transition-colors hover:bg-gray-50"
         onClick={onToggle}
       >
         {/* Left: chevron + monthly total + gap line */}
@@ -168,8 +211,9 @@ function KidCard({ kid, projection, isEditing, onToggle, onSave, onDelete }: {
             {isEditing ? "expand_less" : "expand_more"}
           </span>
           <div>
-            <div className="text-[14px] font-extrabold text-verdant-ink tabular-nums">
-              {fmtILS(totalMonthly)}<span className="text-[10px] font-bold text-verdant-muted">/חודש</span>
+            <div className="text-[14px] font-extrabold tabular-nums text-verdant-ink">
+              {fmtILS(totalMonthly)}
+              <span className="text-[10px] font-bold text-verdant-muted">/חודש</span>
             </div>
             {hasGift && projection.giftGap > 0 && (
               <div className="text-[10px] font-bold" style={{ color: "#f59e0b" }}>
@@ -196,7 +240,7 @@ function KidCard({ kid, projection, isEditing, onToggle, onSave, onDelete }: {
           </div>
           {/* Avatar */}
           <div
-            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
             style={{ background: `${trackColor}15` }}
           >
             <span className="material-symbols-outlined text-[20px]" style={{ color: trackColor }}>
@@ -208,27 +252,23 @@ function KidCard({ kid, projection, isEditing, onToggle, onSave, onDelete }: {
 
       {/* Progress bar — always visible, thin */}
       <div className="px-4 pb-3">
-        <div className="w-full h-1.5 rounded-full bg-gray-100 overflow-hidden">
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
           <div
             className="h-full rounded-full transition-all"
             style={{
               width: `${progressPct}%`,
-              background: hasGift
-                ? (projection.giftGap > 0 ? "#f59e0b" : "#22c55e")
-                : trackColor,
+              background: hasGift ? (projection.giftGap > 0 ? "#f59e0b" : "#22c55e") : trackColor,
             }}
           />
         </div>
-        <div className="flex justify-between text-[9px] font-bold text-verdant-muted mt-0.5">
+        <div className="mt-0.5 flex justify-between text-[9px] font-bold text-verdant-muted">
           <span>{progressPct}%</span>
           <span>{hasGift ? `ליעד ${fmtILS(kid.giftTarget || 0)}` : "לגיל 18"}</span>
         </div>
       </div>
 
       {/* ── Edit panel — collapsible ── */}
-      {isEditing && (
-        <EditKidPanel kid={kid} onSave={onSave} onDelete={onDelete} />
-      )}
+      {isEditing && <EditKidPanel kid={kid} onSave={onSave} onDelete={onDelete} />}
     </div>
   );
 }
@@ -237,7 +277,11 @@ function KidCard({ kid, projection, isEditing, onToggle, onSave, onDelete }: {
    Edit panel — detail & live calculator
    ════════════════════════════════════════════════════════════ */
 
-function EditKidPanel({ kid, onSave, onDelete }: {
+function EditKidPanel({
+  kid,
+  onSave,
+  onDelete,
+}: {
   kid: KidSavings;
   onSave: (patch: Partial<KidSavings>) => void;
   onDelete: () => void;
@@ -255,7 +299,7 @@ function EditKidPanel({ kid, onSave, onDelete }: {
   /* Live projection */
   const liveCalc = useMemo(() => {
     if (!dob) return null;
-    const selectedTrack = KIDS_TRACKS.find(t => t.key === track) || KIDS_TRACKS[1];
+    const selectedTrack = KIDS_TRACKS.find((t) => t.key === track) || KIDS_TRACKS[1];
     const age = childAge(dob);
     const yearsTo21 = Math.max(0, 21 - age);
     if (yearsTo21 <= 0) return null;
@@ -287,7 +331,7 @@ function EditKidPanel({ kid, onSave, onDelete }: {
     const gap = target > 0 ? Math.max(0, target - totalNet) : 0;
     let monthlyNeeded = 0;
     if (gap > 0 && n21 > 0 && rM > 0) {
-      monthlyNeeded = Math.ceil((gap / 0.85) * rM / (Math.pow(1 + rM, n21) - 1));
+      monthlyNeeded = Math.ceil(((gap / 0.85) * rM) / (Math.pow(1 + rM, n21) - 1));
     } else if (gap > 0 && n21 > 0) {
       monthlyNeeded = Math.ceil(gap / n21);
     }
@@ -303,36 +347,57 @@ function EditKidPanel({ kid, onSave, onDelete }: {
   }, [dob, track, balance, parentDep, giftTarget, extraMonthly]);
 
   return (
-    <div className="px-4 py-4 border-t v-divider bg-gray-50 space-y-3">
-
+    <div className="v-divider space-y-3 border-t bg-gray-50 px-4 py-4">
       {/* Basic info */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-[10px] font-bold text-verdant-muted block mb-1 text-right">שם</label>
-          <input className="inp w-full" value={name} onChange={e => setName(e.target.value)} />
+          <label className="mb-1 block text-right text-[10px] font-bold text-verdant-muted">
+            שם
+          </label>
+          <input className="inp w-full" value={name} onChange={(e) => setName(e.target.value)} />
         </div>
         <div>
-          <label className="text-[10px] font-bold text-verdant-muted block mb-1 text-right">תאריך לידה</label>
-          <input className="inp w-full" type="date" value={dob} onChange={e => setDob(e.target.value)} />
+          <label className="mb-1 block text-right text-[10px] font-bold text-verdant-muted">
+            תאריך לידה
+          </label>
+          <input
+            className="inp w-full"
+            type="date"
+            value={dob}
+            onChange={(e) => setDob(e.target.value)}
+          />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-[10px] font-bold text-verdant-muted block mb-1 text-right">בית השקעות</label>
-          <select className="inp w-full" value={provider} onChange={e => setProvider(e.target.value)}>
+          <label className="mb-1 block text-right text-[10px] font-bold text-verdant-muted">
+            בית השקעות
+          </label>
+          <select
+            className="inp w-full"
+            value={provider}
+            onChange={(e) => setProvider(e.target.value)}
+          >
             <option value="">בחר...</option>
-            {KIDS_PROVIDERS.map(p => <option key={p}>{p}</option>)}
+            {KIDS_PROVIDERS.map((p) => (
+              <option key={p}>{p}</option>
+            ))}
           </select>
         </div>
         <div>
-          <label className="text-[10px] font-bold text-verdant-muted block mb-1 text-right">מסלול</label>
+          <label className="mb-1 block text-right text-[10px] font-bold text-verdant-muted">
+            מסלול
+          </label>
           <div className="grid grid-cols-3 gap-1">
-            {KIDS_TRACKS.filter(t => t.key !== "halacha").map(t => (
-              <button key={t.key}
+            {KIDS_TRACKS.filter((t) => t.key !== "halacha").map((t) => (
+              <button
+                key={t.key}
                 onClick={() => setTrack(t.key)}
-                className={`px-2 py-1.5 rounded-lg text-[10px] font-extrabold border transition-all ${
-                  track === t.key ? "text-white shadow-sm" : "bg-white text-verdant-ink hover:bg-gray-100"
+                className={`rounded-lg border px-2 py-1.5 text-[10px] font-extrabold transition-all ${
+                  track === t.key
+                    ? "text-white shadow-sm"
+                    : "bg-white text-verdant-ink hover:bg-gray-100"
                 }`}
                 style={{
                   borderColor: track === t.key ? TRACK_COLORS[t.key] : "#d8e0d0",
@@ -340,7 +405,7 @@ function EditKidPanel({ kid, onSave, onDelete }: {
                 }}
               >
                 {t.label}
-                <div className="text-[8px] font-bold mt-0.5 opacity-80">
+                <div className="mt-0.5 text-[8px] font-bold opacity-80">
                   {(t.expectedReturn * 100).toFixed(1)}%
                 </div>
               </button>
@@ -351,19 +416,35 @@ function EditKidPanel({ kid, onSave, onDelete }: {
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-[10px] font-bold text-verdant-muted block mb-1 text-right">יתרה נוכחית ₪</label>
-          <input className="inp w-full" type="number" min="0" value={balance} onChange={e => setBalance(e.target.value)} />
+          <label className="mb-1 block text-right text-[10px] font-bold text-verdant-muted">
+            יתרה נוכחית ₪
+          </label>
+          <input
+            className="inp w-full"
+            type="number"
+            min="0"
+            value={balance}
+            onChange={(e) => setBalance(e.target.value)}
+          />
         </div>
         <div>
-          <label className="text-[10px] font-bold text-verdant-muted block mb-1 text-right">הפקדת הורים (₪{PARENT_MONTHLY_MAX}/חודש)</label>
+          <label className="mb-1 block text-right text-[10px] font-bold text-verdant-muted">
+            הפקדת הורים (₪{PARENT_MONTHLY_MAX}/חודש)
+          </label>
           <div className="grid grid-cols-2 gap-1">
-            {([{ label: "כן", value: PARENT_MONTHLY_MAX }, { label: "לא", value: 0 }] as const).map(opt => (
-              <button key={opt.label}
+            {(
+              [
+                { label: "כן", value: PARENT_MONTHLY_MAX },
+                { label: "לא", value: 0 },
+              ] as const
+            ).map((opt) => (
+              <button
+                key={opt.label}
                 onClick={() => setParentDep(opt.value)}
-                className={`px-2 py-1.5 rounded-lg text-[11px] font-extrabold border transition-all ${
+                className={`rounded-lg border px-2 py-1.5 text-[11px] font-extrabold transition-all ${
                   parentDep === opt.value
-                    ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                    : "bg-white text-verdant-ink border-gray-300 hover:bg-gray-100"
+                    ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                    : "border-gray-300 bg-white text-verdant-ink hover:bg-gray-100"
                 }`}
               >
                 {opt.label}
@@ -374,21 +455,44 @@ function EditKidPanel({ kid, onSave, onDelete }: {
       </div>
 
       {/* Target + extra */}
-      <div className="border-t v-divider pt-3">
+      <div className="v-divider border-t pt-3">
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className="text-[10px] font-bold text-verdant-muted block mb-1 text-right">יעד גיל 21 ₪</label>
-            <input className="inp w-full" type="number" min="0" step="10000" value={giftTarget}
-              onChange={e => setGiftTarget(e.target.value)} placeholder="300,000" />
+            <label className="mb-1 block text-right text-[10px] font-bold text-verdant-muted">
+              יעד גיל 21 ₪
+            </label>
+            <input
+              className="inp w-full"
+              type="number"
+              min="0"
+              step="10000"
+              value={giftTarget}
+              onChange={(e) => setGiftTarget(e.target.value)}
+              placeholder="300,000"
+            />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-verdant-muted block mb-1 text-right">הפקדה נוספת ₪/חודש</label>
-            <input className="inp w-full" type="number" min="0" value={extraMonthly}
-              onChange={e => setExtraMonthly(e.target.value)} placeholder="0" />
+            <label className="mb-1 block text-right text-[10px] font-bold text-verdant-muted">
+              הפקדה נוספת ₪/חודש
+            </label>
+            <input
+              className="inp w-full"
+              type="number"
+              min="0"
+              value={extraMonthly}
+              onChange={(e) => setExtraMonthly(e.target.value)}
+              placeholder="0"
+            />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-verdant-muted block mb-1 text-right">כלי</label>
-            <select className="inp w-full" value={extraVehicle} onChange={e => setExtraVehicle(e.target.value)}>
+            <label className="mb-1 block text-right text-[10px] font-bold text-verdant-muted">
+              כלי
+            </label>
+            <select
+              className="inp w-full"
+              value={extraVehicle}
+              onChange={(e) => setExtraVehicle(e.target.value)}
+            >
               <option value="gemel">קופ״ג להשקעה</option>
               <option value="broker">תיק מסחר</option>
             </select>
@@ -397,11 +501,15 @@ function EditKidPanel({ kid, onSave, onDelete }: {
 
         {/* Live projection result */}
         {liveCalc && (
-          <div className={`mt-3 p-3 rounded-lg border ${
-            Number(giftTarget) > 0
-              ? (liveCalc.gap > 0 ? "bg-amber-50 border-amber-200" : "bg-green-50 border-green-200")
-              : "bg-white border-gray-200"
-          }`}>
+          <div
+            className={`mt-3 rounded-lg border p-3 ${
+              Number(giftTarget) > 0
+                ? liveCalc.gap > 0
+                  ? "border-amber-200 bg-amber-50"
+                  : "border-green-200 bg-green-50"
+                : "border-gray-200 bg-white"
+            }`}
+          >
             <div className="flex items-center justify-between">
               <div className="text-right">
                 {Number(giftTarget) > 0 ? (
@@ -415,20 +523,23 @@ function EditKidPanel({ kid, onSave, onDelete }: {
                       </div>
                     </>
                   ) : (
-                    <div className="text-[11px] font-bold text-green-700 flex items-center gap-1">
+                    <div className="flex items-center gap-1 text-[11px] font-bold text-green-700">
                       <span className="material-symbols-outlined text-[14px]">check_circle</span>
                       היעד מושג!
                     </div>
                   )
                 ) : (
                   <div className="text-[9px] font-bold text-verdant-muted">
-                    {liveCalc.trackLabel} ({(liveCalc.trackReturn * 100).toFixed(1)}%) · {Math.round(liveCalc.yearsTo21)} שנים
+                    {liveCalc.trackLabel} ({(liveCalc.trackReturn * 100).toFixed(1)}%) ·{" "}
+                    {Math.round(liveCalc.yearsTo21)} שנים
                   </div>
                 )}
               </div>
               <div className="text-right">
                 <div className="text-[9px] font-bold text-verdant-muted">צפי נטו גיל 21</div>
-                <div className="text-[15px] font-extrabold tabular-nums text-verdant-ink">{fmtILS(liveCalc.totalNet)}</div>
+                <div className="text-[15px] font-extrabold tabular-nums text-verdant-ink">
+                  {fmtILS(liveCalc.totalNet)}
+                </div>
               </div>
             </div>
           </div>
@@ -438,25 +549,27 @@ function EditKidPanel({ kid, onSave, onDelete }: {
       {/* Actions */}
       <div className="flex gap-2">
         <button
-          onClick={() => onSave({
-            childName: name,
-            dob,
-            provider,
-            track,
-            currentBalance: Number(balance) || 0,
-            parentDeposit: parentDep,
-            monthlyDeposit: GOV_MONTHLY_DEPOSIT + parentDep,
-            giftTarget: Number(giftTarget) || 0,
-            extraMonthly: Number(extraMonthly) || 0,
-            extraVehicle,
-          })}
-          className="btn-botanical flex-1 text-[12px] py-2 px-3"
+          onClick={() =>
+            onSave({
+              childName: name,
+              dob,
+              provider,
+              track,
+              currentBalance: Number(balance) || 0,
+              parentDeposit: parentDep,
+              monthlyDeposit: GOV_MONTHLY_DEPOSIT + parentDep,
+              giftTarget: Number(giftTarget) || 0,
+              extraMonthly: Number(extraMonthly) || 0,
+              extraVehicle,
+            })
+          }
+          className="btn-botanical flex-1 px-3 py-2 text-[12px]"
         >
           שמור
         </button>
         <button
           onClick={onDelete}
-          className="px-3 py-2 rounded-lg border border-red-200 text-red-600 text-[12px] font-extrabold hover:bg-red-50 transition-colors"
+          className="rounded-lg border border-red-200 px-3 py-2 text-[12px] font-extrabold text-red-600 transition-colors hover:bg-red-50"
         >
           מחק
         </button>
@@ -469,7 +582,10 @@ function EditKidPanel({ kid, onSave, onDelete }: {
    Add kid form
    ════════════════════════════════════════════════════════════ */
 
-function AddKidForm({ onAdd, onCancel }: {
+function AddKidForm({
+  onAdd,
+  onCancel,
+}: {
   onAdd: (kid: KidSavings) => void;
   onCancel: () => void;
 }) {
@@ -486,7 +602,7 @@ function AddKidForm({ onAdd, onCancel }: {
   /* Live projection */
   const liveCalc = useMemo(() => {
     if (!dob) return null;
-    const selectedTrack = KIDS_TRACKS.find(t => t.key === track) || KIDS_TRACKS[1];
+    const selectedTrack = KIDS_TRACKS.find((t) => t.key === track) || KIDS_TRACKS[1];
     const age = childAge(dob);
     const yearsTo21 = Math.max(0, 21 - age);
     if (yearsTo21 <= 0) return null;
@@ -518,7 +634,7 @@ function AddKidForm({ onAdd, onCancel }: {
     const gap = target > 0 ? Math.max(0, target - totalNet) : 0;
     let monthlyNeeded = 0;
     if (gap > 0 && n21 > 0 && rM > 0) {
-      monthlyNeeded = Math.ceil((gap / 0.85) * rM / (Math.pow(1 + rM, n21) - 1));
+      monthlyNeeded = Math.ceil(((gap / 0.85) * rM) / (Math.pow(1 + rM, n21) - 1));
     } else if (gap > 0 && n21 > 0) {
       monthlyNeeded = Math.ceil(gap / n21);
     }
@@ -551,39 +667,68 @@ function AddKidForm({ onAdd, onCancel }: {
   };
 
   return (
-    <div className="p-4 rounded-xl border-2 border-dashed v-divider bg-gray-50 space-y-3">
-      <h4 className="text-[13px] font-extrabold text-verdant-ink text-right flex items-center gap-2 justify-end">
+    <div className="v-divider space-y-3 rounded-xl border-2 border-dashed bg-gray-50 p-4">
+      <h4 className="flex items-center justify-end gap-2 text-right text-[13px] font-extrabold text-verdant-ink">
         <span>הוספת ילד/ה</span>
-        <span className="material-symbols-outlined text-[18px] text-verdant-emerald">person_add</span>
+        <span className="material-symbols-outlined text-[18px] text-verdant-emerald">
+          person_add
+        </span>
       </h4>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-[10px] font-bold text-verdant-muted block mb-1 text-right">שם *</label>
-          <input className="inp w-full" value={name} onChange={e => setName(e.target.value)} placeholder="שם הילד/ה" />
+          <label className="mb-1 block text-right text-[10px] font-bold text-verdant-muted">
+            שם *
+          </label>
+          <input
+            className="inp w-full"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="שם הילד/ה"
+          />
         </div>
         <div>
-          <label className="text-[10px] font-bold text-verdant-muted block mb-1 text-right">תאריך לידה *</label>
-          <input className="inp w-full" type="date" value={dob} onChange={e => setDob(e.target.value)} />
+          <label className="mb-1 block text-right text-[10px] font-bold text-verdant-muted">
+            תאריך לידה *
+          </label>
+          <input
+            className="inp w-full"
+            type="date"
+            value={dob}
+            onChange={(e) => setDob(e.target.value)}
+          />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-[10px] font-bold text-verdant-muted block mb-1 text-right">בית השקעות</label>
-          <select className="inp w-full" value={provider} onChange={e => setProvider(e.target.value)}>
+          <label className="mb-1 block text-right text-[10px] font-bold text-verdant-muted">
+            בית השקעות
+          </label>
+          <select
+            className="inp w-full"
+            value={provider}
+            onChange={(e) => setProvider(e.target.value)}
+          >
             <option value="">בחר...</option>
-            {KIDS_PROVIDERS.map(p => <option key={p}>{p}</option>)}
+            {KIDS_PROVIDERS.map((p) => (
+              <option key={p}>{p}</option>
+            ))}
           </select>
         </div>
         <div>
-          <label className="text-[10px] font-bold text-verdant-muted block mb-1 text-right">מסלול</label>
+          <label className="mb-1 block text-right text-[10px] font-bold text-verdant-muted">
+            מסלול
+          </label>
           <div className="grid grid-cols-3 gap-1">
-            {KIDS_TRACKS.filter(t => t.key !== "halacha").map(t => (
-              <button key={t.key}
+            {KIDS_TRACKS.filter((t) => t.key !== "halacha").map((t) => (
+              <button
+                key={t.key}
                 onClick={() => setTrack(t.key)}
-                className={`px-2 py-2 rounded-lg text-[10px] font-extrabold border transition-all ${
-                  track === t.key ? "text-white shadow-sm" : "bg-white text-verdant-ink hover:bg-gray-100"
+                className={`rounded-lg border px-2 py-2 text-[10px] font-extrabold transition-all ${
+                  track === t.key
+                    ? "text-white shadow-sm"
+                    : "bg-white text-verdant-ink hover:bg-gray-100"
                 }`}
                 style={{
                   borderColor: track === t.key ? TRACK_COLORS[t.key] : "#d8e0d0",
@@ -591,7 +736,7 @@ function AddKidForm({ onAdd, onCancel }: {
                 }}
               >
                 {t.label}
-                <div className="text-[8px] font-bold mt-0.5 opacity-80">
+                <div className="mt-0.5 text-[8px] font-bold opacity-80">
                   {(t.expectedReturn * 100).toFixed(1)}%
                 </div>
               </button>
@@ -602,19 +747,35 @@ function AddKidForm({ onAdd, onCancel }: {
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-[10px] font-bold text-verdant-muted block mb-1 text-right">יתרה נוכחית ₪</label>
-          <input className="inp w-full" type="number" min="0" value={balance} onChange={e => setBalance(e.target.value)} />
+          <label className="mb-1 block text-right text-[10px] font-bold text-verdant-muted">
+            יתרה נוכחית ₪
+          </label>
+          <input
+            className="inp w-full"
+            type="number"
+            min="0"
+            value={balance}
+            onChange={(e) => setBalance(e.target.value)}
+          />
         </div>
         <div>
-          <label className="text-[10px] font-bold text-verdant-muted block mb-1 text-right">הפקדת הורים (₪{PARENT_MONTHLY_MAX}/חודש)</label>
+          <label className="mb-1 block text-right text-[10px] font-bold text-verdant-muted">
+            הפקדת הורים (₪{PARENT_MONTHLY_MAX}/חודש)
+          </label>
           <div className="grid grid-cols-2 gap-1">
-            {([{ label: "כן", value: PARENT_MONTHLY_MAX }, { label: "לא", value: 0 }] as const).map(opt => (
-              <button key={opt.label}
+            {(
+              [
+                { label: "כן", value: PARENT_MONTHLY_MAX },
+                { label: "לא", value: 0 },
+              ] as const
+            ).map((opt) => (
+              <button
+                key={opt.label}
                 onClick={() => setParentDep(opt.value)}
-                className={`px-2 py-1.5 rounded-lg text-[11px] font-extrabold border transition-all ${
+                className={`rounded-lg border px-2 py-1.5 text-[11px] font-extrabold transition-all ${
                   parentDep === opt.value
-                    ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                    : "bg-white text-verdant-ink border-gray-300 hover:bg-gray-100"
+                    ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                    : "border-gray-300 bg-white text-verdant-ink hover:bg-gray-100"
                 }`}
               >
                 {opt.label}
@@ -625,21 +786,44 @@ function AddKidForm({ onAdd, onCancel }: {
       </div>
 
       {/* Target + extra */}
-      <div className="border-t v-divider pt-3">
+      <div className="v-divider border-t pt-3">
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className="text-[10px] font-bold text-verdant-muted block mb-1 text-right">יעד גיל 21 ₪</label>
-            <input className="inp w-full" type="number" min="0" step="10000" value={giftTarget}
-              onChange={e => setGiftTarget(e.target.value)} placeholder="300,000" />
+            <label className="mb-1 block text-right text-[10px] font-bold text-verdant-muted">
+              יעד גיל 21 ₪
+            </label>
+            <input
+              className="inp w-full"
+              type="number"
+              min="0"
+              step="10000"
+              value={giftTarget}
+              onChange={(e) => setGiftTarget(e.target.value)}
+              placeholder="300,000"
+            />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-verdant-muted block mb-1 text-right">הפקדה נוספת ₪/חודש</label>
-            <input className="inp w-full" type="number" min="0" value={extraMonthly}
-              onChange={e => setExtraMonthly(e.target.value)} placeholder="0" />
+            <label className="mb-1 block text-right text-[10px] font-bold text-verdant-muted">
+              הפקדה נוספת ₪/חודש
+            </label>
+            <input
+              className="inp w-full"
+              type="number"
+              min="0"
+              value={extraMonthly}
+              onChange={(e) => setExtraMonthly(e.target.value)}
+              placeholder="0"
+            />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-verdant-muted block mb-1 text-right">כלי</label>
-            <select className="inp w-full" value={extraVehicle} onChange={e => setExtraVehicle(e.target.value)}>
+            <label className="mb-1 block text-right text-[10px] font-bold text-verdant-muted">
+              כלי
+            </label>
+            <select
+              className="inp w-full"
+              value={extraVehicle}
+              onChange={(e) => setExtraVehicle(e.target.value)}
+            >
               <option value="gemel">קופ״ג להשקעה</option>
               <option value="broker">תיק מסחר</option>
             </select>
@@ -648,11 +832,15 @@ function AddKidForm({ onAdd, onCancel }: {
 
         {/* Live result */}
         {liveCalc && (
-          <div className={`mt-3 p-3 rounded-lg border ${
-            Number(giftTarget) > 0
-              ? (liveCalc.gap > 0 ? "bg-amber-50 border-amber-200" : "bg-green-50 border-green-200")
-              : "bg-white border-gray-200"
-          }`}>
+          <div
+            className={`mt-3 rounded-lg border p-3 ${
+              Number(giftTarget) > 0
+                ? liveCalc.gap > 0
+                  ? "border-amber-200 bg-amber-50"
+                  : "border-green-200 bg-green-50"
+                : "border-gray-200 bg-white"
+            }`}
+          >
             <div className="flex items-center justify-between">
               <div className="text-right">
                 {Number(giftTarget) > 0 ? (
@@ -666,20 +854,23 @@ function AddKidForm({ onAdd, onCancel }: {
                       </div>
                     </>
                   ) : (
-                    <div className="text-[11px] font-bold text-green-700 flex items-center gap-1">
+                    <div className="flex items-center gap-1 text-[11px] font-bold text-green-700">
                       <span className="material-symbols-outlined text-[14px]">check_circle</span>
                       היעד מושג!
                     </div>
                   )
                 ) : (
                   <div className="text-[9px] font-bold text-verdant-muted">
-                    {liveCalc.trackLabel} ({(liveCalc.trackReturn * 100).toFixed(1)}%) · {Math.round(liveCalc.yearsTo21)} שנים
+                    {liveCalc.trackLabel} ({(liveCalc.trackReturn * 100).toFixed(1)}%) ·{" "}
+                    {Math.round(liveCalc.yearsTo21)} שנים
                   </div>
                 )}
               </div>
               <div className="text-right">
                 <div className="text-[9px] font-bold text-verdant-muted">צפי נטו גיל 21</div>
-                <div className="text-[15px] font-extrabold tabular-nums text-verdant-ink">{fmtILS(liveCalc.totalNet)}</div>
+                <div className="text-[15px] font-extrabold tabular-nums text-verdant-ink">
+                  {fmtILS(liveCalc.totalNet)}
+                </div>
               </div>
             </div>
           </div>
@@ -690,14 +881,11 @@ function AddKidForm({ onAdd, onCancel }: {
         <button
           onClick={handleAdd}
           disabled={!name || !dob}
-          className="btn-botanical flex-1 text-[12px] py-2 px-3 disabled:opacity-40"
+          className="btn-botanical flex-1 px-3 py-2 text-[12px] disabled:opacity-40"
         >
           הוסף
         </button>
-        <button
-          onClick={onCancel}
-          className="btn-botanical-ghost text-[12px] py-2 px-3"
-        >
+        <button onClick={onCancel} className="btn-botanical-ghost px-3 py-2 text-[12px]">
           ביטול
         </button>
       </div>

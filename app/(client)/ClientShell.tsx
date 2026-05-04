@@ -8,14 +8,22 @@ import { useClient } from "@/lib/client-context";
 import { startSessionWatcher } from "@/lib/session-security";
 import { isSupabaseConfigured } from "@/lib/supabase/browser";
 
-export function ClientShell({ children, isAdvisor = false }: { children: React.ReactNode; isAdvisor?: boolean }) {
+export function ClientShell({
+  children,
+  isAdvisor = false,
+}: {
+  children: React.ReactNode;
+  isAdvisor?: boolean;
+}) {
   const { familyName, membersCount, loading } = useClient();
   // Mobile: sidebar is a slide-over drawer. Closed by default.
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const pathname = usePathname();
   // Auto-close drawer when route changes (so tapping a link doesn't leave
   // the menu hovering above the new screen).
-  useEffect(() => { setMobileNavOpen(false); }, [pathname]);
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
 
   // Start idle-timeout watcher (only when real auth is active — skip in demo mode)
   useEffect(() => {
@@ -32,7 +40,22 @@ export function ClientShell({ children, isAdvisor = false }: { children: React.R
   // number without first clearing the old one. Skip checkboxes, ranges,
   // dates, and password/email fields where select-on-focus is awkward.
   useEffect(() => {
-    const SKIP_TYPES = new Set(["checkbox", "radio", "range", "submit", "button", "color", "file", "date", "datetime-local", "month", "week", "time", "password", "email"]);
+    const SKIP_TYPES = new Set([
+      "checkbox",
+      "radio",
+      "range",
+      "submit",
+      "button",
+      "color",
+      "file",
+      "date",
+      "datetime-local",
+      "month",
+      "week",
+      "time",
+      "password",
+      "email",
+    ]);
     const handler = (e: FocusEvent) => {
       const target = e.target as HTMLElement | null;
       if (!target) return;
@@ -45,12 +68,16 @@ export function ClientShell({ children, isAdvisor = false }: { children: React.R
         // Defer one tick — Safari sometimes double-fires focus and a sync
         // select() races with the click placing the cursor.
         requestAnimationFrame(() => {
-          try { target.select(); } catch {}
+          try {
+            target.select();
+          } catch {}
         });
       } else if (target instanceof HTMLTextAreaElement) {
         if (target.dataset.noAutoselect === "true") return;
         requestAnimationFrame(() => {
-          try { target.select(); } catch {}
+          try {
+            target.select();
+          } catch {}
         });
       }
     };
@@ -63,7 +90,7 @@ export function ClientShell({ children, isAdvisor = false }: { children: React.R
       {/* Mobile top bar — hamburger + brand. Hidden on md+ where the sidebar
           is permanently visible. */}
       <header
-        className="md:hidden fixed top-0 inset-x-0 h-14 z-20 flex items-center justify-between px-4"
+        className="fixed inset-x-0 top-0 z-20 flex h-14 items-center justify-between px-4 md:hidden"
         style={{
           background: "#012D1D",
           color: "#F9FAF2",
@@ -75,12 +102,16 @@ export function ClientShell({ children, isAdvisor = false }: { children: React.R
           type="button"
           aria-label="פתח תפריט"
           onClick={() => setMobileNavOpen(true)}
-          className="w-10 h-10 flex items-center justify-center rounded-xl active:bg-white/10"
+          className="flex h-10 w-10 items-center justify-center rounded-xl active:bg-white/10"
         >
           <span className="material-symbols-outlined text-[24px]">menu</span>
         </button>
         <div className="flex items-center gap-2">
-          <span style={{ fontSize: 16, fontWeight: 800, fontFamily: "Manrope, Assistant, sans-serif" }}>פלאן</span>
+          <span
+            style={{ fontSize: 16, fontWeight: 800, fontFamily: "Manrope, Assistant, sans-serif" }}
+          >
+            פלאן
+          </span>
         </div>
         <div className="w-10" />
       </header>
@@ -88,7 +119,7 @@ export function ClientShell({ children, isAdvisor = false }: { children: React.R
       {/* Backdrop — only on mobile, only when drawer is open. */}
       {mobileNavOpen && (
         <div
-          className="md:hidden fixed inset-0 z-30 bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm md:hidden"
           onClick={() => setMobileNavOpen(false)}
           aria-hidden
         />
@@ -113,8 +144,8 @@ export function ClientShell({ children, isAdvisor = false }: { children: React.R
 
       {/* Main content — pad-top on mobile to clear the fixed header,
           right-margin on md+ to clear the fixed sidebar. */}
-      <main className="md:mr-[280px] min-h-screen px-3 sm:px-6 md:px-10 pt-16 md:pt-8 pb-8">
-        <div className="flex justify-start mb-6">
+      <main className="min-h-screen px-3 pb-8 pt-16 sm:px-6 md:mr-[280px] md:px-10 md:pt-8">
+        <div className="mb-6 flex justify-start">
           <ClientSwitcher />
         </div>
         {children}

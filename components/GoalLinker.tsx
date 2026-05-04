@@ -44,7 +44,13 @@ interface Props {
   allowMulti?: boolean;
 }
 
-export function GoalLinker({ assetType, assetId, assetValue, variant = "compact", allowMulti = true }: Props) {
+export function GoalLinker({
+  assetType,
+  assetId,
+  assetValue,
+  variant = "compact",
+  allowMulti = true,
+}: Props) {
   const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [links, setLinks] = useState<AssetGoalLink[]>([]);
   const [showAdd, setShowAdd] = useState(false);
@@ -82,19 +88,31 @@ export function GoalLinker({ assetType, assetId, assetValue, variant = "compact"
     refresh();
   };
 
-  const totalPct = useMemo(() => totalAllocatedPct(assetType, assetId, Object.fromEntries(links.map(l => [`${l.assetType}:${l.assetId}:${l.goalId}`, l]))), [links, assetType, assetId]);
+  const totalPct = useMemo(
+    () =>
+      totalAllocatedPct(
+        assetType,
+        assetId,
+        Object.fromEntries(links.map((l) => [`${l.assetType}:${l.assetId}:${l.goalId}`, l]))
+      ),
+    [links, assetType, assetId]
+  );
   const overAllocated = totalPct > 100;
 
   // Hide already-linked goals from "add more" dropdown
   const availableBuckets = useMemo(() => {
-    const used = new Set(links.map(l => l.goalId));
-    return buckets.filter(b => !used.has(b.id));
+    const used = new Set(links.map((l) => l.goalId));
+    return buckets.filter((b) => !used.has(b.id));
   }, [buckets, links]);
 
   // Empty state — no buckets at all
   if (buckets.length === 0) {
     return (
-      <div className={variant === "card" ? "text-[11px] text-verdant-muted" : "text-[10px] text-verdant-muted"}>
+      <div
+        className={
+          variant === "card" ? "text-[11px] text-verdant-muted" : "text-[10px] text-verdant-muted"
+        }
+      >
         לא הוגדרו יעדים
       </div>
     );
@@ -141,11 +159,11 @@ export function GoalLinker({ assetType, assetId, assetValue, variant = "compact"
                 className={pctInputCls}
                 style={{ borderColor: "#d8e0d0", background: "#f0fdf4" }}
               />
-              <span className="text-[9px] text-verdant-muted font-bold">%</span>
+              <span className="text-[9px] font-bold text-verdant-muted">%</span>
             </div>
             <button
               onClick={() => handleRemove(link.goalId)}
-              className="p-0.5 rounded hover:bg-red-50"
+              className="rounded p-0.5 hover:bg-red-50"
               title="הסר שיוך"
             >
               <span className="material-symbols-outlined text-[14px] text-red-400">close</span>

@@ -12,21 +12,28 @@ export type InstrumentType = "bank_account" | "credit_card";
 
 export interface FinancialInstrument {
   type: InstrumentType;
-  institution: string;        // e.g. "בנק הפועלים", "ישראכרט"
-  identifier: string;         // account number or last 4 digits
-  label: string;              // display string, e.g. "בנק הפועלים (חשבון 351141)"
+  institution: string; // e.g. "בנק הפועלים", "ישראכרט"
+  identifier: string; // account number or last 4 digits
+  label: string; // display string, e.g. "בנק הפועלים (חשבון 351141)"
 }
 
 /**
  * Known credit card companies — used to classify instrument type.
  */
 const CREDIT_CARD_INSTITUTIONS = [
-  "ישראכרט", "כאל", "מקס", "ויזה כאל", "ויזה", "אמריקן אקספרס",
-  "לאומי ויזה", "ויזה בינלאומי", "דיינרס",
+  "ישראכרט",
+  "כאל",
+  "מקס",
+  "ויזה כאל",
+  "ויזה",
+  "אמריקן אקספרס",
+  "לאומי ויזה",
+  "ויזה בינלאומי",
+  "דיינרס",
 ];
 
 function isCreditCardInstitution(bank: string): boolean {
-  return CREDIT_CARD_INSTITUTIONS.some(cc => bank.includes(cc));
+  return CREDIT_CARD_INSTITUTIONS.some((cc) => bank.includes(cc));
 }
 
 /**
@@ -134,7 +141,7 @@ export function extractInstruments(text: string, bankHint: string): FinancialIns
 
   // ── Pattern 4: If bank detected as credit card but no card found, use bankHint itself ──
   // Some credit card statements show "ישראכרט" in header but last-4 is in a specific format
-  if (isCreditCard && found.filter(f => f.type === "credit_card").length === 0) {
+  if (isCreditCard && found.filter((f) => f.type === "credit_card").length === 0) {
     // Try a broader pattern: any standalone 4-digit number near "כרטיס" or at top of document
     const topText = cleaned.substring(0, 500);
     const broadCardRx = /\b(\d{4})\b/g;
@@ -180,15 +187,19 @@ export function loadInstruments(): FinancialInstrument[] {
     if (!raw) return [];
     const parsed: StoredInstruments = JSON.parse(raw);
     return parsed.instruments || [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 /**
  * Merge newly detected instruments into the stored list (dedup by key).
  */
-export function mergeAndSaveInstruments(newInstruments: FinancialInstrument[]): FinancialInstrument[] {
+export function mergeAndSaveInstruments(
+  newInstruments: FinancialInstrument[]
+): FinancialInstrument[] {
   const existing = loadInstruments();
-  const seen = new Set(existing.map(i => `${i.type}::${i.institution}::${i.identifier}`));
+  const seen = new Set(existing.map((i) => `${i.type}::${i.institution}::${i.identifier}`));
   const merged = [...existing];
 
   for (const inst of newInstruments) {
@@ -213,9 +224,12 @@ export function mergeAndSaveInstruments(newInstruments: FinancialInstrument[]): 
 /**
  * Get summary counts.
  */
-export function getInstrumentSummary(instruments: FinancialInstrument[]): { banks: number; cards: number } {
+export function getInstrumentSummary(instruments: FinancialInstrument[]): {
+  banks: number;
+  cards: number;
+} {
   return {
-    banks: instruments.filter(i => i.type === "bank_account").length,
-    cards: instruments.filter(i => i.type === "credit_card").length,
+    banks: instruments.filter((i) => i.type === "bank_account").length,
+    cards: instruments.filter((i) => i.type === "credit_card").length,
   };
 }

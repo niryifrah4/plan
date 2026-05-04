@@ -26,7 +26,7 @@ function stripHtmlToText(buffer: Buffer): string {
   return text
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<table[\s\S]*?<\/table>/gi, " ")  // ← strip table content
+    .replace(/<table[\s\S]*?<\/table>/gi, " ") // ← strip table content
     .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
@@ -84,17 +84,27 @@ function parseHtmlToRows(buffer: Buffer): string[][] | null {
  * (single column with + for income, - for expense)
  */
 function isCombinedAmountHeader(header: string): boolean {
-  const lower = header.trim().replace(/[\u200F\u200E]/g, "").toLowerCase();
-  return ["סכום", "amount", "סכום העסקה", "סכום בש\"ח", "₪ זכות/חובה", "זכות/חובה"].includes(lower);
+  const lower = header
+    .trim()
+    .replace(/[\u200F\u200E]/g, "")
+    .toLowerCase();
+  return ["סכום", "amount", "סכום העסקה", 'סכום בש"ח', "₪ זכות/חובה", "זכות/חובה"].includes(lower);
 }
 
 /**
  * Detect if this is a credit card format (single amount column = expense)
  */
 function isCreditCardBank(bankHint: string): boolean {
-  return ["ישראכרט", "כאל", "מקס", "ויזה כאל", "ויזה", "אמריקן אקספרס", "דיינרס", "לאומי קארד"].some(
-    cc => bankHint.includes(cc)
-  );
+  return [
+    "ישראכרט",
+    "כאל",
+    "מקס",
+    "ויזה כאל",
+    "ויזה",
+    "אמריקן אקספרס",
+    "דיינרס",
+    "לאומי קארד",
+  ].some((cc) => bankHint.includes(cc));
 }
 
 /**
@@ -120,26 +130,23 @@ export function parseExcel(buffer: Buffer, filename: string): ParsedDocument {
     //   1. Skip sheets whose name contains "סיכום"/"summary"/"cover".
     //   2. From remaining, pick the sheet with the most NON-EMPTY rows.
     //   3. Fallback: first sheet.
-    const candidateSheets = workbook.SheetNames
-      .map(name => ({
-        name,
-        rows: XLSX.utils.sheet_to_json(workbook.Sheets[name], {
-          header: 1,
-          defval: "",
-          raw: false,
-        }) as string[][],
-      }))
-      .map(s => ({
-        ...s,
-        nonEmpty: s.rows.filter(r => r && r.some(c => String(c).trim() !== "")).length,
-      }));
+    const candidateSheets = workbook.SheetNames.map((name) => ({
+      name,
+      rows: XLSX.utils.sheet_to_json(workbook.Sheets[name], {
+        header: 1,
+        defval: "",
+        raw: false,
+      }) as string[][],
+    })).map((s) => ({
+      ...s,
+      nonEmpty: s.rows.filter((r) => r && r.some((c) => String(c).trim() !== "")).length,
+    }));
 
-    const isSummaryName = (n: string) =>
-      /סיכום|summary|cover|index/i.test(n);
+    const isSummaryName = (n: string) => /סיכום|summary|cover|index/i.test(n);
 
     let pick =
       candidateSheets
-        .filter(s => !isSummaryName(s.name))
+        .filter((s) => !isSummaryName(s.name))
         .sort((a, b) => b.nonEmpty - a.nonEmpty)[0] ??
       candidateSheets.sort((a, b) => b.nonEmpty - a.nonEmpty)[0];
 
@@ -184,9 +191,13 @@ export function parseExcel(buffer: Buffer, filename: string): ParsedDocument {
       }
     }
 
-    if (matchCount >= 2 && detected.date !== undefined && (detected.description !== undefined || detected.debit !== undefined)) {
+    if (
+      matchCount >= 2 &&
+      detected.date !== undefined &&
+      (detected.description !== undefined || detected.debit !== undefined)
+    ) {
       headerRowIdx = i;
-      headerRow = row.map(c => String(c));
+      headerRow = row.map((c) => String(c));
 
       // Check if we have BOTH debit and credit columns (bank format)
       hasSeparateDebitCredit = detected.debit !== undefined && detected.credit !== undefined;
@@ -205,9 +216,14 @@ export function parseExcel(buffer: Buffer, filename: string): ParsedDocument {
   // Detect bank from metadata rows only (before header), NOT from transaction descriptions
   // This prevents false matches when transaction text mentions other banks (e.g. "העברה מ...בנק הפועלים")
   const metadataText = [
-    rows.slice(0, Math.max(headerRowIdx, 0) + 1).flat().join(" "),
+    rows
+      .slice(0, Math.max(headerRowIdx, 0) + 1)
+      .flat()
+      .join(" "),
     htmlMetaText,
-  ].filter(Boolean).join(" ");
+  ]
+    .filter(Boolean)
+    .join(" ");
   const fullText = [rows.flat().join(" "), htmlMetaText].filter(Boolean).join(" ");
   let bankHint = detectBank(metadataText);
   // Header-based bank detection for banks that don't mention their name in metadata
@@ -256,7 +272,9 @@ export function parseExcel(buffer: Buffer, filename: string): ParsedDocument {
   // Scan date column — if ANY value has second number > 12, the format must be M/D/YY
   let isMonthDayYear = false;
   for (let i = headerRowIdx + 1; i < rows.length; i++) {
-    const raw = String(rows[i]?.[mapping.date] ?? "").trim().replace(/[\u200F\u200E]/g, "");
+    const raw = String(rows[i]?.[mapping.date] ?? "")
+      .trim()
+      .replace(/[\u200F\u200E]/g, "");
     const m = raw.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})$/);
     if (m && parseInt(m[2]) > 12) {
       isMonthDayYear = true;
@@ -320,7 +338,8 @@ export function parseExcel(buffer: Buffer, filename: string): ParsedDocument {
       // Israeli banks: חובה = money going OUT (expense, positive in our model)
       //                זכות = money coming IN (income, negative in our model)
       const hasDebit = rawDebit !== undefined && String(rawDebit).trim() !== "" && debitVal !== 0;
-      const hasCredit = rawCredit !== undefined && String(rawCredit).trim() !== "" && creditVal !== 0;
+      const hasCredit =
+        rawCredit !== undefined && String(rawCredit).trim() !== "" && creditVal !== 0;
 
       if (hasDebit && hasCredit) {
         // Both filled — take whichever is non-zero. Debit wins if both are non-zero.
@@ -360,7 +379,13 @@ export function parseExcel(buffer: Buffer, filename: string): ParsedDocument {
     if (amount === 0) {
       // Check if there's ANY numeric value in other columns we might have missed
       for (let col = 0; col < row.length; col++) {
-        if (col === mapping.date || col === mapping.description || col === mapping.debit || col === mapping.credit) continue;
+        if (
+          col === mapping.date ||
+          col === mapping.description ||
+          col === mapping.debit ||
+          col === mapping.credit
+        )
+          continue;
         if (mapping.balance !== undefined && col === mapping.balance) continue;
         const fallbackVal = cleanAmount(row[col]);
         if (fallbackVal !== 0) {
@@ -386,9 +411,14 @@ export function parseExcel(buffer: Buffer, filename: string): ParsedDocument {
     warnings.push("לא זוהו תנועות — ייתכן שהפורמט לא תואם. בדוק שיש כותרות ברורות בקובץ.");
   }
 
-  const totalDebit = transactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-  const totalCredit = transactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
-  const dates = transactions.map(t => t.date).filter(Boolean).sort();
+  const totalDebit = transactions.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const totalCredit = transactions
+    .filter((t) => t.amount < 0)
+    .reduce((s, t) => s + Math.abs(t.amount), 0);
+  const dates = transactions
+    .map((t) => t.date)
+    .filter(Boolean)
+    .sort();
 
   // Extract financial instruments from full sheet text (headers + metadata rows)
   const instruments = extractInstruments(fullText, bankHint);

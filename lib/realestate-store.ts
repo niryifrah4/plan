@@ -21,25 +21,25 @@ const BLOB_KEY = "realestate_properties";
 
 export interface Property {
   id: string;
-  name: string;                    // "דירת מגורים רחוב אבן גבירול 38"
+  name: string; // "דירת מגורים רחוב אבן גבירול 38"
   type: "residence" | "investment" | "commercial" | "land";
   address?: string;
   city?: string;
-  purchaseDate?: string;           // YYYY-MM
-  purchasePrice: number;           // מחיר רכישה
-  currentValue: number;            // שווי נוכחי (הערכה)
-  area?: number;                   // שטח במ"ר
+  purchaseDate?: string; // YYYY-MM
+  purchasePrice: number; // מחיר רכישה
+  currentValue: number; // שווי נוכחי (הערכה)
+  area?: number; // שטח במ"ר
   rooms?: number;
-  monthlyRent?: number;            // שכ"ד חודשי (אם להשקעה)
-  monthlyExpenses?: number;        // ועד בית, ארנונה, ביטוח, תחזוקה
-  monthlyMortgage?: number;        // החזר משכנתא חודשי על הנכס הזה
-  mortgageBalance?: number;        // יתרת משכנתא
-  mortgageLinked?: boolean;        // האם יש משכנתא צמודה (מגיעה מ-debt store)
-  annualAppreciation?: number;     // הערכת עליית ערך שנתית (ברירת מחדל 3%)
-  oneTimeAppreciation?: number;    // עליית ערך חד-פעמית (שיפוץ/תמ"א) — סכום בש"ח
-  oneTimeAppreciationYear?: number;// באיזו שנה תתרחש (1 = שנה ראשונה)
-  holdingYears?: number;           // תכנון להחזיק בנכס כמה שנים (לצורכי IRR/יציאה)
-  annualRentGrowth?: number;       // גידול שנתי של שכ״ד (ברירת מחדל: כמו annualAppreciation, בד״כ 3%)
+  monthlyRent?: number; // שכ"ד חודשי (אם להשקעה)
+  monthlyExpenses?: number; // ועד בית, ארנונה, ביטוח, תחזוקה
+  monthlyMortgage?: number; // החזר משכנתא חודשי על הנכס הזה
+  mortgageBalance?: number; // יתרת משכנתא
+  mortgageLinked?: boolean; // האם יש משכנתא צמודה (מגיעה מ-debt store)
+  annualAppreciation?: number; // הערכת עליית ערך שנתית (ברירת מחדל 3%)
+  oneTimeAppreciation?: number; // עליית ערך חד-פעמית (שיפוץ/תמ"א) — סכום בש"ח
+  oneTimeAppreciationYear?: number; // באיזו שנה תתרחש (1 = שנה ראשונה)
+  holdingYears?: number; // תכנון להחזיק בנכס כמה שנים (לצורכי IRR/יציאה)
+  annualRentGrowth?: number; // גידול שנתי של שכ״ד (ברירת מחדל: כמו annualAppreciation, בד״כ 3%)
   notes?: string;
   /**
    * 2026-04-28: Owner's primary residence ("דירה יחידה"). Drives the
@@ -62,40 +62,48 @@ function migrateFromOnboarding(): Property[] {
   const raw = localStorage.getItem(scopedKey(ONBOARDING_ASSETS_KEY));
   if (!raw) return [];
   try {
-    const assets: { type: string; desc: string; value: string; rent?: string; rentExpenses?: string }[] = JSON.parse(raw);
+    const assets: {
+      type: string;
+      desc: string;
+      value: string;
+      rent?: string;
+      rentExpenses?: string;
+    }[] = JSON.parse(raw);
     // Filter only explicit real-estate types — startsWith("נדל") prevents
     // "קופת גמל להשקעה" or other investment types from slipping through.
-    return assets
-      .filter(a => a.type.startsWith("נדל"))
-      // Skip empty placeholder rows — the onboarding form seeds a default
-      // `{ type: "נדל\"ן למגורים", desc: "", value: "" }` row so the first
-      // property has something to fill. Without this filter it becomes a
-      // ghost residence on the /realestate page the moment the user adds
-      // their first real property.
-      .filter(a => (Number(a.value) || 0) > 0 || (a.desc && a.desc.trim()))
-      .map((a) => {
-        const isInvestment = a.type === "נדל\"ן להשקעה";
-        const rent = Number(a.rent) || 0;
-        const rentExp = Number(a.rentExpenses) || 0;
-        return {
-          // Stable id — same format the onboarding-sync step uses. This keeps
-          // both code paths (first-time migration + re-sync on autosave)
-          // converging onto a single property record, so rent updates from
-          // the questionnaire patch the existing row instead of duplicating.
-          id: `onb_prop_${a.type}_${a.desc || ""}`,
-          name: a.desc || a.type,
-          // Exact match on investment real-estate — NOT substring "השקעה" which would
-          // incorrectly catch "קופת גמל להשקעה".
-          type: isInvestment ? "investment" as const : "residence" as const,
-          purchasePrice: Number(a.value) || 0,
-          currentValue: Number(a.value) || 0,
-          annualAppreciation: 0.03,
-          annualRentGrowth: 0.03,
-          holdingYears: 10,
-          ...(isInvestment && rent > 0 ? { monthlyRent: rent } : {}),
-          ...(isInvestment && rentExp > 0 ? { monthlyExpenses: rentExp } : {}),
-        };
-      });
+    return (
+      assets
+        .filter((a) => a.type.startsWith("נדל"))
+        // Skip empty placeholder rows — the onboarding form seeds a default
+        // `{ type: "נדל\"ן למגורים", desc: "", value: "" }` row so the first
+        // property has something to fill. Without this filter it becomes a
+        // ghost residence on the /realestate page the moment the user adds
+        // their first real property.
+        .filter((a) => (Number(a.value) || 0) > 0 || (a.desc && a.desc.trim()))
+        .map((a) => {
+          const isInvestment = a.type === 'נדל"ן להשקעה';
+          const rent = Number(a.rent) || 0;
+          const rentExp = Number(a.rentExpenses) || 0;
+          return {
+            // Stable id — same format the onboarding-sync step uses. This keeps
+            // both code paths (first-time migration + re-sync on autosave)
+            // converging onto a single property record, so rent updates from
+            // the questionnaire patch the existing row instead of duplicating.
+            id: `onb_prop_${a.type}_${a.desc || ""}`,
+            name: a.desc || a.type,
+            // Exact match on investment real-estate — NOT substring "השקעה" which would
+            // incorrectly catch "קופת גמל להשקעה".
+            type: isInvestment ? ("investment" as const) : ("residence" as const),
+            purchasePrice: Number(a.value) || 0,
+            currentValue: Number(a.value) || 0,
+            annualAppreciation: 0.03,
+            annualRentGrowth: 0.03,
+            holdingYears: 10,
+            ...(isInvestment && rent > 0 ? { monthlyRent: rent } : {}),
+            ...(isInvestment && rentExp > 0 ? { monthlyExpenses: rentExp } : {}),
+          };
+        })
+    );
   } catch {
     return [];
   }
@@ -150,13 +158,13 @@ export function addProperty(prop: Property) {
 
 export function updateProperty(id: string, patch: Partial<Property>) {
   const all = loadProperties();
-  const idx = all.findIndex(p => p.id === id);
+  const idx = all.findIndex((p) => p.id === id);
   if (idx >= 0) all[idx] = { ...all[idx], ...patch };
   saveProperties(all);
 }
 
 export function deleteProperty(id: string) {
-  saveProperties(loadProperties().filter(p => p.id !== id));
+  saveProperties(loadProperties().filter((p) => p.id !== id));
 }
 
 /**
@@ -166,14 +174,12 @@ export function deleteProperty(id: string) {
  * older usually = the actual primary the user already owned.
  */
 function dedupePrimaryFlags(props: Property[]): Property[] {
-  const flagged = props.filter(p => p.isPrimaryResidence);
+  const flagged = props.filter((p) => p.isPrimaryResidence);
   if (flagged.length <= 1) return props;
   // Sort by id (created order ~ insertion). Keep first; clear the rest.
   const keep = flagged[0].id;
-  return props.map(p =>
-    p.isPrimaryResidence && p.id !== keep
-      ? { ...p, isPrimaryResidence: false }
-      : p
+  return props.map((p) =>
+    p.isPrimaryResidence && p.id !== keep ? { ...p, isPrimaryResidence: false } : p
   );
 }
 
@@ -197,9 +203,8 @@ export function propertyCAGR(prop: Property): {
   yearsHeld: number;
 } | null {
   if (!prop.purchaseDate || !prop.purchasePrice || prop.purchasePrice <= 0) return null;
-  const purchaseMs = new Date(prop.purchaseDate.length === 7
-    ? prop.purchaseDate + "-01"
-    : prop.purchaseDate
+  const purchaseMs = new Date(
+    prop.purchaseDate.length === 7 ? prop.purchaseDate + "-01" : prop.purchaseDate
   ).getTime();
   if (isNaN(purchaseMs)) return null;
   const yearsHeld = Math.max(0, (Date.now() - purchaseMs) / (1000 * 60 * 60 * 24 * 365.25));
@@ -225,7 +230,10 @@ export function propertyCAGR(prop: Property): {
  *  - "taxable"      : capital gains tax applies on the realized gain
  *  - "unknown"      : missing dates — UI should ask the user to fill in
  */
-export function propertyTaxStatus(prop: Property, all: Property[]): {
+export function propertyTaxStatus(
+  prop: Property,
+  all: Property[]
+): {
   status: "exempt" | "overlap" | "taxable" | "unknown";
   monthsLeft?: number;
   message: string;
@@ -237,28 +245,27 @@ export function propertyTaxStatus(prop: Property, all: Property[]): {
 
   // Treat a property as "primary" if explicitly flagged, OR if it's the
   // only residence in the portfolio with type="residence".
-  const residences = all.filter(p => p.type === "residence");
-  const flagged = all.filter(p => p.isPrimaryResidence);
-  const isPrimary = prop.isPrimaryResidence ||
-    (residences.length === 1 && residences[0].id === prop.id);
+  const residences = all.filter((p) => p.type === "residence");
+  const flagged = all.filter((p) => p.isPrimaryResidence);
+  const isPrimary =
+    prop.isPrimaryResidence || (residences.length === 1 && residences[0].id === prop.id);
 
   if (residences.length <= 1 && (isPrimary || prop.type === "residence")) {
     // 2026-04-28: ceiling note added per finance audit. Properties valued
     // above ₪4.5M get only PARTIAL exemption — message must reflect this.
-    const message = (prop.currentValue || 0) > 4_500_000
-      ? "פטור חלקי — מעל תקרה ₪4.5M"
-      : "פטור — דירה יחידה";
+    const message =
+      (prop.currentValue || 0) > 4_500_000 ? "פטור חלקי — מעל תקרה ₪4.5M" : "פטור — דירה יחידה";
     return { status: "exempt", message };
   }
 
   // Two+ residences: check 18-month overlap window from a primary purchase.
   // Pick the OTHER primary residence (the one we bought to replace).
-  const otherPrimary = flagged.find(p => p.id !== prop.id) ||
-    residences.find(p => p.id !== prop.id);
+  const otherPrimary =
+    flagged.find((p) => p.id !== prop.id) || residences.find((p) => p.id !== prop.id);
 
   if (otherPrimary?.purchaseDate) {
     const purchaseMs = new Date(prop.purchaseDate + "-01").getTime();
-    const otherMs    = new Date(otherPrimary.purchaseDate + "-01").getTime();
+    const otherMs = new Date(otherPrimary.purchaseDate + "-01").getTime();
     const diffMonths = Math.abs((purchaseMs - otherMs) / (1000 * 60 * 60 * 24 * 30.4375));
     if (diffMonths < 18) {
       const monthsLeft = Math.max(0, Math.ceil(18 - diffMonths));

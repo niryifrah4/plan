@@ -28,10 +28,10 @@ const STORAGE_KEY = "verdant:client_log";
 export const CLIENT_LOG_EVENT = "verdant:client_log:updated";
 
 export const LOG_TYPE_META: Record<LogEntryType, { label: string; icon: string; color: string }> = {
-  meeting: { label: "פגישה",       icon: "event",          color: "#1B4332" },
-  feeling: { label: "תחושה / רגש", icon: "psychology",     color: "#7c3aed" },
-  task:    { label: "משימה",       icon: "task_alt",       color: "#b45309" },
-  note:    { label: "פתק",         icon: "sticky_note_2",  color: "#5a7a6a" },
+  meeting: { label: "פגישה", icon: "event", color: "#1B4332" },
+  feeling: { label: "תחושה / רגש", icon: "psychology", color: "#7c3aed" },
+  task: { label: "משימה", icon: "task_alt", color: "#b45309" },
+  note: { label: "פתק", icon: "sticky_note_2", color: "#5a7a6a" },
 };
 
 export function loadLog(): LogEntry[] {
@@ -68,18 +68,18 @@ export function addEntry(entry: Omit<LogEntry, "id" | "createdAt">): LogEntry {
 
 export function updateEntry(id: string, patch: Partial<LogEntry>): void {
   const all = loadLog();
-  const next = all.map(e => (e.id === id ? { ...e, ...patch } : e));
+  const next = all.map((e) => (e.id === id ? { ...e, ...patch } : e));
   saveLog(next);
 }
 
 export function deleteEntry(id: string): void {
   const all = loadLog();
-  saveLog(all.filter(e => e.id !== id));
+  saveLog(all.filter((e) => e.id !== id));
 }
 
 export function toggleTask(id: string): void {
   const all = loadLog();
-  const next = all.map(e => (e.id === id && e.type === "task" ? { ...e, done: !e.done } : e));
+  const next = all.map((e) => (e.id === id && e.type === "task" ? { ...e, done: !e.done } : e));
   saveLog(next);
 }
 

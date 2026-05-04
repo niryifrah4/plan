@@ -37,8 +37,18 @@ import {
 import { loadBuckets, BUCKETS_EVENT } from "@/lib/buckets-store";
 
 const HE_MONTHS = [
-  "ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני",
-  "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר",
+  "ינואר",
+  "פברואר",
+  "מרץ",
+  "אפריל",
+  "מאי",
+  "יוני",
+  "יולי",
+  "אוגוסט",
+  "ספטמבר",
+  "אוקטובר",
+  "נובמבר",
+  "דצמבר",
 ];
 function heLabelForMonth(ym: string): string {
   const [y, m] = ym.split("-").map(Number);
@@ -47,11 +57,11 @@ function heLabelForMonth(ym: string): string {
 }
 
 const KIND_META: Record<DepositTargetKind, { label: string; icon: string; color: string }> = {
-  pension:    { label: "פנסיה",      icon: "elderly",              color: "#1B4332" },
-  hishtalmut: { label: "השתלמות",    icon: "school",               color: "#2B694D" },
-  gemel:      { label: "גמל",        icon: "savings",              color: "#0a7a4a" },
-  securities: { label: "השקעות",     icon: "candlestick_chart",    color: "#B45309" },
-  savings:    { label: "חיסכון",     icon: "account_balance",      color: "#0284c7" },
+  pension: { label: "פנסיה", icon: "elderly", color: "#1B4332" },
+  hishtalmut: { label: "השתלמות", icon: "school", color: "#2B694D" },
+  gemel: { label: "גמל", icon: "savings", color: "#0a7a4a" },
+  securities: { label: "השקעות", icon: "candlestick_chart", color: "#B45309" },
+  savings: { label: "חיסכון", icon: "account_balance", color: "#0284c7" },
 };
 
 export default function DepositsPage() {
@@ -78,7 +88,11 @@ export default function DepositsPage() {
       setSummary(summaryForMonth(month));
       setPlans(loadPlans());
       setPensionFunds(loadPensionFunds());
-      setHistory(loadEntries().filter(e => e.month !== month).sort((a, b) => b.month.localeCompare(a.month)));
+      setHistory(
+        loadEntries()
+          .filter((e) => e.month !== month)
+          .sort((a, b) => b.month.localeCompare(a.month))
+      );
     };
     reload();
     window.addEventListener(DEPOSITS_EVENT, reload);
@@ -102,7 +116,7 @@ export default function DepositsPage() {
   // Auto-fill label when selecting a pension fund
   useEffect(() => {
     if (newKind === "pension" || newKind === "hishtalmut" || newKind === "gemel") {
-      const f = pensionFunds.find(x => x.id === newRefId);
+      const f = pensionFunds.find((x) => x.id === newRefId);
       if (f) {
         setNewLabel(f.company + (f.track ? ` · ${f.track}` : ""));
         // Sync kind with fund type
@@ -146,7 +160,7 @@ export default function DepositsPage() {
       // Update planned amount on the entry even before confirming.
       // 2026-04-29: use saveEntries() instead of hand-rolling the storage key.
       const entries = loadEntries();
-      const idx = entries.findIndex(e => e.id === entry.id);
+      const idx = entries.findIndex((e) => e.id === entry.id);
       if (idx >= 0) {
         entries[idx] = { ...entries[idx], amount, updatedAt: new Date().toISOString() };
         saveEntries(entries);
@@ -166,33 +180,35 @@ export default function DepositsPage() {
 
       {/* ─── Current month summary ─── */}
       <section className="card-pad mb-6">
-        <div className="flex items-start justify-between mb-5">
+        <div className="mb-5 flex items-start justify-between">
           <div>
             <div className="caption">{heLabelForMonth(month)}</div>
-            <div className="flex items-baseline gap-2 mt-1">
+            <div className="mt-1 flex items-baseline gap-2">
               <span className="kpi-value">{fmtILS(summary.confirmedTotal)}</span>
               <span className="text-[12px] font-bold" style={{ color: "#5a7a6a" }}>
                 מתוך {fmtILS(summary.total)}
               </span>
             </div>
-            <div className="text-[11px] font-bold mt-1" style={{ color: "#5a7a6a" }}>
+            <div className="mt-1 text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
               אושרו {summary.confirmedCount} מתוך {summary.plannedCount} הפקדות
             </div>
           </div>
           <button
             onClick={() => {
-              summary.entries.filter(e => !e.confirmed).forEach(e => confirmEntry(e.id));
+              summary.entries.filter((e) => !e.confirmed).forEach((e) => confirmEntry(e.id));
             }}
             disabled={summary.confirmedCount === summary.plannedCount}
-            className="px-4 py-2 rounded-lg text-[12px] font-extrabold transition-all disabled:opacity-40"
+            className="rounded-lg px-4 py-2 text-[12px] font-extrabold transition-all disabled:opacity-40"
             style={{ background: "#1B4332", color: "#fff" }}
           >
-            <span className="material-symbols-outlined text-[14px] align-middle ml-1">done_all</span>
+            <span className="material-symbols-outlined ml-1 align-middle text-[14px]">
+              done_all
+            </span>
             אשר את כולן
           </button>
         </div>
 
-        <div className="w-full h-2 rounded-full mb-5" style={{ background: "#eef2e8" }}>
+        <div className="mb-5 h-2 w-full rounded-full" style={{ background: "#eef2e8" }}>
           <div
             className="h-full rounded-full transition-all duration-700"
             style={{
@@ -204,54 +220,63 @@ export default function DepositsPage() {
 
         {/* Entries list */}
         {summary.entries.length === 0 ? (
-          <div className="text-center py-6 text-[13px] font-bold" style={{ color: "#5a7a6a" }}>
+          <div className="py-6 text-center text-[13px] font-bold" style={{ color: "#5a7a6a" }}>
             עוד לא הוגדרו הפקדות — הוסף תוכנית ראשונה למטה
           </div>
         ) : (
           <div className="space-y-2">
-            {summary.entries.map(entry => {
+            {summary.entries.map((entry) => {
               const meta = KIND_META[entry.target.kind];
               return (
                 <div
                   key={entry.id}
-                  className="flex items-center gap-3 py-2.5 px-3 rounded-xl transition-all"
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all"
                   style={{
                     background: entry.confirmed ? "#f3f8ef" : "#fff",
                     border: `1px solid ${entry.confirmed ? "#C1ECD4" : "#eef2e8"}`,
                   }}
                 >
                   <button
-                    onClick={() => entry.confirmed ? unconfirmEntry(entry.id) : confirmEntry(entry.id)}
-                    className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center transition-all"
+                    onClick={() =>
+                      entry.confirmed ? unconfirmEntry(entry.id) : confirmEntry(entry.id)
+                    }
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-all"
                     style={{
                       background: entry.confirmed ? "#1B4332" : "transparent",
                       border: entry.confirmed ? "1px solid #1B4332" : "1px solid #d8e0d0",
                     }}
                   >
                     {entry.confirmed && (
-                      <span className="material-symbols-outlined text-[15px] text-white font-bold">check</span>
+                      <span className="material-symbols-outlined text-[15px] font-bold text-white">
+                        check
+                      </span>
                     )}
                   </button>
 
                   <div
-                    className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
                     style={{ background: `${meta.color}15`, color: meta.color }}
                   >
                     <span className="material-symbols-outlined text-[20px]">{meta.icon}</span>
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[14px] font-extrabold truncate" style={{ color: "#012d1d" }}>
+                  <div className="min-w-0 flex-1">
+                    <div
+                      className="truncate text-[14px] font-extrabold"
+                      style={{ color: "#012d1d" }}
+                    >
                       {entry.target.label}
                     </div>
-                    <div className="text-[11px] font-bold" style={{ color: "#5a7a6a" }}>{meta.label}</div>
+                    <div className="text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
+                      {meta.label}
+                    </div>
                   </div>
 
                   <input
                     type="number"
                     value={entry.amount || ""}
-                    onChange={e => handleEntryAmountChange(entry, e.target.value)}
-                    className="w-28 text-left px-2 py-1.5 rounded-lg text-[13px] font-extrabold tabular"
+                    onChange={(e) => handleEntryAmountChange(entry, e.target.value)}
+                    className="tabular w-28 rounded-lg px-2 py-1.5 text-left text-[13px] font-extrabold"
                     style={{
                       background: entry.confirmed ? "transparent" : "#f8faf6",
                       border: `1px solid ${entry.confirmed ? "transparent" : "#eef2e8"}`,
@@ -259,7 +284,9 @@ export default function DepositsPage() {
                     }}
                     placeholder="0"
                   />
-                  <span className="text-[12px] font-bold" style={{ color: "#5a7a6a" }}>₪</span>
+                  <span className="text-[12px] font-bold" style={{ color: "#5a7a6a" }}>
+                    ₪
+                  </span>
                 </div>
               );
             })}
@@ -269,19 +296,22 @@ export default function DepositsPage() {
 
       {/* ─── Plan management ─── */}
       <section className="card-pad mb-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <div>
             <div className="caption">תוכנית הפקדות חודשית</div>
-            <h3 className="text-lg font-extrabold mt-0.5" style={{ color: "#012d1d" }}>
+            <h3 className="mt-0.5 text-lg font-extrabold" style={{ color: "#012d1d" }}>
               מה אמור להיכנס כל חודש
             </h3>
           </div>
           <button
             onClick={() => setShowAdd(!showAdd)}
-            className="px-3 py-2 rounded-lg text-[12px] font-extrabold transition-all"
-            style={{ background: showAdd ? "#eef2e8" : "#1B4332", color: showAdd ? "#012d1d" : "#fff" }}
+            className="rounded-lg px-3 py-2 text-[12px] font-extrabold transition-all"
+            style={{
+              background: showAdd ? "#eef2e8" : "#1B4332",
+              color: showAdd ? "#012d1d" : "#fff",
+            }}
           >
-            <span className="material-symbols-outlined text-[14px] align-middle ml-1">
+            <span className="material-symbols-outlined ml-1 align-middle text-[14px]">
               {showAdd ? "close" : "add"}
             </span>
             {showAdd ? "בטל" : "הוסף הפקדה"}
@@ -289,14 +319,22 @@ export default function DepositsPage() {
         </div>
 
         {showAdd && (
-          <div className="mb-4 p-4 rounded-xl" style={{ background: "#f8faf6", border: "1px dashed #d8e0d0" }}>
-            <div className="grid grid-cols-2 gap-3 mb-3">
+          <div
+            className="mb-4 rounded-xl p-4"
+            style={{ background: "#f8faf6", border: "1px dashed #d8e0d0" }}
+          >
+            <div className="mb-3 grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[11px] font-bold mb-1 block" style={{ color: "#5a7a6a" }}>סוג</label>
+                <label className="mb-1 block text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
+                  סוג
+                </label>
                 <select
                   value={newKind}
-                  onChange={e => { setNewKind(e.target.value as DepositTargetKind); setNewRefId(""); }}
-                  className="w-full px-3 py-2 rounded-lg text-[13px] font-bold"
+                  onChange={(e) => {
+                    setNewKind(e.target.value as DepositTargetKind);
+                    setNewRefId("");
+                  }}
+                  className="w-full rounded-lg px-3 py-2 text-[13px] font-bold"
                   style={{ border: "1px solid #eef2e8", background: "#fff" }}
                 >
                   <option value="pension">פנסיה</option>
@@ -307,49 +345,68 @@ export default function DepositsPage() {
                 </select>
               </div>
 
-              {(newKind === "pension" || newKind === "hishtalmut" || newKind === "gemel") && pensionFunds.length > 0 && (
-                <div>
-                  <label className="text-[11px] font-bold mb-1 block" style={{ color: "#5a7a6a" }}>קופה</label>
-                  <select
-                    value={newRefId}
-                    onChange={e => setNewRefId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg text-[13px] font-bold"
-                    style={{ border: "1px solid #eef2e8", background: "#fff" }}
-                  >
-                    <option value="">— בחר קופה —</option>
-                    {pensionFunds.map(f => (
-                      <option key={f.id} value={f.id}>{f.company} · {f.track}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              {(newKind === "pension" || newKind === "hishtalmut" || newKind === "gemel") &&
+                pensionFunds.length > 0 && (
+                  <div>
+                    <label
+                      className="mb-1 block text-[11px] font-bold"
+                      style={{ color: "#5a7a6a" }}
+                    >
+                      קופה
+                    </label>
+                    <select
+                      value={newRefId}
+                      onChange={(e) => setNewRefId(e.target.value)}
+                      className="w-full rounded-lg px-3 py-2 text-[13px] font-bold"
+                      style={{ border: "1px solid #eef2e8", background: "#fff" }}
+                    >
+                      <option value="">— בחר קופה —</option>
+                      {pensionFunds.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.company} · {f.track}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-              <div className={(newKind === "pension" || newKind === "hishtalmut" || newKind === "gemel") && pensionFunds.length > 0 ? "col-span-2" : ""}>
-                <label className="text-[11px] font-bold mb-1 block" style={{ color: "#5a7a6a" }}>שם תצוגה</label>
+              <div
+                className={
+                  (newKind === "pension" || newKind === "hishtalmut" || newKind === "gemel") &&
+                  pensionFunds.length > 0
+                    ? "col-span-2"
+                    : ""
+                }
+              >
+                <label className="mb-1 block text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
+                  שם תצוגה
+                </label>
                 <input
                   value={newLabel}
-                  onChange={e => setNewLabel(e.target.value)}
+                  onChange={(e) => setNewLabel(e.target.value)}
                   placeholder="למשל: פנסיה מנורה / תיק השקעות"
-                  className="w-full px-3 py-2 rounded-lg text-[13px] font-bold"
+                  className="w-full rounded-lg px-3 py-2 text-[13px] font-bold"
                   style={{ border: "1px solid #eef2e8", background: "#fff" }}
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-bold mb-1 block" style={{ color: "#5a7a6a" }}>סכום חודשי (₪)</label>
+                <label className="mb-1 block text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
+                  סכום חודשי (₪)
+                </label>
                 <input
                   type="number"
                   value={newAmount}
-                  onChange={e => setNewAmount(e.target.value)}
+                  onChange={(e) => setNewAmount(e.target.value)}
                   placeholder="2100"
-                  className="w-full px-3 py-2 rounded-lg text-[13px] font-extrabold tabular"
+                  className="tabular w-full rounded-lg px-3 py-2 text-[13px] font-extrabold"
                   style={{ border: "1px solid #eef2e8", background: "#fff" }}
                 />
               </div>
             </div>
             <button
               onClick={handleAddPlan}
-              className="px-4 py-2 rounded-lg text-[12px] font-extrabold"
+              className="rounded-lg px-4 py-2 text-[12px] font-extrabold"
               style={{ background: "#1B4332", color: "#fff" }}
             >
               שמור תוכנית
@@ -358,28 +415,31 @@ export default function DepositsPage() {
         )}
 
         {plans.length === 0 ? (
-          <div className="text-center py-6 text-[13px] font-bold" style={{ color: "#5a7a6a" }}>
+          <div className="py-6 text-center text-[13px] font-bold" style={{ color: "#5a7a6a" }}>
             עוד לא הוגדרו תוכניות הפקדה
           </div>
         ) : (
           <div className="space-y-2">
-            {plans.map(plan => {
+            {plans.map((plan) => {
               const meta = KIND_META[plan.target.kind];
               return (
                 <div
                   key={plan.id}
-                  className="flex items-center gap-3 py-2.5 px-3 rounded-xl"
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5"
                   style={{ border: "1px solid #eef2e8" }}
                 >
                   <div
-                    className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
                     style={{ background: `${meta.color}15`, color: meta.color }}
                   >
                     <span className="material-symbols-outlined text-[20px]">{meta.icon}</span>
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[14px] font-extrabold truncate" style={{ color: "#012d1d" }}>
+                  <div className="min-w-0 flex-1">
+                    <div
+                      className="truncate text-[14px] font-extrabold"
+                      style={{ color: "#012d1d" }}
+                    >
                       {plan.target.label}
                     </div>
                     <div className="text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
@@ -390,20 +450,22 @@ export default function DepositsPage() {
                   <input
                     type="number"
                     defaultValue={plan.monthlyAmount}
-                    onBlur={e => {
+                    onBlur={(e) => {
                       const v = Number(e.target.value);
                       if (Number.isFinite(v) && v >= 0 && v !== plan.monthlyAmount) {
                         updatePlan(plan.id, { monthlyAmount: v });
                       }
                     }}
-                    className="w-28 text-left px-2 py-1.5 rounded-lg text-[13px] font-extrabold tabular"
+                    className="tabular w-28 rounded-lg px-2 py-1.5 text-left text-[13px] font-extrabold"
                     style={{ background: "#f8faf6", border: "1px solid #eef2e8" }}
                   />
-                  <span className="text-[12px] font-bold" style={{ color: "#5a7a6a" }}>₪</span>
+                  <span className="text-[12px] font-bold" style={{ color: "#5a7a6a" }}>
+                    ₪
+                  </span>
 
                   <button
                     onClick={() => updatePlan(plan.id, { active: !plan.active })}
-                    className="p-1.5 rounded-lg"
+                    className="rounded-lg p-1.5"
                     style={{ color: plan.active ? "#1B4332" : "#8aab99" }}
                     title={plan.active ? "השהה" : "הפעל"}
                   >
@@ -416,7 +478,7 @@ export default function DepositsPage() {
                     onClick={() => {
                       if (confirm(`למחוק את "${plan.target.label}"?`)) deletePlan(plan.id);
                     }}
-                    className="p-1.5 rounded-lg"
+                    className="rounded-lg p-1.5"
                     style={{ color: "#b91c1c" }}
                     title="מחק"
                   >
@@ -433,19 +495,24 @@ export default function DepositsPage() {
       {Object.keys(historyByMonth).length > 0 && (
         <section className="card-pad">
           <div className="caption mb-1">היסטוריה</div>
-          <h3 className="text-lg font-extrabold mb-4" style={{ color: "#012d1d" }}>חודשים קודמים</h3>
+          <h3 className="mb-4 text-lg font-extrabold" style={{ color: "#012d1d" }}>
+            חודשים קודמים
+          </h3>
 
           <div className="space-y-4">
             {Object.entries(historyByMonth).map(([m, entries]) => {
-              const confirmed = entries.filter(e => e.confirmed);
+              const confirmed = entries.filter((e) => e.confirmed);
               const total = confirmed.reduce((s, e) => s + e.amount, 0);
               return (
-                <div key={m} className="pb-3 border-b" style={{ borderColor: "#eef2e8" }}>
-                  <div className="flex items-center justify-between mb-2">
+                <div key={m} className="border-b pb-3" style={{ borderColor: "#eef2e8" }}>
+                  <div className="mb-2 flex items-center justify-between">
                     <span className="text-[13px] font-extrabold" style={{ color: "#012d1d" }}>
                       {heLabelForMonth(m)}
                     </span>
-                    <span className="text-[13px] font-extrabold tabular" style={{ color: "#1B4332" }}>
+                    <span
+                      className="tabular text-[13px] font-extrabold"
+                      style={{ color: "#1B4332" }}
+                    >
                       {fmtILS(total)}
                     </span>
                   </div>

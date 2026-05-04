@@ -95,16 +95,18 @@ function toIls(usd: number, rate: number) {
 export function computeVested(grant: EquityGrant, asOf: Date = new Date()): GrantValuation {
   const start = new Date(grant.vestStart);
   const now = asOf;
-  const monthsElapsed = Math.max(0,
+  const monthsElapsed = Math.max(
+    0,
     (now.getFullYear() - start.getFullYear()) * 12 +
-    (now.getMonth() - start.getMonth()) +
-    (now.getDate() >= start.getDate() ? 0 : -1)
+      (now.getMonth() - start.getMonth()) +
+      (now.getDate() >= start.getDate() ? 0 : -1)
   );
 
   let vestedShares = 0;
   if (monthsElapsed >= grant.cliffMonths) {
     // Cliff clears — allocate per-frequency slices
-    const totalSlices = grant.frequency === "quarterly" ? Math.floor(grant.vestMonths / 3) : grant.vestMonths;
+    const totalSlices =
+      grant.frequency === "quarterly" ? Math.floor(grant.vestMonths / 3) : grant.vestMonths;
     const monthsPerSlice = grant.frequency === "quarterly" ? 3 : 1;
     const slicesElapsed = Math.min(totalSlices, Math.floor(monthsElapsed / monthsPerSlice));
     vestedShares = Math.floor((grant.totalShares * slicesElapsed) / totalSlices);
@@ -114,9 +116,13 @@ export function computeVested(grant: EquityGrant, asOf: Date = new Date()): Gran
   const unvestedShares = Math.max(0, grant.totalShares - vestedShares);
 
   const currentPriceIls =
-    grant.currency === "USD" ? toIls(grant.currentPricePerShare, grant.usdIlsRate) : grant.currentPricePerShare;
+    grant.currency === "USD"
+      ? toIls(grant.currentPricePerShare, grant.usdIlsRate)
+      : grant.currentPricePerShare;
   const grantPriceIls =
-    grant.currency === "USD" ? toIls(grant.grantPricePerShare, grant.usdIlsRate) : grant.grantPricePerShare;
+    grant.currency === "USD"
+      ? toIls(grant.grantPricePerShare, grant.usdIlsRate)
+      : grant.grantPricePerShare;
 
   const vestedValueIls = vestedShares * currentPriceIls;
   const totalValueIls = grant.totalShares * currentPriceIls;
@@ -149,11 +155,16 @@ export interface EquityPortfolioSummary {
 }
 
 export function summarizePortfolio(grants: EquityGrant[]): EquityPortfolioSummary {
-  let vested = 0, unvested = 0, tax = 0, net = 0;
+  let vested = 0,
+    unvested = 0,
+    tax = 0,
+    net = 0;
   for (const g of grants) {
     const v = computeVested(g);
     vested += v.vestedValueIls;
-    unvested += (v.unvestedShares) * (g.currency === "USD" ? g.currentPricePerShare * g.usdIlsRate : g.currentPricePerShare);
+    unvested +=
+      v.unvestedShares *
+      (g.currency === "USD" ? g.currentPricePerShare * g.usdIlsRate : g.currentPricePerShare);
     tax += v.taxIls;
     net += v.netAfterTaxIls;
   }

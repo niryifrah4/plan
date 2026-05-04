@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   const fwdHost = req.headers.get("x-forwarded-host") || req.headers.get("host");
   const origin = fwdHost
     ? `${fwdProto}://${fwdHost}`
-    : (process.env.NEXT_PUBLIC_BASE_URL || new URL(req.url).origin);
+    : process.env.NEXT_PUBLIC_BASE_URL || new URL(req.url).origin;
 
   const sb = createClient();
 
@@ -56,15 +56,13 @@ export async function GET(req: NextRequest) {
  * Exported so the /login page's post-password-signin flow can reuse it.
  */
 async function resolveLandingPage(sb: ReturnType<typeof createClient>): Promise<string> {
-  const { data: { user } } = await sb.auth.getUser();
+  const {
+    data: { user },
+  } = await sb.auth.getUser();
   if (!user) return "/login";
 
   // Advisor lookup
-  const { data: advisor } = await sb
-    .from("advisors")
-    .select("id")
-    .eq("id", user.id)
-    .maybeSingle();
+  const { data: advisor } = await sb.from("advisors").select("id").eq("id", user.id).maybeSingle();
 
   if (advisor) return "/crm";
 

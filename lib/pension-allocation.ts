@@ -16,49 +16,49 @@ import { getFundById } from "./fund-registry";
 import type { PieSlice } from "@/components/charts/AllocationPie";
 
 const TYPE_LABEL: Record<PensionFund["type"], string> = {
-  pension:    "פנסיה",
+  pension: "פנסיה",
   hishtalmut: "השתלמות",
-  gemel:      "גמל",
-  bituach:    "ביטוח מנהלים",
+  gemel: "גמל",
+  bituach: "ביטוח מנהלים",
 };
 
 const TYPE_COLOR: Record<PensionFund["type"], string> = {
-  pension:    "#1B4332",
+  pension: "#1B4332",
   hishtalmut: "#2B694D",
-  gemel:      "#4A8F6F",
-  bituach:    "#7FA68D",
+  gemel: "#4A8F6F",
+  bituach: "#7FA68D",
 };
 
 const RISK_LABEL = {
-  equity:      "מנייתי",
-  bonds:       "אג״ח",
-  cash:        "מזומן",
+  equity: "מנייתי",
+  bonds: "אג״ח",
+  cash: "מזומן",
   alternative: "אלטרנטיבי",
-  unknown:     "לא מזוהה",
+  unknown: "לא מזוהה",
 } as const;
 
 const RISK_COLOR = {
-  equity:      "#7C2D12", // deep red — high risk
-  bonds:       "#1E3A8A", // deep blue — defensive
-  cash:        "#0F766E", // teal — cash
+  equity: "#7C2D12", // deep red — high risk
+  bonds: "#1E3A8A", // deep blue — defensive
+  cash: "#0F766E", // teal — cash
   alternative: "#6B21A8", // purple
-  unknown:     "#94a3b8", // gray
+  unknown: "#94a3b8", // gray
 };
 
 const GEO_LABEL = {
-  IL:    "ישראל",
-  US:    "ארה״ב",
-  EU:    "אירופה",
-  EM:    "שווקים מתעוררים",
+  IL: "ישראל",
+  US: "ארה״ב",
+  EU: "אירופה",
+  EM: "שווקים מתעוררים",
   OTHER: "אחר",
   unknown: "לא מזוהה",
 } as const;
 
 const GEO_COLOR = {
-  IL:    "#1B4332",
-  US:    "#0F766E",
-  EU:    "#7C2D12",
-  EM:    "#B45309",
+  IL: "#1B4332",
+  US: "#0F766E",
+  EU: "#7C2D12",
+  EM: "#B45309",
   OTHER: "#6B21A8",
   unknown: "#94a3b8",
 };
@@ -100,7 +100,11 @@ export function buildPensionAllocations(funds: PensionFund[]): PensionAllocation
   // each track contributes independently with its own balance + registry
   // match. Falls back to top-level `registeredFundId` for single-track funds.
   const riskAcc: Record<keyof typeof RISK_LABEL, number> = {
-    equity: 0, bonds: 0, cash: 0, alternative: 0, unknown: 0,
+    equity: 0,
+    bonds: 0,
+    cash: 0,
+    alternative: 0,
+    unknown: 0,
   };
   let missingCoverage = 0;
   for (const f of funds) {
@@ -108,9 +112,10 @@ export function buildPensionAllocations(funds: PensionFund[]): PensionAllocation
     if (!totalBalance) continue;
 
     // Per-track decomposition when present
-    const tracks = (f.tracks && f.tracks.length > 0)
-      ? f.tracks
-      : [{ name: f.track || "", balance: totalBalance, registeredFundId: f.registeredFundId }];
+    const tracks =
+      f.tracks && f.tracks.length > 0
+        ? f.tracks
+        : [{ name: f.track || "", balance: totalBalance, registeredFundId: f.registeredFundId }];
 
     for (const t of tracks) {
       const tb = t.balance || 0;
@@ -122,9 +127,9 @@ export function buildPensionAllocations(funds: PensionFund[]): PensionAllocation
         continue;
       }
       const ac = reg.allocation.assetClass;
-      riskAcc.equity      += tb * (ac.equity      / 100);
-      riskAcc.bonds       += tb * (ac.bonds       / 100);
-      riskAcc.cash        += tb * (ac.cash        / 100);
+      riskAcc.equity += tb * (ac.equity / 100);
+      riskAcc.bonds += tb * (ac.bonds / 100);
+      riskAcc.cash += tb * (ac.cash / 100);
       riskAcc.alternative += tb * (ac.alternative / 100);
     }
   }
@@ -141,14 +146,20 @@ export function buildPensionAllocations(funds: PensionFund[]): PensionAllocation
 
   // ── 3. By geography (per-track) ──
   const geoAcc: Record<keyof typeof GEO_LABEL, number> = {
-    IL: 0, US: 0, EU: 0, EM: 0, OTHER: 0, unknown: 0,
+    IL: 0,
+    US: 0,
+    EU: 0,
+    EM: 0,
+    OTHER: 0,
+    unknown: 0,
   };
   for (const f of funds) {
     const totalBalance = f.balance || 0;
     if (!totalBalance) continue;
-    const tracks = (f.tracks && f.tracks.length > 0)
-      ? f.tracks
-      : [{ name: f.track || "", balance: totalBalance, registeredFundId: f.registeredFundId }];
+    const tracks =
+      f.tracks && f.tracks.length > 0
+        ? f.tracks
+        : [{ name: f.track || "", balance: totalBalance, registeredFundId: f.registeredFundId }];
 
     for (const t of tracks) {
       const tb = t.balance || 0;
@@ -159,10 +170,10 @@ export function buildPensionAllocations(funds: PensionFund[]): PensionAllocation
         continue;
       }
       const g = reg.allocation.geography;
-      geoAcc.IL    += tb * (g.IL    / 100);
-      geoAcc.US    += tb * (g.US    / 100);
-      geoAcc.EU    += tb * (g.EU    / 100);
-      geoAcc.EM    += tb * (g.EM    / 100);
+      geoAcc.IL += tb * (g.IL / 100);
+      geoAcc.US += tb * (g.US / 100);
+      geoAcc.EU += tb * (g.EU / 100);
+      geoAcc.EM += tb * (g.EM / 100);
       geoAcc.OTHER += tb * (g.OTHER / 100);
     }
   }

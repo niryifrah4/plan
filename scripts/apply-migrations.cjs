@@ -31,7 +31,7 @@ async function main() {
 
   const client = new Client({
     connectionString: url,
-    ssl: { rejectUnauthorized: false },  // Supabase requires SSL but uses pooler cert
+    ssl: { rejectUnauthorized: false }, // Supabase requires SSL but uses pooler cert
   });
 
   try {
@@ -48,14 +48,14 @@ async function main() {
         and table_name in ('client_users','client_invites','client_state','households','advisors')
       order by table_name
     `);
-    console.log("✅ Tables present:", tables.rows.map(r => r.table_name).join(", "));
+    console.log("✅ Tables present:", tables.rows.map((r) => r.table_name).join(", "));
 
     const policies = await client.query(`
       select policyname, tablename from pg_policies
       where schemaname = 'public' and tablename = 'client_state'
       order by policyname
     `);
-    console.log("✅ client_state policies:", policies.rows.map(r => r.policyname).join(", "));
+    console.log("✅ client_state policies:", policies.rows.map((r) => r.policyname).join(", "));
   } catch (e) {
     console.error("❌ Migration failed:", e.message);
     process.exit(1);

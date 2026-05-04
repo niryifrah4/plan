@@ -45,7 +45,7 @@ export async function pushBlob<T = any>(key: string, value: T): Promise<boolean>
       .from("client_state")
       .upsert(
         { household_id: hh, state_key: key, state_value: value as any },
-        { onConflict: "household_id,state_key" },
+        { onConflict: "household_id,state_key" }
       );
     if (error) {
       console.warn(`[blob-sync:${key}] upsert error:`, error.message);

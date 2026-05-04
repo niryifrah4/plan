@@ -21,12 +21,7 @@
  */
 
 import { useState, useMemo, useEffect } from "react";
-import {
-  loadBuckets,
-  saveBuckets,
-  recordCheckIn,
-  type Bucket,
-} from "@/lib/buckets-store";
+import { loadBuckets, saveBuckets, recordCheckIn, type Bucket } from "@/lib/buckets-store";
 import { fmtILS } from "@/lib/format";
 import { scopedKey } from "@/lib/client-scope";
 
@@ -40,7 +35,20 @@ function currentMonth(): string {
 
 function hebrewMonth(ym: string): string {
   const [y, m] = ym.split("-");
-  const months = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+  const months = [
+    "ינואר",
+    "פברואר",
+    "מרץ",
+    "אפריל",
+    "מאי",
+    "יוני",
+    "יולי",
+    "אוגוסט",
+    "ספטמבר",
+    "אוקטובר",
+    "נובמבר",
+    "דצמבר",
+  ];
   return `${months[Number(m) - 1]} ${y}`;
 }
 
@@ -99,7 +107,7 @@ export function MonthlyCheckIn({ open, onClose, onDone }: Props) {
     setBuckets(loaded);
     // Default: assume full contribution for all active buckets
     const initial: Record<string, RowState> = {};
-    loaded.forEach(b => {
+    loaded.forEach((b) => {
       initial[b.id] = { choice: "full", partialAmount: String(b.monthlyContribution || 0) };
     });
     setRows(initial);
@@ -124,7 +132,7 @@ export function MonthlyCheckIn({ open, onClose, onDone }: Props) {
   const deltaFromPlan = totalActual - totalPlanned;
 
   function updateRow(id: string, patch: Partial<RowState>) {
-    setRows(prev => ({ ...prev, [id]: { ...prev[id], ...patch } }));
+    setRows((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
   }
 
   function handleConfirm() {
@@ -139,13 +147,14 @@ export function MonthlyCheckIn({ open, onClose, onDone }: Props) {
         if (!row) continue;
         let actual = 0;
         if (row.choice === "full") actual = b.monthlyContribution || 0;
-        else if (row.choice === "partial") actual = parseFloat(row.partialAmount.replace(/[^\d.-]/g, "")) || 0;
+        else if (row.choice === "partial")
+          actual = parseFloat(row.partialAmount.replace(/[^\d.-]/g, "")) || 0;
         else actual = 0;
 
         if (row.choice === "skip") skippedCount++;
         else confirmedCount++;
 
-        updated = updated.map(x => (x.id === b.id ? recordCheckIn(x, month, actual) : x));
+        updated = updated.map((x) => (x.id === b.id ? recordCheckIn(x, month, actual) : x));
       }
 
       saveBuckets(updated);
@@ -171,26 +180,30 @@ export function MonthlyCheckIn({ open, onClose, onDone }: Props) {
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-organic shadow-soft max-w-2xl w-full max-h-[88vh] overflow-hidden flex flex-col"
-        onClick={e => e.stopPropagation()}
+        className="flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-organic bg-white shadow-soft"
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-8 pt-7 pb-5 border-b" style={{ borderColor: "#eef2e8" }}>
+        <div className="border-b px-8 pb-5 pt-7" style={{ borderColor: "#eef2e8" }}>
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="text-[10px] uppercase tracking-[0.25em] font-bold" style={{ color: "#1B4332" }}>
+              <div
+                className="text-[10px] font-bold uppercase tracking-[0.25em]"
+                style={{ color: "#1B4332" }}
+              >
                 Check-in · רגע של כנות
               </div>
-              <h2 className="text-2xl font-extrabold text-verdant-ink mt-1">
+              <h2 className="mt-1 text-2xl font-extrabold text-verdant-ink">
                 איך היה {hebrewMonth(month)}?
               </h2>
-              <p className="text-[12px] text-verdant-muted mt-1.5 leading-relaxed max-w-md">
-                לפני שאנחנו מסתכלים קדימה — בוא נוודא שהחודש שעבר באמת הלך כמו שתכננת. על כל קופה, סמן אם הפקדת את הסכום המלא, חלקי, או דילגת.
+              <p className="mt-1.5 max-w-md text-[12px] leading-relaxed text-verdant-muted">
+                לפני שאנחנו מסתכלים קדימה — בוא נוודא שהחודש שעבר באמת הלך כמו שתכננת. על כל קופה,
+                סמן אם הפקדת את הסכום המלא, חלקי, או דילגת.
               </p>
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-verdant-muted hover:bg-verdant-bg transition-colors"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-verdant-muted transition-colors hover:bg-verdant-bg"
               aria-label="סגור"
             >
               <span className="material-symbols-outlined text-[20px]">close</span>
@@ -199,52 +212,71 @@ export function MonthlyCheckIn({ open, onClose, onDone }: Props) {
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-8 py-5 space-y-3">
+        <div className="flex-1 space-y-3 overflow-y-auto px-8 py-5">
           {buckets.length === 0 ? (
-            <div className="text-center py-10">
-              <span className="material-symbols-outlined text-[32px] text-verdant-muted">palette</span>
-              <div className="text-[13px] font-bold text-verdant-ink mt-2">אין קופות לעדכן</div>
+            <div className="py-10 text-center">
+              <span className="material-symbols-outlined text-[32px] text-verdant-muted">
+                palette
+              </span>
+              <div className="mt-2 text-[13px] font-bold text-verdant-ink">אין קופות לעדכן</div>
               <div className="text-[11px] text-verdant-muted">צור קופה ראשונה בעמוד היעדים</div>
             </div>
           ) : (
-            buckets.map(b => {
+            buckets.map((b) => {
               const row = rows[b.id] || { choice: "full" as Choice, partialAmount: "0" };
               const planned = b.monthlyContribution || 0;
               return (
                 <div
                   key={b.id}
-                  className="p-4 rounded-xl"
-                  style={{ background: "#fff", border: "1px solid #eef2e8", borderRight: `4px solid ${b.color}` }}
+                  className="rounded-xl p-4"
+                  style={{
+                    background: "#fff",
+                    border: "1px solid #eef2e8",
+                    borderRight: `4px solid ${b.color}`,
+                  }}
                 >
                   <div className="flex items-center gap-4">
                     <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
                       style={{ background: `${b.color}15` }}
                     >
-                      <span className="material-symbols-outlined text-[22px]" style={{ color: b.color }}>
+                      <span
+                        className="material-symbols-outlined text-[22px]"
+                        style={{ color: b.color }}
+                      >
                         {b.icon || "flag"}
                       </span>
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="text-[14px] font-extrabold text-verdant-ink">{b.name}</div>
-                      <div className="text-[11px] text-verdant-muted font-bold tabular">
+                      <div className="tabular text-[11px] font-bold text-verdant-muted">
                         תכנון: {fmtILS(planned)}/ח׳
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 mt-3">
+                  <div className="mt-3 grid grid-cols-3 gap-2">
                     {[
-                      { key: "full" as Choice, label: "הפקדתי הכל", icon: "check_circle", color: "#1B4332" },
-                      { key: "partial" as Choice, label: "הפקדתי חלק", icon: "adjust", color: "#f59e0b" },
+                      {
+                        key: "full" as Choice,
+                        label: "הפקדתי הכל",
+                        icon: "check_circle",
+                        color: "#1B4332",
+                      },
+                      {
+                        key: "partial" as Choice,
+                        label: "הפקדתי חלק",
+                        icon: "adjust",
+                        color: "#f59e0b",
+                      },
                       { key: "skip" as Choice, label: "דילגתי", icon: "cancel", color: "#b91c1c" },
-                    ].map(opt => {
+                    ].map((opt) => {
                       const active = row.choice === opt.key;
                       return (
                         <button
                           key={opt.key}
                           onClick={() => updateRow(b.id, { choice: opt.key })}
-                          className="flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-[11px] font-bold transition-colors"
+                          className="flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-bold transition-colors"
                           style={{
                             background: active ? `${opt.color}14` : "#f8faf6",
                             color: active ? opt.color : "#6b7a72",
@@ -261,17 +293,19 @@ export function MonthlyCheckIn({ open, onClose, onDone }: Props) {
                   {row.choice === "partial" && (
                     <div className="mt-3 flex items-center gap-2">
                       <span className="text-[11px] font-bold text-verdant-muted">סכום שהפקדת:</span>
-                      <div className="relative flex-1 max-w-[160px]">
+                      <div className="relative max-w-[160px] flex-1">
                         <input
                           type="text"
                           inputMode="numeric"
                           value={row.partialAmount}
-                          onChange={e => updateRow(b.id, { partialAmount: e.target.value })}
-                          className="w-full px-3 py-2 pr-7 rounded-lg text-[13px] font-bold tabular text-verdant-ink"
+                          onChange={(e) => updateRow(b.id, { partialAmount: e.target.value })}
+                          className="tabular w-full rounded-lg px-3 py-2 pr-7 text-[13px] font-bold text-verdant-ink"
                           style={{ background: "#f8faf6", border: "1px solid #eef2e8" }}
                           placeholder="0"
                         />
-                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] font-bold text-verdant-muted">₪</span>
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] font-bold text-verdant-muted">
+                          ₪
+                        </span>
                       </div>
                     </div>
                   )}
@@ -283,13 +317,20 @@ export function MonthlyCheckIn({ open, onClose, onDone }: Props) {
 
         {/* Footer */}
         {buckets.length > 0 && (
-          <div className="px-8 py-5 border-t flex items-center justify-between gap-4" style={{ borderColor: "#eef2e8", background: "#f8faf6" }}>
+          <div
+            className="flex items-center justify-between gap-4 border-t px-8 py-5"
+            style={{ borderColor: "#eef2e8", background: "#f8faf6" }}
+          >
             <div>
-              <div className="text-[10px] uppercase tracking-wide font-bold text-verdant-muted">סך ההפקדות החודש</div>
-              <div className="flex items-baseline gap-2 mt-0.5">
-                <div className="text-xl font-extrabold text-verdant-ink tabular">{fmtILS(totalActual)}</div>
+              <div className="text-[10px] font-bold uppercase tracking-wide text-verdant-muted">
+                סך ההפקדות החודש
+              </div>
+              <div className="mt-0.5 flex items-baseline gap-2">
+                <div className="tabular text-xl font-extrabold text-verdant-ink">
+                  {fmtILS(totalActual)}
+                </div>
                 <div
-                  className="text-[11px] font-bold tabular"
+                  className="tabular text-[11px] font-bold"
                   style={{ color: deltaFromPlan >= 0 ? "#1B4332" : "#b91c1c" }}
                 >
                   {deltaFromPlan >= 0 ? "+" : ""}

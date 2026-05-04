@@ -16,7 +16,12 @@
  * Display only insights with impact ≥ ₪50/month or ₪500/year.
  */
 
-import { loadSalaryProfile, computeSalaryBreakdown, hasSavedSalaryProfile, STUDY_FUND_SALARY_CAP } from "./salary-engine";
+import {
+  loadSalaryProfile,
+  computeSalaryBreakdown,
+  hasSavedSalaryProfile,
+  STUDY_FUND_SALARY_CAP,
+} from "./salary-engine";
 import { section45and47Benefit } from "./assumptions";
 import { loadDebtData } from "./debt-store";
 import { loadAccounts, totalBankBalance } from "./accounts-store";
@@ -25,13 +30,13 @@ import { deriveMonthlyExpensesFromBudget } from "./budget-store";
 
 export interface ProactiveInsight {
   id: string;
-  title: string;         // one-line headline with ₪ figure
-  detail: string;        // 1-2 sentence explanation + action
+  title: string; // one-line headline with ₪ figure
+  detail: string; // 1-2 sentence explanation + action
   monthlyImpact: number; // positive = client gains by acting
   annualImpact: number;
   severity: "critical" | "warning" | "info" | "opportunity";
-  icon: string;          // material-symbols name
-  href?: string;         // link to the page where the fix lives
+  icon: string; // material-symbols name
+  href?: string; // link to the page where the fix lives
   category: "tax" | "cashflow" | "liquidity" | "debt" | "retirement";
 }
 
@@ -112,7 +117,7 @@ function checkHighMortgageRate(): ProactiveInsight | null {
   let worstGap = 0;
   let worstPrincipal = 0;
   for (const t of debt.mortgage.tracks) {
-    const gap = (t.interestRate / 100) - cheapRate;
+    const gap = t.interestRate / 100 - cheapRate;
     if (gap > 0.015 && t.remainingBalance > worstPrincipal * 0.5) {
       // Rough saving: principal × gap × 0.5 (half-life weighted)
       const savings = t.remainingBalance * gap * 0.5;
@@ -203,9 +208,7 @@ export function loadProactiveInsights(): ProactiveInsight[] {
 
 /** Total annual opportunity surfaced — the headline figure. */
 export function totalAnnualOpportunity(insights: ProactiveInsight[]): number {
-  return insights
-    .filter((i) => i.annualImpact > 0)
-    .reduce((s, i) => s + i.annualImpact, 0);
+  return insights.filter((i) => i.annualImpact > 0).reduce((s, i) => s + i.annualImpact, 0);
 }
 
 function fmt(v: number): string {

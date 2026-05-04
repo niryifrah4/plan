@@ -7,10 +7,10 @@ import { futureValue } from "@/lib/financial-math";
 import { loadAssumptions } from "@/lib/assumptions";
 
 export function CompoundCalc() {
-  const [lump, setLump]         = useState(50000);
-  const [monthly, setMonthly]   = useState(2000);
-  const [rate, setRate]         = useState(6);
-  const [years, setYears]       = useState(20);
+  const [lump, setLump] = useState(50000);
+  const [monthly, setMonthly] = useState(2000);
+  const [rate, setRate] = useState(6);
+  const [years, setYears] = useState(20);
   const [showReal, setShowReal] = useState(false);
   const [inflation, setInflation] = useState(3);
 
@@ -33,11 +33,11 @@ export function CompoundCalc() {
   return (
     <div className="space-y-4">
       <Card>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-extrabold text-verdant-ink text-right">פרמטרים</h3>
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-right text-lg font-extrabold text-verdant-ink">פרמטרים</h3>
           <button
             onClick={() => setShowReal(!showReal)}
-            className="text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1 transition-colors"
+            className="flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold transition-colors"
             style={{
               background: showReal ? "#1B433212" : "#1B433212",
               color: showReal ? "#1B4332" : "#1B4332",
@@ -47,50 +47,91 @@ export function CompoundCalc() {
             {showReal ? `ריאלי (אחרי אינפלציה ${inflation}%)` : "נומינלי"}
           </button>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <label className="block">
-            <span className="text-[11px] text-verdant-muted font-bold">סכום פתיחה</span>
-            <input type="number" value={lump} onChange={(e) => setLump(Number(e.target.value))}
-              className="mt-1 w-full rounded-lg border v-divider px-3 py-2 text-sm font-bold text-verdant-ink tabular bg-white focus:outline-none focus:ring-2 focus:ring-verdant-accent/40" dir="ltr" />
+            <span className="text-[11px] font-bold text-verdant-muted">סכום פתיחה</span>
+            <input
+              type="number"
+              value={lump}
+              onChange={(e) => setLump(Number(e.target.value))}
+              className="v-divider tabular mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
+              dir="ltr"
+            />
           </label>
           <label className="block">
-            <span className="text-[11px] text-verdant-muted font-bold">הפקדה חודשית</span>
-            <input type="number" value={monthly} onChange={(e) => setMonthly(Number(e.target.value))}
-              className="mt-1 w-full rounded-lg border v-divider px-3 py-2 text-sm font-bold text-verdant-ink tabular bg-white focus:outline-none focus:ring-2 focus:ring-verdant-accent/40" dir="ltr" />
+            <span className="text-[11px] font-bold text-verdant-muted">הפקדה חודשית</span>
+            <input
+              type="number"
+              value={monthly}
+              onChange={(e) => setMonthly(Number(e.target.value))}
+              className="v-divider tabular mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
+              dir="ltr"
+            />
           </label>
           <label className="block">
-            <span className="text-[11px] text-verdant-muted font-bold">תשואה שנתית (%)</span>
-            <input type="number" step="0.5" value={rate} onChange={(e) => setRate(Number(e.target.value))}
-              className="mt-1 w-full rounded-lg border v-divider px-3 py-2 text-sm font-bold text-verdant-ink tabular bg-white focus:outline-none focus:ring-2 focus:ring-verdant-accent/40" dir="ltr" />
+            <span className="text-[11px] font-bold text-verdant-muted">תשואה שנתית (%)</span>
+            <input
+              type="number"
+              step="0.5"
+              value={rate}
+              onChange={(e) => setRate(Number(e.target.value))}
+              className="v-divider tabular mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
+              dir="ltr"
+            />
           </label>
           <label className="block">
-            <span className="text-[11px] text-verdant-muted font-bold">שנות חיסכון</span>
-            <input type="number" value={years} onChange={(e) => setYears(Number(e.target.value))}
-              className="mt-1 w-full rounded-lg border v-divider px-3 py-2 text-sm font-bold text-verdant-ink tabular bg-white focus:outline-none focus:ring-2 focus:ring-verdant-accent/40" dir="ltr" />
+            <span className="text-[11px] font-bold text-verdant-muted">שנות חיסכון</span>
+            <input
+              type="number"
+              value={years}
+              onChange={(e) => setYears(Number(e.target.value))}
+              className="v-divider tabular mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
+              dir="ltr"
+            />
           </label>
         </div>
       </Card>
 
       <Card>
-        <h3 className="text-lg font-extrabold text-verdant-ink mb-4 text-right">
-          תוצאות {showReal && <span className="text-xs font-bold" style={{ color: "#1B4332" }}>(ערכים ריאליים)</span>}
+        <h3 className="mb-4 text-right text-lg font-extrabold text-verdant-ink">
+          תוצאות{" "}
+          {showReal && (
+            <span className="text-xs font-bold" style={{ color: "#1B4332" }}>
+              (ערכים ריאליים)
+            </span>
+          )}
         </h3>
         <div className="grid grid-cols-3 gap-3">
-          <div className="p-4 rounded-lg border v-divider text-right">
-            <div className="text-[10px] uppercase tracking-[0.15em] text-verdant-muted font-bold mb-1">סך הפקדות</div>
-            <div className="text-xl font-extrabold tabular">{fmtILS(totalDeposited)}</div>
+          <div className="v-divider rounded-lg border p-4 text-right">
+            <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
+              סך הפקדות
+            </div>
+            <div className="tabular text-xl font-extrabold">{fmtILS(totalDeposited)}</div>
           </div>
-          <div className="p-4 rounded-lg border v-divider text-right">
-            <div className="text-[10px] uppercase tracking-[0.15em] text-verdant-muted font-bold mb-1">
+          <div className="v-divider rounded-lg border p-4 text-right">
+            <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
               {showReal ? "ריבית ריאלית" : "ריבית מצטברת"}
             </div>
-            <div className="text-xl font-extrabold tabular" style={{ color: "#1B4332" }}>{fmtILS(interest)}</div>
+            <div className="tabular text-xl font-extrabold" style={{ color: "#1B4332" }}>
+              {fmtILS(interest)}
+            </div>
           </div>
-          <div className="p-4 rounded-lg text-right" style={{ background: showReal ? "#1B433208" : "#1B433211", border: `1px solid ${showReal ? "#1B4332" : "#1B4332"}` }}>
-            <div className="text-[10px] uppercase tracking-[0.15em] text-verdant-muted font-bold mb-1">
+          <div
+            className="rounded-lg p-4 text-right"
+            style={{
+              background: showReal ? "#1B433208" : "#1B433211",
+              border: `1px solid ${showReal ? "#1B4332" : "#1B4332"}`,
+            }}
+          >
+            <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
               {showReal ? "שווי עתידי ריאלי" : "שווי עתידי (FV)"}
             </div>
-            <div className="text-2xl font-extrabold tabular" style={{ color: showReal ? "#1B4332" : "#1B4332" }}>{fmtILS(fv)}</div>
+            <div
+              className="tabular text-2xl font-extrabold"
+              style={{ color: showReal ? "#1B4332" : "#1B4332" }}
+            >
+              {fmtILS(fv)}
+            </div>
           </div>
         </div>
       </Card>

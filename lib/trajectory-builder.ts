@@ -63,20 +63,25 @@ export function buildTrajectory(input: TrajectoryInput): ExtendedTrajectoryPoint
 
   const yearsToRetirement = a.retirementAge - startAge;
   const penAtRetirement = futureValue(
-    input.pension, 0,
+    input.pension,
+    0,
     a.expectedReturnPension - a.managementFeePension,
-    Math.max(0, yearsToRetirement),
+    Math.max(0, yearsToRetirement)
   );
-  const growingMonthlyAtRet = a.monthlyInvestment * Math.pow(1 + salaryGrowth, Math.max(0, yearsToRetirement));
+  const growingMonthlyAtRet =
+    a.monthlyInvestment * Math.pow(1 + salaryGrowth, Math.max(0, yearsToRetirement));
   const liqAtRetirement = futureValue(
-    input.liquid, growingMonthlyAtRet,
+    input.liquid,
+    growingMonthlyAtRet,
     a.expectedReturnInvest - a.managementFeeInvest,
-    Math.max(0, yearsToRetirement),
+    Math.max(0, yearsToRetirement)
   );
-  const retirementReturnRate = (
-    a.expectedReturnPension - a.managementFeePension
-    + a.expectedReturnInvest - a.managementFeeInvest
-  ) / 2;
+  const retirementReturnRate =
+    (a.expectedReturnPension -
+      a.managementFeePension +
+      a.expectedReturnInvest -
+      a.managementFeeInvest) /
+    2;
   const annualWithdrawal = (penAtRetirement + liqAtRetirement) * (a.safeWithdrawalRate ?? 0.04);
 
   let penPost = penAtRetirement;
@@ -92,20 +97,38 @@ export function buildTrajectory(input: TrajectoryInput): ExtendedTrajectoryPoint
     let penVal: number, liqVal: number;
     if (age <= a.retirementAge) {
       const growingMonthly = a.monthlyInvestment * Math.pow(1 + salaryGrowth, yearsIn);
-      penVal = futureValue(input.pension, 0, a.expectedReturnPension - a.managementFeePension, yearsIn);
-      liqVal = futureValue(input.liquid, growingMonthly, a.expectedReturnInvest - a.managementFeeInvest, yearsIn);
+      penVal = futureValue(
+        input.pension,
+        0,
+        a.expectedReturnPension - a.managementFeePension,
+        yearsIn
+      );
+      liqVal = futureValue(
+        input.liquid,
+        growingMonthly,
+        a.expectedReturnInvest - a.managementFeeInvest,
+        yearsIn
+      );
       cumContrib = growingMonthly * 12 * yearsIn;
     } else {
       const totalAtRet = penAtRetirement + liqAtRetirement || 1;
-      penPost = Math.max(0, penPost * (1 + retirementReturnRate) - annualWithdrawal * (penAtRetirement / totalAtRet));
-      liqPost = Math.max(0, liqPost * (1 + retirementReturnRate) - annualWithdrawal * (liqAtRetirement / totalAtRet));
+      penPost = Math.max(
+        0,
+        penPost * (1 + retirementReturnRate) - annualWithdrawal * (penAtRetirement / totalAtRet)
+      );
+      liqPost = Math.max(
+        0,
+        liqPost * (1 + retirementReturnRate) - annualWithdrawal * (liqAtRetirement / totalAtRet)
+      );
       penVal = penPost;
       liqVal = liqPost;
     }
 
     const liabRemaining = (input.liabilitiesToday ?? 0) * Math.max(0, 1 - yearsIn * 0.05);
     points.push({
-      age, year: yr, month: startMonth,
+      age,
+      year: yr,
+      month: startMonth,
       label: age % 5 === 0 || age === startAge || age === a.retirementAge ? `${yr}` : "",
       liquid: liqVal,
       pension: penVal,

@@ -48,14 +48,20 @@ export interface FamilyRoadmap {
   endNetWorth: number;
 }
 
-interface KidRow { name?: string; dob?: string; gender?: "male" | "female" }
+interface KidRow {
+  name?: string;
+  dob?: string;
+  gender?: "male" | "female";
+}
 
 function loadKids(): KidRow[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(scopedKey("verdant:onboarding:children"));
     return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 function ageOn(dob: string, year: number): number | null {
@@ -66,12 +72,21 @@ function ageOn(dob: string, year: number): number | null {
 
 function monthsBetween(target: Date): number {
   const now = new Date();
-  return Math.max(0, Math.round((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30.4375)));
+  return Math.max(
+    0,
+    Math.round((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30.4375))
+  );
 }
 
 export function buildFamilyRoadmap(): FamilyRoadmap {
   if (typeof window === "undefined") {
-    return { events: [], netWorthSeries: [], retirementYear: null, startNetWorth: 0, endNetWorth: 0 };
+    return {
+      events: [],
+      netWorthSeries: [],
+      retirementYear: null,
+      startNetWorth: 0,
+      endNetWorth: 0,
+    };
   }
 
   const a = loadAssumptions();
@@ -161,10 +176,13 @@ export function buildFamilyRoadmap(): FamilyRoadmap {
   const totalMortgageBalance = mortgageTracks.reduce((s, t) => s + (t.remainingBalance || 0), 0);
   const totalMortgageMonthly = mortgageTracks.reduce((s, t) => s + (t.monthlyPayment || 0), 0);
   if (totalMortgageBalance > 0 && totalMortgageMonthly > 0) {
-    const avgRate = mortgageTracks.reduce((s, t) => s + (t.interestRate || 0.05) * (t.remainingBalance || 0), 0) / totalMortgageBalance;
+    const avgRate =
+      mortgageTracks.reduce((s, t) => s + (t.interestRate || 0.05) * (t.remainingBalance || 0), 0) /
+      totalMortgageBalance;
     const r = avgRate / 12;
     const ratio = (totalMortgageBalance * r) / totalMortgageMonthly;
-    const monthsLeft = ratio > 0 && ratio < 1 ? Math.ceil(-Math.log(1 - ratio) / Math.log(1 + r)) : 360;
+    const monthsLeft =
+      ratio > 0 && ratio < 1 ? Math.ceil(-Math.log(1 - ratio) / Math.log(1 + r)) : 360;
     const payoffYear = currentYear + Math.ceil(monthsLeft / 12);
     if (payoffYear <= horizonYear) {
       events.push({
@@ -198,7 +216,12 @@ export function buildFamilyRoadmap(): FamilyRoadmap {
   const securitiesTotal = totalSecuritiesValue(securities);
   const pensionTotal = pensions.reduce((s, f) => s + (f.balance || 0), 0);
   const reTotal = properties.reduce((s, p) => s + (p.currentValue || 0), 0);
-  const liabilities = totalMortgageBalance + (debt.loans || []).reduce((s, l) => s + (l.totalPayments || 0) * (l.monthlyPayment || 0) * 0.5, 0);
+  const liabilities =
+    totalMortgageBalance +
+    (debt.loans || []).reduce(
+      (s, l) => s + (l.totalPayments || 0) * (l.monthlyPayment || 0) * 0.5,
+      0
+    );
   const startNetWorth = Math.max(0, cash + securitiesTotal + pensionTotal + reTotal - liabilities);
 
   const annualReturn = ((a.expectedReturnPension || 0.05) + (a.expectedReturnInvest || 0.07)) / 2;
@@ -210,9 +233,10 @@ export function buildFamilyRoadmap(): FamilyRoadmap {
   for (let y = currentYear; y <= horizonYear; y++) {
     series.push({ year: y, netWorth: Math.round(nw) });
     // Apply growth + savings
-    nw = nw * (1 + annualReturn * 0.5) // average for blended portfolio
-       + reTotal * reAppreciation
-       + annualSavings;
+    nw =
+      nw * (1 + annualReturn * 0.5) + // average for blended portfolio
+      reTotal * reAppreciation +
+      annualSavings;
   }
 
   return {

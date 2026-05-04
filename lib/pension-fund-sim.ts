@@ -40,10 +40,10 @@ function projectBalance(
   startBalance: number,
   monthly: number,
   years: number,
-  netAnnualPct: number,
+  netAnnualPct: number
 ): number {
-  const r = netAnnualPct / 100;        // annual rate (decimal)
-  const n = years;                     // years
+  const r = netAnnualPct / 100; // annual rate (decimal)
+  const n = years; // years
   const fvLump = startBalance * Math.pow(1 + r, n);
 
   // FV of monthly annuity: convert annual rate to monthly compounding,
@@ -60,19 +60,15 @@ function projectBalance(
 export function simulateFund(
   fund: PensionFund,
   overrides: SimInputs,
-  baseline: SimInputs,
+  baseline: SimInputs
 ): SimOutputs {
   const sim = projectScenario(fund, overrides);
   const base = projectScenario(fund, baseline);
 
   const balanceDelta = sim.finalBalance - base.finalBalance;
   const pensionDelta = sim.monthlyPension - base.monthlyPension;
-  const balanceDeltaPct = base.finalBalance > 0
-    ? (balanceDelta / base.finalBalance) * 100
-    : 0;
-  const pensionDeltaPct = base.monthlyPension > 0
-    ? (pensionDelta / base.monthlyPension) * 100
-    : 0;
+  const balanceDeltaPct = base.finalBalance > 0 ? (balanceDelta / base.finalBalance) * 100 : 0;
+  const pensionDeltaPct = base.monthlyPension > 0 ? (pensionDelta / base.monthlyPension) * 100 : 0;
 
   return {
     finalBalance: sim.finalBalance,
@@ -84,29 +80,35 @@ export function simulateFund(
   };
 }
 
-function projectScenario(fund: PensionFund, p: SimInputs): { finalBalance: number; monthlyPension: number } {
+function projectScenario(
+  fund: PensionFund,
+  p: SimInputs
+): { finalBalance: number; monthlyPension: number } {
   const netReturn = p.expectedReturnPct - p.mgmtFeeBalancePct;
   const finalBalance = projectBalance(
     fund.balance || 0,
     p.monthlyContrib,
     p.yearsToRetirement,
-    netReturn,
+    netReturn
   );
   // Conversion factor: balance ÷ factor = monthly pension.
   // 200 ≈ standard pension (DC), 175 ≈ ביטוח מנהלים, 180 ≈ גמל לקצבה.
-  const monthlyPension = p.conversionFactor > 0
-    ? Math.round(finalBalance / p.conversionFactor)
-    : 0;
+  const monthlyPension = p.conversionFactor > 0 ? Math.round(finalBalance / p.conversionFactor) : 0;
   return { finalBalance, monthlyPension };
 }
 
 /** Default conversion factor by fund type — sensible Israeli starting points. */
 export function defaultFactorByType(type: PensionFund["type"]): number {
   switch (type) {
-    case "bituach":    return 175; // ביטוח מנהלים
-    case "pension":    return 200; // קרן פנסיה (DC, Israeli market average)
-    case "gemel":      return 200; // קופת גמל לקצבה
-    case "hishtalmut": return 200; // השתלמות נמשכת בד״כ הונית, factor פחות רלוונטי
-    default:           return 200;
+    case "bituach":
+      return 175; // ביטוח מנהלים
+    case "pension":
+      return 200; // קרן פנסיה (DC, Israeli market average)
+    case "gemel":
+      return 200; // קופת גמל לקצבה
+    case "hishtalmut":
+      return 200; // השתלמות נמשכת בד״כ הונית, factor פחות רלוונטי
+    default:
+      return 200;
   }
 }

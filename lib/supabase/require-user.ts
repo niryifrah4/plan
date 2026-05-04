@@ -21,10 +21,7 @@ export async function requireUser() {
 
   if (error || !user) {
     return {
-      response: NextResponse.json(
-        { error: "unauthenticated" },
-        { status: 401 },
-      ),
+      response: NextResponse.json({ error: "unauthenticated" }, { status: 401 }),
     };
   }
 

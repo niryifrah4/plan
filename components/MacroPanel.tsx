@@ -11,11 +11,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  loadAssumptions,
-  DEFAULT_ASSUMPTIONS,
-  PRIME_OVER_BOI,
-} from "@/lib/assumptions";
+import { loadAssumptions, DEFAULT_ASSUMPTIONS, PRIME_OVER_BOI } from "@/lib/assumptions";
 
 function fmtPct2(x: number): string {
   return (x * 100).toFixed(2) + "%";
@@ -74,31 +70,41 @@ export function MacroPanel() {
     return (
       <button
         onClick={() => setExpanded(true)}
-        className="w-full rounded-xl bg-white px-4 py-2.5 mb-4 flex items-center justify-between gap-4 text-right hover:shadow-sm transition-shadow"
+        className="mb-4 flex w-full items-center justify-between gap-4 rounded-xl bg-white px-4 py-2.5 text-right transition-shadow hover:shadow-sm"
         style={{ border: "1px solid #eef2e8" }}
         title="לחץ להרחבה ועריכה"
       >
         <span className="flex items-center gap-2 text-[11px] font-bold text-verdant-muted">
-          <span className="material-symbols-outlined text-[16px]" style={{ color: "#1B4332" }}>trending_up</span>
+          <span className="material-symbols-outlined text-[16px]" style={{ color: "#1B4332" }}>
+            trending_up
+          </span>
           מאקרו
         </span>
-        <div className="flex items-center gap-5 text-[12px] font-bold text-verdant-ink tabular-nums">
-          <span>בנק ישראל <b>{fmtPct2(values.boiRate)}</b></span>
-          <span>פריים <b>{fmtPct2(values.primeRate)}</b></span>
-          <span>אינפלציה <b>{fmtPct2(values.inflationRate)}</b></span>
+        <div className="flex items-center gap-5 text-[12px] font-bold tabular-nums text-verdant-ink">
+          <span>
+            בנק ישראל <b>{fmtPct2(values.boiRate)}</b>
+          </span>
+          <span>
+            פריים <b>{fmtPct2(values.primeRate)}</b>
+          </span>
+          <span>
+            אינפלציה <b>{fmtPct2(values.inflationRate)}</b>
+          </span>
         </div>
-        <span className="material-symbols-outlined text-[18px] text-verdant-muted">expand_more</span>
+        <span className="material-symbols-outlined text-[18px] text-verdant-muted">
+          expand_more
+        </span>
       </button>
     );
   }
 
   return (
     <div
-      className="rounded-organic shadow-soft bg-white p-5 md:p-6 mb-6"
+      className="mb-6 rounded-organic bg-white p-5 shadow-soft md:p-6"
       style={{ border: "1px solid #eef2e8" }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-[18px]" style={{ color: "#1B4332" }}>
             trending_up
@@ -109,9 +115,11 @@ export function MacroPanel() {
           <button
             onClick={() => setExpanded(false)}
             title="כווץ"
-            className="mr-2 p-1 rounded hover:bg-verdant-bg"
+            className="mr-2 rounded p-1 hover:bg-verdant-bg"
           >
-            <span className="material-symbols-outlined text-[18px] text-verdant-muted">expand_less</span>
+            <span className="material-symbols-outlined text-[18px] text-verdant-muted">
+              expand_less
+            </span>
           </button>
           {/* Info icon with hover tooltip */}
           <div className="relative flex items-center">
@@ -120,7 +128,7 @@ export function MacroPanel() {
               onMouseLeave={() => setShowSource(false)}
               onFocus={() => setShowSource(true)}
               onBlur={() => setShowSource(false)}
-              className="text-[14px] leading-none cursor-default select-none"
+              className="cursor-default select-none text-[14px] leading-none"
               aria-label="מקור הנתונים"
               style={{ color: "#5a7a6a" }}
             >
@@ -149,7 +157,7 @@ export function MacroPanel() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
         <StatField
           label="ריבית בנק ישראל"
           value={fmtPct2(values.boiRate)}
@@ -169,7 +177,7 @@ export function MacroPanel() {
 
       {/* Footer note */}
       <div
-        className="text-[10px] font-semibold text-right leading-relaxed"
+        className="text-right text-[10px] font-semibold leading-relaxed"
         style={{ color: "#8aaa9a" }}
       >
         מעודכן ידנית · יוחלף ב-API אוטומטי
@@ -178,27 +186,19 @@ export function MacroPanel() {
   );
 }
 
-function StatField({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint: string;
-}) {
+function StatField({ label, value, hint }: { label: string; value: string; hint: string }) {
   return (
     <div
       className="rounded-xl px-4 py-3 text-right"
       style={{ background: "#f4f9f4", border: "1px solid #e4ede6" }}
     >
-      <div className="text-[11px] font-extrabold mb-1" style={{ color: "#012d1d" }}>
+      <div className="mb-1 text-[11px] font-extrabold" style={{ color: "#012d1d" }}>
         {label}
       </div>
       <div className="text-[22px] font-black tabular-nums" style={{ color: "#1B4332" }}>
         {value}
       </div>
-      <div className="text-[10px] font-semibold mt-1" style={{ color: "#5a7a6a" }}>
+      <div className="mt-1 text-[10px] font-semibold" style={{ color: "#5a7a6a" }}>
         {hint}
       </div>
     </div>

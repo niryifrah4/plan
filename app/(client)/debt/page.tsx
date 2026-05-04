@@ -6,13 +6,14 @@ import {
   loadDebtData as loadDebt,
   saveDebtData as saveDebt,
   effectiveTrackRate,
-  type DebtData, type Loan, type Installment,
-  type MortgageData, type MortgageTrack,
+  type DebtData,
+  type Loan,
+  type Installment,
+  type MortgageData,
+  type MortgageTrack,
 } from "@/lib/debt-store";
 import { RefinanceSimulator } from "@/components/debt/RefinanceSimulator";
-import {
-  type IndexationType, type RepaymentMethod,
-} from "@/lib/debt-store";
+import { type IndexationType, type RepaymentMethod } from "@/lib/debt-store";
 import { useAssumptions } from "@/lib/hooks/useAssumptions";
 import { SolidKpi } from "@/components/ui/SolidKpi";
 
@@ -61,7 +62,7 @@ function weightedAvgInterest(tracks: MortgageTrack[], primeRate: number): number
   if (totalBalance <= 0) return 0;
   const weighted = tracks.reduce(
     (s, t) => s + effectiveTrackRate(t, primeRate) * (t.remainingBalance || 0),
-    0,
+    0
   );
   return weighted / totalBalance;
 }
@@ -106,7 +107,9 @@ export default function DebtPage() {
   const [expandedSources, setExpandedSources] = useState<Record<string, boolean>>({});
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => { setData(loadDebt()); }, []);
+  useEffect(() => {
+    setData(loadDebt());
+  }, []);
 
   const autoSave = useCallback((next: DebtData) => {
     setSaveStatus("saving");
@@ -118,72 +121,113 @@ export default function DebtPage() {
     }, 400);
   }, []);
 
-  const update = useCallback((fn: (prev: DebtData) => DebtData) => {
-    setData(prev => {
-      const next = fn(prev);
-      autoSave(next);
-      return next;
-    });
-  }, [autoSave]);
+  const update = useCallback(
+    (fn: (prev: DebtData) => DebtData) => {
+      setData((prev) => {
+        const next = fn(prev);
+        autoSave(next);
+        return next;
+      });
+    },
+    [autoSave]
+  );
 
   /* ── Loan CRUD ── */
   const addLoan = useCallback(() => {
-    update(prev => ({
+    update((prev) => ({
       ...prev,
-      loans: [...prev.loans, { id: uid(), lender: "", startDate: "", totalPayments: 0, monthlyPayment: 0 }],
+      loans: [
+        ...prev.loans,
+        { id: uid(), lender: "", startDate: "", totalPayments: 0, monthlyPayment: 0 },
+      ],
     }));
   }, [update]);
 
-  const updateLoan = useCallback((id: string, field: keyof Loan, value: string | number) => {
-    update(prev => ({
-      ...prev,
-      loans: prev.loans.map(l =>
-        l.id === id ? { ...l, [field]: (field === "lender" || field === "startDate") ? value : Number(value) || 0 } : l,
-      ),
-    }));
-  }, [update]);
+  const updateLoan = useCallback(
+    (id: string, field: keyof Loan, value: string | number) => {
+      update((prev) => ({
+        ...prev,
+        loans: prev.loans.map((l) =>
+          l.id === id
+            ? {
+                ...l,
+                [field]: field === "lender" || field === "startDate" ? value : Number(value) || 0,
+              }
+            : l
+        ),
+      }));
+    },
+    [update]
+  );
 
-  const deleteLoan = useCallback((id: string) => {
-    update(prev => ({ ...prev, loans: prev.loans.filter(l => l.id !== id) }));
-  }, [update]);
+  const deleteLoan = useCallback(
+    (id: string) => {
+      update((prev) => ({ ...prev, loans: prev.loans.filter((l) => l.id !== id) }));
+    },
+    [update]
+  );
 
   /* ── Installment CRUD ── */
   const addInstallment = useCallback(() => {
-    update(prev => ({
+    update((prev) => ({
       ...prev,
-      installments: [...prev.installments, { id: uid(), merchant: "", source: "", currentPayment: 1, totalPayments: 1, monthlyAmount: 0 }],
+      installments: [
+        ...prev.installments,
+        {
+          id: uid(),
+          merchant: "",
+          source: "",
+          currentPayment: 1,
+          totalPayments: 1,
+          monthlyAmount: 0,
+        },
+      ],
     }));
   }, [update]);
 
-  const updateInstallment = useCallback((id: string, field: keyof Installment, value: string | number) => {
-    update(prev => ({
-      ...prev,
-      installments: prev.installments.map(inst =>
-        inst.id === id ? { ...inst, [field]: (field === "merchant" || field === "source") ? value : Number(value) || 0 } : inst,
-      ),
-    }));
-  }, [update]);
+  const updateInstallment = useCallback(
+    (id: string, field: keyof Installment, value: string | number) => {
+      update((prev) => ({
+        ...prev,
+        installments: prev.installments.map((inst) =>
+          inst.id === id
+            ? {
+                ...inst,
+                [field]: field === "merchant" || field === "source" ? value : Number(value) || 0,
+              }
+            : inst
+        ),
+      }));
+    },
+    [update]
+  );
 
-  const deleteInstallment = useCallback((id: string) => {
-    update(prev => ({ ...prev, installments: prev.installments.filter(i => i.id !== id) }));
-  }, [update]);
+  const deleteInstallment = useCallback(
+    (id: string) => {
+      update((prev) => ({ ...prev, installments: prev.installments.filter((i) => i.id !== id) }));
+    },
+    [update]
+  );
 
   /* ── Mortgage CRUD ── */
   const mortgage = data.mortgage || EMPTY_MORTGAGE;
   const [expandedMortgage, setExpandedMortgage] = useState(true);
 
-  const updateMortgageField = useCallback((field: "bank" | "propertyValue", value: string | number) => {
-    update(prev => ({
-      ...prev,
-      mortgage: {
-        ...(prev.mortgage || EMPTY_MORTGAGE),
-        [field]: field === "bank" ? value : Number(value) || 0,
-      },
-    }));
-  }, [update]);
+  const updateMortgageField = useCallback(
+    (field: "bank" | "propertyValue", value: string | number) => {
+      update((prev) => ({
+        ...prev,
+        mortgage: {
+          ...(prev.mortgage || EMPTY_MORTGAGE),
+          [field]: field === "bank" ? value : Number(value) || 0,
+        },
+      }));
+    },
+    [update]
+  );
 
   const addMortgageTrack = useCallback(() => {
-    update(prev => ({
+    update((prev) => ({
       ...prev,
       mortgage: {
         ...(prev.mortgage || EMPTY_MORTGAGE),
@@ -207,34 +251,45 @@ export default function DebtPage() {
     }));
   }, [update]);
 
-  const updateMortgageTrack = useCallback((id: string, field: keyof MortgageTrack, value: string | number) => {
-    update(prev => ({
-      ...prev,
-      mortgage: {
-        ...(prev.mortgage || EMPTY_MORTGAGE),
-        tracks: (prev.mortgage?.tracks || []).map(t =>
-          t.id === id
-            ? {
-                ...t,
-                [field]: (field === "name" || field === "indexation" || field === "repaymentMethod" || field === "startDate" || field === "endDate")
-                  ? value
-                  : Number(value) || 0,
-              }
-            : t,
-        ),
-      },
-    }));
-  }, [update]);
+  const updateMortgageTrack = useCallback(
+    (id: string, field: keyof MortgageTrack, value: string | number) => {
+      update((prev) => ({
+        ...prev,
+        mortgage: {
+          ...(prev.mortgage || EMPTY_MORTGAGE),
+          tracks: (prev.mortgage?.tracks || []).map((t) =>
+            t.id === id
+              ? {
+                  ...t,
+                  [field]:
+                    field === "name" ||
+                    field === "indexation" ||
+                    field === "repaymentMethod" ||
+                    field === "startDate" ||
+                    field === "endDate"
+                      ? value
+                      : Number(value) || 0,
+                }
+              : t
+          ),
+        },
+      }));
+    },
+    [update]
+  );
 
-  const deleteMortgageTrack = useCallback((id: string) => {
-    update(prev => ({
-      ...prev,
-      mortgage: {
-        ...(prev.mortgage || EMPTY_MORTGAGE),
-        tracks: (prev.mortgage?.tracks || []).filter(t => t.id !== id),
-      },
-    }));
-  }, [update]);
+  const deleteMortgageTrack = useCallback(
+    (id: string) => {
+      update((prev) => ({
+        ...prev,
+        mortgage: {
+          ...(prev.mortgage || EMPTY_MORTGAGE),
+          tracks: (prev.mortgage?.tracks || []).filter((t) => t.id !== id),
+        },
+      }));
+    },
+    [update]
+  );
 
   /* ── Derived ── */
   const loanTotals = useMemo(() => {
@@ -251,7 +306,7 @@ export default function DebtPage() {
 
   const installmentsBySource = useMemo(() => {
     const groups: Record<string, Installment[]> = {};
-    data.installments.forEach(inst => {
+    data.installments.forEach((inst) => {
       const key = inst.source || "לא מוגדר";
       if (!groups[key]) groups[key] = [];
       groups[key].push(inst);
@@ -271,26 +326,38 @@ export default function DebtPage() {
     };
   }, [data.mortgage, primeRate]);
 
-  const grandMonthly = loanTotals.monthlyTotal + installmentTotals.monthlyTotal + mortgageTotals.monthlyTotal;
+  const grandMonthly =
+    loanTotals.monthlyTotal + installmentTotals.monthlyTotal + mortgageTotals.monthlyTotal;
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="mx-auto max-w-5xl">
       {/* ═══ Header ═══ */}
-      <header className="mb-6 pb-5 border-b" style={{ borderColor: "#e2e8d8" }}>
-        <div className="flex items-end justify-between flex-wrap gap-3 mb-1">
+      <header className="mb-6 border-b pb-5" style={{ borderColor: "#e2e8d8" }}>
+        <div className="mb-1 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.18em] font-extrabold mb-1" style={{ color: "#5a7a6a" }}>
+            <div
+              className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.18em]"
+              style={{ color: "#5a7a6a" }}
+            >
               Debt Management
             </div>
-            <h1 className="text-[22px] font-extrabold tracking-tight leading-tight" style={{ color: "#012d1d" }}>
+            <h1
+              className="text-[22px] font-extrabold leading-tight tracking-tight"
+              style={{ color: "#012d1d" }}
+            >
               הלוואות ותשלומים
             </h1>
           </div>
           {saveStatus !== "idle" && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold" style={{
-              color: saveStatus === "saving" ? "#5a7a6a" : "#2B694D",
-            }}>
-              <span className={`material-symbols-outlined text-[14px] ${saveStatus === "saving" ? "animate-pulse" : ""}`}>
+            <span
+              className="inline-flex items-center gap-1 text-[11px] font-bold"
+              style={{
+                color: saveStatus === "saving" ? "#5a7a6a" : "#2B694D",
+              }}
+            >
+              <span
+                className={`material-symbols-outlined text-[14px] ${saveStatus === "saving" ? "animate-pulse" : ""}`}
+              >
                 {saveStatus === "saving" ? "cloud_sync" : "cloud_done"}
               </span>
               {saveStatus === "saving" ? "שומר..." : "נשמר"}
@@ -300,75 +367,148 @@ export default function DebtPage() {
       </header>
 
       {/* ═══ KPI Summary ═══ */}
-      <div className="text-base font-extrabold mb-3" style={{ color: "#012d1d" }}>סיכום חובות חודשי</div>
-      <section className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
-        <SolidKpi label="משכנתא חודשי"     value={fmtILS(mortgageTotals.monthlyTotal)}    icon="home"           tone="ink"     sub={`${mortgageTotals.count} מסלולים · ${mortgageTotals.avgInterest.toFixed(2)}% ריבית`} />
-        <SolidKpi label="החזר הלוואות"     value={fmtILS(loanTotals.monthlyTotal)}        icon="credit_score"   tone="red"     sub={`${loanTotals.count} הלוואות`} />
-        <SolidKpi label="תשלומים חודשיים"  value={fmtILS(installmentTotals.monthlyTotal)} icon="shopping_cart"  tone="sage"    sub={`${installmentTotals.count} עסקאות`} />
+      <div className="mb-3 text-base font-extrabold" style={{ color: "#012d1d" }}>
+        סיכום חובות חודשי
+      </div>
+      <section className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-3">
+        <SolidKpi
+          label="משכנתא חודשי"
+          value={fmtILS(mortgageTotals.monthlyTotal)}
+          icon="home"
+          tone="ink"
+          sub={`${mortgageTotals.count} מסלולים · ${mortgageTotals.avgInterest.toFixed(2)}% ריבית`}
+        />
+        <SolidKpi
+          label="החזר הלוואות"
+          value={fmtILS(loanTotals.monthlyTotal)}
+          icon="credit_score"
+          tone="red"
+          sub={`${loanTotals.count} הלוואות`}
+        />
+        <SolidKpi
+          label="תשלומים חודשיים"
+          value={fmtILS(installmentTotals.monthlyTotal)}
+          icon="shopping_cart"
+          tone="sage"
+          sub={`${installmentTotals.count} עסקאות`}
+        />
       </section>
-      <section className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-        <SolidKpi label="יתרת משכנתא"      value={fmtILS(mortgageTotals.balanceTotal)}    icon="account_balance" tone="forest"  sub={`שולם ${(mortgageTotals.progress * 100).toFixed(0)}%`} />
-        <SolidKpi label="יתרת הלוואות"     value={fmtILS(loanTotals.balanceTotal)}        icon="receipt_long"    tone="ink"     sub="סה״כ יתרות" />
-        <SolidKpi label="סה״כ חודשי כולל"  value={fmtILS(grandMonthly)}                   icon="paid"            tone={grandMonthly > 0 ? "red" : "emerald"} />
+      <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3">
+        <SolidKpi
+          label="יתרת משכנתא"
+          value={fmtILS(mortgageTotals.balanceTotal)}
+          icon="account_balance"
+          tone="forest"
+          sub={`שולם ${(mortgageTotals.progress * 100).toFixed(0)}%`}
+        />
+        <SolidKpi
+          label="יתרת הלוואות"
+          value={fmtILS(loanTotals.balanceTotal)}
+          icon="receipt_long"
+          tone="ink"
+          sub="סה״כ יתרות"
+        />
+        <SolidKpi
+          label="סה״כ חודשי כולל"
+          value={fmtILS(grandMonthly)}
+          icon="paid"
+          tone={grandMonthly > 0 ? "red" : "emerald"}
+        />
       </section>
 
       {/* ═══ Mortgage Section ═══ */}
       <section
-        className="bg-white rounded-2xl mb-4 overflow-hidden"
-        style={{ border: "1px solid #F3F4EC", boxShadow: "0 1px 2px rgba(107,33,168,.04), 0 8px 24px rgba(107,33,168,.06)" }}
+        className="mb-4 overflow-hidden rounded-2xl bg-white"
+        style={{
+          border: "1px solid #F3F4EC",
+          boxShadow: "0 1px 2px rgba(107,33,168,.04), 0 8px 24px rgba(107,33,168,.06)",
+        }}
       >
         <button
           onClick={() => setExpandedMortgage(!expandedMortgage)}
-          className="w-full px-5 md:px-7 py-5 flex items-center gap-3 text-right"
+          className="flex w-full items-center gap-3 px-5 py-5 text-right md:px-7"
           style={{ background: expandedMortgage ? "#F3F4EC" : "#fff" }}
         >
-          <span className="w-9 h-9 flex items-center justify-center flex-shrink-0" style={{ background: "rgba(107,33,168,0.08)", borderRadius: "0.75rem" }}>
-            <span className="material-symbols-outlined text-[18px]" style={{ color: "#1B4332" }}>home</span>
+          <span
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center"
+            style={{ background: "rgba(107,33,168,0.08)", borderRadius: "0.75rem" }}
+          >
+            <span className="material-symbols-outlined text-[18px]" style={{ color: "#1B4332" }}>
+              home
+            </span>
           </span>
           <div className="flex-1">
-            <h2 className="text-base font-extrabold" style={{ color: "#012d1d" }}>משכנתאות</h2>
+            <h2 className="text-base font-extrabold" style={{ color: "#012d1d" }}>
+              משכנתאות
+            </h2>
             <div className="text-[11px] font-semibold" style={{ color: "#5a7a6a" }}>
               {mortgageTotals.count} מסלולים · החזר חודשי{" "}
-              <span style={{ color: "#1B4332", fontFamily: "Assistant" }}>{fmtILS(mortgageTotals.monthlyTotal)}</span>
+              <span style={{ color: "#1B4332", fontFamily: "Assistant" }}>
+                {fmtILS(mortgageTotals.monthlyTotal)}
+              </span>
               {mortgageTotals.balanceTotal > 0 && (
-                <> · יתרה <span style={{ color: "#1B4332", fontFamily: "Assistant" }}>{fmtILS(mortgageTotals.balanceTotal)}</span></>
+                <>
+                  {" "}
+                  · יתרה{" "}
+                  <span style={{ color: "#1B4332", fontFamily: "Assistant" }}>
+                    {fmtILS(mortgageTotals.balanceTotal)}
+                  </span>
+                </>
               )}
             </div>
           </div>
-          <span className="material-symbols-outlined text-[20px] transition-transform" style={{
-            color: "#5a7a6a",
-            transform: expandedMortgage ? "rotate(0deg)" : "rotate(-90deg)",
-          }}>expand_more</span>
+          <span
+            className="material-symbols-outlined text-[20px] transition-transform"
+            style={{
+              color: "#5a7a6a",
+              transform: expandedMortgage ? "rotate(0deg)" : "rotate(-90deg)",
+            }}
+          >
+            expand_more
+          </span>
         </button>
 
         {expandedMortgage && (
-          <div className="px-5 md:px-7 pb-6 pt-2">
+          <div className="px-5 pb-6 pt-2 md:px-7">
             {/* Bank & property info — each field in its own pill for breathing room */}
-            <div className="flex items-center gap-3 mb-6 flex-wrap">
-              <div className="flex items-center gap-2 px-4 py-2.5 rounded-full" style={{ background: "#F9FAF2", border: "1px solid #E8E9E1" }}>
-                <span className="text-[11px] font-bold" style={{ color: "#5C6058" }}>בנק</span>
+            <div className="mb-6 flex flex-wrap items-center gap-3">
+              <div
+                className="flex items-center gap-2 rounded-full px-4 py-2.5"
+                style={{ background: "#F9FAF2", border: "1px solid #E8E9E1" }}
+              >
+                <span className="text-[11px] font-bold" style={{ color: "#5C6058" }}>
+                  בנק
+                </span>
                 <input
                   type="text"
                   value={mortgage.bank}
-                  onChange={e => updateMortgageField("bank", e.target.value)}
+                  onChange={(e) => updateMortgageField("bank", e.target.value)}
                   placeholder="שם הבנק"
-                  className="bg-transparent border-none text-[13px] font-bold w-32 focus:outline-none"
+                  className="w-32 border-none bg-transparent text-[13px] font-bold focus:outline-none"
                   style={{ color: "#012d1d" }}
                 />
               </div>
-              <div className="flex items-center gap-2 px-4 py-2.5 rounded-full" style={{ background: "#F9FAF2", border: "1px solid #E8E9E1" }}>
-                <span className="text-[11px] font-bold" style={{ color: "#5C6058" }}>שווי נכס</span>
+              <div
+                className="flex items-center gap-2 rounded-full px-4 py-2.5"
+                style={{ background: "#F9FAF2", border: "1px solid #E8E9E1" }}
+              >
+                <span className="text-[11px] font-bold" style={{ color: "#5C6058" }}>
+                  שווי נכס
+                </span>
                 <input
                   type="number"
                   value={mortgage.propertyValue || ""}
-                  onChange={e => updateMortgageField("propertyValue", e.target.value)}
+                  onChange={(e) => updateMortgageField("propertyValue", e.target.value)}
                   placeholder="0"
-                  className="bg-transparent border-none text-[13px] font-bold w-24 focus:outline-none tabular-nums"
+                  className="w-24 border-none bg-transparent text-[13px] font-bold tabular-nums focus:outline-none"
                   style={{ color: "#012d1d", fontFamily: "Assistant" }}
                 />
               </div>
               {mortgage.propertyValue > 0 && mortgageTotals.balanceTotal > 0 && (
-                <div className="text-[11px] font-extrabold px-3 py-2 rounded-full" style={{ background: "#F3F4EC", color: "#1B4332" }}>
+                <div
+                  className="rounded-full px-3 py-2 text-[11px] font-extrabold"
+                  style={{ background: "#F3F4EC", color: "#1B4332" }}
+                >
                   LTV {((mortgageTotals.balanceTotal / mortgage.propertyValue) * 100).toFixed(0)}%
                 </div>
               )}
@@ -377,19 +517,30 @@ export default function DebtPage() {
             {/* Overall progress bar */}
             {mortgageTotals.originalTotal > 0 && (
               <div className="mb-4">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] font-bold" style={{ color: "#1B4332" }}>התקדמות כללית</span>
-                  <span className="text-[11px] font-extrabold tabular-nums" style={{ color: "#1B4332", fontFamily: "Assistant" }}>
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="text-[10px] font-bold" style={{ color: "#1B4332" }}>
+                    התקדמות כללית
+                  </span>
+                  <span
+                    className="text-[11px] font-extrabold tabular-nums"
+                    style={{ color: "#1B4332", fontFamily: "Assistant" }}
+                  >
                     {(mortgageTotals.progress * 100).toFixed(1)}% שולם
                   </span>
                 </div>
-                <div className="h-2.5 rounded-full overflow-hidden" style={{ background: "#F3F4EC" }}>
+                <div
+                  className="h-2.5 overflow-hidden rounded-full"
+                  style={{ background: "#F3F4EC" }}
+                >
                   <div
                     className="h-full rounded-full transition-all"
-                    style={{ width: `${mortgageTotals.progress * 100}%`, background: "linear-gradient(90deg, #2B694D, #1B4332)" }}
+                    style={{
+                      width: `${mortgageTotals.progress * 100}%`,
+                      background: "linear-gradient(90deg, #2B694D, #1B4332)",
+                    }}
                   />
                 </div>
-                <div className="flex justify-between mt-0.5">
+                <div className="mt-0.5 flex justify-between">
                   <span className="text-[9px] font-semibold" style={{ color: "#9ca3af" }}>
                     שולם {fmtILS(mortgageTotals.originalTotal - mortgageTotals.balanceTotal)}
                   </span>
@@ -402,14 +553,23 @@ export default function DebtPage() {
 
             {/* Summary badges */}
             {mortgageTotals.count > 0 && (
-              <div className="flex items-center gap-3 mb-4 flex-wrap">
-                <div className="text-[11px] font-bold px-2.5 py-1 rounded-lg" style={{ background: "#F3F4EC", color: "#1B4332" }}>
+              <div className="mb-4 flex flex-wrap items-center gap-3">
+                <div
+                  className="rounded-lg px-2.5 py-1 text-[11px] font-bold"
+                  style={{ background: "#F3F4EC", color: "#1B4332" }}
+                >
                   החזר חודשי: {fmtILS(mortgageTotals.monthlyTotal)}
                 </div>
-                <div className="text-[11px] font-bold px-2.5 py-1 rounded-lg" style={{ background: "#F3F4EC", color: "#1B4332" }}>
+                <div
+                  className="rounded-lg px-2.5 py-1 text-[11px] font-bold"
+                  style={{ background: "#F3F4EC", color: "#1B4332" }}
+                >
                   ריבית משוקללת: {mortgageTotals.avgInterest.toFixed(2)}%
                 </div>
-                <div className="text-[11px] font-bold px-2.5 py-1 rounded-lg" style={{ background: "#F3F4EC", color: "#1B4332" }}>
+                <div
+                  className="rounded-lg px-2.5 py-1 text-[11px] font-bold"
+                  style={{ background: "#F3F4EC", color: "#1B4332" }}
+                >
                   יתרה: {fmtILS(mortgageTotals.balanceTotal)}
                 </div>
               </div>
@@ -417,7 +577,7 @@ export default function DebtPage() {
 
             {/* Track column headers */}
             <div
-              className="grid items-center pb-1 mb-1 text-[9px] font-extrabold uppercase tracking-[0.08em]"
+              className="mb-1 grid items-center pb-1 text-[9px] font-extrabold uppercase tracking-[0.08em]"
               style={{
                 gridTemplateColumns: "minmax(80px,1fr) 56px 56px 68px 68px 64px 52px 24px",
                 color: "#1B4332",
@@ -436,17 +596,21 @@ export default function DebtPage() {
             </div>
 
             {/* Track rows */}
-            {(mortgage.tracks || []).map(track => {
+            {(mortgage.tracks || []).map((track) => {
               const elapsed = mortgageTrackElapsed(track);
               const remaining = mortgageTrackRemaining(track);
-              const trackProgress = track.originalAmount > 0
-                ? Math.min(1, (track.originalAmount - track.remainingBalance) / track.originalAmount)
-                : 0;
+              const trackProgress =
+                track.originalAmount > 0
+                  ? Math.min(
+                      1,
+                      (track.originalAmount - track.remainingBalance) / track.originalAmount
+                    )
+                  : 0;
 
               return (
                 <div key={track.id}>
                   <div
-                    className="grid items-center py-2 group"
+                    className="group grid items-center py-2"
                     style={{
                       gridTemplateColumns: "minmax(80px,1fr) 56px 56px 68px 68px 64px 52px 24px",
                       borderBottom: "1px solid #F3F4EC",
@@ -457,15 +621,26 @@ export default function DebtPage() {
                     <input
                       type="text"
                       value={track.name}
-                      onChange={e => updateMortgageTrack(track.id, "name", e.target.value)}
+                      onChange={(e) => updateMortgageTrack(track.id, "name", e.target.value)}
                       placeholder="פריים / קל״צ..."
-                      className="bg-transparent border-none text-[12px] font-semibold w-full focus:outline-none"
+                      className="w-full border-none bg-transparent text-[12px] font-semibold focus:outline-none"
                       style={{ color: "#012d1d", borderBottom: "1px dotted transparent" }}
-                      onFocus={e => { e.currentTarget.style.borderBottomColor = "#2B694D"; }}
-                      onBlur={e => { e.currentTarget.style.borderBottomColor = "transparent"; }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderBottomColor = "#2B694D";
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderBottomColor = "transparent";
+                      }}
                     />
                     {/* Interest rate — effective (prime+margin) when margin is set */}
-                    <div className="flex items-center gap-0.5" title={typeof track.margin === "number" ? `פריים (${primeRate.toFixed(2)}%) + ${track.margin.toFixed(2)}%` : ""}>
+                    <div
+                      className="flex items-center gap-0.5"
+                      title={
+                        typeof track.margin === "number"
+                          ? `פריים (${primeRate.toFixed(2)}%) + ${track.margin.toFixed(2)}%`
+                          : ""
+                      }
+                    >
                       <input
                         type="number"
                         step="0.01"
@@ -474,19 +649,23 @@ export default function DebtPage() {
                             ? effectiveTrackRate(track, primeRate).toFixed(2)
                             : track.interestRate || ""
                         }
-                        onChange={e => updateMortgageTrack(track.id, "interestRate", e.target.value)}
+                        onChange={(e) =>
+                          updateMortgageTrack(track.id, "interestRate", e.target.value)
+                        }
                         readOnly={typeof track.margin === "number"}
                         placeholder="0"
-                        className="bg-transparent border-none text-[12px] font-bold text-left tabular-nums w-full focus:outline-none"
+                        className="w-full border-none bg-transparent text-left text-[12px] font-bold tabular-nums focus:outline-none"
                         style={{ color: "#1B4332", fontFamily: "Assistant" }}
                       />
-                      <span className="text-[10px]" style={{ color: "#9ca3af" }}>%</span>
+                      <span className="text-[10px]" style={{ color: "#9ca3af" }}>
+                        %
+                      </span>
                     </div>
                     {/* Indexation */}
                     <select
                       value={track.indexation}
-                      onChange={e => updateMortgageTrack(track.id, "indexation", e.target.value)}
-                      className="bg-transparent border-none text-[10px] font-bold focus:outline-none cursor-pointer"
+                      onChange={(e) => updateMortgageTrack(track.id, "indexation", e.target.value)}
+                      className="cursor-pointer border-none bg-transparent text-[10px] font-bold focus:outline-none"
                       style={{ color: "#5a7a6a" }}
                     >
                       <option value="לא צמוד">לא צמוד</option>
@@ -498,35 +677,41 @@ export default function DebtPage() {
                     <input
                       type="number"
                       value={track.originalAmount || ""}
-                      onChange={e => updateMortgageTrack(track.id, "originalAmount", e.target.value)}
+                      onChange={(e) =>
+                        updateMortgageTrack(track.id, "originalAmount", e.target.value)
+                      }
                       placeholder="0"
-                      className="bg-transparent border-none text-[11px] font-bold text-left tabular-nums w-full focus:outline-none"
+                      className="w-full border-none bg-transparent text-left text-[11px] font-bold tabular-nums focus:outline-none"
                       style={{ color: "#012d1d", fontFamily: "Assistant" }}
                     />
                     {/* Remaining balance */}
                     <input
                       type="number"
                       value={track.remainingBalance || ""}
-                      onChange={e => updateMortgageTrack(track.id, "remainingBalance", e.target.value)}
+                      onChange={(e) =>
+                        updateMortgageTrack(track.id, "remainingBalance", e.target.value)
+                      }
                       placeholder="0"
-                      className="bg-transparent border-none text-[11px] font-bold text-left tabular-nums w-full focus:outline-none"
+                      className="w-full border-none bg-transparent text-left text-[11px] font-bold tabular-nums focus:outline-none"
                       style={{ color: "#1B4332", fontFamily: "Assistant" }}
                     />
                     {/* Monthly payment */}
                     <input
                       type="number"
                       value={track.monthlyPayment || ""}
-                      onChange={e => updateMortgageTrack(track.id, "monthlyPayment", e.target.value)}
+                      onChange={(e) =>
+                        updateMortgageTrack(track.id, "monthlyPayment", e.target.value)
+                      }
                       placeholder="0"
-                      className="bg-transparent border-none text-[11px] font-bold text-left tabular-nums w-full focus:outline-none"
+                      className="w-full border-none bg-transparent text-left text-[11px] font-bold tabular-nums focus:outline-none"
                       style={{ color: "#1B4332", fontFamily: "Assistant" }}
                     />
                     {/* End date */}
                     <input
                       type="month"
                       value={track.endDate}
-                      onChange={e => updateMortgageTrack(track.id, "endDate", e.target.value)}
-                      className="bg-transparent border-none text-[10px] font-semibold w-full focus:outline-none"
+                      onChange={(e) => updateMortgageTrack(track.id, "endDate", e.target.value)}
+                      className="w-full border-none bg-transparent text-[10px] font-semibold focus:outline-none"
                       style={{ color: "#5a7a6a" }}
                     />
                     {/* Refi simulator + Delete */}
@@ -536,27 +721,37 @@ export default function DebtPage() {
                       style={{ color: "#1B4332" }}
                       title="סימולציית מיחזור / פירעון מואץ"
                     >
-                      <span className="material-symbols-outlined text-[16px] hover:text-verdant-emerald transition-colors">savings</span>
+                      <span className="material-symbols-outlined text-[16px] transition-colors hover:text-verdant-emerald">
+                        savings
+                      </span>
                     </button>
                     <button
                       onClick={() => deleteMortgageTrack(track.id)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="opacity-0 transition-opacity group-hover:opacity-100"
                       style={{ color: "#5a7a6a" }}
                       title="מחק מסלול"
                     >
-                      <span className="material-symbols-outlined text-[14px] hover:text-red-600 transition-colors">close</span>
+                      <span className="material-symbols-outlined text-[14px] transition-colors hover:text-red-600">
+                        close
+                      </span>
                     </button>
                   </div>
                   {/* Track progress */}
                   {track.originalAmount > 0 && (
                     <div className="flex items-center gap-2 pb-1 pr-1">
-                      <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "#F3F4EC" }}>
+                      <div
+                        className="h-1 flex-1 overflow-hidden rounded-full"
+                        style={{ background: "#F3F4EC" }}
+                      >
                         <div
                           className="h-full rounded-full"
                           style={{ width: `${trackProgress * 100}%`, background: "#2B694D" }}
                         />
                       </div>
-                      <span className="text-[9px] font-bold tabular-nums" style={{ color: "#9ca3af", fontFamily: "Assistant" }}>
+                      <span
+                        className="text-[9px] font-bold tabular-nums"
+                        style={{ color: "#9ca3af", fontFamily: "Assistant" }}
+                      >
                         {(trackProgress * 100).toFixed(0)}%
                       </span>
                     </div>
@@ -566,10 +761,7 @@ export default function DebtPage() {
             })}
 
             {/* Add track */}
-            <button
-              onClick={addMortgageTrack}
-              className="btn btn-secondary btn-sm mt-3"
-            >
+            <button onClick={addMortgageTrack} className="btn btn-secondary btn-sm mt-3">
               <span className="material-symbols-outlined text-[14px]">add</span>
               הוסף מסלול
             </button>
@@ -579,37 +771,58 @@ export default function DebtPage() {
 
       {/* ═══ Loans Section ═══ */}
       <section
-        className="bg-white rounded-2xl mb-4 overflow-hidden"
-        style={{ border: "1px solid #e2e8d8", boxShadow: "0 1px 2px rgba(1,45,29,.04), 0 8px 24px rgba(1,45,29,.05)" }}
+        className="mb-4 overflow-hidden rounded-2xl bg-white"
+        style={{
+          border: "1px solid #e2e8d8",
+          boxShadow: "0 1px 2px rgba(1,45,29,.04), 0 8px 24px rgba(1,45,29,.05)",
+        }}
       >
         <button
           onClick={() => setExpandedLoans(!expandedLoans)}
-          className="w-full px-5 md:px-7 py-5 flex items-center gap-3 text-right"
+          className="flex w-full items-center gap-3 px-5 py-5 text-right md:px-7"
           style={{ background: expandedLoans ? "rgba(139,46,46,0.06)" : "#fff" }}
         >
-          <span className="w-9 h-9 flex items-center justify-center flex-shrink-0" style={{ background: "rgba(139,46,46,0.10)", borderRadius: "0.75rem" }}>
-            <span className="material-symbols-outlined text-[18px]" style={{ color: "#8B2E2E" }}>account_balance</span>
+          <span
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center"
+            style={{ background: "rgba(139,46,46,0.10)", borderRadius: "0.75rem" }}
+          >
+            <span className="material-symbols-outlined text-[18px]" style={{ color: "#8B2E2E" }}>
+              account_balance
+            </span>
           </span>
           <div className="flex-1">
-            <h2 className="text-base font-extrabold" style={{ color: "#012d1d" }}>הלוואות</h2>
+            <h2 className="text-base font-extrabold" style={{ color: "#012d1d" }}>
+              הלוואות
+            </h2>
             <div className="text-[11px] font-semibold" style={{ color: "#5a7a6a" }}>
               {loanTotals.count} הלוואות · החזר חודשי {fmtILS(loanTotals.monthlyTotal)}
             </div>
           </div>
-          <span className="material-symbols-outlined text-[20px] transition-transform" style={{
-            color: "#5a7a6a",
-            transform: expandedLoans ? "rotate(0deg)" : "rotate(-90deg)",
-          }}>expand_more</span>
+          <span
+            className="material-symbols-outlined text-[20px] transition-transform"
+            style={{
+              color: "#5a7a6a",
+              transform: expandedLoans ? "rotate(0deg)" : "rotate(-90deg)",
+            }}
+          >
+            expand_more
+          </span>
         </button>
 
         {expandedLoans && data.loans.length === 0 && (
-          <div className="px-5 md:px-7 pb-7 pt-2 text-center">
+          <div className="px-5 pb-7 pt-2 text-center md:px-7">
             <span className="material-symbols-outlined text-[40px]" style={{ color: "#5a7a6a" }}>
               check_circle
             </span>
-            <h3 className="text-sm font-extrabold mt-2" style={{ color: "#012d1d" }}>אין הלוואות צרכניות</h3>
-            <p className="text-[11px] mt-1 mb-3 max-w-xs mx-auto leading-relaxed" style={{ color: "#5a7a6a" }}>
-              נקי מהלוואות צרכניות זה מצוין. אם יש משכנתא — היא כבר למעלה. אם הלוואה חדשה תצטרף, כאן המקום להוסיף.
+            <h3 className="mt-2 text-sm font-extrabold" style={{ color: "#012d1d" }}>
+              אין הלוואות צרכניות
+            </h3>
+            <p
+              className="mx-auto mb-3 mt-1 max-w-xs text-[11px] leading-relaxed"
+              style={{ color: "#5a7a6a" }}
+            >
+              נקי מהלוואות צרכניות זה מצוין. אם יש משכנתא — היא כבר למעלה. אם הלוואה חדשה תצטרף, כאן
+              המקום להוסיף.
             </p>
             <button onClick={addLoan} className="btn btn-secondary btn-sm">
               <span className="material-symbols-outlined text-[14px]">add</span>
@@ -618,10 +831,10 @@ export default function DebtPage() {
           </div>
         )}
         {expandedLoans && data.loans.length > 0 && (
-          <div className="px-5 md:px-7 pb-5">
+          <div className="px-5 pb-5 md:px-7">
             {/* Column headers */}
             <div
-              className="grid items-center pb-1 mb-1 text-[10px] font-extrabold uppercase tracking-[0.08em]"
+              className="mb-1 grid items-center pb-1 text-[10px] font-extrabold uppercase tracking-[0.08em]"
               style={{
                 gridTemplateColumns: "minmax(100px,1fr) 100px 80px 90px 100px 100px 28px",
                 color: "#5a7a6a",
@@ -638,16 +851,17 @@ export default function DebtPage() {
               <div />
             </div>
 
-            {data.loans.map(loan => {
+            {data.loans.map((loan) => {
               const elapsed = elapsedMonths(loan.startDate);
               const remain = remainingPayments(loan);
               const balance = remainingBalance(loan);
-              const progress = loan.totalPayments > 0 ? Math.min(elapsed / loan.totalPayments, 1) : 0;
+              const progress =
+                loan.totalPayments > 0 ? Math.min(elapsed / loan.totalPayments, 1) : 0;
 
               return (
                 <div
                   key={loan.id}
-                  className="grid items-center py-2 group"
+                  className="group grid items-center py-2"
                   style={{
                     gridTemplateColumns: "minmax(100px,1fr) 100px 80px 90px 100px 100px 28px",
                     borderBottom: "1px solid #eef2e8",
@@ -658,79 +872,102 @@ export default function DebtPage() {
                   <input
                     type="text"
                     value={loan.lender}
-                    onChange={e => updateLoan(loan.id, "lender", e.target.value)}
+                    onChange={(e) => updateLoan(loan.id, "lender", e.target.value)}
                     placeholder="שם המלווה"
-                    className="bg-transparent border-none text-[13px] font-semibold w-full focus:outline-none"
+                    className="w-full border-none bg-transparent text-[13px] font-semibold focus:outline-none"
                     style={{ color: "#012d1d", borderBottom: "1px dotted transparent" }}
-                    onFocus={e => { e.currentTarget.style.borderBottomColor = "#2B694D"; }}
-                    onBlur={e => { e.currentTarget.style.borderBottomColor = "transparent"; }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderBottomColor = "#2B694D";
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderBottomColor = "transparent";
+                    }}
                   />
                   {/* Start date */}
                   <input
                     type="month"
                     value={loan.startDate}
-                    onChange={e => updateLoan(loan.id, "startDate", e.target.value)}
-                    className="bg-transparent border-none text-[12px] font-semibold w-full focus:outline-none"
+                    onChange={(e) => updateLoan(loan.id, "startDate", e.target.value)}
+                    className="w-full border-none bg-transparent text-[12px] font-semibold focus:outline-none"
                     style={{ color: "#012d1d" }}
                   />
                   {/* Total payments */}
                   <input
                     type="number"
                     value={loan.totalPayments || ""}
-                    onChange={e => updateLoan(loan.id, "totalPayments", e.target.value)}
+                    onChange={(e) => updateLoan(loan.id, "totalPayments", e.target.value)}
                     placeholder="0"
-                    className="bg-transparent border-none text-[13px] font-bold text-left tabular-nums w-full focus:outline-none"
+                    className="w-full border-none bg-transparent text-left text-[13px] font-bold tabular-nums focus:outline-none"
                     style={{ color: "#012d1d", borderBottom: "1px dotted transparent" }}
-                    onFocus={e => { e.currentTarget.style.borderBottomColor = "#2B694D"; }}
-                    onBlur={e => { e.currentTarget.style.borderBottomColor = "transparent"; }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderBottomColor = "#2B694D";
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderBottomColor = "transparent";
+                    }}
                   />
                   {/* Monthly payment */}
                   <input
                     type="number"
                     value={loan.monthlyPayment || ""}
-                    onChange={e => updateLoan(loan.id, "monthlyPayment", e.target.value)}
+                    onChange={(e) => updateLoan(loan.id, "monthlyPayment", e.target.value)}
                     placeholder="0"
-                    className="bg-transparent border-none text-[13px] font-bold text-left tabular-nums w-full focus:outline-none"
+                    className="w-full border-none bg-transparent text-left text-[13px] font-bold tabular-nums focus:outline-none"
                     style={{ color: "#8B2E2E", borderBottom: "1px dotted transparent" }}
-                    onFocus={e => { e.currentTarget.style.borderBottomColor = "#2B694D"; }}
-                    onBlur={e => { e.currentTarget.style.borderBottomColor = "transparent"; }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderBottomColor = "#2B694D";
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderBottomColor = "transparent";
+                    }}
                   />
                   {/* Counter */}
                   <div className="flex flex-col gap-0.5">
-                    <div className="text-[11px] font-bold tabular-nums" style={{ color: "#012d1d" }}>
+                    <div
+                      className="text-[11px] font-bold tabular-nums"
+                      style={{ color: "#012d1d" }}
+                    >
                       {loan.startDate ? `${elapsed} מתוך ${loan.totalPayments}` : "—"}
                     </div>
                     {loan.totalPayments > 0 && (
-                      <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: "#eef2e8" }}>
+                      <div
+                        className="h-1.5 w-full overflow-hidden rounded-full"
+                        style={{ background: "#eef2e8" }}
+                      >
                         <div
                           className="h-full rounded-full transition-all"
-                          style={{ width: `${progress * 100}%`, background: progress >= 1 ? "#2B694D" : "#B45309" }}
+                          style={{
+                            width: `${progress * 100}%`,
+                            background: progress >= 1 ? "#2B694D" : "#B45309",
+                          }}
                         />
                       </div>
                     )}
                   </div>
                   {/* Remaining balance */}
-                  <div className="text-[13px] font-extrabold text-left tabular-nums" style={{ color: balance > 0 ? "#8B2E2E" : "#2B694D" }}>
+                  <div
+                    className="text-left text-[13px] font-extrabold tabular-nums"
+                    style={{ color: balance > 0 ? "#8B2E2E" : "#2B694D" }}
+                  >
                     {loan.startDate ? fmtILS(balance) : "—"}
                   </div>
                   {/* Delete */}
                   <button
                     onClick={() => deleteLoan(loan.id)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="opacity-0 transition-opacity group-hover:opacity-100"
                     style={{ color: "#5a7a6a" }}
                     title="מחק"
                   >
-                    <span className="material-symbols-outlined text-[14px] hover:text-red-600 transition-colors">close</span>
+                    <span className="material-symbols-outlined text-[14px] transition-colors hover:text-red-600">
+                      close
+                    </span>
                   </button>
                 </div>
               );
             })}
 
             {/* Add loan */}
-            <button
-              onClick={addLoan}
-              className="btn btn-secondary btn-sm mt-3"
-            >
+            <button onClick={addLoan} className="btn btn-secondary btn-sm mt-3">
               <span className="material-symbols-outlined text-[14px]">add</span>
               הוסף הלוואה
             </button>
@@ -740,31 +977,46 @@ export default function DebtPage() {
 
       {/* ═══ Installments Section ═══ */}
       <section
-        className="bg-white rounded-2xl mb-4 overflow-hidden"
-        style={{ border: "1px solid #e2e8d8", boxShadow: "0 1px 2px rgba(1,45,29,.04), 0 8px 24px rgba(1,45,29,.05)" }}
+        className="mb-4 overflow-hidden rounded-2xl bg-white"
+        style={{
+          border: "1px solid #e2e8d8",
+          boxShadow: "0 1px 2px rgba(1,45,29,.04), 0 8px 24px rgba(1,45,29,.05)",
+        }}
       >
         <button
           onClick={() => setExpandedInstallments(!expandedInstallments)}
-          className="w-full px-5 md:px-7 py-5 flex items-center gap-3 text-right"
+          className="flex w-full items-center gap-3 px-5 py-5 text-right md:px-7"
           style={{ background: expandedInstallments ? "rgba(74,124,89,0.08)" : "#fff" }}
         >
-          <span className="w-9 h-9 flex items-center justify-center flex-shrink-0" style={{ background: "rgba(74,124,89,0.10)", borderRadius: "0.75rem" }}>
-            <span className="material-symbols-outlined text-[18px]" style={{ color: "#4A7C59" }}>credit_score</span>
+          <span
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center"
+            style={{ background: "rgba(74,124,89,0.10)", borderRadius: "0.75rem" }}
+          >
+            <span className="material-symbols-outlined text-[18px]" style={{ color: "#4A7C59" }}>
+              credit_score
+            </span>
           </span>
           <div className="flex-1">
-            <h2 className="text-base font-extrabold" style={{ color: "#012d1d" }}>עסקאות תשלומים</h2>
+            <h2 className="text-base font-extrabold" style={{ color: "#012d1d" }}>
+              עסקאות תשלומים
+            </h2>
             <div className="text-[11px] font-semibold" style={{ color: "#5a7a6a" }}>
               {installmentTotals.count} עסקאות · חיוב חודשי {fmtILS(installmentTotals.monthlyTotal)}
             </div>
           </div>
-          <span className="material-symbols-outlined text-[20px] transition-transform" style={{
-            color: "#5a7a6a",
-            transform: expandedInstallments ? "rotate(0deg)" : "rotate(-90deg)",
-          }}>expand_more</span>
+          <span
+            className="material-symbols-outlined text-[20px] transition-transform"
+            style={{
+              color: "#5a7a6a",
+              transform: expandedInstallments ? "rotate(0deg)" : "rotate(-90deg)",
+            }}
+          >
+            expand_more
+          </span>
         </button>
 
         {expandedInstallments && (
-          <div className="px-5 md:px-7 pb-5">
+          <div className="px-5 pb-5 md:px-7">
             {/* Grouped by source */}
             {Object.keys(installmentsBySource).length > 0 ? (
               Object.entries(installmentsBySource).map(([source, items]) => {
@@ -775,26 +1027,41 @@ export default function DebtPage() {
                   <div key={source} className="mb-3">
                     {/* Source header */}
                     <button
-                      onClick={() => setExpandedSources(prev => ({ ...prev, [source]: !isOpen }))}
-                      className="w-full flex items-center gap-2 py-2 text-right"
+                      onClick={() => setExpandedSources((prev) => ({ ...prev, [source]: !isOpen }))}
+                      className="flex w-full items-center gap-2 py-2 text-right"
                       style={{ borderBottom: "1px solid #eef2e8" }}
                     >
-                      <span className="material-symbols-outlined text-[14px]" style={{ color: "#4A7C59" }}>credit_card</span>
-                      <span className="flex-1 text-[13px] font-bold" style={{ color: "#012d1d" }}>{source}</span>
-                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md" style={{ background: "rgba(74,124,89,0.08)", color: "#4A7C59" }}>
+                      <span
+                        className="material-symbols-outlined text-[14px]"
+                        style={{ color: "#4A7C59" }}
+                      >
+                        credit_card
+                      </span>
+                      <span className="flex-1 text-[13px] font-bold" style={{ color: "#012d1d" }}>
+                        {source}
+                      </span>
+                      <span
+                        className="rounded-md px-2 py-0.5 text-[11px] font-semibold"
+                        style={{ background: "rgba(74,124,89,0.08)", color: "#4A7C59" }}
+                      >
                         {items.length} עסקאות · {fmtILS(sourceTotal)}
                       </span>
-                      <span className="material-symbols-outlined text-[16px] transition-transform" style={{
-                        color: "#5a7a6a",
-                        transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)",
-                      }}>expand_more</span>
+                      <span
+                        className="material-symbols-outlined text-[16px] transition-transform"
+                        style={{
+                          color: "#5a7a6a",
+                          transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)",
+                        }}
+                      >
+                        expand_more
+                      </span>
                     </button>
 
                     {isOpen && (
                       <div className="mr-4 mt-1">
                         {/* Sub-header */}
                         <div
-                          className="grid items-center pb-1 mb-1 text-[9px] font-extrabold uppercase tracking-[0.08em]"
+                          className="mb-1 grid items-center pb-1 text-[9px] font-extrabold uppercase tracking-[0.08em]"
                           style={{
                             gridTemplateColumns: "minmax(100px,1fr) 100px 90px 80px 28px",
                             color: "#5a7a6a",
@@ -809,10 +1076,10 @@ export default function DebtPage() {
                           <div />
                         </div>
 
-                        {items.map(inst => (
+                        {items.map((inst) => (
                           <div
                             key={inst.id}
-                            className="grid items-center py-1.5 group"
+                            className="group grid items-center py-1.5"
                             style={{
                               gridTemplateColumns: "minmax(100px,1fr) 100px 90px 80px 28px",
                               borderBottom: "1px solid #eef2e8",
@@ -823,39 +1090,55 @@ export default function DebtPage() {
                             <input
                               type="text"
                               value={inst.merchant}
-                              onChange={e => updateInstallment(inst.id, "merchant", e.target.value)}
+                              onChange={(e) =>
+                                updateInstallment(inst.id, "merchant", e.target.value)
+                              }
                               placeholder="שם בית עסק"
-                              className="bg-transparent border-none text-[12px] font-semibold w-full focus:outline-none"
+                              className="w-full border-none bg-transparent text-[12px] font-semibold focus:outline-none"
                               style={{ color: "#012d1d", borderBottom: "1px dotted transparent" }}
-                              onFocus={e => { e.currentTarget.style.borderBottomColor = "#2B694D"; }}
-                              onBlur={e => { e.currentTarget.style.borderBottomColor = "transparent"; }}
+                              onFocus={(e) => {
+                                e.currentTarget.style.borderBottomColor = "#2B694D";
+                              }}
+                              onBlur={(e) => {
+                                e.currentTarget.style.borderBottomColor = "transparent";
+                              }}
                             />
                             {/* Source */}
                             <input
                               type="text"
                               value={inst.source}
-                              onChange={e => updateInstallment(inst.id, "source", e.target.value)}
+                              onChange={(e) => updateInstallment(inst.id, "source", e.target.value)}
                               placeholder="כרטיס / בנק"
-                              className="bg-transparent border-none text-[12px] font-semibold w-full focus:outline-none"
+                              className="w-full border-none bg-transparent text-[12px] font-semibold focus:outline-none"
                               style={{ color: "#5a7a6a", borderBottom: "1px dotted transparent" }}
-                              onFocus={e => { e.currentTarget.style.borderBottomColor = "#2B694D"; }}
-                              onBlur={e => { e.currentTarget.style.borderBottomColor = "transparent"; }}
+                              onFocus={(e) => {
+                                e.currentTarget.style.borderBottomColor = "#2B694D";
+                              }}
+                              onBlur={(e) => {
+                                e.currentTarget.style.borderBottomColor = "transparent";
+                              }}
                             />
                             {/* Payment counter */}
                             <div className="flex items-center gap-1">
                               <input
                                 type="number"
                                 value={inst.currentPayment || ""}
-                                onChange={e => updateInstallment(inst.id, "currentPayment", e.target.value)}
-                                className="bg-transparent border-none text-[12px] font-bold text-left tabular-nums w-8 focus:outline-none"
+                                onChange={(e) =>
+                                  updateInstallment(inst.id, "currentPayment", e.target.value)
+                                }
+                                className="w-8 border-none bg-transparent text-left text-[12px] font-bold tabular-nums focus:outline-none"
                                 style={{ color: "#012d1d" }}
                               />
-                              <span className="text-[11px]" style={{ color: "#5a7a6a" }}>/</span>
+                              <span className="text-[11px]" style={{ color: "#5a7a6a" }}>
+                                /
+                              </span>
                               <input
                                 type="number"
                                 value={inst.totalPayments || ""}
-                                onChange={e => updateInstallment(inst.id, "totalPayments", e.target.value)}
-                                className="bg-transparent border-none text-[12px] font-bold text-left tabular-nums w-8 focus:outline-none"
+                                onChange={(e) =>
+                                  updateInstallment(inst.id, "totalPayments", e.target.value)
+                                }
+                                className="w-8 border-none bg-transparent text-left text-[12px] font-bold tabular-nums focus:outline-none"
                                 style={{ color: "#012d1d" }}
                               />
                             </div>
@@ -863,21 +1146,29 @@ export default function DebtPage() {
                             <input
                               type="number"
                               value={inst.monthlyAmount || ""}
-                              onChange={e => updateInstallment(inst.id, "monthlyAmount", e.target.value)}
+                              onChange={(e) =>
+                                updateInstallment(inst.id, "monthlyAmount", e.target.value)
+                              }
                               placeholder="0"
-                              className="bg-transparent border-none text-[12px] font-bold text-left tabular-nums w-full focus:outline-none"
+                              className="w-full border-none bg-transparent text-left text-[12px] font-bold tabular-nums focus:outline-none"
                               style={{ color: "#4A7C59", borderBottom: "1px dotted transparent" }}
-                              onFocus={e => { e.currentTarget.style.borderBottomColor = "#2B694D"; }}
-                              onBlur={e => { e.currentTarget.style.borderBottomColor = "transparent"; }}
+                              onFocus={(e) => {
+                                e.currentTarget.style.borderBottomColor = "#2B694D";
+                              }}
+                              onBlur={(e) => {
+                                e.currentTarget.style.borderBottomColor = "transparent";
+                              }}
                             />
                             {/* Delete */}
                             <button
                               onClick={() => deleteInstallment(inst.id)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="opacity-0 transition-opacity group-hover:opacity-100"
                               style={{ color: "#5a7a6a" }}
                               title="מחק"
                             >
-                              <span className="material-symbols-outlined text-[14px] hover:text-red-600 transition-colors">close</span>
+                              <span className="material-symbols-outlined text-[14px] transition-colors hover:text-red-600">
+                                close
+                              </span>
                             </button>
                           </div>
                         ))}
@@ -887,16 +1178,16 @@ export default function DebtPage() {
                 );
               })
             ) : (
-              <div className="text-center py-6 text-[12px] font-semibold" style={{ color: "#5a7a6a" }}>
+              <div
+                className="py-6 text-center text-[12px] font-semibold"
+                style={{ color: "#5a7a6a" }}
+              >
                 אין עסקאות תשלומים. הוסף עסקה ראשונה.
               </div>
             )}
 
             {/* Add installment */}
-            <button
-              onClick={addInstallment}
-              className="btn btn-secondary btn-sm mt-3"
-            >
+            <button onClick={addInstallment} className="btn btn-secondary btn-sm mt-3">
               <span className="material-symbols-outlined text-[14px]">add</span>
               הוסף עסקת תשלומים
             </button>
@@ -905,11 +1196,12 @@ export default function DebtPage() {
       </section>
 
       {/* Refinance simulator modal — pops on row "savings" icon click. */}
-      {refiTrackId && (() => {
-        const tr = (mortgage.tracks || []).find((t: MortgageTrack) => t.id === refiTrackId);
-        if (!tr) return null;
-        return <RefinanceSimulator track={tr} onClose={() => setRefiTrackId(null)} />;
-      })()}
+      {refiTrackId &&
+        (() => {
+          const tr = (mortgage.tracks || []).find((t: MortgageTrack) => t.id === refiTrackId);
+          if (!tr) return null;
+          return <RefinanceSimulator track={tr} onClose={() => setRefiTrackId(null)} />;
+        })()}
     </div>
   );
 }
@@ -918,14 +1210,44 @@ export default function DebtPage() {
    KPI Box
    ═══════════════════════════════════════════════════════════ */
 
-function KpiBox({ label, value, sub, color }: { label: string; value: string; sub: string; color: string }) {
+function KpiBox({
+  label,
+  value,
+  sub,
+  color,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  color: string;
+}) {
   return (
-    <div className="relative overflow-hidden rounded-xl p-3 flex flex-col gap-1 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
-      style={{ background: `linear-gradient(180deg, ${color}0a 0%, #ffffff 55%)`, border: `1px solid ${color}22` }}>
-      <div className="absolute top-0 right-0 left-0 h-1" style={{ background: `linear-gradient(90deg, ${color} 0%, ${color}55 100%)` }} />
-      <div className="text-[10px] font-bold uppercase tracking-[0.1em]" style={{ color: "#5a7a6a" }}>{label}</div>
-      <div className="text-[22px] font-extrabold tracking-tight leading-tight tabular-nums" style={{ color }}>{value}</div>
-      <div className="text-[11px] font-semibold" style={{ color: "#5a7a6a" }}>{sub}</div>
+    <div
+      className="relative flex flex-col gap-1 overflow-hidden rounded-xl p-3 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
+      style={{
+        background: `linear-gradient(180deg, ${color}0a 0%, #ffffff 55%)`,
+        border: `1px solid ${color}22`,
+      }}
+    >
+      <div
+        className="absolute left-0 right-0 top-0 h-1"
+        style={{ background: `linear-gradient(90deg, ${color} 0%, ${color}55 100%)` }}
+      />
+      <div
+        className="text-[10px] font-bold uppercase tracking-[0.1em]"
+        style={{ color: "#5a7a6a" }}
+      >
+        {label}
+      </div>
+      <div
+        className="text-[22px] font-extrabold tabular-nums leading-tight tracking-tight"
+        style={{ color }}
+      >
+        {value}
+      </div>
+      <div className="text-[11px] font-semibold" style={{ color: "#5a7a6a" }}>
+        {sub}
+      </div>
     </div>
   );
 }

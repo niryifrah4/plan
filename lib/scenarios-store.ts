@@ -6,10 +6,10 @@ export type ScenarioType = "pension"; // עתידי: "realestate" | "mortgage"
 export interface PensionScenarioPayload {
   extraMonthly: number;
   retireAge: number;
-  annualReturn: number;    // באחוזים, למשל 5
-  inflation: number;       // באחוזים, למשל 2.5
-  mgmtFeeBalance: number;  // באחוזים, למשל 0.5
-  mgmtFeeDeposit: number;  // באחוזים, למשל 2
+  annualReturn: number; // באחוזים, למשל 5
+  inflation: number; // באחוזים, למשל 2.5
+  mgmtFeeBalance: number; // באחוזים, למשל 0.5
+  mgmtFeeDeposit: number; // באחוזים, למשל 2
 }
 
 export interface ScenarioResult {

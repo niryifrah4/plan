@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import type { Household, Profile } from "@/types/db";
@@ -86,7 +79,11 @@ export function ClientProvider({ children }: { children: ReactNode }) {
 
   // Run one-time migration on mount
   useEffect(() => {
-    try { runClientMigration(); } catch (e) { console.warn("[client-migration] failed:", e); }
+    try {
+      runClientMigration();
+    } catch (e) {
+      console.warn("[client-migration] failed:", e);
+    }
   }, []);
 
   // Re-run load on active-client-changed events
@@ -109,7 +106,9 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     // Save as last used & detect if scope changed
     const prevId = localStorage.getItem(LS_CURRENT);
     const scopeChanged = prevId !== String(clientId);
-    try { localStorage.setItem(LS_CURRENT, String(clientId)); } catch {}
+    try {
+      localStorage.setItem(LS_CURRENT, String(clientId));
+    } catch {}
 
     // 1. Load from localStorage
     const localClient = getLocalClient(clientId);
@@ -135,18 +134,15 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     }
   }, [hhParam, switchTick]);
 
-  const updateClient = useCallback(
-    (patch: Partial<LocalClient>) => {
-      setClient((prev) => {
-        if (!prev) return prev;
-        const updated = { ...prev, ...patch };
-        // Persist to localStorage
-        saveLocalClient(updated);
-        return updated;
-      });
-    },
-    [],
-  );
+  const updateClient = useCallback((patch: Partial<LocalClient>) => {
+    setClient((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...patch };
+      // Persist to localStorage
+      saveLocalClient(updated);
+      return updated;
+    });
+  }, []);
 
   const value: ClientContextValue = {
     clientId: client?.id ?? null,
@@ -159,9 +155,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     loading,
   };
 
-  return (
-    <ClientContext.Provider value={value}>{children}</ClientContext.Provider>
-  );
+  return <ClientContext.Provider value={value}>{children}</ClientContext.Provider>;
 }
 
 /* ───── localStorage helpers ───── */

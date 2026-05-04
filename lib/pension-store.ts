@@ -16,18 +16,17 @@ export interface PensionFund {
   type: "pension" | "gemel" | "hishtalmut" | "bituach";
 
   /** תת-סוג — מפרט את סוג המוצר הספציפי */
-  subtype?:
-    // פנסיה
-    | "pension_vatika"     // קרן פנסיה ותיקה (לפני 1995, סגורה)
-    | "pension_hadasha"    // קרן פנסיה חדשה (DC)
+  subtype?: // פנסיה
+    | "pension_vatika" // קרן פנסיה ותיקה (לפני 1995, סגורה)
+    | "pension_hadasha" // קרן פנסיה חדשה (DC)
     // ביטוח מנהלים
-    | "bituach_classic"    // פוליסה קלאסית (לפני 1992, מקדם + ריבית מובטחים)
-    | "bituach_adif"       // פוליסת עדיף (1992-2004, מקדם מובטח בלבד)
-    | "bituach_2004"       // פוליסה חדשה (2004+, ללא הבטחות)
+    | "bituach_classic" // פוליסה קלאסית (לפני 1992, מקדם + ריבית מובטחים)
+    | "bituach_adif" // פוליסת עדיף (1992-2004, מקדם מובטח בלבד)
+    | "bituach_2004" // פוליסה חדשה (2004+, ללא הבטחות)
     // קופות גמל
-    | "gemel_regular"      // קופת גמל רגילה
-    | "gemel_190"          // קופת גמל תיקון 190
-    | "gemel_lehashkaa";   // גמל להשקעה
+    | "gemel_regular" // קופת גמל רגילה
+    | "gemel_190" // קופת גמל תיקון 190
+    | "gemel_lehashkaa"; // גמל להשקעה
 
   /** מקדם קצבה — רלוונטי לקרנות ותיקות וביטוח מנהלים עם מקדם מובטח */
   conversionFactor?: number;
@@ -131,11 +130,16 @@ const SYNC_CFG: SyncConfig<PensionFund, any> = {
 
 function mapTypeToDb(t: PensionFund["type"]): string {
   switch (t) {
-    case "pension": return "pension";
-    case "gemel": return "gemel";
-    case "hishtalmut": return "keren_hishtalmut";
-    case "bituach": return "bituach_menahalim";
-    default: return "pension";
+    case "pension":
+      return "pension";
+    case "gemel":
+      return "gemel";
+    case "hishtalmut":
+      return "keren_hishtalmut";
+    case "bituach":
+      return "bituach_menahalim";
+    default:
+      return "pension";
   }
 }
 function mapTypeFromDb(t: string): PensionFund["type"] {
@@ -159,17 +163,55 @@ export async function hydratePensionFundsFromRemote(): Promise<boolean> {
 }
 
 const DEFAULT_FUNDS: PensionFund[] = [
-  { id: "pf1", company: "מנורה מבטחים", type: "pension", balance: 240000, mgmtFeeDeposit: 1.5, mgmtFeeBalance: 0.22, track: "מסלול כללי", monthlyContrib: 2100, insuranceCover: { death: true, disability: true, lossOfWork: true } },
-  { id: "pf2", company: "מגדל", type: "pension", balance: 95000, mgmtFeeDeposit: 2.0, mgmtFeeBalance: 0.35, track: "מניות", monthlyContrib: 800, insuranceCover: { death: true, disability: true, lossOfWork: false } },
-  { id: "pf3", company: "הראל", type: "hishtalmut", balance: 45000, mgmtFeeDeposit: 0.0, mgmtFeeBalance: 0.8, track: "כללי", monthlyContrib: 850 },
-  { id: "pf4", company: "אלטשולר שחם", type: "gemel", balance: 28000, mgmtFeeDeposit: 0.0, mgmtFeeBalance: 0.52, track: "מניות חו״ל", monthlyContrib: 500 },
+  {
+    id: "pf1",
+    company: "מנורה מבטחים",
+    type: "pension",
+    balance: 240000,
+    mgmtFeeDeposit: 1.5,
+    mgmtFeeBalance: 0.22,
+    track: "מסלול כללי",
+    monthlyContrib: 2100,
+    insuranceCover: { death: true, disability: true, lossOfWork: true },
+  },
+  {
+    id: "pf2",
+    company: "מגדל",
+    type: "pension",
+    balance: 95000,
+    mgmtFeeDeposit: 2.0,
+    mgmtFeeBalance: 0.35,
+    track: "מניות",
+    monthlyContrib: 800,
+    insuranceCover: { death: true, disability: true, lossOfWork: false },
+  },
+  {
+    id: "pf3",
+    company: "הראל",
+    type: "hishtalmut",
+    balance: 45000,
+    mgmtFeeDeposit: 0.0,
+    mgmtFeeBalance: 0.8,
+    track: "כללי",
+    monthlyContrib: 850,
+  },
+  {
+    id: "pf4",
+    company: "אלטשולר שחם",
+    type: "gemel",
+    balance: 28000,
+    mgmtFeeDeposit: 0.0,
+    mgmtFeeBalance: 0.52,
+    track: "מניות חו״ל",
+    monthlyContrib: 500,
+  },
 ];
 
 export function loadPensionFunds(): PensionFund[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(scopedKey(STORAGE_KEY));
-    if (!raw) return [];          // No data yet — return empty, NOT demo
+    if (!raw) return []; // No data yet — return empty, NOT demo
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) return parsed;
   } catch {}
@@ -191,11 +233,11 @@ export function addPensionFund(fund: PensionFund) {
 
 export function updatePensionFund(id: string, patch: Partial<PensionFund>) {
   const funds = loadPensionFunds();
-  const idx = funds.findIndex(f => f.id === id);
+  const idx = funds.findIndex((f) => f.id === id);
   if (idx >= 0) funds[idx] = { ...funds[idx], ...patch };
   savePensionFunds(funds);
 }
 
 export function deletePensionFund(id: string) {
-  savePensionFunds(loadPensionFunds().filter(f => f.id !== id));
+  savePensionFunds(loadPensionFunds().filter((f) => f.id !== id));
 }

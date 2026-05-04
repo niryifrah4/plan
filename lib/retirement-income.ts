@@ -70,20 +70,18 @@ export interface IncomeEvent {
 
 /** Weighted-average conversion factor across pension funds (balance-weighted). */
 export function weightedConversionFactor(funds: PensionFund[], fallback = 200): number {
-  const pensionOnly = funds.filter(f => f.type === "pension" || f.type === "bituach");
+  const pensionOnly = funds.filter((f) => f.type === "pension" || f.type === "bituach");
   const totalBal = pensionOnly.reduce((s, f) => s + (f.balance || 0), 0);
   if (totalBal <= 0) return fallback;
-  return pensionOnly.reduce(
-    (s, f) => s + (f.balance || 0) * (f.conversionFactor || fallback),
-    0,
-  ) / totalBal;
+  return (
+    pensionOnly.reduce((s, f) => s + (f.balance || 0) * (f.conversionFactor || fallback), 0) /
+    totalBal
+  );
 }
 
 /** Sum of hishtalmut balances across funds. */
 export function hishtalmutBalance(funds: PensionFund[]): number {
-  return funds
-    .filter(f => f.type === "hishtalmut")
-    .reduce((s, f) => s + (f.balance || 0), 0);
+  return funds.filter((f) => f.type === "hishtalmut").reduce((s, f) => s + (f.balance || 0), 0);
 }
 
 /**
@@ -104,11 +102,11 @@ interface PropertyRentModel {
 
 export function buildPropertyRentModels(
   properties: Property[],
-  currentAge: number,
+  currentAge: number
 ): PropertyRentModel[] {
   return properties
-    .filter(p => p.type === "investment" || p.type === "commercial")
-    .map(p => {
+    .filter((p) => p.type === "investment" || p.type === "commercial")
+    .map((p) => {
       const rent = p.monthlyRent ?? 0;
       const expenses = p.monthlyExpenses ?? 0;
       const mortgage = p.monthlyMortgage ?? 0;
@@ -146,7 +144,7 @@ function realestateNetAtAge(models: PropertyRentModel[], age: number): number {
  */
 export function mortgagePayoffAgeFromDebt(
   mortgage: MortgageData | undefined,
-  currentAge: number,
+  currentAge: number
 ): number | null {
   if (!mortgage || !mortgage.tracks?.length) return null;
   // Track with the furthest end-date governs overall payoff.
@@ -178,7 +176,7 @@ export function computeMonthlyIncomeTrajectory(
     targetMonthly?: number;
     /** Override pension conversion factor; otherwise computed from funds. */
     pensionConversionFactor?: number;
-  } = {},
+  } = {}
 ): IncomeStreamResult {
   const properties = opts.properties ?? [];
   const funds = opts.pensionFunds ?? [];
@@ -198,7 +196,7 @@ export function computeMonthlyIncomeTrajectory(
 
   const rentModels = buildPropertyRentModels(properties, assumptions.currentAge);
 
-  const points: IncomePoint[] = trajectory.map(p => {
+  const points: IncomePoint[] = trajectory.map((p) => {
     // ── Single gate: this is "monthly income IN RETIREMENT", not "passive income over time".
     // Every layer except BTL (which has its own statutory age) is zeroed before retirementAge —
     // otherwise the chart shows phantom SWR withdrawals during the accumulation phase.
@@ -209,7 +207,7 @@ export function computeMonthlyIncomeTrajectory(
     const realestateNet = retired ? realestateNetAtAge(rentModels, p.age) : 0;
     const hishtalmut = p.age >= hishtalmutStart && p.age < hishtalmutEnd ? hishtalmutMonthly : 0;
     // BTL has its own statutory age — survives even if someone retires at 62
-    const btl = p.age >= btlAge ? assumptions.oldAgeAllowanceMonthly ?? 0 : 0;
+    const btl = p.age >= btlAge ? (assumptions.oldAgeAllowanceMonthly ?? 0) : 0;
     const manual = 0; // Stage 5 hook-up point.
     return {
       age: p.age,
@@ -230,14 +228,16 @@ export function computeMonthlyIncomeTrajectory(
      `findClosest` falls back to the nearest point within ±1 year if no exact match. */
   const findClosest = (targetAge: number) => {
     const rounded = Math.round(targetAge);
-    return points.find(p => p.age === rounded)
-        ?? points.find(p => Math.abs(p.age - rounded) <= 1);
+    return (
+      points.find((p) => p.age === rounded) ?? points.find((p) => Math.abs(p.age - rounded) <= 1)
+    );
   };
   const events: IncomeEvent[] = [];
   const retirePt = findClosest(retirementAge);
   if (retirePt) {
     events.push({
-      age: retirePt.age, year: retirePt.year,
+      age: retirePt.age,
+      year: retirePt.year,
       kind: "retirement",
       label: `פרישה · גיל ${retirementAge}`,
     });
@@ -245,7 +245,8 @@ export function computeMonthlyIncomeTrajectory(
   const btlPt = findClosest(btlAge);
   if (btlPt && Math.round(btlAge) !== Math.round(retirementAge)) {
     events.push({
-      age: btlPt.age, year: btlPt.year,
+      age: btlPt.age,
+      year: btlPt.year,
       kind: "btl_start",
       label: `ביטוח לאומי · גיל ${btlAge}`,
     });
@@ -254,19 +255,21 @@ export function computeMonthlyIncomeTrajectory(
     const hPt = findClosest(hishtalmutStart);
     if (hPt) {
       events.push({
-        age: hPt.age, year: hPt.year,
+        age: hPt.age,
+        year: hPt.year,
         kind: "hishtalmut",
         label: `קרן השתלמות · גיל ${hishtalmutStart}`,
       });
     }
   }
-  rentModels.forEach(m => {
+  rentModels.forEach((m) => {
     if (m.payoffAge === null) return;
     const intAge = Math.round(m.payoffAge);
-    const pt = points.find(p => p.age === intAge);
+    const pt = points.find((p) => p.age === intAge);
     if (!pt) return;
     events.push({
-      age: intAge, year: pt.year,
+      age: intAge,
+      year: pt.year,
       kind: "mortgage_payoff",
       label: `סיום משכנתא · ${m.name}`,
     });
@@ -274,15 +277,14 @@ export function computeMonthlyIncomeTrajectory(
 
   /* ── Gap metrics ── */
   const targetMonthly = opts.targetMonthly ?? 0;
-  const gapAtRetirement = targetMonthly > 0 && retirePt
-    ? targetMonthly - retirePt.total
-    : 0;
-  const retirementYears = points.filter(p => p.age >= retirementAge && p.age <= 90);
+  const gapAtRetirement = targetMonthly > 0 && retirePt ? targetMonthly - retirePt.total : 0;
+  const retirementYears = points.filter((p) => p.age >= retirementAge && p.age <= 90);
   // gapAverage = target − mean(total). Explicit parens so the precedence of
   // `-` vs `/` is obvious at a glance (they don't matter here, both work).
-  const gapAverage = targetMonthly > 0 && retirementYears.length > 0
-    ? targetMonthly - (retirementYears.reduce((s, p) => s + p.total, 0) / retirementYears.length)
-    : 0;
+  const gapAverage =
+    targetMonthly > 0 && retirementYears.length > 0
+      ? targetMonthly - retirementYears.reduce((s, p) => s + p.total, 0) / retirementYears.length
+      : 0;
 
   return {
     points,

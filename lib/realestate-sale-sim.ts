@@ -59,16 +59,16 @@ const CAPITAL_GAINS_RATE_NON_PRIMARY = 0.25;
 export function simulatePropertySale(
   prop: Property,
   allProperties: Property[],
-  inputs: SaleSimInputs,
+  inputs: SaleSimInputs
 ): SaleSimOutputs {
   const yearsToSale = Math.max(0, inputs.yearsToSale);
-  const appreciation = inputs.annualAppreciationOverride ?? (prop.annualAppreciation ?? 0.03);
+  const appreciation = inputs.annualAppreciationOverride ?? prop.annualAppreciation ?? 0.03;
   const sellingFeesPct = inputs.sellingFeesPct ?? 0.05;
   const mortgageRate = inputs.mortgageRateOverride ?? 0.05;
 
   // ── 1. Sale price projection ──
   const projectedSalePrice = Math.round(
-    (prop.currentValue || 0) * Math.pow(1 + appreciation, yearsToSale),
+    (prop.currentValue || 0) * Math.pow(1 + appreciation, yearsToSale)
   );
 
   // ── 2. Mortgage balance at sale date ──
@@ -84,9 +84,8 @@ export function simulatePropertySale(
     // Calculate remaining months at current pace.
     // Using PMT formula reversed: months = -ln(1 - (P*r/PMT)) / ln(1+r)
     const ratio = (currentBalance * monthlyRate) / monthlyPayment;
-    const monthsRemaining = ratio < 1 && ratio > 0
-      ? -Math.log(1 - ratio) / Math.log(1 + monthlyRate)
-      : 360; // fallback to 30y if math degenerate
+    const monthsRemaining =
+      ratio < 1 && ratio > 0 ? -Math.log(1 - ratio) / Math.log(1 + monthlyRate) : 360; // fallback to 30y if math degenerate
     const monthsToSale = yearsToSale * 12;
 
     if (monthsToSale >= monthsRemaining) {
@@ -97,7 +96,7 @@ export function simulatePropertySale(
       const factor = Math.pow(1 + monthlyRate, monthsToSale);
       mortgageBalanceAtSale = Math.max(
         0,
-        currentBalance * factor - monthlyPayment * ((factor - 1) / monthlyRate),
+        currentBalance * factor - monthlyPayment * ((factor - 1) / monthlyRate)
       );
     }
   } else {
@@ -131,7 +130,7 @@ export function simulatePropertySale(
 
   // ── 5. Net cash ──
   const netCashProceeds = Math.round(
-    projectedSalePrice - mortgageBalanceAtSale - sellingFees - estimatedTax,
+    projectedSalePrice - mortgageBalanceAtSale - sellingFees - estimatedTax
   );
 
   // ── 6. ROI on original equity (purchase price - original loan) ──
@@ -141,20 +140,19 @@ export function simulatePropertySale(
   const totalReturn = netCashProceeds - originalEquity;
   const yearsHeld = (() => {
     if (!prop.purchaseDate) return yearsToSale;
-    const ms = new Date(prop.purchaseDate.length === 7
-      ? prop.purchaseDate + "-01"
-      : prop.purchaseDate
+    const ms = new Date(
+      prop.purchaseDate.length === 7 ? prop.purchaseDate + "-01" : prop.purchaseDate
     ).getTime();
     const years = (Date.now() - ms) / (1000 * 60 * 60 * 24 * 365.25) + yearsToSale;
     return Math.max(0.1, years);
   })();
-  const estimatedROI = originalEquity > 0
-    ? (Math.pow(netCashProceeds / originalEquity, 1 / yearsHeld) - 1) * 100
-    : 0;
+  const estimatedROI =
+    originalEquity > 0 ? (Math.pow(netCashProceeds / originalEquity, 1 / yearsHeld) - 1) * 100 : 0;
 
   // Sale date as ISO
   const saleDate = new Date(Date.now() + yearsToSale * 365.25 * 24 * 3600 * 1000)
-    .toISOString().slice(0, 10);
+    .toISOString()
+    .slice(0, 10);
 
   return {
     saleDate,

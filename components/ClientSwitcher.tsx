@@ -89,10 +89,7 @@ export function ClientSwitcher() {
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
 
-  const active = useMemo(
-    () => clients.find((c) => c.id === activeId) ?? null,
-    [clients, activeId],
-  );
+  const active = useMemo(() => clients.find((c) => c.id === activeId) ?? null, [clients, activeId]);
 
   function handleSelect(id: number) {
     setOpen(false);
@@ -201,8 +198,7 @@ export function ClientSwitcher() {
   }
 
   const label = active ? active.family : "בחר לקוח";
-  const canConfirmDelete =
-    !!pendingDelete && confirmText.trim() === pendingDelete.family.trim();
+  const canConfirmDelete = !!pendingDelete && confirmText.trim() === pendingDelete.family.trim();
 
   return (
     <div
@@ -214,7 +210,7 @@ export function ClientSwitcher() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 px-4 py-2 rounded-full border transition"
+        className="flex items-center gap-2 rounded-full border px-4 py-2 transition"
         style={{
           background: "#ffffff",
           borderColor: "#eef2e8",
@@ -241,7 +237,7 @@ export function ClientSwitcher() {
 
       {open && (
         <div
-          className="absolute left-0 mt-2 min-w-[280px] rounded-xl border overflow-hidden z-50"
+          className="absolute left-0 z-50 mt-2 min-w-[280px] overflow-hidden rounded-xl border"
           style={{
             background: "#ffffff",
             borderColor: "#eef2e8",
@@ -251,10 +247,7 @@ export function ClientSwitcher() {
         >
           <div className="max-h-[260px] overflow-y-auto py-1">
             {clients.length === 0 && (
-              <div
-                className="px-4 py-3 text-sm"
-                style={{ color: "#6b7a70" }}
-              >
+              <div className="px-4 py-3 text-sm" style={{ color: "#6b7a70" }}>
                 אין לקוחות עדיין
               </div>
             )}
@@ -272,7 +265,7 @@ export function ClientSwitcher() {
                   <button
                     type="button"
                     onClick={(e) => handleDeleteRow(e, c)}
-                    className="p-1 rounded-md transition"
+                    className="rounded-md p-1 transition"
                     style={{ color: "#b91c1c", opacity: 0.55 }}
                     title="מחיקה"
                     aria-label={`מחק את משפחת ${c.family}`}
@@ -288,7 +281,7 @@ export function ClientSwitcher() {
                   <button
                     type="button"
                     onClick={(e) => handleExportRow(e, c.id)}
-                    className="p-1 rounded-md transition"
+                    className="rounded-md p-1 transition"
                     style={{ color: "#6b7a70", opacity: 0.7 }}
                     title="ייצוא JSON"
                     aria-label={`ייצוא משפחת ${c.family}`}
@@ -306,14 +299,12 @@ export function ClientSwitcher() {
                   <button
                     type="button"
                     onClick={() => handleSelect(c.id)}
-                    className="flex-1 flex items-center justify-between gap-2 px-2 py-1 text-right rounded-md transition"
+                    className="flex flex-1 items-center justify-between gap-2 rounded-md px-2 py-1 text-right transition"
                     style={{ color: "#012d1d" }}
                     role="option"
                     aria-selected={isActive}
                   >
-                    <span className="text-sm font-medium truncate">
-                      משפחת {c.family}
-                    </span>
+                    <span className="truncate text-sm font-medium">משפחת {c.family}</span>
                     {isActive && (
                       <span
                         className="material-symbols-outlined"
@@ -332,14 +323,10 @@ export function ClientSwitcher() {
             <button
               type="button"
               onClick={handleCreate}
-              className="w-full flex items-center gap-2 px-4 py-2 text-right transition"
+              className="flex w-full items-center gap-2 px-4 py-2 text-right transition"
               style={{ color: "#1B4332" }}
             >
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: 18 }}
-                aria-hidden
-              >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
                 add
               </span>
               <span className="text-sm font-medium">לקוח חדש</span>
@@ -347,7 +334,7 @@ export function ClientSwitcher() {
             <button
               type="button"
               onClick={handleBackupAll}
-              className="w-full flex items-center gap-2 px-4 py-2 text-right transition"
+              className="flex w-full items-center gap-2 px-4 py-2 text-right transition"
               style={{ color: "#012d1d" }}
               title="גיבוי של כל הלקוחות לקובץ אחד"
             >
@@ -363,7 +350,7 @@ export function ClientSwitcher() {
             <button
               type="button"
               onClick={handleImportClick}
-              className="w-full flex items-center gap-2 px-4 py-2 text-right transition"
+              className="flex w-full items-center gap-2 px-4 py-2 text-right transition"
               style={{ color: "#012d1d" }}
             >
               <span
@@ -399,7 +386,7 @@ export function ClientSwitcher() {
           dir="rtl"
         >
           <div
-            className="rounded-organic shadow-soft border p-6 w-[90%] max-w-[420px]"
+            className="w-[90%] max-w-[420px] rounded-organic border p-6 shadow-soft"
             style={{
               background: "#ffffff",
               borderColor: "#eef2e8",
@@ -407,7 +394,7 @@ export function ClientSwitcher() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-2 mb-3">
+            <div className="mb-3 flex items-center gap-2">
               <span
                 className="material-symbols-outlined"
                 style={{ fontSize: 22, color: "#b91c1c" }}
@@ -415,30 +402,18 @@ export function ClientSwitcher() {
               >
                 warning
               </span>
-              <h3
-                className="text-base font-bold"
-                style={{ color: "#012d1d" }}
-              >
+              <h3 className="text-base font-bold" style={{ color: "#012d1d" }}>
                 מחיקת לקוח — לא ניתן לשחזר
               </h3>
             </div>
-            <p
-              className="text-sm mb-4 leading-relaxed"
-              style={{ color: "#374151" }}
-            >
+            <p className="mb-4 text-sm leading-relaxed" style={{ color: "#374151" }}>
               כל הנתונים של{" "}
-              <span
-                className="font-bold"
-                style={{ color: "#b91c1c" }}
-              >
+              <span className="font-bold" style={{ color: "#b91c1c" }}>
                 משפחת {pendingDelete.family}
               </span>{" "}
               יימחקו לצמיתות מהמחשב שלך.
             </p>
-            <label
-              className="block text-xs mb-1"
-              style={{ color: "#6b7a70" }}
-            >
+            <label className="mb-1 block text-xs" style={{ color: "#6b7a70" }}>
               הקלד את שם המשפחה כדי לאשר:
             </label>
             <input
@@ -447,7 +422,7 @@ export function ClientSwitcher() {
               onChange={(e) => setConfirmText(e.target.value)}
               placeholder={pendingDelete.family}
               autoFocus
-              className="w-full px-3 py-2 rounded-lg border text-sm mb-4 outline-none"
+              className="mb-4 w-full rounded-lg border px-3 py-2 text-sm outline-none"
               style={{
                 borderColor: "#eef2e8",
                 background: "#ffffff",
@@ -467,7 +442,7 @@ export function ClientSwitcher() {
                 type="button"
                 onClick={handleConfirmDelete}
                 disabled={!canConfirmDelete}
-                className="px-4 py-2 rounded-lg text-sm font-bold transition"
+                className="rounded-lg px-4 py-2 text-sm font-bold transition"
                 style={{
                   background: canConfirmDelete ? "#b91c1c" : "#e5e7eb",
                   color: canConfirmDelete ? "#ffffff" : "#9ca3af",

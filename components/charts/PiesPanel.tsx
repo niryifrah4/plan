@@ -83,7 +83,7 @@ function Donut({
   showILS: boolean;
   compact: boolean;
 }) {
-  const visible = pie.slices.filter(s => s.pct > 0);
+  const visible = pie.slices.filter((s) => s.pct > 0);
   const total = visible.reduce((s, x) => s + x.pct, 0) || 1;
   const r = size / 2 - 4;
   const innerR = r * 0.6;
@@ -104,13 +104,11 @@ function Donut({
   });
 
   // Dominant slice — featured in the center hole
-  const dominant = visible.length > 0
-    ? visible.reduce((a, b) => (a.pct > b.pct ? a : b))
-    : null;
+  const dominant = visible.length > 0 ? visible.reduce((a, b) => (a.pct > b.pct ? a : b)) : null;
 
   return (
     <div className={`v-card ${compact ? "p-3" : "p-4"}`}>
-      <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-verdant-muted mb-2 text-right">
+      <div className="mb-2 text-right text-[11px] font-bold uppercase tracking-[0.14em] text-verdant-muted">
         {pie.title}
       </div>
 
@@ -120,16 +118,10 @@ function Donut({
         </div>
       ) : (
         <>
-          <div className="flex items-center justify-center mb-3">
+          <div className="mb-3 flex items-center justify-center">
             <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
               {arcs.map((a, i) => (
-                <path
-                  key={i}
-                  d={a.d}
-                  fill={a.slice.color}
-                  stroke="#FFFFFF"
-                  strokeWidth={1.5}
-                />
+                <path key={i} d={a.d} fill={a.slice.color} stroke="#FFFFFF" strokeWidth={1.5} />
               ))}
               {/* Center text — dominant slice % */}
               {dominant && (
@@ -138,7 +130,7 @@ function Donut({
                     x={cx}
                     y={cy - 4}
                     textAnchor="middle"
-                    className="font-extrabold tabular"
+                    className="tabular font-extrabold"
                     style={{ fontSize: compact ? 18 : 22, fill: "#012D1D" }}
                   >
                     {Math.round(dominant.pct)}%
@@ -158,16 +150,16 @@ function Donut({
 
           {/* Legend */}
           <div className="space-y-1">
-            {visible.map(slice => (
+            {visible.map((slice) => (
               <div key={slice.key} className="flex items-center gap-2 text-[12px]">
                 <span
-                  className="inline-block rounded-sm shrink-0"
+                  className="inline-block shrink-0 rounded-sm"
                   style={{ width: 10, height: 10, background: slice.color }}
                 />
-                <span className="text-verdant-ink font-bold flex-1 truncate">{slice.label}</span>
+                <span className="flex-1 truncate font-bold text-verdant-ink">{slice.label}</span>
                 <span className="tabular text-verdant-muted">{Math.round(slice.pct)}%</span>
                 {showILS && typeof slice.ils === "number" && slice.ils > 0 && (
-                  <span className="text-[11px] text-verdant-muted tabular">
+                  <span className="tabular text-[11px] text-verdant-muted">
                     {slice.ils.toLocaleString()}₪
                   </span>
                 )}
@@ -187,13 +179,17 @@ function Donut({
  * sweeping clockwise per CSS conventions).
  */
 function arcPath(
-  cx: number, cy: number, rOuter: number, rInner: number,
-  start: number, end: number,
+  cx: number,
+  cy: number,
+  rOuter: number,
+  rInner: number,
+  start: number,
+  end: number
 ): string {
   const startO = polar(cx, cy, rOuter, start);
-  const endO   = polar(cx, cy, rOuter, end);
+  const endO = polar(cx, cy, rOuter, end);
   const startI = polar(cx, cy, rInner, end);
-  const endI   = polar(cx, cy, rInner, start);
+  const endI = polar(cx, cy, rInner, start);
   const largeArc = end - start > Math.PI ? 1 : 0;
   return [
     `M ${startO.x} ${startO.y}`,

@@ -15,11 +15,7 @@
  */
 
 import type { PensionFund } from "@/lib/pension-store";
-import type {
-  AnnualPolicy,
-  AnnualProductType,
-  ParsedAnnualBundle,
-} from "./annual-report-parser";
+import type { AnnualPolicy, AnnualProductType, ParsedAnnualBundle } from "./annual-report-parser";
 
 /**
  * Map the regulatory product type to the simpler PensionFund.type enum.
@@ -102,10 +98,7 @@ interface MergeResult {
  *   2. Same company + type + similar track name
  *   3. Same company + type (single fund of that type)
  */
-function findMatch(
-  existing: PensionFund[],
-  incoming: PensionFund,
-): number {
+function findMatch(existing: PensionFund[], incoming: PensionFund): number {
   // 1. Exact id
   const idIdx = existing.findIndex((f) => f.id === incoming.id);
   if (idIdx >= 0) return idIdx;
@@ -118,8 +111,8 @@ function findMatch(
   if (sameCompanyType.length === 1) return sameCompanyType[0].i;
 
   if (sameCompanyType.length > 1 && incoming.track) {
-    const trackMatch = sameCompanyType.find(({ f }) =>
-      f.track && (f.track.includes(incoming.track) || incoming.track.includes(f.track)),
+    const trackMatch = sameCompanyType.find(
+      ({ f }) => f.track && (f.track.includes(incoming.track) || incoming.track.includes(f.track))
     );
     if (trackMatch) return trackMatch.i;
   }
@@ -133,7 +126,7 @@ function findMatch(
  */
 export function mergeAnnualIntoFunds(
   existing: PensionFund[],
-  bundle: ParsedAnnualBundle,
+  bundle: ParsedAnnualBundle
 ): MergeResult {
   const result: PensionFund[] = [...existing];
   let added = 0;

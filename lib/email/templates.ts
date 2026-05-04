@@ -31,7 +31,8 @@ export function inviteEmail(p: InviteParams): { subject: string; text: string; h
     "צוות Plan",
   ].join("\n");
 
-  const html = `<div dir="rtl" style="font-family: 'Assistant', system-ui, -apple-system, sans-serif; color:#012D1D; max-width:560px; margin:0 auto; padding:24px;">
+  const html =
+    `<div dir="rtl" style="font-family: 'Assistant', system-ui, -apple-system, sans-serif; color:#012D1D; max-width:560px; margin:0 auto; padding:24px;">
   <p style="font-size:16px;">${greeting}</p>
   <p style="font-size:15px; line-height:1.7;">
     <strong>${p.advisorName}</strong> פתח/ה עבורך חשבון אישי במערכת <strong>Plan</strong> —

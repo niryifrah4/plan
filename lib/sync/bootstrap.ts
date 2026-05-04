@@ -28,7 +28,9 @@ export async function resolveActiveHousehold(): Promise<string | null> {
   if (!sb) return null;
 
   try {
-    const { data: { user } } = await sb.auth.getUser();
+    const {
+      data: { user },
+    } = await sb.auth.getUser();
     if (!user) return null;
 
     // first household owned by this advisor (trigger in 0008 creates one on signup)
@@ -105,7 +107,9 @@ async function hydrateSecurities(blobSync: typeof import("@/lib/sync/blob-sync")
     if (!Array.isArray(remote)) return;
     const { scopedKey } = await import("@/lib/client-scope");
     localStorage.setItem(scopedKey("verdant:securities"), JSON.stringify(remote));
-  } catch { /* שקט */ }
+  } catch {
+    /* שקט */
+  }
 }
 
 /**

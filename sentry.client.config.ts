@@ -23,7 +23,7 @@ if (dsn) {
     replaysOnErrorSampleRate: 1.0,
     integrations: [
       Sentry.replayIntegration({
-        maskAllText: true,       // never leak PII (names, balances)
+        maskAllText: true, // never leak PII (names, balances)
         blockAllMedia: true,
       }),
     ],

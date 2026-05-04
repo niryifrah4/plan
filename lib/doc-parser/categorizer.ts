@@ -22,30 +22,59 @@ export const CATEGORIES: Category[] = [
     color: "#2B694D",
     keywords: [
       // ── Supermarket chains ──
-      "שופרסל", "רמי לוי", "מגה", "מגה בעיר", "מגה בול",
-      "יוחננוף", "חצי חינם", "אושר עד", "טיב טעם",
-      "ויקטורי", "סופר סול", "פרש מרקט", "סופר ברקת",
-      "זול ובגדול", "מחסני השוק", "סופר דוש", "קינג סטור",
-      "שוק", "מכולת", "ירקות", "פירות",
+      "שופרסל",
+      "רמי לוי",
+      "מגה",
+      "מגה בעיר",
+      "מגה בול",
+      "יוחננוף",
+      "חצי חינם",
+      "אושר עד",
+      "טיב טעם",
+      "ויקטורי",
+      "סופר סול",
+      "פרש מרקט",
+      "סופר ברקת",
+      "זול ובגדול",
+      "מחסני השוק",
+      "סופר דוש",
+      "קינג סטור",
+      "שוק",
+      "מכולת",
+      "ירקות",
+      "פירות",
       // ── Convenience ──
-      "am:pm", "yellow", "נעמן", "כל בו",
+      "am:pm",
+      "yellow",
+      "נעמן",
+      "כל בו",
       // ── Producers / wholesale ──
-      "תנובה", "טרה", "שטראוס", "אסם", "עלית",
+      "תנובה",
+      "טרה",
+      "שטראוס",
+      "אסם",
+      "עלית",
       // ── Bakeries ──
-      "מאפייה", "לחם ארז", "אנגלס", "רולדין", "פת בגליל",
-      "לחמנינה", "בייגל",
+      "מאפייה",
+      "לחם ארז",
+      "אנגלס",
+      "רולדין",
+      "פת בגליל",
+      "לחמנינה",
+      "בייגל",
       // ── Online grocery ──
-      "משלוח שופרסל", "רמי לוי אונליין",
+      "משלוח שופרסל",
+      "רמי לוי אונליין",
       // ── Markets ──
-      "שוק הכרמל", "שוק מחנה יהודה",
+      "שוק הכרמל",
+      "שוק מחנה יהודה",
       // Note: delivery apps (wolt, ten bis, cibus) → dining_out category
       // Note: סופר-פארם / pharmacy moved to "health" category
       // ── Cleaning / household ──
-      "ניקיון", "מרקחת",
+      "ניקיון",
+      "מרקחת",
     ],
-    patterns: [
-      /סופר(?!\s*פארם)(?!\-פארם)/i,
-    ],
+    patterns: [/סופר(?!\s*פארם)(?!\-פארם)/i],
   },
   {
     key: "housing",
@@ -53,12 +82,33 @@ export const CATEGORIES: Category[] = [
     icon: "home",
     color: "#1B4332",
     keywords: [
-      "משכנתא", "שכירות", "שכ\"ד", "ארנונה", "ועד בית", "ועד הבית",
-      "בנק אדנים", "עמידר", "דירה", "שיפוץ", "קבלן",
-      "מי אביבים", "מי שבע", "מקורות מים", "גיחון", "מי כרמל",
-      "מי דן", "מי עפולה", "מי רמת גן",
-      "חברת חשמל", "חב' חשמל", "iec", "israel electric",
-      "גז", "אמישראגז", "סופרגז", "פזגז",
+      "משכנתא",
+      "שכירות",
+      'שכ"ד',
+      "ארנונה",
+      "ועד בית",
+      "ועד הבית",
+      "בנק אדנים",
+      "עמידר",
+      "דירה",
+      "שיפוץ",
+      "קבלן",
+      "מי אביבים",
+      "מי שבע",
+      "מקורות מים",
+      "גיחון",
+      "מי כרמל",
+      "מי דן",
+      "מי עפולה",
+      "מי רמת גן",
+      "חברת חשמל",
+      "חב' חשמל",
+      "iec",
+      "israel electric",
+      "גז",
+      "אמישראגז",
+      "סופרגז",
+      "פזגז",
     ],
   },
   {
@@ -68,30 +118,67 @@ export const CATEGORIES: Category[] = [
     color: "#3b82f6",
     keywords: [
       // ── Gas stations ──
-      "פז", "דלק", "סונול", "דור אלון", "ten", "אלון",
-      "דלק אנרגיה", "תעם+",
+      "פז",
+      "דלק",
+      "סונול",
+      "דור אלון",
+      "ten",
+      "אלון",
+      "דלק אנרגיה",
+      "תעם+",
       // ── Parking ──
-      "חניה", "חניון", "פנגו", "סלופארק", "cellopark",
+      "חניה",
+      "חניון",
+      "פנגו",
+      "סלופארק",
+      "cellopark",
       // ── Public transport ──
-      "אגד", "דן", "רכבת ישראל", "רכבת", "קו קווים", "מטרופולין",
-      "רב קו", "rav kav", "תחבורה ציבורית", "נתיבי איילון",
+      "אגד",
+      "דן",
+      "רכבת ישראל",
+      "רכבת",
+      "קו קווים",
+      "מטרופולין",
+      "רב קו",
+      "rav kav",
+      "תחבורה ציבורית",
+      "נתיבי איילון",
       // ── Taxis / ride-sharing ──
-      "מונית", "gett", "גט טקסי", "yango", "יאנגו", "uber",
+      "מונית",
+      "gett",
+      "גט טקסי",
+      "yango",
+      "יאנגו",
+      "uber",
       // ── Vehicle ──
-      "טסט", "רישוי", "אגרת רישוי", "ביטוח רכב",
-      "מוסך", "צמיגים", "שמן מנוע", "שטיפת רכב",
+      "טסט",
+      "רישוי",
+      "אגרת רישוי",
+      "ביטוח רכב",
+      "מוסך",
+      "צמיגים",
+      "שמן מנוע",
+      "שטיפת רכב",
       // ── Car rental / sharing ──
-      "אלדן", "שלמה סיקסט", "hertz", "avis", "budget", "car2go",
-      "אוטותל", "סיקסט",
+      "אלדן",
+      "שלמה סיקסט",
+      "hertz",
+      "avis",
+      "budget",
+      "car2go",
+      "אוטותל",
+      "סיקסט",
       // ── E-scooters / bikes ──
-      "ליים", "lime", "bird", "wind",
+      "ליים",
+      "lime",
+      "bird",
+      "wind",
       // ── Tolls ──
-      "כביש 6", "כביש 6 חוצה", "דרך ארץ",
+      "כביש 6",
+      "כביש 6 חוצה",
+      "דרך ארץ",
     ],
-    patterns: [
-      /תדלוק|דלק\s/i,
-      /חני(ה|ון)\s/i,
-    ],
+    patterns: [/תדלוק|דלק\s/i, /חני(ה|ון)\s/i],
   },
   {
     key: "utilities",
@@ -99,17 +186,37 @@ export const CATEGORIES: Category[] = [
     icon: "bolt",
     color: "#f59e0b",
     keywords: [
-      "חשמל", "מקורות", "מים", "גז", "עיריית", "עירייה",
-      "בזק", "פרטנר", "סלקום", "הוט", "cellcom",
-      "012", "013", "bezeq", "hot net", "הוט מובייל",
-      "yes", "אינטרנט", "סלולר",
-      "גולן טלקום", "פלאפון", "012 mobile",
-      "we4g", "רמי לוי תקשורת", "הוט מובייל", "019",
-      "xfone", "אקספון", "youphone",
+      "חשמל",
+      "מקורות",
+      "מים",
+      "גז",
+      "עיריית",
+      "עירייה",
+      "בזק",
+      "פרטנר",
+      "סלקום",
+      "הוט",
+      "cellcom",
+      "012",
+      "013",
+      "bezeq",
+      "hot net",
+      "הוט מובייל",
+      "yes",
+      "אינטרנט",
+      "סלולר",
+      "גולן טלקום",
+      "פלאפון",
+      "012 mobile",
+      "we4g",
+      "רמי לוי תקשורת",
+      "הוט מובייל",
+      "019",
+      "xfone",
+      "אקספון",
+      "youphone",
     ],
-    patterns: [
-      /מי\s*(אביבים|שבע|גיחון|כרמל|עפולה|דן|רמת\s*גן)/i,
-    ],
+    patterns: [/מי\s*(אביבים|שבע|גיחון|כרמל|עפולה|דן|רמת\s*גן)/i],
   },
   {
     key: "health",
@@ -118,17 +225,43 @@ export const CATEGORIES: Category[] = [
     color: "#ef4444",
     keywords: [
       // ── Health funds ──
-      "מכבי", "כללית", "מאוחדת", "לאומית",
+      "מכבי",
+      "כללית",
+      "מאוחדת",
+      "לאומית",
       // ── Pharmacy ──
-      "סופר-פארם", "סופר פארם", "super pharm", "super-pharm",
-      "good pharm", "פארם", "בית מרקחת",
+      "סופר-פארם",
+      "סופר פארם",
+      "super pharm",
+      "super-pharm",
+      "good pharm",
+      "פארם",
+      "בית מרקחת",
       // ── Medical ──
-      "רפואה", "רופא", "בית חולים", "מרפאה", "רמב\"ם",
-      "איכילוב", "שיבא", "הדסה", "סורוקה", "אסף הרופא",
-      "שניידר", "וולפסון", "בלינסון", "מאיר",
+      "רפואה",
+      "רופא",
+      "בית חולים",
+      "מרפאה",
+      'רמב"ם',
+      "איכילוב",
+      "שיבא",
+      "הדסה",
+      "סורוקה",
+      "אסף הרופא",
+      "שניידר",
+      "וולפסון",
+      "בלינסון",
+      "מאיר",
       // ── Specific treatments ──
-      "שיניים", "אופטיקה", "עיניים", "טיפול", "תרופות",
-      "פיזיותרפיה", "פסיכולוג", "דיאטנית", "קלינאית",
+      "שיניים",
+      "אופטיקה",
+      "עיניים",
+      "טיפול",
+      "תרופות",
+      "פיזיותרפיה",
+      "פסיכולוג",
+      "דיאטנית",
+      "קלינאית",
     ],
   },
   {
@@ -137,14 +270,30 @@ export const CATEGORIES: Category[] = [
     icon: "school",
     color: "#2B694D",
     keywords: [
-      "גן ילדים", "גן", "בית ספר", "חוג", "שיעור",
-      "אוניברסיטה", "מכללה", "קורס", "תלמוד",
-      "צהרון", "קייטנה", "שכר לימוד", "הרשמה",
-      "מעון", "טרום חובה", "מכינה", "בחינה",
+      "גן ילדים",
+      "גן",
+      "בית ספר",
+      "חוג",
+      "שיעור",
+      "אוניברסיטה",
+      "מכללה",
+      "קורס",
+      "תלמוד",
+      "צהרון",
+      "קייטנה",
+      "שכר לימוד",
+      "הרשמה",
+      "מעון",
+      "טרום חובה",
+      "מכינה",
+      "בחינה",
       // ── Music / arts ──
-      "שיעורי מוזיקה", "קונסרבטוריון", "חוג ציור",
+      "שיעורי מוזיקה",
+      "קונסרבטוריון",
+      "חוג ציור",
       // ── Driving ──
-      "שיעורי נהיגה", "בית ספר לנהיגה",
+      "שיעורי נהיגה",
+      "בית ספר לנהיגה",
     ],
   },
   {
@@ -153,11 +302,24 @@ export const CATEGORIES: Category[] = [
     icon: "shield",
     color: "#06b6d4",
     keywords: [
-      "ביטוח", "מגדל", "הראל", "כלל ביטוח", "הפניקס", "מנורה",
-      "איילון", "שלמה ביטוח", "ביטוח לאומי",
-      "מגדל ביטוח", "הראל ביטוח", "הפניקס ביטוח",
-      "ביטוח בריאות", "ביטוח חיים", "ביטוח דירה",
-      "ביט ביטוח", "פסגות ביטוח", "שומרה",
+      "ביטוח",
+      "מגדל",
+      "הראל",
+      "כלל ביטוח",
+      "הפניקס",
+      "מנורה",
+      "איילון",
+      "שלמה ביטוח",
+      "ביטוח לאומי",
+      "מגדל ביטוח",
+      "הראל ביטוח",
+      "הפניקס ביטוח",
+      "ביטוח בריאות",
+      "ביטוח חיים",
+      "ביטוח דירה",
+      "ביט ביטוח",
+      "פסגות ביטוח",
+      "שומרה",
       "ביטוח משכנתא",
     ],
   },
@@ -168,14 +330,28 @@ export const CATEGORIES: Category[] = [
     color: "#ec4899",
     keywords: [
       // ── Parks / outdoors ──
-      "פארק", "לונה פארק", "ספארי",
+      "פארק",
+      "לונה פארק",
+      "ספארי",
       // ── Fitness ──
-      "ספורט", "חדר כושר", "הולמס", "הולמס פלייס",
-      "גו אקטיב", "סטודיו",
+      "ספורט",
+      "חדר כושר",
+      "הולמס",
+      "הולמס פלייס",
+      "גו אקטיב",
+      "סטודיו",
       // ── Streaming (also in subscriptions) ──
-      "נטפליקס", "netflix", "ספוטיפיי", "spotify",
-      "אפל מיוזיק", "apple music", "דיסני", "disney",
-      "hbo", "אמזון פריים", "amazon prime",
+      "נטפליקס",
+      "netflix",
+      "ספוטיפיי",
+      "spotify",
+      "אפל מיוזיק",
+      "apple music",
+      "דיסני",
+      "disney",
+      "hbo",
+      "אמזון פריים",
+      "amazon prime",
     ],
   },
   {
@@ -187,32 +363,76 @@ export const CATEGORIES: Category[] = [
       // ── Home & furniture ──
       // NOTE: hardware / maintenance chains (הום סנטר, ace, הום דיפו)
       // moved to the "home_maintenance" category below.
-      "איקאה", "ikea",
-      "כיתן", "ריהוט", "מילגם",
+      "איקאה",
+      "ikea",
+      "כיתן",
+      "ריהוט",
+      "מילגם",
       // ── Fashion ──
-      "זארה", "h&m", "fox", "גולף", "קסטרו",
-      "אמריקן איגל", "מנגו", "טרמינל x",
-      "פולו", "pull&bear", "bershka", "עדיקה",
-      "הודיס", "נעמן", "נעלי",
+      "זארה",
+      "h&m",
+      "fox",
+      "גולף",
+      "קסטרו",
+      "אמריקן איגל",
+      "מנגו",
+      "טרמינל x",
+      "פולו",
+      "pull&bear",
+      "bershka",
+      "עדיקה",
+      "הודיס",
+      "נעמן",
+      "נעלי",
       // ── Online ──
-      "אליאקספרס", "amazon", "shein", "שיין", "aliexpress",
-      "ebay", "iherb", "asos",
+      "אליאקספרס",
+      "amazon",
+      "shein",
+      "שיין",
+      "aliexpress",
+      "ebay",
+      "iherb",
+      "asos",
       // ── Department stores ──
-      "המשביר לצרכן", "המשביר",
+      "המשביר לצרכן",
+      "המשביר",
       // ── Electronics ──
-      "באג", "bug", "אייבורי", "ivory", "ksp", "מחשבים",
-      "זאפ", "דיגיטל", "apple store", "אפל סטור",
-      "סמסונג", "samsung", "מעבדה",
+      "באג",
+      "bug",
+      "אייבורי",
+      "ivory",
+      "ksp",
+      "מחשבים",
+      "זאפ",
+      "דיגיטל",
+      "apple store",
+      "אפל סטור",
+      "סמסונג",
+      "samsung",
+      "מעבדה",
       // ── Books / toys / gifts ──
-      "שטיימצקי", "steimatzky", "צעצועים", "לגו",
-      "פרחים", "מתנה", "מתנות",
+      "שטיימצקי",
+      "steimatzky",
+      "צעצועים",
+      "לגו",
+      "פרחים",
+      "מתנה",
+      "מתנות",
       // ── Beauty / cosmetics ──
-      "סדרה", "sabon", "סבון", "לאוקסיטן", "kiko",
-      "מאק", "mac cosmetics",
+      "סדרה",
+      "sabon",
+      "סבון",
+      "לאוקסיטן",
+      "kiko",
+      "מאק",
+      "mac cosmetics",
       // ── Sporting goods ──
-      "דקטלון", "decathlon", "אינטרספורט",
+      "דקטלון",
+      "decathlon",
+      "אינטרספורט",
       // ── Pet shops ──
-      "חנות חיות", "פט שופ",
+      "חנות חיות",
+      "פט שופ",
     ],
   },
   {
@@ -221,14 +441,32 @@ export const CATEGORIES: Category[] = [
     icon: "payments",
     color: "#2B694D",
     keywords: [
-      "משכורת", "שכר", "העברה ממעסיק", "מעביד",
-      "שכר חודש", "שכר עבודה", "נטו", "ברוטו",
-      "שכר דירקטורים", "דמי ניהול", "תשלום עבור שירותים",
-      "הכנסה משכירות", "דמי שכירות", "שכ\"ד מקבל",
-      "קצבת ילדים", "ביטוח לאומי קצבה", "קצבת זקנה",
-      "מענק עבודה", "מענק לידה", "מלגה",
-      "דיבידנד", "ריבית זכות", "הכנסה מריבית",
-      "פרילנס", "חשבונית", "הכנסות",
+      "משכורת",
+      "שכר",
+      "העברה ממעסיק",
+      "מעביד",
+      "שכר חודש",
+      "שכר עבודה",
+      "נטו",
+      "ברוטו",
+      "שכר דירקטורים",
+      "דמי ניהול",
+      "תשלום עבור שירותים",
+      "הכנסה משכירות",
+      "דמי שכירות",
+      'שכ"ד מקבל',
+      "קצבת ילדים",
+      "ביטוח לאומי קצבה",
+      "קצבת זקנה",
+      "מענק עבודה",
+      "מענק לידה",
+      "מלגה",
+      "דיבידנד",
+      "ריבית זכות",
+      "הכנסה מריבית",
+      "פרילנס",
+      "חשבונית",
+      "הכנסות",
     ],
     patterns: [
       /משכ(ורת|ו׳|\.)/i,
@@ -244,10 +482,21 @@ export const CATEGORIES: Category[] = [
     icon: "savings",
     color: "#1a6b42",
     keywords: [
-      "פנסיה", "גמל", "השתלמות", "הפרשה", "פיצויים",
-      "מיטב דש", "אלטשולר", "מור", "פסגות",
-      "מנורה פנסיה", "הראל פנסיה", "מגדל פנסיה",
-      "קרן פנסיה", "קרן השתלמות", "קופת גמל",
+      "פנסיה",
+      "גמל",
+      "השתלמות",
+      "הפרשה",
+      "פיצויים",
+      "מיטב דש",
+      "אלטשולר",
+      "מור",
+      "פסגות",
+      "מנורה פנסיה",
+      "הראל פנסיה",
+      "מגדל פנסיה",
+      "קרן פנסיה",
+      "קרן השתלמות",
+      "קופת גמל",
     ],
   },
   {
@@ -256,39 +505,47 @@ export const CATEGORIES: Category[] = [
     icon: "swap_horiz",
     color: "#64748b",
     keywords: [
-      "העברה", "העב\"ב", "בית לבית", "ביט", "bit", "paybox", "פפר",
-      "pepper", "העברת זהב", "העברה בין חשבונות",
-      "שק", "צ'ק", "שיק", "המחאה",
-      "פיקדון", "פק\"מ", "פקדון",
-      "חיסכון", "הפקדה לחיסכון",
+      "העברה",
+      'העב"ב',
+      "בית לבית",
+      "ביט",
+      "bit",
+      "paybox",
+      "פפר",
+      "pepper",
+      "העברת זהב",
+      "העברה בין חשבונות",
+      "שק",
+      "צ'ק",
+      "שיק",
+      "המחאה",
+      "פיקדון",
+      'פק"מ',
+      "פקדון",
+      "חיסכון",
+      "הפקדה לחיסכון",
       // 2026-04-28: explicit children-savings keywords. These are
       // government deposits + parental match flowing to a kid's account
       // (₪57 + ₪57 = ₪114). Money leaves the parent's account but is NOT
       // an expense — it's a transfer to an asset.
-      "חיסכון לכל ילד", "חיסכון לילד", "חיסכון לילדים",
-      "מגדל גמל ילדים", "פסגות ילדים", "אלטשולר ילדים",
-      "ילין לפידות ילדים", "מיטב גמל ילדים",
+      "חיסכון לכל ילד",
+      "חיסכון לילד",
+      "חיסכון לילדים",
+      "מגדל גמל ילדים",
+      "פסגות ילדים",
+      "אלטשולר ילדים",
+      "ילין לפידות ילדים",
+      "מיטב גמל ילדים",
     ],
-    patterns: [
-      /העברה?\s*(ל|מ|בין)/i,
-      /שק\s*מס[\'\u0027]?\s*\d+/i,
-      /צ['\u0027]?ק\s*\d+/i,
-    ],
+    patterns: [/העברה?\s*(ל|מ|בין)/i, /שק\s*מס[\'\u0027]?\s*\d+/i, /צ['\u0027]?ק\s*\d+/i],
   },
   {
     key: "cash",
     label: "מזומן",
     icon: "local_atm",
     color: "#78716c",
-    keywords: [
-      "משיכת מזומן", "כספומט", "atm", "משיכה", "מזומן",
-      "cash", "cashback",
-    ],
-    patterns: [
-      /משיכת?\s*מזומן/i,
-      /atm\s/i,
-      /כספומט/i,
-    ],
+    keywords: ["משיכת מזומן", "כספומט", "atm", "משיכה", "מזומן", "cash", "cashback"],
+    patterns: [/משיכת?\s*מזומן/i, /atm\s/i, /כספומט/i],
   },
   {
     key: "subscriptions",
@@ -296,12 +553,24 @@ export const CATEGORIES: Category[] = [
     icon: "loyalty",
     color: "#2B694D",
     keywords: [
-      "מנוי", "חודשי",
+      "מנוי",
+      "חודשי",
       // ── SaaS & tech ──
-      "google storage", "google one", "icloud",
-      "dropbox", "zoom", "microsoft 365", "canva",
-      "adobe", "chatgpt", "openai", "figma", "notion",
-      "monday.com", "slack", "github",
+      "google storage",
+      "google one",
+      "icloud",
+      "dropbox",
+      "zoom",
+      "microsoft 365",
+      "canva",
+      "adobe",
+      "chatgpt",
+      "openai",
+      "figma",
+      "notion",
+      "monday.com",
+      "slack",
+      "github",
     ],
   },
   {
@@ -309,14 +578,8 @@ export const CATEGORIES: Category[] = [
     label: "זיכויים באשראי",
     icon: "currency_exchange",
     color: "#059669",
-    keywords: [
-      "זיכוי", "החזר", "refund", "credit", "ביטול עסקה",
-      "החזר כספי", "זיכוי אשראי",
-    ],
-    patterns: [
-      /זיכוי\s*(מ|של|עבור|בגין)/i,
-      /החזר\s*(כספי|תשלום|עסקה)/i,
-    ],
+    keywords: ["זיכוי", "החזר", "refund", "credit", "ביטול עסקה", "החזר כספי", "זיכוי אשראי"],
+    patterns: [/זיכוי\s*(מ|של|עבור|בגין)/i, /החזר\s*(כספי|תשלום|עסקה)/i],
   },
   {
     key: "fees",
@@ -324,13 +587,30 @@ export const CATEGORIES: Category[] = [
     icon: "receipt_long",
     color: "#dc2626",
     keywords: [
-      "עמלה", "דמי כרטיס", "ריבית", "דמי ניהול חשבון",
-      "דמי ניהול", "עמלת פעולה", "דמי שימוש", "עמלת המרה",
-      "עמלת העברה", "דמי חיוב", "ריבית חובה", "ריבית פיגורים",
-      "עמלת כרטיס", "דמי כספומט", "עמלת בנק",
-      "עמלת מט\"ח", "עמלת ני\"ע", "עמלת ניירות ערך",
-      "דמי נאמנות", "דמי משמרת", "עמלת דף חשבון",
-      "commission", "bank fee", "interest",
+      "עמלה",
+      "דמי כרטיס",
+      "ריבית",
+      "דמי ניהול חשבון",
+      "דמי ניהול",
+      "עמלת פעולה",
+      "דמי שימוש",
+      "עמלת המרה",
+      "עמלת העברה",
+      "דמי חיוב",
+      "ריבית חובה",
+      "ריבית פיגורים",
+      "עמלת כרטיס",
+      "דמי כספומט",
+      "עמלת בנק",
+      'עמלת מט"ח',
+      'עמלת ני"ע',
+      "עמלת ניירות ערך",
+      "דמי נאמנות",
+      "דמי משמרת",
+      "עמלת דף חשבון",
+      "commission",
+      "bank fee",
+      "interest",
     ],
     patterns: [
       /עמל(ה|ת)\s/i,
@@ -345,34 +625,76 @@ export const CATEGORIES: Category[] = [
     color: "#e11d48",
     keywords: [
       // ── Restaurants & cafés ──
-      "מסעדה", "קפה", "בית קפה", "ארומה", "קופי",
-      "קפה הלל", "קפה אורבן", "ברסטה", "קפה גרג",
-      "קפה לנדוור", "קפה קפה", "coffee bean",
+      "מסעדה",
+      "קפה",
+      "בית קפה",
+      "ארומה",
+      "קופי",
+      "קפה הלל",
+      "קפה אורבן",
+      "ברסטה",
+      "קפה גרג",
+      "קפה לנדוור",
+      "קפה קפה",
+      "coffee bean",
       // ── Fast food ──
-      "מקדונלדס", "mcdonald", "בורגר קינג", "burger king",
-      "דומינוס", "פיצה האט", "kfc",
+      "מקדונלדס",
+      "mcdonald",
+      "בורגר קינג",
+      "burger king",
+      "דומינוס",
+      "פיצה האט",
+      "kfc",
       // ── Delivery ──
-      "wolt", "וולט", "japanika", "ג'פניקה", "ten bis", "תן ביס",
-      "cibus", "סיבוס", "משלוחה",
+      "wolt",
+      "וולט",
+      "japanika",
+      "ג'פניקה",
+      "ten bis",
+      "תן ביס",
+      "cibus",
+      "סיבוס",
+      "משלוחה",
       // ── Asian / sushi ──
-      "סושי", "נגיסה", "אדו", "נודה",
+      "סושי",
+      "נגיסה",
+      "אדו",
+      "נודה",
       // ── Israeli chains ──
-      "אגדיר", "שפונדי", "גוטה", "בנדיקט", "מושבוצ",
-      "הבשר של ענת", "מחניודה", "נלה", "אנסטסיה",
+      "אגדיר",
+      "שפונדי",
+      "גוטה",
+      "בנדיקט",
+      "מושבוצ",
+      "הבשר של ענת",
+      "מחניודה",
+      "נלה",
+      "אנסטסיה",
       // ── Bars ──
-      "פאב", "בר", "מייק פלייס", "מולי בלום",
+      "פאב",
+      "בר",
+      "מייק פלייס",
+      "מולי בלום",
       // ── Entertainment ──
-      "סינמה", "קולנוע", "yes planet", "סינמה סיטי",
-      "הופעה", "הצגה", "תיאטרון", "הבימה", "קאמרי",
-      "לב תל אביב", "ראשון סנטר", "קניון",
+      "סינמה",
+      "קולנוע",
+      "yes planet",
+      "סינמה סיטי",
+      "הופעה",
+      "הצגה",
+      "תיאטרון",
+      "הבימה",
+      "קאמרי",
+      "לב תל אביב",
+      "ראשון סנטר",
+      "קניון",
       // ── Ice cream / sweets ──
-      "גלידה", "גולדה", "אנריקו", "ביסקוטי",
+      "גלידה",
+      "גולדה",
+      "אנריקו",
+      "ביסקוטי",
     ],
-    patterns: [
-      /מסע(דה|דת)/i,
-      /בית\s*קפה/i,
-      /פיצ(ה|ריה)/i,
-    ],
+    patterns: [/מסע(דה|דת)/i, /בית\s*קפה/i, /פיצ(ה|ריה)/i],
   },
   {
     key: "home_maintenance",
@@ -381,23 +703,63 @@ export const CATEGORIES: Category[] = [
     color: "#0e7490",
     keywords: [
       // ── Hardware / DIY stores ──
-      "הום סנטר", "home center", "ace", "ace hardware", "הום דיפו", "home depot",
-      "מחסני חשמל", "מחסני", "וולהשופ",
+      "הום סנטר",
+      "home center",
+      "ace",
+      "ace hardware",
+      "הום דיפו",
+      "home depot",
+      "מחסני חשמל",
+      "מחסני",
+      "וולהשופ",
       // ── Trades & repairs ──
-      "שרברב", "אינסטלטור", "חשמלאי", "טכנאי",
-      "טכנאי מזגנים", "טכנאי כביסה", "טכנאי מקרר", "טכנאי תנור",
-      "תיקון", "תיקונים", "שיפוץ", "שיפוצים", "קבלן שיפוצים",
-      "הדברה", "ניקיון", "ניקוי", "ניקוי ספות", "ניקוי שטיחים",
-      "פוליש", "פוליש רצפות",
+      "שרברב",
+      "אינסטלטור",
+      "חשמלאי",
+      "טכנאי",
+      "טכנאי מזגנים",
+      "טכנאי כביסה",
+      "טכנאי מקרר",
+      "טכנאי תנור",
+      "תיקון",
+      "תיקונים",
+      "שיפוץ",
+      "שיפוצים",
+      "קבלן שיפוצים",
+      "הדברה",
+      "ניקיון",
+      "ניקוי",
+      "ניקוי ספות",
+      "ניקוי שטיחים",
+      "פוליש",
+      "פוליש רצפות",
       // ── Home goods & materials ──
-      "צבע", "צבעי", "צביעה", "טמבור", "נירלט",
-      "אריחים", "קרמיקה", "פורמייקה", "פרקט",
-      "אבן קיסר", "מטבחים", "גרניט",
+      "צבע",
+      "צבעי",
+      "צביעה",
+      "טמבור",
+      "נירלט",
+      "אריחים",
+      "קרמיקה",
+      "פורמייקה",
+      "פרקט",
+      "אבן קיסר",
+      "מטבחים",
+      "גרניט",
       // ── Appliance service & parts ──
-      "אלקטרה", "טורנדו", "סהר", "דוד שמש",
-      "תחזוקה", "תחזוקת", "אחזקה",
+      "אלקטרה",
+      "טורנדו",
+      "סהר",
+      "דוד שמש",
+      "תחזוקה",
+      "תחזוקת",
+      "אחזקה",
       // ── Gardening ──
-      "גינון", "גנן", "דשא", "משתלה", "משתלת",
+      "גינון",
+      "גנן",
+      "דשא",
+      "משתלה",
+      "משתלת",
     ],
     patterns: [
       /שרברב|אינסטלטור|חשמלאי/i,
@@ -432,8 +794,11 @@ export interface CategoryOverride {
 
 function loadOverrides(): CategoryOverride[] {
   if (typeof window === "undefined") return [];
-  try { return JSON.parse(localStorage.getItem(scopedKey(OVERRIDES_KEY)) || "[]"); }
-  catch { return []; }
+  try {
+    return JSON.parse(localStorage.getItem(scopedKey(OVERRIDES_KEY)) || "[]");
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -442,7 +807,10 @@ function loadOverrides(): CategoryOverride[] {
  */
 export function learnOverride(description: string, categoryKey: string) {
   const overrides = loadOverrides();
-  const fullPattern = description.toLowerCase().replace(/["\u200F\u200E]/g, "").trim();
+  const fullPattern = description
+    .toLowerCase()
+    .replace(/["\u200F\u200E]/g, "")
+    .trim();
 
   const root = fullPattern
     .replace(/\s*(סניף|branch|#|מס['\u0027]?|snif)\s*\d+.*$/i, "")
@@ -456,11 +824,11 @@ export function learnOverride(description: string, categoryKey: string) {
   }
 
   for (const pattern of patternsToLearn) {
-    const existing = overrides.find(o => o.pattern === pattern && o.category === categoryKey);
+    const existing = overrides.find((o) => o.pattern === pattern && o.category === categoryKey);
     if (existing) {
       existing.count++;
     } else {
-      const oldIdx = overrides.findIndex(o => o.pattern === pattern);
+      const oldIdx = overrides.findIndex((o) => o.pattern === pattern);
       if (oldIdx >= 0) overrides.splice(oldIdx, 1);
       overrides.push({ pattern, category: categoryKey, count: 1 });
     }
@@ -479,11 +847,17 @@ export function learnOverride(description: string, categoryKey: string) {
 /**
  * Find all transactions matching a description root (lateral learning).
  */
-export function findSimilarIndices(transactions: { description: string }[], changedIdx: number): number[] {
+export function findSimilarIndices(
+  transactions: { description: string }[],
+  changedIdx: number
+): number[] {
   const desc = transactions[changedIdx]?.description;
   if (!desc) return [changedIdx];
 
-  const root = desc.toLowerCase().replace(/["\u200F\u200E]/g, "").trim()
+  const root = desc
+    .toLowerCase()
+    .replace(/["\u200F\u200E]/g, "")
+    .trim()
     .replace(/\s*(סניף|branch|#|מס['\u0027]?|snif)\s*\d+.*$/i, "")
     .replace(/\s*\d{3,}.*$/, "")
     .replace(/\s+/g, " ")
@@ -493,7 +867,10 @@ export function findSimilarIndices(transactions: { description: string }[], chan
 
   const indices: number[] = [];
   for (let i = 0; i < transactions.length; i++) {
-    const other = transactions[i].description.toLowerCase().replace(/["\u200F\u200E]/g, "").trim();
+    const other = transactions[i].description
+      .toLowerCase()
+      .replace(/["\u200F\u200E]/g, "")
+      .trim();
     if (other.includes(root) || root.includes(other.substring(0, root.length))) {
       indices.push(i);
     }
@@ -509,19 +886,23 @@ export function getOverrides(): CategoryOverride[] {
  * Classify a transaction description into a category.
  * Priority: 1) user overrides (ML), 2) longest keyword match, 3) regex patterns, 4) "other"
  */
-export function categorize(description: string): { key: string; label: string; confidence: number } {
+export function categorize(description: string): {
+  key: string;
+  label: string;
+  confidence: number;
+} {
   const lower = description.toLowerCase().replace(/["\u200F\u200E]/g, "");
 
   // Strip common Israeli bank prefixes that hide the actual merchant
   const stripped = lower
     .replace(/^הוראת?\s*קבע\s*(ל|מ|עבור)?\s*/i, "")
-    .replace(/^הו"?ק\s*/i, "")            // הו"ק = הוראת קבע abbreviation
+    .replace(/^הו"?ק\s*/i, "") // הו"ק = הוראת קבע abbreviation
     .replace(/^מס"?ב\s*/i, "")
-    .replace(/^ה[\.']?ק\s*/i, "")         // ה.ק = הוראת קבע abbreviation
+    .replace(/^ה[\.']?ק\s*/i, "") // ה.ק = הוראת קבע abbreviation
     .replace(/^חיוב\s*אשראי\s*/i, "")
     .replace(/^תשלום\s*(ל|מ|עבור)?\s*/i, "")
     .replace(/^הפקדת?\s*(ל|מ)?\s*/i, "")
-    .replace(/^משיכת?\s*/i, "")           // "משיכה" prefix in Discount bank
+    .replace(/^משיכת?\s*/i, "") // "משיכה" prefix in Discount bank
     .replace(/^העברת?\s*(ב|ל|מ)?\s*/i, "")
     .trim();
 
@@ -530,11 +911,13 @@ export function categorize(description: string): { key: string; label: string; c
 
   // 1. User overrides (ML) — longest pattern first
   const overrides = loadOverrides();
-  const sorted = [...overrides].sort((a, b) => b.pattern.length - a.pattern.length || b.count - a.count);
+  const sorted = [...overrides].sort(
+    (a, b) => b.pattern.length - a.pattern.length || b.count - a.count
+  );
   for (const ov of sorted) {
     for (const text of searchTexts) {
       if (text.includes(ov.pattern)) {
-        const cat = CATEGORIES.find(c => c.key === ov.category);
+        const cat = CATEGORIES.find((c) => c.key === ov.category);
         if (cat) return { key: cat.key, label: cat.label, confidence: 1.0 };
       }
     }
@@ -579,5 +962,5 @@ export function categorize(description: string): { key: string; label: string; c
 }
 
 export function getCategoryByKey(key: string): Category | undefined {
-  return CATEGORIES.find(c => c.key === key);
+  return CATEGORIES.find((c) => c.key === key);
 }

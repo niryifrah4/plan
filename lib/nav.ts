@@ -38,7 +38,7 @@ export const NAV_SECTIONS: NavGroup[] = [
     label: null,
     items: [
       { id: "onboarding", label: "אפיון הלקוח", href: "/onboarding", icon: "assignment" },
-      { id: "dashboard",  label: "תמונת מצב",   href: "/dashboard",  icon: "dashboard" },
+      { id: "dashboard", label: "תמונת מצב", href: "/dashboard", icon: "dashboard" },
     ],
   },
 
@@ -50,10 +50,10 @@ export const NAV_SECTIONS: NavGroup[] = [
     collapsible: true,
     defaultOpen: true,
     items: [
-      { id: "budget",   label: "תזרים חודשי",   href: "/budget",   icon: "pie_chart" },
+      { id: "budget", label: "תזרים חודשי", href: "/budget", icon: "pie_chart" },
       { id: "deposits", label: "הפקדות חודשיות", href: "/deposits", icon: "savings" },
-      { id: "balance",  label: "מאזן וחשבונות",  href: "/balance",  icon: "account_balance_wallet" },
-      { id: "files",    label: "קבצים במיפוי",    href: "/files",    icon: "folder_open" },
+      { id: "balance", label: "מאזן וחשבונות", href: "/balance", icon: "account_balance_wallet" },
+      { id: "files", label: "קבצים במיפוי", href: "/files", icon: "folder_open" },
     ],
   },
 
@@ -65,12 +65,12 @@ export const NAV_SECTIONS: NavGroup[] = [
     collapsible: true,
     defaultOpen: true,
     items: [
-      { id: "investments", label: "שוק ההון",       href: "/investments", icon: "candlestick_chart" },
-      { id: "equity",      label: "Equity (RSU/ESPP)", href: "/equity",    icon: "stacked_bar_chart" },
-      { id: "pension",     label: "פנסיה ופרישה",   href: "/pension",     icon: "elderly" },
-      { id: "realestate",  label: "נדל״ן",          href: "/realestate",  icon: "home_work" },
-      { id: "debt",        label: "חובות והלוואות", href: "/debt",        icon: "credit_score" },
-      { id: "insurance",   label: "ניהול סיכונים",  href: "/insurance",   icon: "shield" },
+      { id: "investments", label: "שוק ההון", href: "/investments", icon: "candlestick_chart" },
+      { id: "equity", label: "Equity (RSU/ESPP)", href: "/equity", icon: "stacked_bar_chart" },
+      { id: "pension", label: "פנסיה ופרישה", href: "/pension", icon: "elderly" },
+      { id: "realestate", label: "נדל״ן", href: "/realestate", icon: "home_work" },
+      { id: "debt", label: "חובות והלוואות", href: "/debt", icon: "credit_score" },
+      { id: "insurance", label: "ניהול סיכונים", href: "/insurance", icon: "shield" },
     ],
   },
 
@@ -82,12 +82,12 @@ export const NAV_SECTIONS: NavGroup[] = [
     collapsible: true,
     defaultOpen: true,
     items: [
-      { id: "goals",      label: "מטרות וחזון",     href: "/goals",      icon: "flag" },
-      { id: "roadmap",    label: "מסלול חיים",      href: "/roadmap",    icon: "timeline" },
+      { id: "goals", label: "מטרות וחזון", href: "/goals", icon: "flag" },
+      { id: "roadmap", label: "מסלול חיים", href: "/roadmap", icon: "timeline" },
       // 2026-04-29 per Nir: /retirement merged into /pension. The simulation
       // panels live there now. Sidebar entry removed; route still exists for
       // back-compat (any deep link auto-redirects via the page itself).
-      { id: "plan",       label: "תוכנית פעולה",   href: "/plan",       icon: "checklist" },
+      { id: "plan", label: "תוכנית פעולה", href: "/plan", icon: "checklist" },
     ],
   },
 
@@ -95,11 +95,9 @@ export const NAV_SECTIONS: NavGroup[] = [
   {
     id: "tools",
     label: null,
-    items: [
-      { id: "tools", label: "מחשבונים", href: "/tools", icon: "calculate" },
-    ],
+    items: [{ id: "tools", label: "מחשבונים", href: "/tools", icon: "calculate" }],
   },
 ];
 
 /** Flat list for iteration (e.g. "next/prev" navigation). */
-export const NAV_CLIENT: NavItem[] = NAV_SECTIONS.flatMap(s => s.items);
+export const NAV_CLIENT: NavItem[] = NAV_SECTIONS.flatMap((s) => s.items);

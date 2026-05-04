@@ -12,6 +12,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "db:types": "supabase gen types typescript --local > types/supabase.ts"
   },
   "dependencies": {
@@ -39,6 +41,10 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "dotenv": "^17.2.3"
+    "@playwright/test": "^1.59.1",
+    "dotenv": "^17.2.3",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.3",
+    "prettier-plugin-tailwindcss": "^0.8.0"
   }
 }

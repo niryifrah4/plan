@@ -18,8 +18,8 @@ import { AccountsTab } from "./AccountsTab";
 type Tab = "wealth" | "accounts";
 
 const TABS: { key: Tab; label: string; icon: string }[] = [
-  { key: "wealth",    label: "מאזן נכסים", icon: "insights" },
-  { key: "accounts",  label: "חשבונות",    icon: "credit_card" },
+  { key: "wealth", label: "מאזן נכסים", icon: "insights" },
+  { key: "accounts", label: "חשבונות", icon: "credit_card" },
 ];
 
 export default function BalancePage() {
@@ -38,14 +38,14 @@ export default function BalancePage() {
   }, [router]);
 
   return (
-    <div className="max-w-6xl mx-auto" dir="rtl">
+    <div className="mx-auto max-w-6xl" dir="rtl">
       {/* Tab bar — only 2 tabs now. */}
-      <div className="flex gap-1 mb-6 p-1 rounded-xl" style={{ background: "rgba(1,45,29,0.04)" }}>
+      <div className="mb-6 flex gap-1 rounded-xl p-1" style={{ background: "rgba(1,45,29,0.04)" }}>
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-all ${
               tab === t.key
                 ? "bg-white text-verdant-ink shadow-sm"
                 : "text-verdant-muted hover:text-verdant-ink"
@@ -58,7 +58,7 @@ export default function BalancePage() {
         ))}
       </div>
 
-      {tab === "wealth"   && <WealthTab />}
+      {tab === "wealth" && <WealthTab />}
       {tab === "accounts" && <AccountsTab />}
     </div>
   );

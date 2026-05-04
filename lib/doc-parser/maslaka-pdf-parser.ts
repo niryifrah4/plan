@@ -23,24 +23,24 @@ import pdfParse from "pdf-parse";
 
 export interface MaslakaPdfProduct {
   company: string;
-  productType: string;       // "פנסיה חדשה מקיפה", "קרן השתלמות", etc.
+  productType: string; // "פנסיה חדשה מקיפה", "קרן השתלמות", etc.
   policyNumber: string;
   status: "active" | "inactive";
-  balance: number;           // סה"כ חיסכון צבור
-  projectedNoDeposits?: number;  // צפוי ללא הפקדות
+  balance: number; // סה"כ חיסכון צבור
+  projectedNoDeposits?: number; // צפוי ללא הפקדות
   projectedWithDeposits?: number; // צפוי עם הפקדות
   monthlyPensionNoDeposits?: number;
   monthlyPensionWithDeposits?: number;
-  mgmtFeeDeposit?: number;   // % from deposits
-  mgmtFeeBalance?: number;   // % from accumulated balance
-  returnYtd?: number;         // % since start of year
+  mgmtFeeDeposit?: number; // % from deposits
+  mgmtFeeBalance?: number; // % from accumulated balance
+  returnYtd?: number; // % since start of year
   lastDepositEmployee?: number;
   lastDepositEmployer?: number;
-  openingDate?: string;       // YYYY-MM-DD
-  liquidityDate?: string;     // YYYY-MM-DD (for hishtalmut)
-  firstJoinDate?: string;     // YYYY-MM-DD
+  openingDate?: string; // YYYY-MM-DD
+  liquidityDate?: string; // YYYY-MM-DD (for hishtalmut)
+  firstJoinDate?: string; // YYYY-MM-DD
   employer?: string;
-  insurancePlan?: string;     // מסלול ביטוח
+  insurancePlan?: string; // מסלול ביטוח
   pensionSurvivorsSpouse?: number;
   pensionSurvivorsChildren?: number;
   pensionDisability?: number;
@@ -66,7 +66,7 @@ export interface MaslakaPdfResult {
 function extractAmounts(text: string): number[] {
   const matches = text.match(/₪\s*[\d,]+(?:\.\d{2})?/g);
   if (!matches) return [];
-  return matches.map(m => {
+  return matches.map((m) => {
     const cleaned = m.replace(/[₪\s,]/g, "");
     return parseFloat(cleaned) || 0;
   });
@@ -96,7 +96,9 @@ function parseDate(s: string): string {
 }
 
 /** Map product type string to normalized type */
-function normalizeProductType(typeStr: string): "pension" | "hishtalmut" | "gemel" | "bituach" | "insurance_risk" | "insurance_mortgage" {
+function normalizeProductType(
+  typeStr: string
+): "pension" | "hishtalmut" | "gemel" | "bituach" | "insurance_risk" | "insurance_mortgage" {
   const lower = typeStr.toLowerCase();
   if (typeStr.includes("פנסיה")) return "pension";
   if (typeStr.includes("השתלמות")) return "hishtalmut";
@@ -110,7 +112,7 @@ function normalizeProductType(typeStr: string): "pension" | "hishtalmut" | "geme
 /* ── Section splitter ── */
 
 interface ProductSection {
-  sectionType: string;    // "קרנות פנסיה חדשות", "קרנות השתלמות", etc.
+  sectionType: string; // "קרנות פנסיה חדשות", "קרנות השתלמות", etc.
   text: string;
 }
 
@@ -145,7 +147,11 @@ function splitIntoSections(fullText: string): ProductSection[] {
 
       // Check if "שם חברה מנהלת" or "סוג מוצר פנסיוני" appears within 200 chars after this header
       const after = fullText.substring(idx, idx + 300);
-      if (after.includes("שם חברה מנהלת") || after.includes("סוג מוצר פנסיוני") || after.includes("מספר פוליסה")) {
+      if (
+        after.includes("שם חברה מנהלת") ||
+        after.includes("סוג מוצר פנסיוני") ||
+        after.includes("מספר פוליסה")
+      ) {
         bestIdx = idx;
         break;
       }
@@ -235,7 +241,8 @@ function parseProductSection(section: ProductSection): MaslakaPdfProduct[] {
         // Penalize if either starts with "0" (unusual for policy numbers)
         const zeroPenalty = (left.startsWith("0") ? 10 : 0) + (right.startsWith("0") ? 10 : 0);
         // Prefer both parts close to typical 9-10 digit length
-        const score = Math.abs(left.length - TYPICAL_LEN) + Math.abs(right.length - TYPICAL_LEN) + zeroPenalty;
+        const score =
+          Math.abs(left.length - TYPICAL_LEN) + Math.abs(right.length - TYPICAL_LEN) + zeroPenalty;
         if (score < bestScore) {
           bestScore = score;
           bestSplit = [left, right];
@@ -254,7 +261,14 @@ function parseProductSection(section: ProductSection): MaslakaPdfProduct[] {
 
   // For single product, straightforward extraction
   if (numProducts === 1) {
-    const product = extractSingleProduct(text, sectionType, companyText, typeText, policyNumbers[0], statusText);
+    const product = extractSingleProduct(
+      text,
+      sectionType,
+      companyText,
+      typeText,
+      policyNumbers[0],
+      statusText
+    );
     if (product) products.push(product);
   } else {
     // Multi-column: extract each product
@@ -275,7 +289,7 @@ function parseProductSection(section: ProductSection): MaslakaPdfProduct[] {
         statusText,
         i,
         numProducts,
-        balanceAmounts,
+        balanceAmounts
       );
       if (product) products.push(product);
     }
@@ -287,8 +301,18 @@ function parseProductSection(section: ProductSection): MaslakaPdfProduct[] {
 function splitCompanyNames(text: string, count: number): string[] {
   // Known company keywords
   const knownCompanies = [
-    "מגדל", "הפניקס", "מנורה", "הראל", "כלל", "מיטב", "אלטשולר",
-    "אנליסט", "ילין", "פסגות", "מור", "אינפיניטי",
+    "מגדל",
+    "הפניקס",
+    "מנורה",
+    "הראל",
+    "כלל",
+    "מיטב",
+    "אלטשולר",
+    "אנליסט",
+    "ילין",
+    "פסגות",
+    "מור",
+    "אינפיניטי",
   ];
 
   if (count === 1) return [text];
@@ -312,7 +336,7 @@ function splitCompanyNames(text: string, count: number): string[] {
   found.sort((a, b) => a.idx - b.idx);
 
   if (found.length >= count) {
-    return found.slice(0, count).map(f => f.name);
+    return found.slice(0, count).map((f) => f.name);
   }
 
   // Fallback: just return the full text for all
@@ -328,7 +352,7 @@ function extractSingleProduct(
   statusText: string,
   colIndex = 0,
   totalCols = 1,
-  preExtractedBalances?: number[],
+  preExtractedBalances?: number[]
 ): MaslakaPdfProduct | null {
   // Clean company name
   company = company.replace(/בע["\u05F4]?מ|בעמ/g, "").trim();
@@ -341,7 +365,9 @@ function extractSingleProduct(
   else if (sectionType.includes("משכנתא")) productType = "ביטוח חיים משכנתא";
 
   // Status
-  const isActive = !statusText.includes("לא פעיל") || (totalCols > 1 && colIndex === 0 && !statusText.startsWith("לא"));
+  const isActive =
+    !statusText.includes("לא פעיל") ||
+    (totalCols > 1 && colIndex === 0 && !statusText.startsWith("לא"));
   // More precise: check per-column
   let status: "active" | "inactive" = "active";
   if (totalCols === 1) {
@@ -387,12 +413,16 @@ function extractSingleProduct(
   // Monthly pension projections
   let monthlyPensionNoDeposits: number | undefined;
   let monthlyPensionWithDeposits: number | undefined;
-  const pensionNoMatch = sectionText.match(/קיצבה חודשית.*ללא ה(?:פקדות|משך)([\s\S]*?)קיצבה חודשית.*עם/);
+  const pensionNoMatch = sectionText.match(
+    /קיצבה חודשית.*ללא ה(?:פקדות|משך)([\s\S]*?)קיצבה חודשית.*עם/
+  );
   if (pensionNoMatch) {
     const amounts = extractAmounts(pensionNoMatch[1]);
     monthlyPensionNoDeposits = amounts[colIndex] ?? amounts[0];
   }
-  const pensionWithMatch = sectionText.match(/קיצבה חודשית.*עם המשך([\s\S]*?)(?:שיעור|תשואה|הפקדה)/);
+  const pensionWithMatch = sectionText.match(
+    /קיצבה חודשית.*עם המשך([\s\S]*?)(?:שיעור|תשואה|הפקדה)/
+  );
   if (pensionWithMatch) {
     const amounts = extractAmounts(pensionWithMatch[1]);
     monthlyPensionWithDeposits = amounts[colIndex] ?? amounts[0];
@@ -401,13 +431,17 @@ function extractSingleProduct(
   // Management fees
   let mgmtFeeDeposit: number | undefined;
   let mgmtFeeBalance: number | undefined;
-  const feeDepositMatch = sectionText.match(/שיעור דמי ניהול מהפקדות([\s\S]*?)שיעור דמי ניהול.*מחיסכון/);
+  const feeDepositMatch = sectionText.match(
+    /שיעור דמי ניהול מהפקדות([\s\S]*?)שיעור דמי ניהול.*מחיסכון/
+  );
   if (feeDepositMatch) {
     const pcts = feeDepositMatch[1].match(/[\d.]+%/g);
     if (pcts && pcts[colIndex]) mgmtFeeDeposit = parsePct(pcts[colIndex]);
     else if (pcts && pcts[0]) mgmtFeeDeposit = parsePct(pcts[0]);
   }
-  const feeBalMatch = sectionText.match(/שיעור דמי ניהול.*מחיסכון צבור([\s\S]*?)(?:תשואה|הפקדה|מסלול)/);
+  const feeBalMatch = sectionText.match(
+    /שיעור דמי ניהול.*מחיסכון צבור([\s\S]*?)(?:תשואה|הפקדה|מסלול)/
+  );
   if (feeBalMatch) {
     const pcts = feeBalMatch[1].match(/[\d.]+%/g);
     if (pcts && pcts[colIndex]) mgmtFeeBalance = parsePct(pcts[colIndex]);
@@ -431,7 +465,9 @@ function extractSingleProduct(
     const amounts = extractAmounts(empMatch[1]);
     lastDepositEmployee = amounts[colIndex] ?? amounts[0];
   }
-  const employerMatch = sectionText.match(/הפקדה חודשית אחרונה - מעסיק([\s\S]*?)(?:מסלול|תאריך|קיים)/);
+  const employerMatch = sectionText.match(
+    /הפקדה חודשית אחרונה - מעסיק([\s\S]*?)(?:מסלול|תאריך|קיים)/
+  );
   if (employerMatch) {
     const amounts = extractAmounts(employerMatch[1]);
     lastDepositEmployer = amounts[colIndex] ?? amounts[0];
@@ -480,7 +516,9 @@ function extractSingleProduct(
   let deathBenefitLumpSum: number | undefined;
   let premium: number | undefined;
   let insuranceEndDate: string | undefined;
-  const deathMatch = sectionText.match(/סכום ביטוח למקרה מוות – חד פעמי([\s\S]*?)(?:סכום ביטוח אובדן|תאריך)/);
+  const deathMatch = sectionText.match(
+    /סכום ביטוח למקרה מוות – חד פעמי([\s\S]*?)(?:סכום ביטוח אובדן|תאריך)/
+  );
   if (deathMatch) {
     const amounts = extractAmounts(deathMatch[1]);
     deathBenefitLumpSum = amounts[0];
@@ -525,13 +563,20 @@ interface DepositRecord {
   company: string;
   productType: string;
   employer: string;
-  deposits: { date: string; salary: number; employee: number; employer: number; severance: number }[];
+  deposits: {
+    date: string;
+    salary: number;
+    employee: number;
+    employer: number;
+    severance: number;
+  }[];
 }
 
 function parseDepositsSection(text: string): DepositRecord[] {
   const records: DepositRecord[] = [];
   // Split by policy headers: "NNNN מספר פוליסה: | שם חברה מנהלת : XXX|סוג המוצר: YYY"
-  const headerPattern = /(\d{6,12})\s*מספר פוליסה:\s*\|\s*שם חברה מנהלת\s*:\s*(.*?)\|סוג המוצר:\s*(.*?)(?:\n|$)/g;
+  const headerPattern =
+    /(\d{6,12})\s*מספר פוליסה:\s*\|\s*שם חברה מנהלת\s*:\s*(.*?)\|סוג המוצר:\s*(.*?)(?:\n|$)/g;
   let match;
   const headers: { idx: number; policy: string; company: string; type: string }[] = [];
 
@@ -539,7 +584,10 @@ function parseDepositsSection(text: string): DepositRecord[] {
     headers.push({
       idx: match.index,
       policy: match[1],
-      company: match[2].trim().replace(/בע["\u05F4]?מ|בעמ/g, "").trim(),
+      company: match[2]
+        .trim()
+        .replace(/בע["\u05F4]?מ|בעמ/g, "")
+        .trim(),
       type: match[3].trim(),
     });
   }
@@ -551,14 +599,18 @@ function parseDepositsSection(text: string): DepositRecord[] {
 
     // Extract employer name
     const empMatch = sectionText.match(/שם המעסיק:\s*(.*?)(?:\n|$)/);
-    const employer = empMatch?.[1]?.trim().replace(/בע["\u05F4]?מ|בעמ/g, "").trim() || "";
+    const employer =
+      empMatch?.[1]
+        ?.trim()
+        .replace(/בע["\u05F4]?מ|בעמ/g, "")
+        .trim() || "";
 
     records.push({
       policyNumber: h.policy,
       company: h.company,
       productType: h.type,
       employer,
-      deposits: [],  // Could parse individual rows but not needed for now
+      deposits: [], // Could parse individual rows but not needed for now
     });
   }
 
@@ -614,7 +666,9 @@ export async function parseMaslakaPdf(buffer: Buffer, filename: string): Promise
       const sectionProducts = parseProductSection(section);
       products.push(...sectionProducts);
     } catch (e) {
-      warnings.push(`שגיאה בפענוח סקשן ${section.sectionType}: ${e instanceof Error ? e.message : String(e)}`);
+      warnings.push(
+        `שגיאה בפענוח סקשן ${section.sectionType}: ${e instanceof Error ? e.message : String(e)}`
+      );
     }
   }
 
@@ -624,7 +678,7 @@ export async function parseMaslakaPdf(buffer: Buffer, filename: string): Promise
     const depositsText = text.substring(depositsIdx);
     const depositRecords = parseDepositsSection(depositsText);
     for (const dr of depositRecords) {
-      const product = products.find(p => p.policyNumber === dr.policyNumber);
+      const product = products.find((p) => p.policyNumber === dr.policyNumber);
       if (product && dr.employer) {
         product.employer = dr.employer;
       }
@@ -649,16 +703,19 @@ function uid(): string {
 
 export function maslakaPdfToFunds(products: MaslakaPdfProduct[]): PensionFund[] {
   return products
-    .filter(p => {
+    .filter((p) => {
       // Skip pure insurance products (no savings balance)
       const norm = normalizeProductType(p.productType);
-      if ((norm === "insurance_risk" || norm === "insurance_mortgage") && p.balance <= 0) return false;
+      if ((norm === "insurance_risk" || norm === "insurance_mortgage") && p.balance <= 0)
+        return false;
       return true;
     })
-    .map(p => {
+    .map((p) => {
       const norm = normalizeProductType(p.productType);
-      const type: PensionFund["type"] = norm === "insurance_risk" || norm === "insurance_mortgage"
-        ? "bituach" : norm as PensionFund["type"];
+      const type: PensionFund["type"] =
+        norm === "insurance_risk" || norm === "insurance_mortgage"
+          ? "bituach"
+          : (norm as PensionFund["type"]);
 
       const monthlyContrib = (p.lastDepositEmployee || 0) + (p.lastDepositEmployer || 0);
 
@@ -672,11 +729,14 @@ export function maslakaPdfToFunds(products: MaslakaPdfProduct[]): PensionFund[] 
         track: p.productType,
         monthlyContrib: Math.round(monthlyContrib),
         openingDate: p.firstJoinDate || p.openingDate,
-        insuranceCover: p.pensionDisability !== undefined ? {
-          death: (p.pensionSurvivorsSpouse || 0) > 0,
-          disability: (p.pensionDisability || 0) > 0,
-          lossOfWork: false,
-        } : undefined,
+        insuranceCover:
+          p.pensionDisability !== undefined
+            ? {
+                death: (p.pensionSurvivorsSpouse || 0) > 0,
+                disability: (p.pensionDisability || 0) > 0,
+                lossOfWork: false,
+              }
+            : undefined,
       };
     });
 }

@@ -34,7 +34,7 @@ function cached<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
   if (hit && hit.expiresAt > Date.now()) {
     return Promise.resolve(hit.value as T);
   }
-  return fetcher().then(v => {
+  return fetcher().then((v) => {
     cache.set(key, { value: v, expiresAt: Date.now() + CACHE_TTL_MS });
     return v;
   });
@@ -77,13 +77,13 @@ async function fetchYahooQuote(symbol: string) {
 
 async function fetchYahooBulk(symbols: string[]) {
   // Yahoo accepts comma-separated symbols on a different endpoint
-  const unique = Array.from(new Set(symbols.map(s => s.trim().toUpperCase()).filter(Boolean)));
+  const unique = Array.from(new Set(symbols.map((s) => s.trim().toUpperCase()).filter(Boolean)));
   const out: Record<string, NonNullable<Awaited<ReturnType<typeof fetchYahooQuote>>>> = {};
   // Concurrency 5 for politeness
   const concurrency = 5;
   for (let i = 0; i < unique.length; i += concurrency) {
     const batch = unique.slice(i, i + concurrency);
-    const results = await Promise.all(batch.map(s => fetchYahooQuote(s).catch(() => null)));
+    const results = await Promise.all(batch.map((s) => fetchYahooQuote(s).catch(() => null)));
     results.forEach((r, idx) => {
       if (r) out[batch[idx]] = r;
     });
@@ -98,9 +98,12 @@ async function fetchBoiFX() {
   const results = await Promise.all(
     tickers.map(async (cur) => {
       try {
-        const res = await fetch(`https://boi.org.il/PublicApi/GetExchangeRates?currencyCode=${cur}`, {
-          cache: "no-store",
-        });
+        const res = await fetch(
+          `https://boi.org.il/PublicApi/GetExchangeRates?currencyCode=${cur}`,
+          {
+            cache: "no-store",
+          }
+        );
         if (!res.ok) return [cur, null] as const;
         const data = await res.json();
         const rate = data?.currentExchangeRate;
@@ -108,7 +111,7 @@ async function fetchBoiFX() {
       } catch {
         return [cur, null] as const;
       }
-    }),
+    })
   );
   const out: Record<string, number> = { ILS: 1 };
   for (const [cur, rate] of results) {
@@ -120,15 +123,18 @@ async function fetchBoiFX() {
 /* ─── Crypto (CoinGecko) ─── */
 
 async function fetchCryptoBulk(coinIds: string[]) {
-  const ids = coinIds.map(s => s.trim().toLowerCase()).filter(Boolean).join(",");
+  const ids = coinIds
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean)
+    .join(",");
   if (!ids) return [];
   const url = `https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(ids)}&vs_currencies=ils,usd&include_24hr_change=true`;
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) return [];
-  const data = await res.json() as Record<string, { ils?: number; usd_24h_change?: number }>;
+  const data = (await res.json()) as Record<string, { ils?: number; usd_24h_change?: number }>;
   return coinIds
-    .filter(id => data[id.toLowerCase()] && typeof data[id.toLowerCase()].ils === "number")
-    .map(id => ({
+    .filter((id) => data[id.toLowerCase()] && typeof data[id.toLowerCase()].ils === "number")
+    .map((id) => ({
       symbol: id.toLowerCase(),
       price: data[id.toLowerCase()].ils as number,
       currency: "ILS",
@@ -143,7 +149,10 @@ export async function GET(req: NextRequest) {
   // proxy against Yahoo/BoI/CoinGecko and get our IP rate-limited or banned.
   // (CRITICAL fix 2026-04 — security review.)
   const supabase = createClient();
-  const { data: { user }, error: authErr } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authErr,
+  } = await supabase.auth.getUser();
   if (!user || authErr) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
@@ -155,13 +164,17 @@ export async function GET(req: NextRequest) {
     if (kind === "quote") {
       const sym = (searchParams.get("symbol") || "").trim().toUpperCase();
       if (!sym) return NextResponse.json({ error: "missing symbol" }, { status: 400 });
-      if (!SYMBOL_RE.test(sym)) return NextResponse.json({ error: "invalid symbol" }, { status: 400 });
+      if (!SYMBOL_RE.test(sym))
+        return NextResponse.json({ error: "invalid symbol" }, { status: 400 });
       const data = await cached(`q:${sym}`, () => fetchYahooQuote(sym));
       return NextResponse.json(data ?? null);
     }
     if (kind === "quotes") {
       const symbolsRaw = searchParams.get("symbols") || "";
-      const symbols = symbolsRaw.split(",").map(s => s.trim().toUpperCase()).filter(s => SYMBOL_RE.test(s));
+      const symbols = symbolsRaw
+        .split(",")
+        .map((s) => s.trim().toUpperCase())
+        .filter((s) => SYMBOL_RE.test(s));
       if (symbols.length === 0) return NextResponse.json({});
       // Cap batch size — prevents abuse / large fetches.
       const capped = symbols.slice(0, 50);
@@ -175,7 +188,11 @@ export async function GET(req: NextRequest) {
     }
     if (kind === "crypto") {
       const idsRaw = searchParams.get("ids") || "";
-      const ids = idsRaw.split(",").map(s => s.trim().toLowerCase()).filter(s => COIN_ID_RE.test(s)).slice(0, 30);
+      const ids = idsRaw
+        .split(",")
+        .map((s) => s.trim().toLowerCase())
+        .filter((s) => COIN_ID_RE.test(s))
+        .slice(0, 30);
       if (ids.length === 0) return NextResponse.json([]);
       const key = `c:${[...ids].sort().join(",")}`;
       const data = await cached(key, () => fetchCryptoBulk(ids));

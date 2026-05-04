@@ -32,7 +32,8 @@ function extractNumbers(text: string): { value: number; start: number; end: numb
     // Skip phone numbers (05x-xxx-xxxx, 0x-xxxxxxx) and long ID-like numbers
     const digitsOnly = raw.replace(/[^\d]/g, "");
     if (phoneOrIdRegex.test(raw.replace(/[^\d-\s]/g, ""))) continue;
-    if (digitsOnly.length >= 8 && !raw.includes(",") && !raw.includes(".") && !raw.includes("₪")) continue;
+    if (digitsOnly.length >= 8 && !raw.includes(",") && !raw.includes(".") && !raw.includes("₪"))
+      continue;
 
     const val = cleanAmount(raw);
     if (val !== 0 || /\d/.test(raw)) {
@@ -69,15 +70,18 @@ export async function parsePDF(buffer: Buffer, filename: string): Promise<Parsed
   }
 
   const bankHint = detectBank(text);
-  const isCreditCard = ["ישראכרט", "כאל", "מקס", "ויזה כאל", "אמריקן אקספרס"].some(
-    cc => bankHint.includes(cc)
+  const isCreditCard = ["ישראכרט", "כאל", "מקס", "ויזה כאל", "אמריקן אקספרס"].some((cc) =>
+    bankHint.includes(cc)
   );
 
   // Detect if PDF contains separate debit/credit headers
   const hasDebitCreditColumns = /חובה.*זכות|זכות.*חובה|debit.*credit|credit.*debit/i.test(text);
 
   // Split into lines and try to extract tabular data
-  const lines = text.split(/\n/).map(l => l.trim()).filter(Boolean);
+  const lines = text
+    .split(/\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
 
   // Strategy: look for lines that start with a date pattern
   const dateRegex = /^(\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{2,4})/;
@@ -100,7 +104,9 @@ export async function parsePDF(buffer: Buffer, filename: string): Promise<Parsed
 
     // Description is everything before the first number
     const firstNumPos = numPositions[0]?.start ?? rest.length;
-    const description = rest.substring(0, firstNumPos).trim()
+    const description = rest
+      .substring(0, firstNumPos)
+      .trim()
       .replace(/[\u200F\u200E]/g, "")
       .replace(/\s+/g, " ");
 
@@ -160,9 +166,14 @@ export async function parsePDF(buffer: Buffer, filename: string): Promise<Parsed
     warnings.push("לא זוהו תנועות בקובץ — ייתכן שזהו PDF סרוק. נסה להעלות את קובץ האקסל מהבנק.");
   }
 
-  const totalDebit = transactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-  const totalCredit = transactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
-  const dates = transactions.map(t => t.date).filter(Boolean).sort();
+  const totalDebit = transactions.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const totalCredit = transactions
+    .filter((t) => t.amount < 0)
+    .reduce((s, t) => s + Math.abs(t.amount), 0);
+  const dates = transactions
+    .map((t) => t.date)
+    .filter(Boolean)
+    .sort();
 
   // Extract financial instruments from the full PDF text
   const instruments = extractInstruments(text, bankHint);

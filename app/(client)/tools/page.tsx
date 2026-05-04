@@ -10,18 +10,18 @@ import { RetirementCalc } from "@/components/toolbox/RetirementCalc";
 import { GoalContextStrip } from "@/components/toolbox/GoalContextStrip";
 
 const TABS = [
-  { id: "realestate", label: "מעבדת נדל״ן",            icon: "home_work" },
-  { id: "tax",        label: "מס הכנסה ורווח הון",   icon: "receipt_long" },
-  { id: "realreturn", label: "תשואה ריאלית",          icon: "analytics" },
-  { id: "bituach",    label: "ביטוח לאומי",            icon: "shield" },
-  { id: "compound",   label: "ריבית דריבית",           icon: "trending_up" },
-  { id: "rsu",        label: "מחשבון RSU",             icon: "inventory_2" },
-  { id: "retirement", label: "פרישה",                   icon: "elderly" },
+  { id: "realestate", label: "מעבדת נדל״ן", icon: "home_work" },
+  { id: "tax", label: "מס הכנסה ורווח הון", icon: "receipt_long" },
+  { id: "realreturn", label: "תשואה ריאלית", icon: "analytics" },
+  { id: "bituach", label: "ביטוח לאומי", icon: "shield" },
+  { id: "compound", label: "ריבית דריבית", icon: "trending_up" },
+  { id: "rsu", label: "מחשבון RSU", icon: "inventory_2" },
+  { id: "retirement", label: "פרישה", icon: "elderly" },
 ];
 
 export default function ToolboxPage() {
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="mx-auto max-w-6xl">
       <PageHeader
         subtitle="Calculators & Tools · מחשבונים וכלים"
         title="מחשבונים וכלים"
@@ -29,13 +29,51 @@ export default function ToolboxPage() {
       />
       <ToolboxTabs tabs={TABS}>
         {{
-          realestate: <><GoalContextStrip domain="realestate" /><RealEstateLab /></>,
-          tax: <><GoalContextStrip domain="tax" /><TaxCalc /></>,
-          realreturn: <><GoalContextStrip domain="investments" /><RealReturnCalc /></>,
-          bituach: <><GoalContextStrip domain="retirement" /><BituachLeumiCalc /></>,
-          compound: <><GoalContextStrip domain="freedom" /><CompoundCalc /></>,
-          rsu: <><GoalContextStrip domain="investments" /><RsuCalc /></>,
-          retirement: <><GoalContextStrip domain="retirement" title="תכנון מס ופרישה — פטורים, פריסה ורצפים" /><RetirementCalc /></>,
+          realestate: (
+            <>
+              <GoalContextStrip domain="realestate" />
+              <RealEstateLab />
+            </>
+          ),
+          tax: (
+            <>
+              <GoalContextStrip domain="tax" />
+              <TaxCalc />
+            </>
+          ),
+          realreturn: (
+            <>
+              <GoalContextStrip domain="investments" />
+              <RealReturnCalc />
+            </>
+          ),
+          bituach: (
+            <>
+              <GoalContextStrip domain="retirement" />
+              <BituachLeumiCalc />
+            </>
+          ),
+          compound: (
+            <>
+              <GoalContextStrip domain="freedom" />
+              <CompoundCalc />
+            </>
+          ),
+          rsu: (
+            <>
+              <GoalContextStrip domain="investments" />
+              <RsuCalc />
+            </>
+          ),
+          retirement: (
+            <>
+              <GoalContextStrip
+                domain="retirement"
+                title="תכנון מס ופרישה — פטורים, פריסה ורצפים"
+              />
+              <RetirementCalc />
+            </>
+          ),
         }}
       </ToolboxTabs>
     </div>

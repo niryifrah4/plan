@@ -60,7 +60,7 @@ export interface SyncConfig<TLocal, TRow> {
  * Returns null if Supabase unavailable (caller should fall back to LS).
  */
 export async function pullFromRemote<TLocal, TRow = any>(
-  cfg: SyncConfig<TLocal, TRow>,
+  cfg: SyncConfig<TLocal, TRow>
 ): Promise<TLocal[] | null> {
   if (!isSupabaseConfigured()) return null;
   const hh = getHouseholdId();
@@ -90,7 +90,7 @@ export async function pullFromRemote<TLocal, TRow = any>(
  */
 export async function pushToRemote<TLocal, TRow = any>(
   cfg: SyncConfig<TLocal, TRow>,
-  items: TLocal[],
+  items: TLocal[]
 ): Promise<{ ok: boolean; error?: string }> {
   if (!isSupabaseConfigured()) return { ok: false, error: "not-configured" };
   const hh = getHouseholdId();
@@ -99,10 +99,7 @@ export async function pushToRemote<TLocal, TRow = any>(
   if (!sb) return { ok: false, error: "no-client" };
   try {
     // Delete-then-insert for simplicity. Alternative: upsert with onConflict.
-    const { error: delErr } = await sb
-      .from(cfg.table)
-      .delete()
-      .eq("household_id", hh);
+    const { error: delErr } = await sb.from(cfg.table).delete().eq("household_id", hh);
     if (delErr) {
       console.warn(`[sync:${cfg.table}] delete error:`, delErr.message);
       return { ok: false, error: delErr.message };
@@ -128,7 +125,7 @@ export async function pushToRemote<TLocal, TRow = any>(
 /** Fire-and-forget wrapper for save paths that can't await. */
 export function pushToRemoteInBackground<TLocal, TRow = any>(
   cfg: SyncConfig<TLocal, TRow>,
-  items: TLocal[],
+  items: TLocal[]
 ) {
   void pushToRemote(cfg, items);
 }

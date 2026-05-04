@@ -33,9 +33,9 @@ if (!API_KEY) {
 }
 
 const REQUIRED_ENV = {
-  NEXT_PUBLIC_SUPABASE_URL:    process.env.NEXT_PUBLIC_SUPABASE_URL,
+  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  SUPABASE_SERVICE_ROLE_KEY:   process.env.SUPABASE_SERVICE_ROLE_KEY,
+  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
   // BASE_URL gets filled after we know the service URL.
 };
 
@@ -50,17 +50,23 @@ async function api(method, p, body) {
   const r = await fetch(`${API}${p}`, {
     method,
     headers: {
-      "Authorization": `Bearer ${API_KEY}`,
+      Authorization: `Bearer ${API_KEY}`,
       "Content-Type": "application/json",
-      "Accept": "application/json",
+      Accept: "application/json",
     },
     body: body ? JSON.stringify(body) : undefined,
   });
   const text = await r.text();
   let data;
-  try { data = JSON.parse(text); } catch { data = text; }
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = text;
+  }
   if (!r.ok) {
-    throw new Error(`${method} ${p} → ${r.status}: ${typeof data === "string" ? data : JSON.stringify(data)}`);
+    throw new Error(
+      `${method} ${p} → ${r.status}: ${typeof data === "string" ? data : JSON.stringify(data)}`
+    );
   }
   return data;
 }
@@ -74,7 +80,7 @@ async function main() {
 
   console.log("▶ Looking for existing 'plan-app' service…");
   const services = await api("GET", `/services?name=plan-app&limit=10`);
-  let svc = (services || []).find(s => (s.service?.name || s.name) === "plan-app");
+  let svc = (services || []).find((s) => (s.service?.name || s.name) === "plan-app");
   let serviceId = svc?.service?.id || svc?.id;
 
   if (!serviceId) {
@@ -123,7 +129,7 @@ async function main() {
   console.log("\n▶ Polling deploy status (this can take 3-5 minutes)…");
   let lastStatus = "";
   for (let i = 0; i < 60; i++) {
-    await new Promise(r => setTimeout(r, 10_000));
+    await new Promise((r) => setTimeout(r, 10_000));
     const deploys = await api("GET", `/services/${serviceId}/deploys?limit=1`);
     const d = deploys[0]?.deploy || deploys[0];
     if (!d) continue;
@@ -144,4 +150,7 @@ async function main() {
   console.error("\n⚠️ Timed out waiting for deploy. Check Render dashboard.");
 }
 
-main().catch(e => { console.error("❌", e.message); process.exit(1); });
+main().catch((e) => {
+  console.error("❌", e.message);
+  process.exit(1);
+});

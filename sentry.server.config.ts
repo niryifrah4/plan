@@ -13,10 +13,6 @@ if (dsn) {
     environment: process.env.VERCEL_ENV || process.env.NODE_ENV,
     tracesSampleRate: 0.1,
     // Server: skip noisy errors that don't reflect product bugs.
-    ignoreErrors: [
-      "ECONNRESET",
-      "AbortError",
-      /^NEXT_NOT_FOUND$/,
-    ],
+    ignoreErrors: ["ECONNRESET", "AbortError", /^NEXT_NOT_FOUND$/],
   });
 }

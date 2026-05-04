@@ -95,20 +95,39 @@ export function PortfolioImport({ onImport, onClose }: Props) {
     : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(1,45,29,0.45)" }}>
-      <div className="w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col rounded-2xl bg-white shadow-xl" style={{ border: "1px solid #E8E9E1" }}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(1,45,29,0.45)" }}
+    >
+      <div
+        className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl"
+        style={{ border: "1px solid #E8E9E1" }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "#E8E9E1", background: "#F9FAF2" }}>
+        <div
+          className="flex items-center justify-between border-b px-6 py-4"
+          style={{ borderColor: "#E8E9E1", background: "#F9FAF2" }}
+        >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: "#1B4332" }}>
+            <div
+              className="flex h-10 w-10 items-center justify-center rounded-2xl"
+              style={{ background: "#1B4332" }}
+            >
               <span className="material-symbols-outlined text-[20px] text-white">upload_file</span>
             </div>
             <div>
-              <div className="text-[15px] font-extrabold text-verdant-ink">טעינת תיק השקעות מאקסל</div>
-              <div className="text-[11px] text-verdant-muted">מיטב דש · אקסלנס · Interactive Brokers · בנקים</div>
+              <div className="text-[15px] font-extrabold text-verdant-ink">
+                טעינת תיק השקעות מאקסל
+              </div>
+              <div className="text-[11px] text-verdant-muted">
+                מיטב דש · אקסלנס · Interactive Brokers · בנקים
+              </div>
             </div>
           </div>
-          <button onClick={onClose} className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-gray-100">
+          <button
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-gray-100"
+          >
             <span className="material-symbols-outlined text-[18px] text-verdant-muted">close</span>
           </button>
         </div>
@@ -118,7 +137,7 @@ export function PortfolioImport({ onImport, onClose }: Props) {
           {!result && !loading && (
             <div className="flex flex-col items-center justify-center py-12">
               <div
-                className="w-full max-w-md rounded-2xl border-2 border-dashed p-10 flex flex-col items-center gap-4 cursor-pointer transition hover:border-[#1B4332]"
+                className="flex w-full max-w-md cursor-pointer flex-col items-center gap-4 rounded-2xl border-2 border-dashed p-10 transition hover:border-[#1B4332]"
                 style={{ borderColor: "#E8E9E1", background: "#F9FAF2" }}
                 onClick={() => fileRef.current?.click()}
                 onDragOver={(e) => e.preventDefault()}
@@ -128,20 +147,32 @@ export function PortfolioImport({ onImport, onClose }: Props) {
                   if (f) handleFile(f);
                 }}
               >
-                <span className="material-symbols-outlined text-[48px]" style={{ color: "#1B4332" }}>cloud_upload</span>
+                <span
+                  className="material-symbols-outlined text-[48px]"
+                  style={{ color: "#1B4332" }}
+                >
+                  cloud_upload
+                </span>
                 <div className="text-center">
-                  <div className="text-[14px] font-extrabold text-verdant-ink">גרור קובץ לכאן או לחץ לבחירה</div>
-                  <div className="text-[11px] text-verdant-muted mt-1">XLSX, XLS, CSV · עד 10MB</div>
+                  <div className="text-[14px] font-extrabold text-verdant-ink">
+                    גרור קובץ לכאן או לחץ לבחירה
+                  </div>
+                  <div className="mt-1 text-[11px] text-verdant-muted">
+                    XLSX, XLS, CSV · עד 10MB
+                  </div>
                 </div>
               </div>
               {error && (
-                <div className="mt-4 px-4 py-2 rounded-xl text-[12px] font-bold" style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca" }}>
+                <div
+                  className="mt-4 rounded-xl px-4 py-2 text-[12px] font-bold"
+                  style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca" }}
+                >
                   {error}
                 </div>
               )}
-              <div className="mt-6 text-[11px] text-verdant-muted text-center max-w-md">
-                הורד את האקסל מאזור הלקוחות של הברוקר/הבנק ועלה אותו כאן — המערכת תזהה אוטומטית
-                את הסימולים, הכמויות, המחירים והשווי.
+              <div className="mt-6 max-w-md text-center text-[11px] text-verdant-muted">
+                הורד את האקסל מאזור הלקוחות של הברוקר/הבנק ועלה אותו כאן — המערכת תזהה אוטומטית את
+                הסימולים, הכמויות, המחירים והשווי.
               </div>
               <input
                 ref={fileRef}
@@ -158,8 +189,13 @@ export function PortfolioImport({ onImport, onClose }: Props) {
           )}
 
           {loading && (
-            <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <span className="material-symbols-outlined text-[40px] animate-spin" style={{ color: "#1B4332" }}>progress_activity</span>
+            <div className="flex flex-col items-center justify-center gap-3 py-16">
+              <span
+                className="material-symbols-outlined animate-spin text-[40px]"
+                style={{ color: "#1B4332" }}
+              >
+                progress_activity
+              </span>
               <div className="text-[13px] font-bold text-verdant-ink">מעבד את הקובץ…</div>
             </div>
           )}
@@ -174,16 +210,21 @@ export function PortfolioImport({ onImport, onClose }: Props) {
               </div>
 
               {result.warnings.length > 0 && (
-                <div className="px-4 py-3 rounded-xl text-[11px]" style={{ background: "#fefce8", color: "#854d0e", border: "1px solid #fde68a" }}>
-                  <div className="font-extrabold mb-1">התראות:</div>
-                  <ul className="list-disc list-inside space-y-0.5">
-                    {result.warnings.map((w, i) => <li key={i}>{w}</li>)}
+                <div
+                  className="rounded-xl px-4 py-3 text-[11px]"
+                  style={{ background: "#fefce8", color: "#854d0e", border: "1px solid #fde68a" }}
+                >
+                  <div className="mb-1 font-extrabold">התראות:</div>
+                  <ul className="list-inside list-disc space-y-0.5">
+                    {result.warnings.map((w, i) => (
+                      <li key={i}>{w}</li>
+                    ))}
                   </ul>
                 </div>
               )}
 
               {/* Table */}
-              <div className="rounded-xl overflow-hidden border" style={{ borderColor: "#E8E9E1" }}>
+              <div className="overflow-hidden rounded-xl border" style={{ borderColor: "#E8E9E1" }}>
                 <table className="w-full text-[12px]">
                   <thead style={{ background: "#F3F4EC" }}>
                     <tr className="text-[10px] uppercase tracking-[0.1em] text-verdant-muted">
@@ -206,18 +247,30 @@ export function PortfolioImport({ onImport, onClose }: Props) {
                     {result.rows.map((r, i) => (
                       <tr key={i} className="border-t" style={{ borderColor: "#E8E9E1" }}>
                         <td className="px-3 py-2">
-                          <input type="checkbox" checked={selected.has(i)} onChange={() => toggleRow(i)} />
+                          <input
+                            type="checkbox"
+                            checked={selected.has(i)}
+                            onChange={() => toggleRow(i)}
+                          />
                         </td>
-                        <td className="px-3 py-2 font-bold text-verdant-ink" dir="ltr">{r.symbol}</td>
+                        <td className="px-3 py-2 font-bold text-verdant-ink" dir="ltr">
+                          {r.symbol}
+                        </td>
                         <td className="px-3 py-2 text-verdant-muted">{r.name || "—"}</td>
                         <td className="px-3 py-2 text-verdant-muted">{r.kind}</td>
-                        <td className="px-3 py-2 tabular">{r.quantity.toLocaleString()}</td>
+                        <td className="tabular px-3 py-2">{r.quantity.toLocaleString()}</td>
                         <td className="px-3 py-2">{r.currency}</td>
-                        <td className="px-3 py-2 font-bold tabular">{fmtILS(r.market_value_ils)}</td>
+                        <td className="tabular px-3 py-2 font-bold">
+                          {fmtILS(r.market_value_ils)}
+                        </td>
                       </tr>
                     ))}
                     {result.rows.length === 0 && (
-                      <tr><td colSpan={7} className="px-3 py-6 text-center text-verdant-muted">לא נמצאו החזקות בקובץ</td></tr>
+                      <tr>
+                        <td colSpan={7} className="px-3 py-6 text-center text-verdant-muted">
+                          לא נמצאו החזקות בקובץ
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
@@ -225,14 +278,25 @@ export function PortfolioImport({ onImport, onClose }: Props) {
 
               {/* Mode */}
               {result.rows.length > 0 && (
-                <div className="flex items-center gap-4 p-4 rounded-xl" style={{ background: "#F9FAF2", border: "1px solid #E8E9E1" }}>
+                <div
+                  className="flex items-center gap-4 rounded-xl p-4"
+                  style={{ background: "#F9FAF2", border: "1px solid #E8E9E1" }}
+                >
                   <div className="text-[12px] font-extrabold text-verdant-ink">מצב איחוד:</div>
-                  <label className="flex items-center gap-2 text-[12px] cursor-pointer">
-                    <input type="radio" checked={mode === "append"} onChange={() => setMode("append")} />
+                  <label className="flex cursor-pointer items-center gap-2 text-[12px]">
+                    <input
+                      type="radio"
+                      checked={mode === "append"}
+                      onChange={() => setMode("append")}
+                    />
                     <span>הוסף (שמור קיים)</span>
                   </label>
-                  <label className="flex items-center gap-2 text-[12px] cursor-pointer">
-                    <input type="radio" checked={mode === "replace"} onChange={() => setMode("replace")} />
+                  <label className="flex cursor-pointer items-center gap-2 text-[12px]">
+                    <input
+                      type="radio"
+                      checked={mode === "replace"}
+                      onChange={() => setMode("replace")}
+                    />
                     <span>החלף (מחק קיים)</span>
                   </label>
                 </div>
@@ -243,19 +307,27 @@ export function PortfolioImport({ onImport, onClose }: Props) {
 
         {/* Footer */}
         {result && result.rows.length > 0 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t" style={{ borderColor: "#E8E9E1", background: "#F9FAF2" }}>
+          <div
+            className="flex items-center justify-between border-t px-6 py-4"
+            style={{ borderColor: "#E8E9E1", background: "#F9FAF2" }}
+          >
             <div className="text-[12px] text-verdant-muted">
-              נבחרו <span className="font-extrabold text-verdant-ink">{selected.size}</span> החזקות ·
-              שווי: <span className="font-extrabold text-verdant-ink">{fmtILS(selectedTotal)}</span>
+              נבחרו <span className="font-extrabold text-verdant-ink">{selected.size}</span> החזקות
+              · שווי:{" "}
+              <span className="font-extrabold text-verdant-ink">{fmtILS(selectedTotal)}</span>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={onClose} className="px-4 py-2 rounded-full text-[12px] font-bold border" style={{ borderColor: "#E8E9E1", color: "#414844" }}>
+              <button
+                onClick={onClose}
+                className="rounded-full border px-4 py-2 text-[12px] font-bold"
+                style={{ borderColor: "#E8E9E1", color: "#414844" }}
+              >
                 ביטול
               </button>
               <button
                 onClick={confirmImport}
                 disabled={selected.size === 0}
-                className="px-5 py-2 rounded-full text-[12px] font-extrabold text-white disabled:opacity-40"
+                className="rounded-full px-5 py-2 text-[12px] font-extrabold text-white disabled:opacity-40"
                 style={{ background: "#1B4332" }}
               >
                 {mode === "replace" ? "החלף תיק" : "הוסף לתיק"}
@@ -271,8 +343,10 @@ export function PortfolioImport({ onImport, onClose }: Props) {
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl p-3" style={{ background: "#F3F4EC", border: "1px solid #E8E9E1" }}>
-      <div className="text-[10px] uppercase tracking-[0.1em] text-verdant-muted font-bold">{label}</div>
-      <div className="text-[15px] font-extrabold text-verdant-ink mt-1">{value}</div>
+      <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
+        {label}
+      </div>
+      <div className="mt-1 text-[15px] font-extrabold text-verdant-ink">{value}</div>
     </div>
   );
 }

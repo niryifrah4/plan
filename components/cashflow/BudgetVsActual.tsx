@@ -11,7 +11,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { fmtILS } from "@/lib/format";
-import { buildBudgetLines, totalBudget, updateBudgetAmount, type BudgetLine } from "@/lib/budget-store";
+import {
+  buildBudgetLines,
+  totalBudget,
+  updateBudgetAmount,
+  type BudgetLine,
+} from "@/lib/budget-store";
 import { computeImpact, loadImpactGoals } from "@/lib/impact-engine";
 
 const STATUS_COLOR = {
@@ -48,19 +53,33 @@ export function BudgetVsActual() {
   const goals = typeof window !== "undefined" ? loadImpactGoals() : [];
 
   return (
-    <div className="rounded-2xl p-7" style={{ background: "#fff", border: "1px solid #d8e0d0", boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
+    <div
+      className="rounded-2xl p-7"
+      style={{
+        background: "#fff",
+        border: "1px solid #d8e0d0",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+      }}
+    >
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+      <div className="mb-6 flex items-start justify-between">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.2em] font-bold text-verdant-muted mb-1">
+          <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-verdant-muted">
             Budget vs Actual · תקציב מול ביצוע
           </div>
           <h3 className="text-lg font-extrabold text-verdant-ink">עמודת הביצוע — החודש הנוכחי</h3>
-          <p className="text-[11px] text-verdant-muted font-bold mt-1">כל הוצאה נקלטת אוטומטית · ללא מאמץ ידני</p>
+          <p className="mt-1 text-[11px] font-bold text-verdant-muted">
+            כל הוצאה נקלטת אוטומטית · ללא מאמץ ידני
+          </p>
         </div>
         <div className="text-left">
-          <div className="text-[10px] uppercase tracking-[0.15em] font-bold text-verdant-muted">סה״כ נוצל</div>
-          <div className="text-2xl font-extrabold tabular" style={{ color: totalPct >= 1 ? "#b91c1c" : totalPct >= 0.8 ? "#b45309" : "#1B4332" }}>
+          <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
+            סה״כ נוצל
+          </div>
+          <div
+            className="tabular text-2xl font-extrabold"
+            style={{ color: totalPct >= 1 ? "#b91c1c" : totalPct >= 0.8 ? "#b45309" : "#1B4332" }}
+          >
             {fmtILS(totals.actual)}
           </div>
           <div className="text-[11px] font-bold text-verdant-muted">
@@ -71,14 +90,20 @@ export function BudgetVsActual() {
 
       {/* Total progress bar */}
       <div className="mb-7">
-        <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: "#eef2e8" }}>
+        <div
+          className="h-2.5 w-full overflow-hidden rounded-full"
+          style={{ background: "#eef2e8" }}
+        >
           <div
             className="h-full rounded-full transition-all duration-700"
             style={{
               width: `${Math.min(100, totalPct * 100)}%`,
-              background: totalPct >= 1 ? "linear-gradient(90deg,#b91c1c,#dc2626)"
-                : totalPct >= 0.8 ? "linear-gradient(90deg,#b45309,#f59e0b)"
-                : "linear-gradient(90deg,#1B4332,#2B694D)",
+              background:
+                totalPct >= 1
+                  ? "linear-gradient(90deg,#b91c1c,#dc2626)"
+                  : totalPct >= 0.8
+                    ? "linear-gradient(90deg,#b45309,#f59e0b)"
+                    : "linear-gradient(90deg,#1B4332,#2B694D)",
             }}
           />
         </div>
@@ -105,15 +130,22 @@ export function BudgetVsActual() {
             >
               <div className="flex items-center gap-4">
                 {/* Category dot + label */}
-                <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                  <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: line.color }} />
-                  <div className="text-[13px] font-extrabold text-verdant-ink truncate">{line.label}</div>
+                <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                  <div
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ background: line.color }}
+                  />
+                  <div className="truncate text-[13px] font-extrabold text-verdant-ink">
+                    {line.label}
+                  </div>
                 </div>
 
                 {/* Numbers: Budget · Actual · Remaining */}
-                <div className="flex items-center gap-5 text-[11px] font-bold tabular">
+                <div className="tabular flex items-center gap-5 text-[11px] font-bold">
                   <div className="text-center">
-                    <div className="text-[9px] uppercase tracking-[0.1em] text-verdant-muted">תקציב</div>
+                    <div className="text-[9px] uppercase tracking-[0.1em] text-verdant-muted">
+                      תקציב
+                    </div>
                     {isEditing ? (
                       <input
                         type="number"
@@ -124,8 +156,10 @@ export function BudgetVsActual() {
                           if (!isNaN(v) && v >= 0) updateBudgetAmount(line.key, v);
                           setEditingKey(null);
                         }}
-                        onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                        className="w-20 text-[11px] font-bold text-center rounded border outline-none px-1"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                        }}
+                        className="w-20 rounded border px-1 text-center text-[11px] font-bold outline-none"
                         style={{ borderColor: color }}
                       />
                     ) : (
@@ -138,20 +172,29 @@ export function BudgetVsActual() {
                     )}
                   </div>
                   <div className="text-center">
-                    <div className="text-[9px] uppercase tracking-[0.1em] text-verdant-muted">בוצע</div>
+                    <div className="text-[9px] uppercase tracking-[0.1em] text-verdant-muted">
+                      בוצע
+                    </div>
                     <div style={{ color }}>{fmtILS(line.actual)}</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-[9px] uppercase tracking-[0.1em] text-verdant-muted">נותר</div>
+                    <div className="text-[9px] uppercase tracking-[0.1em] text-verdant-muted">
+                      נותר
+                    </div>
                     <div style={{ color: line.remaining >= 0 ? "#1B4332" : "#b91c1c" }}>
-                      {line.remaining >= 0 ? fmtILS(line.remaining) : `-${fmtILS(Math.abs(line.remaining))}`}
+                      {line.remaining >= 0
+                        ? fmtILS(line.remaining)
+                        : `-${fmtILS(Math.abs(line.remaining))}`}
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Progress bar */}
-              <div className="w-full h-1.5 rounded-full mt-2.5 overflow-hidden" style={{ background: "#ffffff80" }}>
+              <div
+                className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full"
+                style={{ background: "#ffffff80" }}
+              >
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{ width: `${widthPct}%`, background: color }}
@@ -162,7 +205,7 @@ export function BudgetVsActual() {
               {impact && impact.goal && (
                 <Link
                   href={"/goals" as any}
-                  className="flex items-center gap-2 mt-2.5 text-[10px] font-bold hover:opacity-80 transition-opacity"
+                  className="mt-2.5 flex items-center gap-2 text-[10px] font-bold transition-opacity hover:opacity-80"
                   style={{ color }}
                 >
                   <span className="material-symbols-outlined text-[13px]">{impact.goal.icon}</span>
@@ -176,8 +219,15 @@ export function BudgetVsActual() {
 
       {/* Moral compass footer */}
       {goals.length === 0 && (
-        <div className="mt-5 text-[11px] font-bold text-verdant-muted text-center p-3 rounded-xl" style={{ background: "#f9faf2" }}>
-          הגדר יעדים ב-<Link href={"/goals" as any} className="underline" style={{ color: "#1B4332" }}>עמוד המטרות</Link> כדי לראות איך כל חריגה משפיעה על החלומות שלך
+        <div
+          className="mt-5 rounded-xl p-3 text-center text-[11px] font-bold text-verdant-muted"
+          style={{ background: "#f9faf2" }}
+        >
+          הגדר יעדים ב-
+          <Link href={"/goals" as any} className="underline" style={{ color: "#1B4332" }}>
+            עמוד המטרות
+          </Link>{" "}
+          כדי לראות איך כל חריגה משפיעה על החלומות שלך
         </div>
       )}
     </div>

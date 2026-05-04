@@ -30,7 +30,12 @@ import { useSaveStatus } from "@/lib/hooks/useSaveStatus";
 import { AnnualReportUpload } from "@/components/AnnualReportUpload";
 import { fmtILS } from "@/lib/format";
 import { loadAssumptions, section45and47Benefit } from "@/lib/assumptions";
-import { loadSalaryProfile, computeSalaryBreakdown, hasSavedSalaryProfile, STUDY_FUND_SALARY_CAP } from "@/lib/salary-engine";
+import {
+  loadSalaryProfile,
+  computeSalaryBreakdown,
+  hasSavedSalaryProfile,
+  STUDY_FUND_SALARY_CAP,
+} from "@/lib/salary-engine";
 import type { Assumptions } from "@/lib/assumptions";
 import {
   loadPensionFunds,
@@ -89,8 +94,13 @@ function feeBenchmark(fee: number): { color: string; label: string } {
 /** בדיקת התאמת מסלול לפי גיל */
 function trackAlert(fund: PensionFund, currentAge: number): string | null {
   const trackLower = fund.track.toLowerCase();
-  const isBondish = trackLower.includes("אג") || trackLower.includes("שקלי") || trackLower.includes("שמרני");
-  const isEquity = trackLower.includes("מניות") || trackLower.includes("מנייתי") || trackLower.includes("s&p") || trackLower.includes("נאסדק");
+  const isBondish =
+    trackLower.includes("אג") || trackLower.includes("שקלי") || trackLower.includes("שמרני");
+  const isEquity =
+    trackLower.includes("מניות") ||
+    trackLower.includes("מנייתי") ||
+    trackLower.includes("s&p") ||
+    trackLower.includes("נאסדק");
 
   if (currentAge < 45 && isBondish && fund.type === "pension") {
     return "מסלול שמרני מדי לגילך — שקול מסלול כללי או מנייתי";
@@ -104,8 +114,14 @@ function trackAlert(fund: PensionFund, currentAge: number): string | null {
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 const EMPTY_FUND: Omit<PensionFund, "id"> = {
-  company: "", type: "pension", balance: 0, mgmtFeeDeposit: 0, mgmtFeeBalance: 0,
-  track: "", monthlyContrib: 0, owner: "spouse_a",
+  company: "",
+  type: "pension",
+  balance: 0,
+  mgmtFeeDeposit: 0,
+  mgmtFeeBalance: 0,
+  track: "",
+  monthlyContrib: 0,
+  owner: "spouse_a",
 };
 
 /** Read spouse names from onboarding fields (fallback labels if blank). */
@@ -203,7 +219,7 @@ export default function PensionPage() {
         color: FUND_TYPE_COLORS[type] || "#999",
       });
     }
-    return data.filter(d => d.pct > 0);
+    return data.filter((d) => d.pct > 0);
   }, [fundsByType, totalFundsBalance]);
 
   const pensionAssetClassBreakdown = useMemo(() => {
@@ -224,8 +240,18 @@ export default function PensionPage() {
         classes.cash += 10 * weight;
       }
     }
-    const labels: Record<string, string> = { equity: "מניות", bonds: "אג״ח", cash: "מזומן", alternative: "אלטרנטיבי" };
-    const colors: Record<string, string> = { equity: "#1B4332", bonds: "#1a6b42", cash: "#2B694D", alternative: "#f59e0b" };
+    const labels: Record<string, string> = {
+      equity: "מניות",
+      bonds: "אג״ח",
+      cash: "מזומן",
+      alternative: "אלטרנטיבי",
+    };
+    const colors: Record<string, string> = {
+      equity: "#1B4332",
+      bonds: "#1a6b42",
+      cash: "#2B694D",
+      alternative: "#f59e0b",
+    };
     return Object.entries(classes)
       .filter(([, v]) => v > 0.5)
       .sort((a, b) => b[1] - a[1])
@@ -237,7 +263,7 @@ export default function PensionPage() {
    * Needs a saved salary profile to know marginal tax + current voluntary rate. */
   const [salaryTick, setSalaryTick] = useState(0);
   useEffect(() => {
-    const handler = () => setSalaryTick(t => t + 1);
+    const handler = () => setSalaryTick((t) => t + 1);
     window.addEventListener("verdant:salary_profile:updated", handler);
     return () => window.removeEventListener("verdant:salary_profile:updated", handler);
   }, []);
@@ -251,7 +277,11 @@ export default function PensionPage() {
     const currentVoluntaryMonthly = profile.monthlyGross * (voluntaryPct / 100);
     const hypotheticalMax = profile.monthlyGross;
     const atMax = section45and47Benefit(hypotheticalMax, profile.monthlyGross, br.marginalBracket);
-    const atCurrent = section45and47Benefit(currentVoluntaryMonthly, profile.monthlyGross, br.marginalBracket);
+    const atCurrent = section45and47Benefit(
+      currentVoluntaryMonthly,
+      profile.monthlyGross,
+      br.marginalBracket
+    );
     const gap = Math.max(0, atMax.totalAnnual - atCurrent.totalAnnual);
     if (gap < 500) return null;
     return {
@@ -289,17 +319,36 @@ export default function PensionPage() {
 
   /* ── Insurance Duplication Check ── */
   const insuranceDuplication = useMemo(() => {
-    const fundsWithInsurance = funds.filter(f => f.insuranceCover);
+    const fundsWithInsurance = funds.filter((f) => f.insuranceCover);
     if (fundsWithInsurance.length < 2) return null;
 
-    const deathCovers = fundsWithInsurance.filter(f => f.insuranceCover?.death);
-    const disabilityCovers = fundsWithInsurance.filter(f => f.insuranceCover?.disability);
-    const lowCovers = fundsWithInsurance.filter(f => f.insuranceCover?.lossOfWork);
+    const deathCovers = fundsWithInsurance.filter((f) => f.insuranceCover?.death);
+    const disabilityCovers = fundsWithInsurance.filter((f) => f.insuranceCover?.disability);
+    const lowCovers = fundsWithInsurance.filter((f) => f.insuranceCover?.lossOfWork);
 
-    const duplicates: { type: string; label: string; funds: string[]; estimatedWaste: number }[] = [];
-    if (deathCovers.length > 1) duplicates.push({ type: "death", label: "ביטוח חיים (מוות)", funds: deathCovers.map(f => f.company), estimatedWaste: 80 });
-    if (disabilityCovers.length > 1) duplicates.push({ type: "disability", label: "אובדן כושר עבודה", funds: disabilityCovers.map(f => f.company), estimatedWaste: 120 });
-    if (lowCovers.length > 1) duplicates.push({ type: "low", label: "פיצוי אבטלה", funds: lowCovers.map(f => f.company), estimatedWaste: 60 });
+    const duplicates: { type: string; label: string; funds: string[]; estimatedWaste: number }[] =
+      [];
+    if (deathCovers.length > 1)
+      duplicates.push({
+        type: "death",
+        label: "ביטוח חיים (מוות)",
+        funds: deathCovers.map((f) => f.company),
+        estimatedWaste: 80,
+      });
+    if (disabilityCovers.length > 1)
+      duplicates.push({
+        type: "disability",
+        label: "אובדן כושר עבודה",
+        funds: disabilityCovers.map((f) => f.company),
+        estimatedWaste: 120,
+      });
+    if (lowCovers.length > 1)
+      duplicates.push({
+        type: "low",
+        label: "פיצוי אבטלה",
+        funds: lowCovers.map((f) => f.company),
+        estimatedWaste: 60,
+      });
 
     return duplicates.length > 0 ? duplicates : null;
   }, [funds]);
@@ -328,92 +377,144 @@ export default function PensionPage() {
   /* ════════════════════════════════════════════════ */
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="mx-auto max-w-6xl">
       {/* ===== 1. PageHeader ===== */}
       <PageHeader
         subtitle="ניהול נתונים"
         title="פנסיה והשקעות"
         description={`צבירה כוללת: ${fmtILS(totalFundsBalance)}`}
       />
-      <div className="flex justify-end -mt-4 mb-3 min-h-[18px]">
+      <div className="-mt-4 mb-3 flex min-h-[18px] justify-end">
         <SaveStatus status={saveStatus} />
       </div>
 
       {/* Cross-link to /retirement removed 2026-04-29 — pages merged. */}
 
       {/* ===== 3. KPI Row (3 portfolio-level metrics) ===== */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-        <SolidKpi label="צבירה פנסיונית"    value={fmtILS(totalFundsBalance)}    icon="savings"        tone="forest" />
-        <SolidKpi label="הפקדה חודשית"      value={fmtILS(baseMonthlyContrib)}   icon="calendar_month" tone="emerald" />
-        <SolidKpi label="דמי ניהול ממוצעים" value={`${weightedFee.toFixed(2)}%`} icon="percent"
-                  tone={feeBenchmark(weightedFee).color === "#b91c1c" ? "red" : feeBenchmark(weightedFee).color === "#1B4332" ? "emerald" : "amber"}
-                  sub={feeBenchmark(weightedFee).label} />
+      <section className="mb-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+        <SolidKpi
+          label="צבירה פנסיונית"
+          value={fmtILS(totalFundsBalance)}
+          icon="savings"
+          tone="forest"
+        />
+        <SolidKpi
+          label="הפקדה חודשית"
+          value={fmtILS(baseMonthlyContrib)}
+          icon="calendar_month"
+          tone="emerald"
+        />
+        <SolidKpi
+          label="דמי ניהול ממוצעים"
+          value={`${weightedFee.toFixed(2)}%`}
+          icon="percent"
+          tone={
+            feeBenchmark(weightedFee).color === "#b91c1c"
+              ? "red"
+              : feeBenchmark(weightedFee).color === "#1B4332"
+                ? "emerald"
+                : "amber"
+          }
+          sub={feeBenchmark(weightedFee).label}
+        />
       </section>
 
       {/* ===== 3b. Per-spouse summary — 2026-04-28 per Nir ===== */}
-      {funds.length > 0 && (() => {
-        const names = loadSpouseNames();
-        const aTotal = funds.filter(f => (f.owner || "spouse_a") === "spouse_a").reduce((s, f) => s + f.balance, 0);
-        const bTotal = funds.filter(f => f.owner === "spouse_b").reduce((s, f) => s + f.balance, 0);
-        const jointTotal = funds.filter(f => f.owner === "joint").reduce((s, f) => s + f.balance, 0);
-        if (!names.hasB && bTotal === 0 && jointTotal === 0) return null;
-        return (
-          <section className={`grid grid-cols-1 sm:grid-cols-2 ${jointTotal > 0 ? "lg:grid-cols-3" : ""} gap-3 mb-6`}>
-            <SolidKpi label={`כמה יש ל${names.a}`} value={fmtILS(aTotal)} icon="person" tone="forest" />
-            <SolidKpi label={`כמה יש ל${names.b}`} value={fmtILS(bTotal)} icon="person" tone="emerald" />
-            {jointTotal > 0 && (
-              <SolidKpi label="משותף" value={fmtILS(jointTotal)} icon="people" tone="ink" />
-            )}
-          </section>
-        );
-      })()}
+      {funds.length > 0 &&
+        (() => {
+          const names = loadSpouseNames();
+          const aTotal = funds
+            .filter((f) => (f.owner || "spouse_a") === "spouse_a")
+            .reduce((s, f) => s + f.balance, 0);
+          const bTotal = funds
+            .filter((f) => f.owner === "spouse_b")
+            .reduce((s, f) => s + f.balance, 0);
+          const jointTotal = funds
+            .filter((f) => f.owner === "joint")
+            .reduce((s, f) => s + f.balance, 0);
+          if (!names.hasB && bTotal === 0 && jointTotal === 0) return null;
+          return (
+            <section
+              className={`grid grid-cols-1 sm:grid-cols-2 ${jointTotal > 0 ? "lg:grid-cols-3" : ""} mb-6 gap-3`}
+            >
+              <SolidKpi
+                label={`כמה יש ל${names.a}`}
+                value={fmtILS(aTotal)}
+                icon="person"
+                tone="forest"
+              />
+              <SolidKpi
+                label={`כמה יש ל${names.b}`}
+                value={fmtILS(bTotal)}
+                icon="person"
+                tone="emerald"
+              />
+              {jointTotal > 0 && (
+                <SolidKpi label="משותף" value={fmtILS(jointTotal)} icon="people" tone="ink" />
+              )}
+            </section>
+          );
+        })()}
 
       {/* ===== 4. Allocation Pies (3 cuts: type / risk / geo) — 2026-04-28 redesign ===== */}
-      {funds.length > 0 && (() => {
-        const alloc = buildPensionAllocations(funds);
-        const missingPct = alloc.total > 0
-          ? Math.round((alloc.missingCoverage / alloc.total) * 100)
-          : 0;
-        return (
-          <>
-            <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
-              <AllocationPie title="לפי סוג קופה" slices={alloc.byType} size="md" />
-              <AllocationPie
-                title="לפי רמת סיכון"
-                slices={alloc.byRisk}
-                size="md"
-                emptyHint="אין מסלולים מזוהים — בחר מסלול ידנית כדי לראות חתך סיכון"
-              />
-              <AllocationPie
-                title="לפי גאוגרפיה"
-                slices={alloc.byGeo}
-                size="md"
-                emptyHint="אין מסלולים מזוהים — בחר מסלול ידנית כדי לראות חתך גאוגרפי"
-              />
-            </section>
-            {missingPct > 0 && (
-              <div className="rounded-xl px-4 py-2.5 mb-6 flex items-start gap-2 text-[12px]"
-                   style={{ background: "#FEF3C7", border: "1px solid #FCD34D" }}>
-                <span className="material-symbols-outlined text-[18px]" style={{ color: "#92400E" }}>info</span>
-                <span style={{ color: "#92400E" }}>
-                  {missingPct}% מהקופות ללא מסלול מזוהה — חתכי סיכון וגאוגרפיה חלקיים. בחר מסלול בכל קופה לראייה מלאה.
-                </span>
-              </div>
-            )}
-          </>
-        );
-      })()}
+      {funds.length > 0 &&
+        (() => {
+          const alloc = buildPensionAllocations(funds);
+          const missingPct =
+            alloc.total > 0 ? Math.round((alloc.missingCoverage / alloc.total) * 100) : 0;
+          return (
+            <>
+              <section className="mb-3 grid grid-cols-1 gap-4 md:grid-cols-3">
+                <AllocationPie title="לפי סוג קופה" slices={alloc.byType} size="md" />
+                <AllocationPie
+                  title="לפי רמת סיכון"
+                  slices={alloc.byRisk}
+                  size="md"
+                  emptyHint="אין מסלולים מזוהים — בחר מסלול ידנית כדי לראות חתך סיכון"
+                />
+                <AllocationPie
+                  title="לפי גאוגרפיה"
+                  slices={alloc.byGeo}
+                  size="md"
+                  emptyHint="אין מסלולים מזוהים — בחר מסלול ידנית כדי לראות חתך גאוגרפי"
+                />
+              </section>
+              {missingPct > 0 && (
+                <div
+                  className="mb-6 flex items-start gap-2 rounded-xl px-4 py-2.5 text-[12px]"
+                  style={{ background: "#FEF3C7", border: "1px solid #FCD34D" }}
+                >
+                  <span
+                    className="material-symbols-outlined text-[18px]"
+                    style={{ color: "#92400E" }}
+                  >
+                    info
+                  </span>
+                  <span style={{ color: "#92400E" }}>
+                    {missingPct}% מהקופות ללא מסלול מזוהה — חתכי סיכון וגאוגרפיה חלקיים. בחר מסלול
+                    בכל קופה לראייה מלאה.
+                  </span>
+                </div>
+              )}
+            </>
+          );
+        })()}
 
       {/* ===== 5. Pension Funds Table (CRUD + insurance alert + summary) ===== */}
-      <section className="v-card overflow-hidden mb-6">
-        <div className="px-5 py-4 border-b v-divider flex items-center justify-between">
+      <section className="v-card mb-6 overflow-hidden">
+        <div className="v-divider flex items-center justify-between border-b px-5 py-4">
           <div>
             <h2 className="text-sm font-extrabold text-verdant-ink">קרנות פנסיה וחיסכון</h2>
-            <p className="text-[11px] text-verdant-muted mt-0.5">{funds.length} קרנות · מעודכן מהמסלקה הפנסיונית</p>
+            <p className="mt-0.5 text-[11px] text-verdant-muted">
+              {funds.length} קרנות · מעודכן מהמסלקה הפנסיונית
+            </p>
           </div>
           <button
-            onClick={() => { setEditingFund(null); setShowAddForm(true); }}
-            className="btn-botanical text-xs !px-3 !py-1.5"
+            onClick={() => {
+              setEditingFund(null);
+              setShowAddForm(true);
+            }}
+            className="btn-botanical !px-3 !py-1.5 text-xs"
           >
             + הוסף קרן
           </button>
@@ -421,28 +522,48 @@ export default function PensionPage() {
 
         {/* Insurance duplication alert */}
         {insuranceDuplication && (
-          <div className="mx-5 mt-3 p-3 rounded-lg flex items-center gap-2 text-xs" style={{ background: "#fef3c7", border: "1px solid #f59e0b" }}>
-            <span className="material-symbols-outlined text-[16px]" style={{ color: "#f59e0b" }}>warning</span>
+          <div
+            className="mx-5 mt-3 flex items-center gap-2 rounded-lg p-3 text-xs"
+            style={{ background: "#fef3c7", border: "1px solid #f59e0b" }}
+          >
+            <span className="material-symbols-outlined text-[16px]" style={{ color: "#f59e0b" }}>
+              warning
+            </span>
             <span className="font-bold" style={{ color: "#92400e" }}>
-              זוהו כיסויים כפולים ({insuranceDuplication.map(d => d.label).join(", ")}) —
-              בזבוז משוער: ₪{(insuranceDuplication.reduce((s, d) => s + d.estimatedWaste, 0) * 12).toLocaleString("he-IL")}/שנה
+              זוהו כיסויים כפולים ({insuranceDuplication.map((d) => d.label).join(", ")}) — בזבוז
+              משוער: ₪
+              {(insuranceDuplication.reduce((s, d) => s + d.estimatedWaste, 0) * 12).toLocaleString(
+                "he-IL"
+              )}
+              /שנה
             </span>
           </div>
         )}
 
         {/* Guaranteed factor alert */}
-        {funds.some(f => f.subtype === "bituach_classic" || f.subtype === "bituach_adif" || f.subtype === "pension_vatika") && (
-          <div className="mx-5 mt-2 p-3 rounded-lg flex items-start gap-2 text-xs"
-            style={{ background: "#fef3c7", border: "1px solid #f59e0b" }}>
-            <span className="material-symbols-outlined text-[16px] mt-0.5" style={{ color: "#f59e0b" }}>lock</span>
+        {funds.some(
+          (f) =>
+            f.subtype === "bituach_classic" ||
+            f.subtype === "bituach_adif" ||
+            f.subtype === "pension_vatika"
+        ) && (
+          <div
+            className="mx-5 mt-2 flex items-start gap-2 rounded-lg p-3 text-xs"
+            style={{ background: "#fef3c7", border: "1px solid #f59e0b" }}
+          >
+            <span
+              className="material-symbols-outlined mt-0.5 text-[16px]"
+              style={{ color: "#f59e0b" }}
+            >
+              lock
+            </span>
             <div>
               <span className="font-bold" style={{ color: "#92400e" }}>
                 זוהו קרנות עם מקדם מובטח —{" "}
               </span>
               <span style={{ color: "#78350f" }}>
-                פוליסות ישנות עם מקדם מובטח הן נכס נדיר.
-                לעולם אין להעביר, לסגור, או לאחד אותן עם קרנות אחרות.
-                מקדם נמוך = קצבה גבוהה יותר בפרישה.
+                פוליסות ישנות עם מקדם מובטח הן נכס נדיר. לעולם אין להעביר, לסגור, או לאחד אותן עם
+                קרנות אחרות. מקדם נמוך = קצבה גבוהה יותר בפרישה.
               </span>
             </div>
           </div>
@@ -451,34 +572,47 @@ export default function PensionPage() {
         {/* Add / Edit Form */}
         {(showAddForm || editingFund) && (
           <FundForm
-            initial={editingFund ? funds.find(f => f.id === editingFund) ?? { ...EMPTY_FUND, id: "" } : { ...EMPTY_FUND, id: "" }}
+            initial={
+              editingFund
+                ? (funds.find((f) => f.id === editingFund) ?? { ...EMPTY_FUND, id: "" })
+                : { ...EMPTY_FUND, id: "" }
+            }
             onSave={handleSaveFund}
-            onCancel={() => { setEditingFund(null); setShowAddForm(false); }}
+            onCancel={() => {
+              setEditingFund(null);
+              setShowAddForm(false);
+            }}
           />
         )}
 
         {/* Empty state */}
         {funds.length === 0 && !showAddForm && !editingFund && (
           <div className="px-6 py-12 text-center">
-            <span className="material-symbols-outlined text-[48px] text-verdant-muted mb-3" style={{ display: "inline-block" }}>
+            <span
+              className="material-symbols-outlined mb-3 text-[48px] text-verdant-muted"
+              style={{ display: "inline-block" }}
+            >
               account_balance
             </span>
-            <h3 className="text-base font-extrabold text-verdant-ink mb-1">עדיין לא נוספו קרנות</h3>
-            <p className="text-xs text-verdant-muted mb-4">
-              העלה דוח שנתי או הוסף ידנית.
-            </p>
-            <div className="flex gap-2 justify-center">
+            <h3 className="mb-1 text-base font-extrabold text-verdant-ink">עדיין לא נוספו קרנות</h3>
+            <p className="mb-4 text-xs text-verdant-muted">העלה דוח שנתי או הוסף ידנית.</p>
+            <div className="flex justify-center gap-2">
               <button
-                onClick={() => { setEditingFund(null); setShowAddForm(true); }}
-                className="btn-botanical text-xs !px-4 !py-2"
+                onClick={() => {
+                  setEditingFund(null);
+                  setShowAddForm(true);
+                }}
+                className="btn-botanical !px-4 !py-2 text-xs"
               >
                 + הוסף קרן ידנית
               </button>
               <button
                 onClick={() => {
-                  document.getElementById("annual-upload")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  document
+                    .getElementById("annual-upload")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
                 }}
-                className="text-xs font-bold px-4 py-2 rounded-lg border v-divider text-verdant-ink hover:bg-[#f4f7ed] transition-colors"
+                className="v-divider rounded-lg border px-4 py-2 text-xs font-bold text-verdant-ink transition-colors hover:bg-[#f4f7ed]"
               >
                 העלה דיוור שנתי (PDF)
               </button>
@@ -487,201 +621,275 @@ export default function PensionPage() {
         )}
 
         {/* Grouped rows */}
-        {funds.length > 0 && Object.entries(fundsByType).map(([type, typeFunds]) => (
-          <div key={type}>
-            <div className="px-5 py-2.5 flex items-center gap-2" style={{ background: "#f4f7ed" }}>
-              <div className="w-2 h-2 rounded-full" style={{ background: FUND_TYPE_COLORS[type] || "#1B4332" }} />
-              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-verdant-muted">
-                {FUND_TYPE_LABELS[type] || type}
-              </span>
-            </div>
-            {typeFunds.map(f => {
-              const isExpanded = expandedFundId === f.id;
-              return (
-              <div key={f.id} className="border-b v-divider">
-                {/* Collapsed row — clickable to expand. Always visible. */}
-                <button
-                  onClick={() => setExpandedFundId(isExpanded ? null : f.id)}
-                  className="w-full text-right px-5 py-3 hover:bg-[#f9faf2] transition-colors flex items-center gap-3"
-                >
-                  <span className="material-symbols-outlined text-[20px] text-verdant-muted">
-                    {isExpanded ? "expand_less" : "expand_more"}
-                  </span>
-                  <div className="flex-1 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-extrabold text-verdant-ink">{f.company}</span>
-                      <span className="text-[11px] text-verdant-muted">· {f.track || "—"}</span>
-                    </div>
-                    <div className="text-sm font-extrabold text-verdant-ink tabular-nums">
-                      {fmtILS(f.balance)}
-                    </div>
-                  </div>
-                </button>
+        {funds.length > 0 &&
+          Object.entries(fundsByType).map(([type, typeFunds]) => (
+            <div key={type}>
+              <div
+                className="flex items-center gap-2 px-5 py-2.5"
+                style={{ background: "#f4f7ed" }}
+              >
+                <div
+                  className="h-2 w-2 rounded-full"
+                  style={{ background: FUND_TYPE_COLORS[type] || "#1B4332" }}
+                />
+                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-verdant-muted">
+                  {FUND_TYPE_LABELS[type] || type}
+                </span>
+              </div>
+              {typeFunds.map((f) => {
+                const isExpanded = expandedFundId === f.id;
+                return (
+                  <div key={f.id} className="v-divider border-b">
+                    {/* Collapsed row — clickable to expand. Always visible. */}
+                    <button
+                      onClick={() => setExpandedFundId(isExpanded ? null : f.id)}
+                      className="flex w-full items-center gap-3 px-5 py-3 text-right transition-colors hover:bg-[#f9faf2]"
+                    >
+                      <span className="material-symbols-outlined text-[20px] text-verdant-muted">
+                        {isExpanded ? "expand_less" : "expand_more"}
+                      </span>
+                      <div className="flex flex-1 items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-extrabold text-verdant-ink">
+                            {f.company}
+                          </span>
+                          <span className="text-[11px] text-verdant-muted">· {f.track || "—"}</span>
+                        </div>
+                        <div className="text-sm font-extrabold tabular-nums text-verdant-ink">
+                          {fmtILS(f.balance)}
+                        </div>
+                      </div>
+                    </button>
 
-                {/* Expanded body — only when accordion open. */}
-                {isExpanded && (
-                <div className="px-5 pb-4 pt-1 hover:bg-[#f9faf2] transition-colors">
-                <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <div className="text-sm font-extrabold text-verdant-ink">{f.company}</div>
-                    {f.insuranceCover && (
-                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "#e0f2fe", color: "#0369a1" }}>
-                        כולל ביטוח
-                      </span>
-                    )}
-                    {f.type === "hishtalmut" && f.openingDate && (() => {
-                      const vestYrs = f.isEmployed === false ? 3 : 6;
-                      const liqDate = new Date(f.openingDate);
-                      liqDate.setFullYear(liqDate.getFullYear() + vestYrs);
-                      const isLiq = new Date() >= liqDate;
-                      return (
-                        <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full"
-                          style={{ background: isLiq ? "#dcfce7" : "#fef9c3", color: isLiq ? "#166534" : "#854d0e" }}>
-                          {isLiq ? "נזילה ✓" : `נזילה ${liqDate.toLocaleDateString("he-IL")}`}
-                        </span>
-                      );
-                    })()}
-                    {(f.subtype === "bituach_classic" || f.subtype === "bituach_adif" || f.subtype === "pension_vatika") && (
-                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full"
-                        style={{ background: "#fef3c7", color: "#92400e" }}>
-                        מקדם מובטח{f.conversionFactor ? ` (${f.conversionFactor})` : ""}
-                      </span>
-                    )}
-                    {f.guaranteedRate != null && f.guaranteedRate > 0 && (
-                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full"
-                        style={{ background: "#e0f2fe", color: "#0369a1" }}>
-                        ריבית מובטחת {f.guaranteedRate}%
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-[11px] text-verdant-muted mt-0.5">
-                    {f.subtype && SUBTYPE_LABELS[f.subtype] && (
-                      <span className="text-verdant-emerald font-bold">{SUBTYPE_LABELS[f.subtype]} · </span>
-                    )}
-                    מסלול: {f.track} · הפקדה: {fmtILS(f.monthlyContrib)}/חודש
-                  </div>
-                </div>
-                <div className="flex items-center gap-6">
-                  <div className="text-left">
-                    <div className="text-[10px] text-verdant-muted font-bold">דמי ניהול</div>
-                    <div className="text-xs font-extrabold tabular" style={{ color: feeBenchmark(f.mgmtFeeBalance).color }}>
-                      {f.mgmtFeeDeposit}% הפקדה · {f.mgmtFeeBalance}% צבירה
-                    </div>
-                    <div className="text-[9px] font-bold" style={{ color: feeBenchmark(f.mgmtFeeBalance).color }}>
-                      {feeBenchmark(f.mgmtFeeBalance).label}
-                    </div>
-                  </div>
-                  <div className="text-left min-w-[100px]">
-                    <div className="text-[10px] text-verdant-muted font-bold">יתרה</div>
-                    <div className="text-sm font-extrabold text-verdant-ink tabular">{fmtILS(f.balance)}</div>
-                  </div>
-                  <div className="flex gap-1.5">
-                    <button
-                      onClick={() => setSimFundId(f.id)}
-                      title="סימולציה — what if על הקופה הזו"
-                      className="px-2.5 py-1.5 rounded-lg hover:bg-[#eef7f1] flex items-center gap-1 text-[11px] font-bold border"
-                      style={{ color: "#1B4332", borderColor: "#c9e3d4" }}
-                    >
-                      <span className="material-symbols-outlined text-[16px]">tune</span>
-                      סימולציה
-                    </button>
-                    <button
-                      onClick={() => { setShowAddForm(false); setEditingFund(f.id); }}
-                      title="עריכה"
-                      className="px-2.5 py-1.5 rounded-lg hover:bg-[#f4f7ed] flex items-center gap-1 text-[11px] text-verdant-muted font-bold"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">edit</span>
-                    </button>
-                    <button
-                      onClick={() => handleDeleteFund(f.id)}
-                      title="מחיקת קופה"
-                      className="px-2.5 py-1.5 rounded-lg hover:bg-red-50 flex items-center gap-1 text-[11px] text-red-600 font-bold border border-red-200"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">delete</span>
-                      מחק
-                    </button>
-                  </div>
-                </div>
-                </div>
-                {(() => {
-                  const alert = trackAlert(f, currentAge);
-                  if (!alert) return null;
-                  return (
-                    <div className="mt-1 flex items-center gap-1 text-[10px] font-bold" style={{ color: "#b45309" }}>
-                      <span className="material-symbols-outlined text-[12px]">info</span>
-                      {alert}
-                    </div>
-                  );
-                })()}
-                {/* Multi-track drill-down — shown only when fund has tracks[]. */}
-                {f.tracks && f.tracks.length > 1 && (
-                  <div className="mt-2 pt-2 border-t v-divider">
-                    <div className="text-[10px] font-bold text-verdant-muted mb-1.5">
-                      פילוח מסלולים ({f.tracks.length})
-                    </div>
-                    <div className="space-y-1">
-                      {f.tracks.map((t, ti) => {
-                        const pct = f.balance > 0 ? (t.balance / f.balance) * 100 : 0;
-                        return (
-                          <div key={ti} className="flex items-center justify-between text-[11px]">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className={`w-2 h-2 rounded-sm shrink-0 ${t.registeredFundId ? "" : "ring-1 ring-amber-400"}`}
-                                    style={{ background: t.registeredFundId ? "#1B4332" : "#FCD34D" }} />
-                              <span className="text-verdant-ink truncate">{t.name}</span>
-                              {!t.registeredFundId && (
-                                <span className="text-[9px] font-bold text-amber-700">לא מזוהה</span>
+                    {/* Expanded body — only when accordion open. */}
+                    {isExpanded && (
+                      <div className="px-5 pb-4 pt-1 transition-colors hover:bg-[#f9faf2]">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className="text-sm font-extrabold text-verdant-ink">
+                                {f.company}
+                              </div>
+                              {f.insuranceCover && (
+                                <span
+                                  className="rounded-full px-1.5 py-0.5 text-[8px] font-bold"
+                                  style={{ background: "#e0f2fe", color: "#0369a1" }}
+                                >
+                                  כולל ביטוח
+                                </span>
+                              )}
+                              {f.type === "hishtalmut" &&
+                                f.openingDate &&
+                                (() => {
+                                  const vestYrs = f.isEmployed === false ? 3 : 6;
+                                  const liqDate = new Date(f.openingDate);
+                                  liqDate.setFullYear(liqDate.getFullYear() + vestYrs);
+                                  const isLiq = new Date() >= liqDate;
+                                  return (
+                                    <span
+                                      className="rounded-full px-1.5 py-0.5 text-[8px] font-bold"
+                                      style={{
+                                        background: isLiq ? "#dcfce7" : "#fef9c3",
+                                        color: isLiq ? "#166534" : "#854d0e",
+                                      }}
+                                    >
+                                      {isLiq
+                                        ? "נזילה ✓"
+                                        : `נזילה ${liqDate.toLocaleDateString("he-IL")}`}
+                                    </span>
+                                  );
+                                })()}
+                              {(f.subtype === "bituach_classic" ||
+                                f.subtype === "bituach_adif" ||
+                                f.subtype === "pension_vatika") && (
+                                <span
+                                  className="rounded-full px-1.5 py-0.5 text-[8px] font-bold"
+                                  style={{ background: "#fef3c7", color: "#92400e" }}
+                                >
+                                  מקדם מובטח{f.conversionFactor ? ` (${f.conversionFactor})` : ""}
+                                </span>
+                              )}
+                              {f.guaranteedRate != null && f.guaranteedRate > 0 && (
+                                <span
+                                  className="rounded-full px-1.5 py-0.5 text-[8px] font-bold"
+                                  style={{ background: "#e0f2fe", color: "#0369a1" }}
+                                >
+                                  ריבית מובטחת {f.guaranteedRate}%
+                                </span>
                               )}
                             </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <span className="text-[10px] text-verdant-muted tabular">{fmtILS(t.balance)}</span>
-                              <span className="text-verdant-ink font-bold tabular w-10 text-left">{Math.round(pct)}%</span>
+                            <div className="mt-0.5 text-[11px] text-verdant-muted">
+                              {f.subtype && SUBTYPE_LABELS[f.subtype] && (
+                                <span className="font-bold text-verdant-emerald">
+                                  {SUBTYPE_LABELS[f.subtype]} ·{" "}
+                                </span>
+                              )}
+                              מסלול: {f.track} · הפקדה: {fmtILS(f.monthlyContrib)}/חודש
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
+                          <div className="flex items-center gap-6">
+                            <div className="text-left">
+                              <div className="text-[10px] font-bold text-verdant-muted">
+                                דמי ניהול
+                              </div>
+                              <div
+                                className="tabular text-xs font-extrabold"
+                                style={{ color: feeBenchmark(f.mgmtFeeBalance).color }}
+                              >
+                                {f.mgmtFeeDeposit}% הפקדה · {f.mgmtFeeBalance}% צבירה
+                              </div>
+                              <div
+                                className="text-[9px] font-bold"
+                                style={{ color: feeBenchmark(f.mgmtFeeBalance).color }}
+                              >
+                                {feeBenchmark(f.mgmtFeeBalance).label}
+                              </div>
+                            </div>
+                            <div className="min-w-[100px] text-left">
+                              <div className="text-[10px] font-bold text-verdant-muted">יתרה</div>
+                              <div className="tabular text-sm font-extrabold text-verdant-ink">
+                                {fmtILS(f.balance)}
+                              </div>
+                            </div>
+                            <div className="flex gap-1.5">
+                              <button
+                                onClick={() => setSimFundId(f.id)}
+                                title="סימולציה — what if על הקופה הזו"
+                                className="flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[11px] font-bold hover:bg-[#eef7f1]"
+                                style={{ color: "#1B4332", borderColor: "#c9e3d4" }}
+                              >
+                                <span className="material-symbols-outlined text-[16px]">tune</span>
+                                סימולציה
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowAddForm(false);
+                                  setEditingFund(f.id);
+                                }}
+                                title="עריכה"
+                                className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-verdant-muted hover:bg-[#f4f7ed]"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">edit</span>
+                              </button>
+                              <button
+                                onClick={() => handleDeleteFund(f.id)}
+                                title="מחיקת קופה"
+                                className="flex items-center gap-1 rounded-lg border border-red-200 px-2.5 py-1.5 text-[11px] font-bold text-red-600 hover:bg-red-50"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">
+                                  delete
+                                </span>
+                                מחק
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        {(() => {
+                          const alert = trackAlert(f, currentAge);
+                          if (!alert) return null;
+                          return (
+                            <div
+                              className="mt-1 flex items-center gap-1 text-[10px] font-bold"
+                              style={{ color: "#b45309" }}
+                            >
+                              <span className="material-symbols-outlined text-[12px]">info</span>
+                              {alert}
+                            </div>
+                          );
+                        })()}
+                        {/* Multi-track drill-down — shown only when fund has tracks[]. */}
+                        {f.tracks && f.tracks.length > 1 && (
+                          <div className="v-divider mt-2 border-t pt-2">
+                            <div className="mb-1.5 text-[10px] font-bold text-verdant-muted">
+                              פילוח מסלולים ({f.tracks.length})
+                            </div>
+                            <div className="space-y-1">
+                              {f.tracks.map((t, ti) => {
+                                const pct = f.balance > 0 ? (t.balance / f.balance) * 100 : 0;
+                                return (
+                                  <div
+                                    key={ti}
+                                    className="flex items-center justify-between text-[11px]"
+                                  >
+                                    <div className="flex min-w-0 items-center gap-2">
+                                      <span
+                                        className={`h-2 w-2 shrink-0 rounded-sm ${t.registeredFundId ? "" : "ring-1 ring-amber-400"}`}
+                                        style={{
+                                          background: t.registeredFundId ? "#1B4332" : "#FCD34D",
+                                        }}
+                                      />
+                                      <span className="truncate text-verdant-ink">{t.name}</span>
+                                      {!t.registeredFundId && (
+                                        <span className="text-[9px] font-bold text-amber-700">
+                                          לא מזוהה
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex shrink-0 items-center gap-2">
+                                      <span className="tabular text-[10px] text-verdant-muted">
+                                        {fmtILS(t.balance)}
+                                      </span>
+                                      <span className="tabular w-10 text-left font-bold text-verdant-ink">
+                                        {Math.round(pct)}%
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                )}
-                </div>
-                )}
-              </div>
-              );
-            })}
-          </div>
-        ))}
+                );
+              })}
+            </div>
+          ))}
 
         {/* Summary row */}
         {funds.length > 0 && (
-        <div className="px-5 py-3.5 border-t-2 v-divider flex items-center justify-between" style={{ background: "#f4f7ed" }}>
-          <div className="text-sm font-extrabold text-verdant-ink">סה״כ</div>
-          <div className="flex items-center gap-6">
-            <div className="text-left">
-              <div className="text-[10px] text-verdant-muted font-bold">הפקדה חודשית</div>
-              <div className="text-sm font-extrabold text-verdant-emerald tabular">{fmtILS(baseMonthlyContrib)}</div>
-            </div>
-            <div className="text-left">
-              <div className="text-[10px] text-verdant-muted font-bold">דמ&quot;נ ממוצע</div>
-              <div className="text-sm font-extrabold tabular" style={{ color: feeBenchmark(weightedFee).color }}>{weightedFee.toFixed(2)}%</div>
-            </div>
-            <div className="text-left min-w-[100px]">
-              <div className="text-[10px] text-verdant-muted font-bold">צבירה כוללת</div>
-              <div className="text-sm font-extrabold text-verdant-ink tabular">{fmtILS(totalFundsBalance)}</div>
+          <div
+            className="v-divider flex items-center justify-between border-t-2 px-5 py-3.5"
+            style={{ background: "#f4f7ed" }}
+          >
+            <div className="text-sm font-extrabold text-verdant-ink">סה״כ</div>
+            <div className="flex items-center gap-6">
+              <div className="text-left">
+                <div className="text-[10px] font-bold text-verdant-muted">הפקדה חודשית</div>
+                <div className="tabular text-sm font-extrabold text-verdant-emerald">
+                  {fmtILS(baseMonthlyContrib)}
+                </div>
+              </div>
+              <div className="text-left">
+                <div className="text-[10px] font-bold text-verdant-muted">דמ&quot;נ ממוצע</div>
+                <div
+                  className="tabular text-sm font-extrabold"
+                  style={{ color: feeBenchmark(weightedFee).color }}
+                >
+                  {weightedFee.toFixed(2)}%
+                </div>
+              </div>
+              <div className="min-w-[100px] text-left">
+                <div className="text-[10px] font-bold text-verdant-muted">צבירה כוללת</div>
+                <div className="tabular text-sm font-extrabold text-verdant-ink">
+                  {fmtILS(totalFundsBalance)}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
         )}
       </section>
 
       {/* ===== 6. Keren Hishtalmut Insights ===== */}
       {(() => {
-        const hishtalmutFunds = funds.filter(f => f.type === "hishtalmut");
+        const hishtalmutFunds = funds.filter((f) => f.type === "hishtalmut");
         if (hishtalmutFunds.length === 0) return null;
 
         const totalHishtalmut = hishtalmutFunds.reduce((s, f) => s + f.balance, 0);
         const today = new Date();
 
-        const insights = hishtalmutFunds.map(f => {
+        const insights = hishtalmutFunds.map((f) => {
           const vestingYears = f.isEmployed === false ? 3 : 6;
           let liquidityDate: Date | null = null;
           let isLiquid = false;
@@ -706,91 +914,145 @@ export default function PensionPage() {
           const projectedIn5 = Math.round(f.balance * Math.pow(1 + annualReturn, 5));
           const projectedIn10 = Math.round(f.balance * Math.pow(1 + annualReturn, 10));
 
-          return { fund: f, vestingYears, liquidityDate, isLiquid, yearsLeft, monthsLeft, projectedIn5, projectedIn10 };
+          return {
+            fund: f,
+            vestingYears,
+            liquidityDate,
+            isLiquid,
+            yearsLeft,
+            monthsLeft,
+            projectedIn5,
+            projectedIn10,
+          };
         });
 
         return (
           <section className="v-card mb-6 overflow-hidden">
-            <div className="px-5 py-4 flex items-center gap-2" style={{ background: "#f0fdf4" }}>
-              <span className="material-symbols-outlined text-[18px]" style={{ color: "#1a6b42" }}>school</span>
+            <div className="flex items-center gap-2 px-5 py-4" style={{ background: "#f0fdf4" }}>
+              <span className="material-symbols-outlined text-[18px]" style={{ color: "#1a6b42" }}>
+                school
+              </span>
               <div>
                 <div className="caption mb-0.5">קרן השתלמות</div>
                 <h3 className="text-sm font-extrabold text-verdant-ink">
-                  סה״כ {fmtILS(totalHishtalmut)} · {hishtalmutFunds.length === 1 ? "קרן אחת" : `${hishtalmutFunds.length} קרנות`}
+                  סה״כ {fmtILS(totalHishtalmut)} ·{" "}
+                  {hishtalmutFunds.length === 1 ? "קרן אחת" : `${hishtalmutFunds.length} קרנות`}
                 </h3>
               </div>
             </div>
 
-            {insights.map(({ fund: f, vestingYears, liquidityDate, isLiquid, yearsLeft, monthsLeft, projectedIn5, projectedIn10 }) => (
-              <div key={f.id} className="px-5 py-4 border-b v-divider">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-sm font-extrabold text-verdant-ink">{f.company}</div>
-                  <div className="text-sm font-extrabold text-verdant-ink tabular">{fmtILS(f.balance)}</div>
-                </div>
+            {insights.map(
+              ({
+                fund: f,
+                vestingYears,
+                liquidityDate,
+                isLiquid,
+                yearsLeft,
+                monthsLeft,
+                projectedIn5,
+                projectedIn10,
+              }) => (
+                <div key={f.id} className="v-divider border-b px-5 py-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <div className="text-sm font-extrabold text-verdant-ink">{f.company}</div>
+                    <div className="tabular text-sm font-extrabold text-verdant-ink">
+                      {fmtILS(f.balance)}
+                    </div>
+                  </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                  {f.openingDate ? (
-                    <>
-                      <div className="p-2.5 rounded-lg" style={{ background: "#f4f7ed" }}>
-                        <div className="text-[10px] text-verdant-muted font-bold">תאריך פתיחה</div>
-                        <div className="text-xs font-extrabold text-verdant-ink mt-0.5">
-                          {new Date(f.openingDate).toLocaleDateString("he-IL")}
+                  <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+                    {f.openingDate ? (
+                      <>
+                        <div className="rounded-lg p-2.5" style={{ background: "#f4f7ed" }}>
+                          <div className="text-[10px] font-bold text-verdant-muted">
+                            תאריך פתיחה
+                          </div>
+                          <div className="mt-0.5 text-xs font-extrabold text-verdant-ink">
+                            {new Date(f.openingDate).toLocaleDateString("he-IL")}
+                          </div>
+                        </div>
+                        <div
+                          className="rounded-lg p-2.5"
+                          style={{ background: isLiquid ? "#f0fdf4" : "#fefce8" }}
+                        >
+                          <div className="text-[10px] font-bold text-verdant-muted">
+                            נזילות ({vestingYears} שנים ·{" "}
+                            {f.isEmployed === false ? "עצמאי" : "שכיר"})
+                          </div>
+                          {isLiquid ? (
+                            <div
+                              className="mt-0.5 text-xs font-extrabold"
+                              style={{ color: "#1B4332" }}
+                            >
+                              נזילה ✓
+                            </div>
+                          ) : (
+                            <div
+                              className="mt-0.5 text-xs font-extrabold"
+                              style={{ color: "#92400e" }}
+                            >
+                              {liquidityDate ? liquidityDate.toLocaleDateString("he-IL") : "—"}
+                              {yearsLeft > 0 && ` (${yearsLeft} שנים`}
+                              {yearsLeft > 0 && monthsLeft > 0 && ` ו-${monthsLeft} חודשים`}
+                              {yearsLeft === 0 && monthsLeft > 0 && ` (${monthsLeft} חודשים`}
+                              {(yearsLeft > 0 || monthsLeft > 0) && ")"}
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      <div
+                        className="col-span-2 rounded-lg p-2.5"
+                        style={{ background: "#fefce8" }}
+                      >
+                        <div
+                          className="flex items-center gap-1 text-[11px] font-bold"
+                          style={{ color: "#92400e" }}
+                        >
+                          <span className="material-symbols-outlined text-[14px]">info</span>
+                          הגדר תאריך פתיחה כדי לראות מועד נזילות
                         </div>
                       </div>
-                      <div className="p-2.5 rounded-lg" style={{ background: isLiquid ? "#f0fdf4" : "#fefce8" }}>
-                        <div className="text-[10px] text-verdant-muted font-bold">
-                          נזילות ({vestingYears} שנים · {f.isEmployed === false ? "עצמאי" : "שכיר"})
-                        </div>
-                        {isLiquid ? (
-                          <div className="text-xs font-extrabold mt-0.5" style={{ color: "#1B4332" }}>
-                            נזילה ✓
-                          </div>
-                        ) : (
-                          <div className="text-xs font-extrabold mt-0.5" style={{ color: "#92400e" }}>
-                            {liquidityDate ? liquidityDate.toLocaleDateString("he-IL") : "—"}
-                            {yearsLeft > 0 && ` (${yearsLeft} שנים`}
-                            {yearsLeft > 0 && monthsLeft > 0 && ` ו-${monthsLeft} חודשים`}
-                            {yearsLeft === 0 && monthsLeft > 0 && ` (${monthsLeft} חודשים`}
-                            {(yearsLeft > 0 || monthsLeft > 0) && ")"}
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="p-2.5 rounded-lg col-span-2" style={{ background: "#fefce8" }}>
-                      <div className="flex items-center gap-1 text-[11px] font-bold" style={{ color: "#92400e" }}>
-                        <span className="material-symbols-outlined text-[14px]">info</span>
-                        הגדר תאריך פתיחה כדי לראות מועד נזילות
+                    )}
+                    <div className="rounded-lg p-2.5" style={{ background: "#f4f7ed" }}>
+                      <div className="text-[10px] font-bold text-verdant-muted">צפי עוד 5 שנים</div>
+                      <div className="tabular mt-0.5 text-xs font-extrabold text-verdant-ink">
+                        {fmtILS(projectedIn5)}
                       </div>
                     </div>
-                  )}
-                  <div className="p-2.5 rounded-lg" style={{ background: "#f4f7ed" }}>
-                    <div className="text-[10px] text-verdant-muted font-bold">צפי עוד 5 שנים</div>
-                    <div className="text-xs font-extrabold text-verdant-ink mt-0.5 tabular">{fmtILS(projectedIn5)}</div>
+                    <div className="rounded-lg p-2.5" style={{ background: "#f4f7ed" }}>
+                      <div className="text-[10px] font-bold text-verdant-muted">
+                        צפי עוד 10 שנים
+                      </div>
+                      <div className="tabular mt-0.5 text-xs font-extrabold text-verdant-ink">
+                        {fmtILS(projectedIn10)}
+                      </div>
+                    </div>
                   </div>
-                  <div className="p-2.5 rounded-lg" style={{ background: "#f4f7ed" }}>
-                    <div className="text-[10px] text-verdant-muted font-bold">צפי עוד 10 שנים</div>
-                    <div className="text-xs font-extrabold text-verdant-ink mt-0.5 tabular">{fmtILS(projectedIn10)}</div>
-                  </div>
-                </div>
 
-                <div className="p-3 rounded-lg border text-right" style={{ background: "#fafdf5", borderColor: "#d1e7c8" }}>
-                  {isLiquid ? (
-                    <div className="text-[12px] font-bold text-verdant-ink">
-                      ✓ נזילה — ב-5 שנים נוספות תגדל ל-{fmtILS(projectedIn5)} פטור ממס. עדיף להשאיר.
-                    </div>
-                  ) : f.openingDate ? (
-                    <div className="text-[12px] font-bold text-verdant-ink">
-                      תיפתח ב-{liquidityDate?.toLocaleDateString("he-IL")} · "כסף אחרון" — לא לגעת.
-                    </div>
-                  ) : (
-                    <div className="text-[12px] font-bold text-verdant-ink">
-                      "כסף אחרון" — פטור ממס. הוסף תאריך פתיחה לתכנון נזילות.
-                    </div>
-                  )}
+                  <div
+                    className="rounded-lg border p-3 text-right"
+                    style={{ background: "#fafdf5", borderColor: "#d1e7c8" }}
+                  >
+                    {isLiquid ? (
+                      <div className="text-[12px] font-bold text-verdant-ink">
+                        ✓ נזילה — ב-5 שנים נוספות תגדל ל-{fmtILS(projectedIn5)} פטור ממס. עדיף
+                        להשאיר.
+                      </div>
+                    ) : f.openingDate ? (
+                      <div className="text-[12px] font-bold text-verdant-ink">
+                        תיפתח ב-{liquidityDate?.toLocaleDateString("he-IL")} · "כסף אחרון" — לא
+                        לגעת.
+                      </div>
+                    ) : (
+                      <div className="text-[12px] font-bold text-verdant-ink">
+                        "כסף אחרון" — פטור ממס. הוסף תאריך פתיחה לתכנון נזילות.
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            )}
           </section>
         );
       })()}
@@ -799,17 +1061,21 @@ export default function PensionPage() {
       {voluntaryBenefit && (
         <div className="card-pad mb-6" style={{ borderInlineStart: "4px solid #2B694D" }}>
           <div className="flex items-start gap-3">
-            <span className="material-symbols-outlined text-[22px] text-verdant-emerald flex-shrink-0">savings</span>
-            <div className="flex-1 min-w-0">
+            <span className="material-symbols-outlined flex-shrink-0 text-[22px] text-verdant-emerald">
+              savings
+            </span>
+            <div className="min-w-0 flex-1">
               <div className="caption mb-1">הטבת מס על הפקדה וולונטרית</div>
-              <h3 className="text-sm font-extrabold text-verdant-ink mb-2">
+              <h3 className="mb-2 text-sm font-extrabold text-verdant-ink">
                 אתה מפסיד כ-{fmtILS(voluntaryBenefit.gap)} בשנה
               </h3>
-              <p className="text-[12px] text-verdant-muted leading-6">
-                הפקדה וולונטרית נוספת לפנסיה/ביטוח חיים מזכה ב-<b>זיכוי 35%</b> (סעיף 45א)
-                וב-<b>ניכוי 11%</b> (סעיף 47). היום אתה מפקיד וולונטרית {fmtILS(voluntaryBenefit.currentMonthly)}/חודש
-                (הטבה שנתית: {fmtILS(voluntaryBenefit.currentBenefit)}). מיצוי התקרה של {fmtILS(voluntaryBenefit.maxMonthly)}/חודש
-                יעלה את ההטבה ל-{fmtILS(voluntaryBenefit.maxBenefit)}/שנה.
+              <p className="text-[12px] leading-6 text-verdant-muted">
+                הפקדה וולונטרית נוספת לפנסיה/ביטוח חיים מזכה ב-<b>זיכוי 35%</b> (סעיף 45א) וב-
+                <b>ניכוי 11%</b> (סעיף 47). היום אתה מפקיד וולונטרית{" "}
+                {fmtILS(voluntaryBenefit.currentMonthly)}/חודש (הטבה שנתית:{" "}
+                {fmtILS(voluntaryBenefit.currentBenefit)}). מיצוי התקרה של{" "}
+                {fmtILS(voluntaryBenefit.maxMonthly)}/חודש יעלה את ההטבה ל-
+                {fmtILS(voluntaryBenefit.maxBenefit)}/שנה.
               </p>
             </div>
           </div>
@@ -820,19 +1086,25 @@ export default function PensionPage() {
       {studyFundWarning && (
         <div className="card-pad mb-6" style={{ borderInlineStart: "4px solid #b91c1c" }}>
           <div className="flex items-start gap-3">
-            <span className="material-symbols-outlined text-[22px] flex-shrink-0" style={{ color: "#b91c1c" }}>warning</span>
-            <div className="flex-1 min-w-0">
+            <span
+              className="material-symbols-outlined flex-shrink-0 text-[22px]"
+              style={{ color: "#b91c1c" }}
+            >
+              warning
+            </span>
+            <div className="min-w-0 flex-1">
               <div className="caption mb-1">זקיפת שווי — קרן השתלמות מעל התקרה</div>
-              <h3 className="text-sm font-extrabold text-verdant-ink mb-2">
-                אתה משלם כ-{fmtILS(studyFundWarning.totalMonthlyCost)}/חודש מס על חלק המעסיק שמעל {fmtILS(studyFundWarning.cap)}
+              <h3 className="mb-2 text-sm font-extrabold text-verdant-ink">
+                אתה משלם כ-{fmtILS(studyFundWarning.totalMonthlyCost)}/חודש מס על חלק המעסיק שמעל{" "}
+                {fmtILS(studyFundWarning.cap)}
               </h3>
-              <p className="text-[12px] text-verdant-muted leading-6">
-                השכר שלך מעל תקרת ההטבה ({fmtILS(studyFundWarning.cap)}). חלק המעסיק שמעל התקרה —
-                כ-{fmtILS(studyFundWarning.excessEmployerMonthly)}/חודש — נזקף כהכנסה חייבת,
-                ומחייב אותך במס שולי ({studyFundWarning.marginalPct}%) וגם בביטוח לאומי ובריאות
-                (~12% · {fmtILS(studyFundWarning.blTaxMonthly)}/חודש). עלות שנתית כוללת:
-                <b> {fmtILS(studyFundWarning.fringeTaxAnnual)}</b>.
-                שקול להגביל את הפקדת המעסיק לתקרה, או להפנות את העודף לקופת גמל להשקעה.
+              <p className="text-[12px] leading-6 text-verdant-muted">
+                השכר שלך מעל תקרת ההטבה ({fmtILS(studyFundWarning.cap)}). חלק המעסיק שמעל התקרה — כ-
+                {fmtILS(studyFundWarning.excessEmployerMonthly)}/חודש — נזקף כהכנסה חייבת, ומחייב
+                אותך במס שולי ({studyFundWarning.marginalPct}%) וגם בביטוח לאומי ובריאות (~12% ·{" "}
+                {fmtILS(studyFundWarning.blTaxMonthly)}/חודש). עלות שנתית כוללת:
+                <b> {fmtILS(studyFundWarning.fringeTaxAnnual)}</b>. שקול להגביל את הפקדת המעסיק
+                לתקרה, או להפנות את העודף לקופת גמל להשקעה.
               </p>
             </div>
           </div>
@@ -845,11 +1117,12 @@ export default function PensionPage() {
       </div>
 
       {/* Per-fund simulation modal — opens on row "סימולציה" click. */}
-      {simFundId && (() => {
-        const f = funds.find(x => x.id === simFundId);
-        if (!f) return null;
-        return <FundSimulationModal fund={f} onClose={() => setSimFundId(null)} />;
-      })()}
+      {simFundId &&
+        (() => {
+          const f = funds.find((x) => x.id === simFundId);
+          if (!f) return null;
+          return <FundSimulationModal fund={f} onClose={() => setSimFundId(null)} />;
+        })()}
     </div>
   );
 }
@@ -858,8 +1131,16 @@ export default function PensionPage() {
 /*              MiniDonut — SVG Donut Chart              */
 /* ══════════════════════════════════════════════════════ */
 
-function MiniDonut({ data, size = 140 }: { data: { label: string; pct: number; color: string }[]; size?: number }) {
-  const r = 50, cx = 60, cy = 60;
+function MiniDonut({
+  data,
+  size = 140,
+}: {
+  data: { label: string; pct: number; color: string }[];
+  size?: number;
+}) {
+  const r = 50,
+    cx = 60,
+    cy = 60;
   let cum = 0;
 
   return (
@@ -877,7 +1158,9 @@ function MiniDonut({ data, size = 140 }: { data: { label: string; pct: number; c
             <path
               key={i}
               d={`M ${cx} ${cy} L ${cx + r * Math.cos(sr)} ${cy + r * Math.sin(sr)} A ${r} ${r} 0 ${la} 1 ${cx + r * Math.cos(er)} ${cy + r * Math.sin(er)} Z`}
-              fill={d.color} stroke="#fff" strokeWidth="2"
+              fill={d.color}
+              stroke="#fff"
+              strokeWidth="2"
             />
           );
         })}
@@ -886,9 +1169,9 @@ function MiniDonut({ data, size = 140 }: { data: { label: string; pct: number; c
       <div className="space-y-1.5">
         {data.map((d, i) => (
           <div key={i} className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: d.color }} />
-            <span className="text-[11px] text-verdant-ink font-bold">{d.label}</span>
-            <span className="text-[11px] text-verdant-muted font-bold tabular">{d.pct}%</span>
+            <div className="h-2.5 w-2.5 flex-shrink-0 rounded-sm" style={{ background: d.color }} />
+            <span className="text-[11px] font-bold text-verdant-ink">{d.label}</span>
+            <span className="tabular text-[11px] font-bold text-verdant-muted">{d.pct}%</span>
           </div>
         ))}
       </div>
@@ -900,7 +1183,11 @@ function MiniDonut({ data, size = 140 }: { data: { label: string; pct: number; c
 /*              FundForm — Add / Edit Modal              */
 /* ══════════════════════════════════════════════════════ */
 
-function FundForm({ initial, onSave, onCancel }: {
+function FundForm({
+  initial,
+  onSave,
+  onCancel,
+}: {
   initial: PensionFund;
   onSave: (f: PensionFund) => void;
   onCancel: () => void;
@@ -917,10 +1204,12 @@ function FundForm({ initial, onSave, onCancel }: {
   })();
   const [provider, setProvider] = useState(initialProvider);
   const [selectedFundId, setSelectedFundId] = useState(form.registeredFundId || "");
-  const set = (patch: Partial<PensionFund>) => setForm(prev => ({ ...prev, ...patch }));
+  const set = (patch: Partial<PensionFund>) => setForm((prev) => ({ ...prev, ...patch }));
 
   const providerFunds = provider ? getFundsByProvider(provider) : [];
-  const selectedFund: RegisteredFund | undefined = selectedFundId ? getFundById(selectedFundId) : undefined;
+  const selectedFund: RegisteredFund | undefined = selectedFundId
+    ? getFundById(selectedFundId)
+    : undefined;
 
   function handleFundSelect(fundId: string) {
     setSelectedFundId(fundId);
@@ -935,26 +1224,39 @@ function FundForm({ initial, onSave, onCancel }: {
   }
 
   return (
-    <div className="px-5 py-4 border-b v-divider" style={{ background: "#f9faf2" }}>
+    <div className="v-divider border-b px-5 py-4" style={{ background: "#f9faf2" }}>
       {/* Row 1: Registry selection */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+      <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-4">
         <div>
-          <label className="text-[10px] font-bold text-verdant-muted block mb-1">חברה מנהלת</label>
-          <select value={provider} onChange={e => { setProvider(e.target.value); setSelectedFundId(""); }}
-            className="w-full px-2.5 py-1.5 rounded-lg border text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }}>
+          <label className="mb-1 block text-[10px] font-bold text-verdant-muted">חברה מנהלת</label>
+          <select
+            value={provider}
+            onChange={(e) => {
+              setProvider(e.target.value);
+              setSelectedFundId("");
+            }}
+            className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
+            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+          >
             <option value="">בחר חברה</option>
-            {PROVIDERS.map(p => <option key={p} value={p}>{p}</option>)}
+            {PROVIDERS.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
           </select>
         </div>
         <div className="md:col-span-2">
-          <label className="text-[10px] font-bold text-verdant-muted block mb-1">מסלול השקעה</label>
-          <select value={selectedFundId} onChange={e => handleFundSelect(e.target.value)}
+          <label className="mb-1 block text-[10px] font-bold text-verdant-muted">מסלול השקעה</label>
+          <select
+            value={selectedFundId}
+            onChange={(e) => handleFundSelect(e.target.value)}
             disabled={!provider}
-            className="w-full px-2.5 py-1.5 rounded-lg border text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#d8e0d0", background: provider ? "#fff" : "#f4f7ed" }}>
+            className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
+            style={{ borderColor: "#d8e0d0", background: provider ? "#fff" : "#f4f7ed" }}
+          >
             <option value="">בחר מסלול</option>
-            {providerFunds.map(f => (
+            {providerFunds.map((f) => (
               <option key={f.id} value={f.id}>
                 {f.name} — {f.equityExposure}% מניות · דמ&quot;נ {f.mgmtFee}%
               </option>
@@ -962,10 +1264,15 @@ function FundForm({ initial, onSave, onCancel }: {
           </select>
         </div>
         <div>
-          <label className="text-[10px] font-bold text-verdant-muted block mb-1">סוג</label>
-          <select value={form.type} onChange={e => set({ type: e.target.value as PensionFund["type"], subtype: undefined })}
-            className="w-full px-2.5 py-1.5 rounded-lg border text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }}>
+          <label className="mb-1 block text-[10px] font-bold text-verdant-muted">סוג</label>
+          <select
+            value={form.type}
+            onChange={(e) =>
+              set({ type: e.target.value as PensionFund["type"], subtype: undefined })
+            }
+            className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
+            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+          >
             <option value="pension">פנסיה מקיפה</option>
             <option value="gemel">קופת גמל</option>
             <option value="hishtalmut">קרן השתלמות</option>
@@ -974,11 +1281,11 @@ function FundForm({ initial, onSave, onCancel }: {
         </div>
         {/* Ownership selector — drives the per-spouse summary on the page. */}
         <div>
-          <label className="text-[10px] font-bold text-verdant-muted block mb-1">בעלות</label>
+          <label className="mb-1 block text-[10px] font-bold text-verdant-muted">בעלות</label>
           <select
             value={form.owner || "spouse_a"}
-            onChange={e => set({ owner: e.target.value as PensionFund["owner"] })}
-            className="w-full px-2.5 py-1.5 rounded-lg border text-xs font-bold text-verdant-ink"
+            onChange={(e) => set({ owner: e.target.value as PensionFund["owner"] })}
+            className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
             style={{ borderColor: "#d8e0d0", background: "#fff" }}
           >
             {(() => {
@@ -997,36 +1304,59 @@ function FundForm({ initial, onSave, onCancel }: {
 
       {/* Subtype + conversion factor + guaranteed rate */}
       {(SUBTYPES_BY_TYPE[form.type]?.length ?? 0) > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+        <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-4">
           <div>
-            <label className="text-[10px] font-bold text-verdant-muted block mb-1">תת-סוג</label>
-            <select value={form.subtype || ""} onChange={e => set({ subtype: (e.target.value || undefined) as PensionFund["subtype"] })}
-              className="w-full px-2.5 py-1.5 rounded-lg border text-xs font-bold text-verdant-ink"
-              style={{ borderColor: "#d8e0d0", background: "#fff" }}>
+            <label className="mb-1 block text-[10px] font-bold text-verdant-muted">תת-סוג</label>
+            <select
+              value={form.subtype || ""}
+              onChange={(e) =>
+                set({ subtype: (e.target.value || undefined) as PensionFund["subtype"] })
+              }
+              className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
+              style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            >
               <option value="">לא צוין</option>
-              {SUBTYPES_BY_TYPE[form.type]?.map(st => (
-                <option key={st} value={st}>{SUBTYPE_LABELS[st]}</option>
+              {SUBTYPES_BY_TYPE[form.type]?.map((st) => (
+                <option key={st} value={st}>
+                  {SUBTYPE_LABELS[st]}
+                </option>
               ))}
             </select>
           </div>
 
-          {(form.subtype === "pension_vatika" || form.subtype === "bituach_classic" || form.subtype === "bituach_adif") && (
+          {(form.subtype === "pension_vatika" ||
+            form.subtype === "bituach_classic" ||
+            form.subtype === "bituach_adif") && (
             <div>
-              <label className="text-[10px] font-bold text-verdant-muted block mb-1">מקדם קצבה</label>
-              <input type="number" step="1" value={form.conversionFactor || ""}
-                onChange={e => set({ conversionFactor: +e.target.value || undefined })}
-                className="w-full px-2.5 py-1.5 rounded-lg border text-xs font-bold text-verdant-ink tabular"
-                style={{ borderColor: "#d8e0d0", background: "#fff" }} placeholder="לדוג' 120" />
+              <label className="mb-1 block text-[10px] font-bold text-verdant-muted">
+                מקדם קצבה
+              </label>
+              <input
+                type="number"
+                step="1"
+                value={form.conversionFactor || ""}
+                onChange={(e) => set({ conversionFactor: +e.target.value || undefined })}
+                className="tabular w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
+                style={{ borderColor: "#d8e0d0", background: "#fff" }}
+                placeholder="לדוג' 120"
+              />
             </div>
           )}
 
           {form.subtype === "bituach_classic" && (
             <div>
-              <label className="text-[10px] font-bold text-verdant-muted block mb-1">ריבית מובטחת %</label>
-              <input type="number" step="0.1" value={form.guaranteedRate || ""}
-                onChange={e => set({ guaranteedRate: +e.target.value || undefined })}
-                className="w-full px-2.5 py-1.5 rounded-lg border text-xs font-bold text-verdant-ink tabular"
-                style={{ borderColor: "#d8e0d0", background: "#fff" }} placeholder="לדוג' 4.0" />
+              <label className="mb-1 block text-[10px] font-bold text-verdant-muted">
+                ריבית מובטחת %
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                value={form.guaranteedRate || ""}
+                onChange={(e) => set({ guaranteedRate: +e.target.value || undefined })}
+                className="tabular w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
+                style={{ borderColor: "#d8e0d0", background: "#fff" }}
+                placeholder="לדוג' 4.0"
+              />
             </div>
           )}
         </div>
@@ -1034,9 +1364,9 @@ function FundForm({ initial, onSave, onCancel }: {
 
       {/* Selected fund summary */}
       {selectedFund && (
-        <div className="p-3 rounded-lg mb-3" style={{ background: "#f4f7ed" }}>
-          <div className="text-[10px] font-bold text-verdant-muted mb-1">אלוקציה אוטומטית:</div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-1 text-[11px] text-verdant-ink font-bold">
+        <div className="mb-3 rounded-lg p-3" style={{ background: "#f4f7ed" }}>
+          <div className="mb-1 text-[10px] font-bold text-verdant-muted">אלוקציה אוטומטית:</div>
+          <div className="grid grid-cols-2 gap-1 text-[11px] font-bold text-verdant-ink md:grid-cols-4">
             <span>מניות: {selectedFund.equityExposure}%</span>
             <span>חו&quot;ל: {selectedFund.foreignExposure}%</span>
             <span>חשיפה למט&quot;ח: {selectedFund.currencyExposure}%</span>
@@ -1046,49 +1376,82 @@ function FundForm({ initial, onSave, onCancel }: {
       )}
 
       {/* Row 2: Core fields */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+      <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-4">
         <div>
-          <label className="text-[10px] font-bold text-verdant-muted block mb-1">חברה (שם חופשי)</label>
-          <input type="text" value={form.company} onChange={e => set({ company: e.target.value })}
-            className="w-full px-2.5 py-1.5 rounded-lg border text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }} placeholder={provider || "שם החברה"} />
+          <label className="mb-1 block text-[10px] font-bold text-verdant-muted">
+            חברה (שם חופשי)
+          </label>
+          <input
+            type="text"
+            value={form.company}
+            onChange={(e) => set({ company: e.target.value })}
+            className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
+            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            placeholder={provider || "שם החברה"}
+          />
         </div>
         <div>
-          <label className="text-[10px] font-bold text-verdant-muted block mb-1">יתרה</label>
-          <input type="number" value={form.balance || ""} onChange={e => set({ balance: +e.target.value })}
-            className="w-full px-2.5 py-1.5 rounded-lg border text-xs font-bold text-verdant-ink tabular"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }} placeholder="₪" />
+          <label className="mb-1 block text-[10px] font-bold text-verdant-muted">יתרה</label>
+          <input
+            type="number"
+            value={form.balance || ""}
+            onChange={(e) => set({ balance: +e.target.value })}
+            className="tabular w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
+            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            placeholder="₪"
+          />
         </div>
         <div>
-          <label className="text-[10px] font-bold text-verdant-muted block mb-1">הפקדה חודשית</label>
-          <input type="number" value={form.monthlyContrib || ""} onChange={e => set({ monthlyContrib: +e.target.value })}
-            className="w-full px-2.5 py-1.5 rounded-lg border text-xs font-bold text-verdant-ink tabular"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }} placeholder="₪" />
+          <label className="mb-1 block text-[10px] font-bold text-verdant-muted">
+            הפקדה חודשית
+          </label>
+          <input
+            type="number"
+            value={form.monthlyContrib || ""}
+            onChange={(e) => set({ monthlyContrib: +e.target.value })}
+            className="tabular w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
+            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            placeholder="₪"
+          />
         </div>
         <div>
-          <label className="text-[10px] font-bold text-verdant-muted block mb-1">מסלול</label>
-          <input type="text" value={form.track} onChange={e => set({ track: e.target.value })}
-            className="w-full px-2.5 py-1.5 rounded-lg border text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }} placeholder="כללי / מניות / אג״ח" />
+          <label className="mb-1 block text-[10px] font-bold text-verdant-muted">מסלול</label>
+          <input
+            type="text"
+            value={form.track}
+            onChange={(e) => set({ track: e.target.value })}
+            className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
+            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            placeholder="כללי / מניות / אג״ח"
+          />
         </div>
       </div>
 
       {/* Hishtalmut-specific: opening date + employment status */}
       {form.type === "hishtalmut" && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+        <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-4">
           <div>
-            <label className="text-[10px] font-bold text-verdant-muted block mb-1">תאריך פתיחה</label>
-            <input type="date" value={form.openingDate || ""}
-              onChange={e => set({ openingDate: e.target.value || undefined })}
-              className="w-full px-2.5 py-1.5 rounded-lg border text-xs font-bold text-verdant-ink"
-              style={{ borderColor: "#d8e0d0", background: "#fff" }} />
+            <label className="mb-1 block text-[10px] font-bold text-verdant-muted">
+              תאריך פתיחה
+            </label>
+            <input
+              type="date"
+              value={form.openingDate || ""}
+              onChange={(e) => set({ openingDate: e.target.value || undefined })}
+              className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
+              style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-verdant-muted block mb-1">סטטוס תעסוקה</label>
-            <select value={form.isEmployed === false ? "self" : "employed"}
-              onChange={e => set({ isEmployed: e.target.value === "employed" })}
-              className="w-full px-2.5 py-1.5 rounded-lg border text-xs font-bold text-verdant-ink"
-              style={{ borderColor: "#d8e0d0", background: "#fff" }}>
+            <label className="mb-1 block text-[10px] font-bold text-verdant-muted">
+              סטטוס תעסוקה
+            </label>
+            <select
+              value={form.isEmployed === false ? "self" : "employed"}
+              onChange={(e) => set({ isEmployed: e.target.value === "employed" })}
+              className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
+              style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            >
               <option value="employed">שכיר (נזילות 6 שנים)</option>
               <option value="self">עצמאי (נזילות 3 שנים)</option>
             </select>
@@ -1097,39 +1460,60 @@ function FundForm({ initial, onSave, onCancel }: {
       )}
 
       {/* Row 3: Fees + Insurance */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+      <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-4">
         <div>
-          <label className="text-[10px] font-bold text-verdant-muted block mb-1">דמ&quot;נ הפקדה %</label>
-          <input type="number" step="0.01" value={form.mgmtFeeDeposit || ""} onChange={e => set({ mgmtFeeDeposit: +e.target.value })}
-            className="w-full px-2.5 py-1.5 rounded-lg border text-xs font-bold text-verdant-ink tabular"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }} />
+          <label className="mb-1 block text-[10px] font-bold text-verdant-muted">
+            דמ&quot;נ הפקדה %
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            value={form.mgmtFeeDeposit || ""}
+            onChange={(e) => set({ mgmtFeeDeposit: +e.target.value })}
+            className="tabular w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
+            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+          />
         </div>
         <div>
-          <label className="text-[10px] font-bold text-verdant-muted block mb-1">דמ&quot;נ צבירה %</label>
-          <input type="number" step="0.01" value={form.mgmtFeeBalance || ""} onChange={e => set({ mgmtFeeBalance: +e.target.value })}
-            className="w-full px-2.5 py-1.5 rounded-lg border text-xs font-bold text-verdant-ink tabular"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }} />
+          <label className="mb-1 block text-[10px] font-bold text-verdant-muted">
+            דמ&quot;נ צבירה %
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            value={form.mgmtFeeBalance || ""}
+            onChange={(e) => set({ mgmtFeeBalance: +e.target.value })}
+            className="tabular w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
+            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+          />
         </div>
         <div className="md:col-span-2">
-          <label className="text-[10px] font-bold text-verdant-muted block mb-1">כיסויים ביטוחיים</label>
-          <div className="flex flex-wrap gap-2 mt-0.5">
+          <label className="mb-1 block text-[10px] font-bold text-verdant-muted">
+            כיסויים ביטוחיים
+          </label>
+          <div className="mt-0.5 flex flex-wrap gap-2">
             {[
               { key: "death" as const, label: "מוות" },
               { key: "disability" as const, label: "נכות" },
               { key: "lossOfWork" as const, label: "אבטלה" },
             ].map(({ key, label }) => (
-              <label key={key} className="flex items-center gap-1 text-[10px] text-verdant-muted cursor-pointer">
+              <label
+                key={key}
+                className="flex cursor-pointer items-center gap-1 text-[10px] text-verdant-muted"
+              >
                 <input
                   type="checkbox"
                   checked={form.insuranceCover?.[key] ?? false}
-                  onChange={e => set({
-                    insuranceCover: {
-                      death: form.insuranceCover?.death ?? false,
-                      disability: form.insuranceCover?.disability ?? false,
-                      lossOfWork: form.insuranceCover?.lossOfWork ?? false,
-                      [key]: e.target.checked,
-                    },
-                  })}
+                  onChange={(e) =>
+                    set({
+                      insuranceCover: {
+                        death: form.insuranceCover?.death ?? false,
+                        disability: form.insuranceCover?.disability ?? false,
+                        lossOfWork: form.insuranceCover?.lossOfWork ?? false,
+                        [key]: e.target.checked,
+                      },
+                    })
+                  }
                   className="accent-verdant-emerald"
                 />
                 {label}
@@ -1146,11 +1530,11 @@ function FundForm({ initial, onSave, onCancel }: {
             const name = form.company.trim() || provider;
             if (name) onSave({ ...form, company: name });
           }}
-          className="btn-botanical text-xs !px-4 !py-1.5"
+          className="btn-botanical !px-4 !py-1.5 text-xs"
         >
           {initial.id ? "עדכן" : "הוסף"}
         </button>
-        <button onClick={onCancel} className="btn-botanical-ghost text-xs !px-4 !py-1.5">
+        <button onClick={onCancel} className="btn-botanical-ghost !px-4 !py-1.5 text-xs">
           ביטול
         </button>
       </div>

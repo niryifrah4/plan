@@ -70,7 +70,9 @@ async function wipeBrowserState(): Promise<void> {
   if (typeof window === "undefined") return;
 
   // sessionStorage — drop everything (we don't rely on session-scoped state).
-  try { sessionStorage.clear(); } catch {}
+  try {
+    sessionStorage.clear();
+  } catch {}
 
   // IndexedDB — Supabase auth caches its session there. Best-effort.
   try {
@@ -78,13 +80,17 @@ async function wipeBrowserState(): Promise<void> {
       const dbs = await (indexedDB as any).databases();
       for (const db of dbs || []) {
         if (db?.name) {
-          try { indexedDB.deleteDatabase(db.name); } catch {}
+          try {
+            indexedDB.deleteDatabase(db.name);
+          } catch {}
         }
       }
     } else {
       // Older browsers — known names only.
-      ["supabase-auth-token", "verdant-cache"].forEach(name => {
-        try { indexedDB.deleteDatabase(name); } catch {}
+      ["supabase-auth-token", "verdant-cache"].forEach((name) => {
+        try {
+          indexedDB.deleteDatabase(name);
+        } catch {}
       });
     }
   } catch {}
@@ -192,6 +198,9 @@ export function runFactoryResetIfNeeded(): void {
     seedFreshClient();
     localStorage.setItem(VERSION_KEY, FACTORY_RESET_VERSION);
     // eslint-disable-next-line no-console
-    console.info("[factory-reset] wiped all verdant:* keys + seeded fresh client →", FACTORY_RESET_VERSION);
+    console.info(
+      "[factory-reset] wiped all verdant:* keys + seeded fresh client →",
+      FACTORY_RESET_VERSION
+    );
   } catch {}
 }

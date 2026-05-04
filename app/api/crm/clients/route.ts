@@ -10,7 +10,9 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
   const sb = createClient();
-  const { data: { user } } = await sb.auth.getUser();
+  const {
+    data: { user },
+  } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
   const { data: households, error } = await sb

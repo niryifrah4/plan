@@ -6,10 +6,7 @@
  * Idempotent — safe to call on every app load.
  */
 
-import {
-  CLIENTS_REGISTRY_KEY,
-  CURRENT_HH_KEY,
-} from "./client-scope";
+import { CLIENTS_REGISTRY_KEY, CURRENT_HH_KEY } from "./client-scope";
 
 const UNSCOPED_BASE = new Set<string>([
   CURRENT_HH_KEY,

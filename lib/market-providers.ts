@@ -23,7 +23,7 @@ export interface PriceQuote {
 
 export interface FXRate {
   currency: string;
-  rate: number;     // 1 USD = X ILS
+  rate: number; // 1 USD = X ILS
   lastUpdate: Date;
 }
 
@@ -51,7 +51,7 @@ export async function fetchCryptoPricesBulk(coinIds: string[]): Promise<PriceQuo
     `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=ils,usd&include_24hr_change=true`
   );
   const data = await res.json();
-  return coinIds.map(id => ({
+  return coinIds.map((id) => ({
     symbol: id,
     price: data[id]?.ils ?? 0,
     currency: "ILS",
@@ -64,9 +64,7 @@ export async function fetchCryptoPricesBulk(coinIds: string[]): Promise<PriceQuo
 /* ── Bank of Israel FX (free, no API key required) ── */
 
 export async function fetchFXRate(currency: "USD" | "EUR" | "GBP"): Promise<FXRate> {
-  const res = await fetch(
-    `https://boi.org.il/PublicApi/GetExchangeRates?currencyCode=${currency}`
-  );
+  const res = await fetch(`https://boi.org.il/PublicApi/GetExchangeRates?currencyCode=${currency}`);
   const data = await res.json();
   return {
     currency,

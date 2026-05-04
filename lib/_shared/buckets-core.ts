@@ -211,9 +211,8 @@ export function migrateLegacyVisionGoals(legacy: LegacyVisionGoal[]): Bucket[] {
     expectedAnnualReturn: g.annualRate || 0.05,
     actualAnnualReturn: undefined,
     contributionHistory: [],
-    balanceSnapshots: g.lumpToday > 0
-      ? [{ date: now, balance: g.lumpToday, source: "manual" }]
-      : [],
+    balanceSnapshots:
+      g.lumpToday > 0 ? [{ date: now, balance: g.lumpToday, source: "manual" }] : [],
     createdAt: now,
     updatedAt: now,
   }));
@@ -229,13 +228,13 @@ export interface OnboardingGoalRow {
 export function migrateOnboardingGoals(rows: OnboardingGoalRow[]): Bucket[] {
   const now = new Date().toISOString();
   return rows
-    .filter(r => r.name && r.cost)
+    .filter((r) => r.name && r.cost)
     .map((r, i) => {
       const cost = parseFloat(r.cost.replace(/[^\d.-]/g, "")) || 0;
       const horizonYears = parseFloat(r.horizon) || 5;
-      const targetDate = new Date(
-        Date.now() + horizonYears * 365.25 * 24 * 3600 * 1000
-      ).toISOString().split("T")[0];
+      const targetDate = new Date(Date.now() + horizonYears * 365.25 * 24 * 3600 * 1000)
+        .toISOString()
+        .split("T")[0];
       return {
         id: generateBucketId(),
         name: r.name,
@@ -243,8 +242,11 @@ export function migrateOnboardingGoals(rows: OnboardingGoalRow[]): Bucket[] {
         color: pickColor(i),
         targetAmount: cost,
         targetDate,
-        priority: (r.priority === "גבוהה" ? "high" :
-                   r.priority === "נמוכה" ? "low" : "medium") as BucketPriority,
+        priority: (r.priority === "גבוהה"
+          ? "high"
+          : r.priority === "נמוכה"
+            ? "low"
+            : "medium") as BucketPriority,
         currentAmount: 0,
         monthlyContribution: 0,
         expectedAnnualReturn: 0.05,
@@ -280,11 +282,11 @@ export function createBucket(
     expectedAnnualReturn: input.expectedAnnualReturn ?? 0.05,
     actualAnnualReturn: input.actualAnnualReturn,
     contributionHistory: input.contributionHistory || [],
-    balanceSnapshots: input.balanceSnapshots || (
-      input.currentAmount && input.currentAmount > 0
+    balanceSnapshots:
+      input.balanceSnapshots ||
+      (input.currentAmount && input.currentAmount > 0
         ? [{ date: now, balance: input.currentAmount, source: "manual" }]
-        : []
-    ),
+        : []),
     createdAt: input.createdAt || now,
     updatedAt: now,
     notes: input.notes,
@@ -296,16 +298,14 @@ export function createBucket(
 
 /** Update a bucket in an array (immutable) */
 export function updateBucket(buckets: Bucket[], id: string, patch: Partial<Bucket>): Bucket[] {
-  return buckets.map(b =>
-    b.id === id
-      ? { ...b, ...patch, updatedAt: new Date().toISOString() }
-      : b
+  return buckets.map((b) =>
+    b.id === id ? { ...b, ...patch, updatedAt: new Date().toISOString() } : b
   );
 }
 
 /** Remove a bucket (hard delete) */
 export function removeBucket(buckets: Bucket[], id: string): Bucket[] {
-  return buckets.filter(b => b.id !== id);
+  return buckets.filter((b) => b.id !== id);
 }
 
 /** Record a monthly contribution check-in (immutable) */
@@ -317,7 +317,7 @@ export function recordCheckIn(
 ): Bucket {
   const now = new Date().toISOString();
 
-  const history = bucket.contributionHistory.filter(c => c.month !== month);
+  const history = bucket.contributionHistory.filter((c) => c.month !== month);
   history.push({
     month,
     planned: bucket.monthlyContribution,
@@ -353,10 +353,7 @@ export function recordSnapshot(
   return {
     ...bucket,
     currentAmount: balance,
-    balanceSnapshots: [
-      ...bucket.balanceSnapshots,
-      { date: now, balance, source },
-    ],
+    balanceSnapshots: [...bucket.balanceSnapshots, { date: now, balance, source }],
     updatedAt: now,
   };
 }

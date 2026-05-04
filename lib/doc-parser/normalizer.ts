@@ -11,43 +11,43 @@ import type { ParsedTransaction } from "./types";
 /* ─── Supplier Normalization Map ─── */
 const SUPPLIER_GROUPS: [string, string[]][] = [
   // ── Supermarkets ──
-  ["שופרסל",      ["שופרסל דיל", "שופרסל אקספרס", "שופרסל אונליין", "שופרסל be", "שופרסל שלי"]],
-  ["רמי לוי",     ["רמי לוי שיווק", "רמי לוי online", "רמי לוי דיגיטל"]],
-  ["יוחננוף",     ["יוחננוף שיווק", "יוחננוף חסכון"]],
-  ["ויקטורי",     ["ויקטורי סופרמרקט", "victory"]],
-  ["אושר עד",    ["אושר עד סופר"]],
+  ["שופרסל", ["שופרסל דיל", "שופרסל אקספרס", "שופרסל אונליין", "שופרסל be", "שופרסל שלי"]],
+  ["רמי לוי", ["רמי לוי שיווק", "רמי לוי online", "רמי לוי דיגיטל"]],
+  ["יוחננוף", ["יוחננוף שיווק", "יוחננוף חסכון"]],
+  ["ויקטורי", ["ויקטורי סופרמרקט", "victory"]],
+  ["אושר עד", ["אושר עד סופר"]],
   // ── Pharmacy ──
-  ["סופר פארם",   ["סופר-פארם", "super pharm", "super-pharm", "סופרפארם"]],
+  ["סופר פארם", ["סופר-פארם", "super pharm", "super-pharm", "סופרפארם"]],
   // ── Gas ──
-  ["פז",          ["פז דלק", "פז yellow", "yellow פז"]],
-  ["סונול",       ["סונול דלק", "סונול direct"]],
-  ["דור אלון",    ["דור-אלון", "דור אלון אנרגיה"]],
+  ["פז", ["פז דלק", "פז yellow", "yellow פז"]],
+  ["סונול", ["סונול דלק", "סונול direct"]],
+  ["דור אלון", ["דור-אלון", "דור אלון אנרגיה"]],
   // ── Cafes / restaurants ──
-  ["ארומה",       ["ארומה תל אביב", "ארומה tlv", "aroma espresso", "aroma il"]],
-  ["קפה לנדוור",  ["landwer", "לנדוור"]],
-  ["מקדונלדס",    ["mcdonald's", "mcdonalds", "mcdonald"]],
+  ["ארומה", ["ארומה תל אביב", "ארומה tlv", "aroma espresso", "aroma il"]],
+  ["קפה לנדוור", ["landwer", "לנדוור"]],
+  ["מקדונלדס", ["mcdonald's", "mcdonalds", "mcdonald"]],
   // ── Streaming / tech ──
-  ["נטפליקס",     ["netflix", "netflix.com"]],
-  ["ספוטיפיי",    ["spotify", "spotify ab", "spotify premium"]],
-  ["אפל",        ["apple.com", "apple com bill", "itunes", "apple.com/bill"]],
-  ["גוגל",       ["google", "google storage", "google one", "google play"]],
-  ["אמזון",      ["amazon", "amazon prime", "amzn", "amazon.com"]],
+  ["נטפליקס", ["netflix", "netflix.com"]],
+  ["ספוטיפיי", ["spotify", "spotify ab", "spotify premium"]],
+  ["אפל", ["apple.com", "apple com bill", "itunes", "apple.com/bill"]],
+  ["גוגל", ["google", "google storage", "google one", "google play"]],
+  ["אמזון", ["amazon", "amazon prime", "amzn", "amazon.com"]],
   // ── Health funds ──
-  ["מכבי",       ["מכבי שירותי בריאות", "מכבי שר בריאות", "מכבי ש.ב"]],
-  ["כללית",      ["שירותי בריאות כללית", "כללית מוש", "כללית מושלם"]],
+  ["מכבי", ["מכבי שירותי בריאות", "מכבי שר בריאות", "מכבי ש.ב"]],
+  ["כללית", ["שירותי בריאות כללית", "כללית מוש", "כללית מושלם"]],
   // ── Insurance ──
-  ["הפניקס",     ["הפניקס חברה לביטוח", "הפניקס ביט"]],
-  ["מגדל",       ["מגדל ביטוח", "מגדל חברה לביטוח"]],
-  ["הראל",       ["הראל ביטוח", "הראל חברה לביטוח"]],
-  ["מנורה",      ["מנורה מבטחים", "מנורה ביט"]],
-  ["איילון",     ["איילון ביטוח", "איילון חברה"]],
+  ["הפניקס", ["הפניקס חברה לביטוח", "הפניקס ביט"]],
+  ["מגדל", ["מגדל ביטוח", "מגדל חברה לביטוח"]],
+  ["הראל", ["הראל ביטוח", "הראל חברה לביטוח"]],
+  ["מנורה", ["מנורה מבטחים", "מנורה ביט"]],
+  ["איילון", ["איילון ביטוח", "איילון חברה"]],
   // ── Fashion ──
-  ["זארה",       ["zara", "zara.com"]],
-  ["h&m",        ["h & m", "hm.com"]],
-  ["פוקס",       ["fox", "fox home"]],
+  ["זארה", ["zara", "zara.com"]],
+  ["h&m", ["h & m", "hm.com"]],
+  ["פוקס", ["fox", "fox home"]],
   // ── Utilities ──
-  ["חברת חשמל",  ["חב' חשמל", "iec", "israel electric", "חשמל ישראל"]],
-  ["בזק",        ["bezeq", "bezeq international", "בזק בינלאומי"]],
+  ["חברת חשמל", ["חב' חשמל", "iec", "israel electric", "חשמל ישראל"]],
+  ["בזק", ["bezeq", "bezeq international", "בזק בינלאומי"]],
 ];
 
 /**
@@ -83,15 +83,16 @@ const TRANSFER_PATTERNS = [
  */
 export function isInternalTransfer(description: string): boolean {
   const lower = description.toLowerCase().replace(/[\u200F\u200E"]/g, "");
-  return TRANSFER_PATTERNS.some(rx => rx.test(lower));
+  return TRANSFER_PATTERNS.some((rx) => rx.test(lower));
 }
 
 /**
  * Filter out internal transfers from a transaction list.
  */
-export function filterInternalTransfers(
-  transactions: ParsedTransaction[]
-): { clean: ParsedTransaction[]; removed: ParsedTransaction[] } {
+export function filterInternalTransfers(transactions: ParsedTransaction[]): {
+  clean: ParsedTransaction[];
+  removed: ParsedTransaction[];
+} {
   const clean: ParsedTransaction[] = [];
   const removed: ParsedTransaction[] = [];
 
@@ -117,30 +118,30 @@ export interface TierInfo {
 }
 
 const TIER_MAP: Record<string, ExpenseTier> = {
-  housing:       "essential",
-  food:          "essential",
-  health:        "essential",
-  utilities:     "essential",
-  insurance:     "essential",
-  education:     "essential",
-  transport:     "essential",
-  fees:          "essential",    // bank fees are essential overhead
-  leisure:       "lifestyle",
-  dining_out:    "lifestyle",   // dining out & entertainment
-  shopping:      "lifestyle",
+  housing: "essential",
+  food: "essential",
+  health: "essential",
+  utilities: "essential",
+  insurance: "essential",
+  education: "essential",
+  transport: "essential",
+  fees: "essential", // bank fees are essential overhead
+  leisure: "lifestyle",
+  dining_out: "lifestyle", // dining out & entertainment
+  shopping: "lifestyle",
   subscriptions: "lifestyle",
-  cash:          "lifestyle",
-  pension:       "growth",
-  salary:        "growth",    // income, not expense
-  refunds:       "lifestyle", // credit refunds — offsets expenses
-  transfers:     "lifestyle",
-  other:         "lifestyle",
+  cash: "lifestyle",
+  pension: "growth",
+  salary: "growth", // income, not expense
+  refunds: "lifestyle", // credit refunds — offsets expenses
+  transfers: "lifestyle",
+  other: "lifestyle",
 };
 
 export const TIER_INFO: Record<ExpenseTier, TierInfo> = {
   essential: { tier: "essential", label: "הכרחיות", icon: "verified", color: "#1B4332" },
   lifestyle: { tier: "lifestyle", label: "איכות חיים", icon: "spa", color: "#f59e0b" },
-  growth:    { tier: "growth",    label: "צמיחה וחיסכון", icon: "trending_up", color: "#3b82f6" },
+  growth: { tier: "growth", label: "צמיחה וחיסכון", icon: "trending_up", color: "#3b82f6" },
 };
 
 export function getTier(categoryKey: string): ExpenseTier {
@@ -150,11 +151,13 @@ export function getTier(categoryKey: string): ExpenseTier {
 /**
  * Group transactions by tier.
  */
-export function groupByTier(transactions: ParsedTransaction[]): Record<ExpenseTier, { total: number; count: number }> {
+export function groupByTier(
+  transactions: ParsedTransaction[]
+): Record<ExpenseTier, { total: number; count: number }> {
   const result: Record<ExpenseTier, { total: number; count: number }> = {
     essential: { total: 0, count: 0 },
     lifestyle: { total: 0, count: 0 },
-    growth:    { total: 0, count: 0 },
+    growth: { total: 0, count: 0 },
   };
 
   for (const t of transactions) {

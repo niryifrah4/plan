@@ -13,11 +13,20 @@ import { loadPensionFunds, EVENT_NAME as PENSION_EVENT } from "@/lib/pension-sto
 import { loadProperties, EVENT_NAME as RE_EVENT, type Property } from "@/lib/realestate-store";
 import { loadSecurities, type SecurityRow } from "@/lib/securities-store";
 import { getFundById, type FundAllocation } from "@/lib/fund-registry";
-import { computeAllocation, generateInsights, type AssetWithAllocation } from "@/lib/allocation-engine";
+import {
+  computeAllocation,
+  generateInsights,
+  type AssetWithAllocation,
+} from "@/lib/allocation-engine";
 import { DEFAULT_ALLOCATIONS } from "@/lib/default-allocations";
 import { loadAssumptions } from "@/lib/assumptions";
 import { buildBudgetLines, totalBudget } from "@/lib/budget-store";
-import { loadAccounts, totalBankBalance, totalCreditCharges, ACCOUNTS_EVENT } from "@/lib/accounts-store";
+import {
+  loadAccounts,
+  totalBankBalance,
+  totalCreditCharges,
+  ACCOUNTS_EVENT,
+} from "@/lib/accounts-store";
 import { loadKidsSavings, KIDS_SAVINGS_EVENT } from "@/lib/kids-savings-store";
 import {
   loadHistory,
@@ -33,16 +42,21 @@ import { QuickUpdateModal } from "@/components/balance/QuickUpdateModal";
 // excluded here — checking/savings live under the Accounts tab. Liquid totals
 // are still included in net worth via mergedAssets.
 const ASSET_GROUPS: Record<string, { label: string; icon: string; color: string; href: string }> = {
-  investments: { label: "ניירות ערך ותיק השקעות", icon: "candlestick_chart",      color: "#1B4332", href: "/investments" },
-  pension:     { label: "פנסיוני ארוך טווח",      icon: "elderly",                color: "#1a6b42", href: "/pension" },
-  realestate:  { label: "נדל״ן",                  icon: "home",                   color: "#125c38", href: "/realestate" },
-  kids:        { label: "חיסכון לכל ילד",          icon: "child_care",             color: "#6366f1", href: "" },
-  other:       { label: "רכב ונכסים נוספים",      icon: "directions_car",         color: "#2B694D", href: "" },
+  investments: {
+    label: "ניירות ערך ותיק השקעות",
+    icon: "candlestick_chart",
+    color: "#1B4332",
+    href: "/investments",
+  },
+  pension: { label: "פנסיוני ארוך טווח", icon: "elderly", color: "#1a6b42", href: "/pension" },
+  realestate: { label: "נדל״ן", icon: "home", color: "#125c38", href: "/realestate" },
+  kids: { label: "חיסכון לכל ילד", icon: "child_care", color: "#6366f1", href: "" },
+  other: { label: "רכב ונכסים נוספים", icon: "directions_car", color: "#2B694D", href: "" },
 };
 const LIAB_GROUPS: Record<string, { label: string; icon: string; color: string; href: string }> = {
-  mortgage: { label: "משכנתא",         icon: "home_work",   color: "#7f1d1d", href: "/debt" },
-  loans:    { label: "הלוואות",        icon: "credit_score", color: "#b91c1c", href: "/debt" },
-  cc:       { label: "אשראי ותשלומים", icon: "credit_card",  color: "#ef4444", href: "/debt" },
+  mortgage: { label: "משכנתא", icon: "home_work", color: "#7f1d1d", href: "/debt" },
+  loans: { label: "הלוואות", icon: "credit_score", color: "#b91c1c", href: "/debt" },
+  cc: { label: "אשראי ותשלומים", icon: "credit_card", color: "#ef4444", href: "/debt" },
 };
 
 export function WealthTab() {
@@ -50,7 +64,7 @@ export function WealthTab() {
   // relevant sync event (debts, goals, buckets, budget, investments, ...).
   const [refreshTick, setRefreshTick] = useState(0);
   useEffect(() => {
-    const bump = () => setRefreshTick(t => t + 1);
+    const bump = () => setRefreshTick((t) => t + 1);
     const EVENTS = [
       "storage",
       "verdant:goals:updated",
@@ -60,8 +74,8 @@ export function WealthTab() {
       "verdant:debt:updated",
       KIDS_SAVINGS_EVENT,
     ];
-    EVENTS.forEach(e => window.addEventListener(e, bump));
-    return () => EVENTS.forEach(e => window.removeEventListener(e, bump));
+    EVENTS.forEach((e) => window.addEventListener(e, bump));
+    return () => EVENTS.forEach((e) => window.removeEventListener(e, bump));
   }, []);
 
   // Load real debt data from SSOT
@@ -95,7 +109,10 @@ export function WealthTab() {
   }, [refreshTick]);
 
   // Load bank accounts & credit cards
-  const [accounts, setAccounts] = useState<ReturnType<typeof loadAccounts>>({ banks: [], creditCards: [] });
+  const [accounts, setAccounts] = useState<ReturnType<typeof loadAccounts>>({
+    banks: [],
+    creditCards: [],
+  });
   useEffect(() => {
     setAccounts(loadAccounts());
     const handler = () => setAccounts(loadAccounts());
@@ -128,8 +145,8 @@ export function WealthTab() {
 
   const liabilities = useMemo(() => {
     const creditCardLiabilities: LiabilitySummaryRow[] = accounts.creditCards
-      .filter(c => c.currentCharge > 0)
-      .map(c => ({
+      .filter((c) => c.currentCharge > 0)
+      .map((c) => ({
         id: c.id,
         name: `${c.company} · ${c.lastFourDigits}`,
         liability_group: "cc" as const,
@@ -138,7 +155,7 @@ export function WealthTab() {
         monthly_payment: c.currentCharge,
       }));
     // Real debts only — no demo fallback. Credit cards come from accounts store.
-    const base = realLiabilities.filter(l => l.liability_group !== "cc");
+    const base = realLiabilities.filter((l) => l.liability_group !== "cc");
     return [...base, ...creditCardLiabilities];
   }, [realLiabilities, accounts]);
 
@@ -148,7 +165,7 @@ export function WealthTab() {
     const reTotalValue = reProperties.reduce((s, p) => s + (p.currentValue || 0), 0);
     const reMortgageTotal = reProperties.reduce((s, p) => s + (p.mortgageBalance || 0), 0);
 
-    const bankAssets = accounts.banks.map(b => ({
+    const bankAssets = accounts.banks.map((b) => ({
       id: b.id,
       household_id: "hh",
       asset_group: "liquid" as const,
@@ -160,7 +177,7 @@ export function WealthTab() {
       updated_at: new Date().toISOString(),
     }));
 
-    const securityAssets = securities.map(s => ({
+    const securityAssets = securities.map((s) => ({
       id: s.id,
       household_id: "hh",
       asset_group: "investments" as const,
@@ -172,7 +189,7 @@ export function WealthTab() {
       updated_at: new Date().toISOString(),
     }));
 
-    const pensionAssets = pensionFunds.map(pf => ({
+    const pensionAssets = pensionFunds.map((pf) => ({
       id: `pf-${pf.id}`,
       household_id: "hh",
       asset_group: "pension" as const,
@@ -184,7 +201,7 @@ export function WealthTab() {
       updated_at: new Date().toISOString(),
     }));
 
-    const reAssets = reProperties.map(p => ({
+    const reAssets = reProperties.map((p) => ({
       id: p.id,
       household_id: "hh",
       asset_group: "realestate" as const,
@@ -197,8 +214,8 @@ export function WealthTab() {
     }));
 
     const kidsAssets = kidsSavings
-      .filter(k => k.currentBalance > 0)
-      .map(k => ({
+      .filter((k) => k.currentBalance > 0)
+      .map((k) => ({
         id: `kids-${k.id}`,
         household_id: "hh",
         asset_group: "kids" as const,
@@ -219,15 +236,17 @@ export function WealthTab() {
 
   const totalAssets = mergedAssets.assets.reduce((s, a) => s + a.balance, 0);
   // Add RE mortgage balances as liabilities (avoid double-count with debt-store mortgage)
-  const debtMortgageBalance = liabilities.filter(l => l.liability_group === "mortgage").reduce((s, l) => s + l.balance, 0);
+  const debtMortgageBalance = liabilities
+    .filter((l) => l.liability_group === "mortgage")
+    .reduce((s, l) => s + l.balance, 0);
   const reMortgageExtra = Math.max(0, mergedAssets.reMortgageTotal - debtMortgageBalance);
-  const totalLiab  = liabilities.reduce((s, l) => s + l.balance, 0) + reMortgageExtra;
+  const totalLiab = liabilities.reduce((s, l) => s + l.balance, 0) + reMortgageExtra;
   const netWorth = totalAssets - totalLiab;
   const ratio = totalAssets > 0 ? Math.round((totalLiab / totalAssets) * 100) : 0;
 
   // Group assets by category
   const assetGroups = useMemo(() => {
-    type AssetItem = typeof mergedAssets.assets[number];
+    type AssetItem = (typeof mergedAssets.assets)[number];
     const groups: Record<string, { total: number; items: AssetItem[] }> = {};
     for (const a of mergedAssets.assets) {
       if (!groups[a.asset_group]) groups[a.asset_group] = { total: 0, items: [] };
@@ -255,21 +274,36 @@ export function WealthTab() {
       pct: Math.round(((assetGroups[key]?.total || 0) / totalAssets) * 100),
       color: meta.color,
     }))
-    .filter(s => s.pct > 0);
+    .filter((s) => s.pct > 0);
   const liabSlices = Object.entries(LIAB_GROUPS)
     .map(([key, meta]) => ({
       label: meta.label,
       pct: totalLiab > 0 ? Math.round(((liabGroups[key]?.total || 0) / totalLiab) * 100) : 0,
       color: meta.color,
     }))
-    .filter(s => s.pct > 0);
+    .filter((s) => s.pct > 0);
 
   // Advisor insights based on data
-  const insights: { icon: string; title: string; text: string; severity: "info" | "warn" | "good" }[] = [];
+  const insights: {
+    icon: string;
+    title: string;
+    text: string;
+    severity: "info" | "warn" | "good";
+  }[] = [];
   if (ratio > 40) {
-    insights.push({ icon: "warning", title: "יחס חוב גבוה", text: `יחס חוב/נכס ${ratio}% — גבוה מ-40%. שקלו מיחזור או צמצום התחייבויות.`, severity: "warn" });
+    insights.push({
+      icon: "warning",
+      title: "יחס חוב גבוה",
+      text: `יחס חוב/נכס ${ratio}% — גבוה מ-40%. שקלו מיחזור או צמצום התחייבויות.`,
+      severity: "warn",
+    });
   } else {
-    insights.push({ icon: "verified", title: "יחס חוב בריא", text: `יחס חוב/נכס ${ratio}% — בטווח הבריא (מתחת ל-40%).`, severity: "good" });
+    insights.push({
+      icon: "verified",
+      title: "יחס חוב בריא",
+      text: `יחס חוב/נכס ${ratio}% — בטווח הבריא (מתחת ל-40%).`,
+      severity: "good",
+    });
   }
   const liquidTotal = assetGroups["liquid"]?.total || 0;
   // Real monthly expense: prefer actual transactions, fallback to assumptions.
@@ -285,13 +319,24 @@ export function WealthTab() {
     } catch {}
     return 0;
   }, [refreshTick]);
-  const emergencyMonths = liquidTotal > 0 ? (liquidTotal / monthlyExpense) : 0;
+  const emergencyMonths = liquidTotal > 0 ? liquidTotal / monthlyExpense : 0;
   if (emergencyMonths < 3) {
-    insights.push({ icon: "savings", title: "קרן חירום נמוכה", text: `${emergencyMonths.toFixed(1)} חודשי הוצאה בנזילות — מומלץ 3-6 חודשים.`, severity: "warn" });
+    insights.push({
+      icon: "savings",
+      title: "קרן חירום נמוכה",
+      text: `${emergencyMonths.toFixed(1)} חודשי הוצאה בנזילות — מומלץ 3-6 חודשים.`,
+      severity: "warn",
+    });
   }
-  const pensionPct = totalAssets > 0 ? Math.round(((assetGroups["pension"]?.total || 0) / totalAssets) * 100) : 0;
+  const pensionPct =
+    totalAssets > 0 ? Math.round(((assetGroups["pension"]?.total || 0) / totalAssets) * 100) : 0;
   if (pensionPct > 40) {
-    insights.push({ icon: "lock", title: "ריכוז פנסיוני גבוה", text: `${pensionPct}% מהנכסים נעולים בפנסיה — שקלו גיוון לנכסים נזילים יותר.`, severity: "info" });
+    insights.push({
+      icon: "lock",
+      title: "ריכוז פנסיוני גבוה",
+      text: `${pensionPct}% מהנכסים נעולים בפנסיה — שקלו גיוון לנכסים נזילים יותר.`,
+      severity: "info",
+    });
   }
 
   // ─── Allocation Engine ───
@@ -322,10 +367,19 @@ export function WealthTab() {
       if (a.asset_group === "pension") continue;
       let alloc = DEFAULT_ALLOCATIONS.bank_account; // fallback
       let sector: AssetWithAllocation["sector"] = "cash";
-      if (a.asset_group === "liquid") { alloc = DEFAULT_ALLOCATIONS.bank_account; sector = "cash"; }
-      else if (a.asset_group === "investments") { alloc = DEFAULT_ALLOCATIONS.us_stock; sector = "investment"; }
-      else if (a.asset_group === "realestate") { alloc = DEFAULT_ALLOCATIONS.realestate_il; sector = "realestate"; }
-      else if (a.asset_group === "kids") { alloc = DEFAULT_ALLOCATIONS.bank_account; sector = "investment"; }
+      if (a.asset_group === "liquid") {
+        alloc = DEFAULT_ALLOCATIONS.bank_account;
+        sector = "cash";
+      } else if (a.asset_group === "investments") {
+        alloc = DEFAULT_ALLOCATIONS.us_stock;
+        sector = "investment";
+      } else if (a.asset_group === "realestate") {
+        alloc = DEFAULT_ALLOCATIONS.realestate_il;
+        sector = "realestate";
+      } else if (a.asset_group === "kids") {
+        alloc = DEFAULT_ALLOCATIONS.bank_account;
+        sector = "investment";
+      }
 
       assets.push({
         id: `asset-${a.id}`,
@@ -339,13 +393,16 @@ export function WealthTab() {
     return computeAllocation(assets);
   }, [pensionFunds, mergedAssets]);
 
-  const allocationInsights = useMemo(() => generateInsights(allocationBreakdown), [allocationBreakdown]);
+  const allocationInsights = useMemo(
+    () => generateInsights(allocationBreakdown),
+    [allocationBreakdown]
+  );
 
   const severityColors = { warn: "#b91c1c", good: "#1B4332", info: "#1d4ed8" };
   const severityBg = { warn: "#fef2f2", good: "#f0fdf4", info: "#eff6ff" };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="mx-auto max-w-6xl">
       <PageHeader
         subtitle="Wealth Map · הון עצמי"
         title="מפת נכסים"
@@ -354,21 +411,54 @@ export function WealthTab() {
 
       {/* ===== KPI Bento — solid Botanical tiles (first, right under header) ===== */}
       <SolidKpiRow>
-        <SolidKpi label="סך נכסים"             value={fmtILS(totalAssets)} icon="savings"          tone="forest" />
-        <SolidKpi label="סך התחייבויות"        value={fmtILS(totalLiab)}   icon="credit_card_off"  tone="red" />
-        <SolidKpi label="הון עצמי (Net Worth)" value={fmtILS(netWorth)}    icon="account_balance"  tone="emerald" />
-        <SolidKpi label="יחס חוב/נכס"          value={`${ratio}%`}         icon="balance"          tone={ratio > 40 ? "red" : "sage"} sub="בריא: מתחת ל-40%" />
+        <SolidKpi label="סך נכסים" value={fmtILS(totalAssets)} icon="savings" tone="forest" />
+        <SolidKpi
+          label="סך התחייבויות"
+          value={fmtILS(totalLiab)}
+          icon="credit_card_off"
+          tone="red"
+        />
+        <SolidKpi
+          label="הון עצמי (Net Worth)"
+          value={fmtILS(netWorth)}
+          icon="account_balance"
+          tone="emerald"
+        />
+        <SolidKpi
+          label="יחס חוב/נכס"
+          value={`${ratio}%`}
+          icon="balance"
+          tone={ratio > 40 ? "red" : "sage"}
+          sub="בריא: מתחת ל-40%"
+        />
       </SolidKpiRow>
 
       {/* ===== Advisor Insights (after KPIs) ===== */}
       {insights.length > 0 && (
-        <section className="space-y-2 mb-6">
+        <section className="mb-6 space-y-2">
           {insights.map((ins, i) => (
-            <div key={i} className="flex items-start gap-3 p-4 rounded-xl" style={{ background: severityBg[ins.severity], border: `1px solid ${severityColors[ins.severity]}22` }}>
-              <span className="material-symbols-outlined text-[20px] mt-0.5" style={{ color: severityColors[ins.severity] }}>{ins.icon}</span>
+            <div
+              key={i}
+              className="flex items-start gap-3 rounded-xl p-4"
+              style={{
+                background: severityBg[ins.severity],
+                border: `1px solid ${severityColors[ins.severity]}22`,
+              }}
+            >
+              <span
+                className="material-symbols-outlined mt-0.5 text-[20px]"
+                style={{ color: severityColors[ins.severity] }}
+              >
+                {ins.icon}
+              </span>
               <div>
-                <div className="text-sm font-extrabold" style={{ color: severityColors[ins.severity] }}>{ins.title}</div>
-                <div className="text-xs text-verdant-muted mt-0.5">{ins.text}</div>
+                <div
+                  className="text-sm font-extrabold"
+                  style={{ color: severityColors[ins.severity] }}
+                >
+                  {ins.title}
+                </div>
+                <div className="mt-0.5 text-xs text-verdant-muted">{ins.text}</div>
               </div>
             </div>
           ))}
@@ -377,9 +467,11 @@ export function WealthTab() {
 
       {/* ===== Net Worth History ===== */}
       <section className="card-pad mb-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px] text-verdant-emerald">trending_up</span>
+            <span className="material-symbols-outlined text-[18px] text-verdant-emerald">
+              trending_up
+            </span>
             <h2 className="text-sm font-extrabold text-verdant-ink">היסטוריית שווי נקי</h2>
           </div>
           <div className="flex items-center gap-2">
@@ -387,7 +479,11 @@ export function WealthTab() {
               <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
               הפק דוח ללקוח (PDF)
             </Link>
-            <button type="button" onClick={() => setShowQuickUpdate(true)} className="btn btn-primary btn-sm">
+            <button
+              type="button"
+              onClick={() => setShowQuickUpdate(true)}
+              className="btn btn-primary btn-sm"
+            >
               <span className="material-symbols-outlined text-[16px]">bolt</span>
               עדכון מהיר
             </button>
@@ -397,45 +493,46 @@ export function WealthTab() {
         <NetWorthHistoryChart snapshots={snapshots} />
 
         {snapshots.length > 0 && (
-          <div className="mt-5 pt-4 border-t v-divider">
-            <div className="caption mb-2">
-              צילומים אחרונים
-            </div>
+          <div className="v-divider mt-5 border-t pt-4">
+            <div className="caption mb-2">צילומים אחרונים</div>
             <div className="space-y-1.5">
-              {[...snapshots].reverse().slice(0, 6).map(s => (
-                <div
-                  key={s.id}
-                  className="group flex items-center justify-between py-1.5 px-2 rounded hover:bg-[#f4f7ed] transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-bold text-verdant-ink tabular">
-                      {s.date.split("-").reverse().join("/")}
-                    </span>
-                    {s.note && (
-                      <span className="text-[11px] text-verdant-muted truncate max-w-[200px]">
-                        {s.note}
+              {[...snapshots]
+                .reverse()
+                .slice(0, 6)
+                .map((s) => (
+                  <div
+                    key={s.id}
+                    className="group flex items-center justify-between rounded px-2 py-1.5 transition-colors hover:bg-[#f4f7ed]"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="tabular text-xs font-bold text-verdant-ink">
+                        {s.date.split("-").reverse().join("/")}
                       </span>
-                    )}
+                      {s.note && (
+                        <span className="max-w-[200px] truncate text-[11px] text-verdant-muted">
+                          {s.note}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="tabular text-xs font-extrabold text-verdant-emerald">
+                        {fmtILS(s.netWorth)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = deleteSnapshot(s.id);
+                          setSnapshots(next);
+                        }}
+                        className="text-[11px] font-bold opacity-0 transition-opacity group-hover:opacity-100"
+                        style={{ color: "#dc2626" }}
+                        aria-label="מחק צילום"
+                      >
+                        מחק
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-extrabold tabular text-verdant-emerald">
-                      {fmtILS(s.netWorth)}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const next = deleteSnapshot(s.id);
-                        setSnapshots(next);
-                      }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-[11px] font-bold"
-                      style={{ color: "#dc2626" }}
-                      aria-label="מחק צילום"
-                    >
-                      מחק
-                    </button>
-                  </div>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
         )}
@@ -452,8 +549,10 @@ export function WealthTab() {
 
         // Map securities kinds → asset class
         const STOCK_KINDS = new Set(["rsu", "option", "espp", "stock", "etf"]);
-        const BOND_KINDS  = new Set(["bond"]);
-        let secStocks = 0, secBonds = 0, secOther = 0;
+        const BOND_KINDS = new Set(["bond"]);
+        let secStocks = 0,
+          secBonds = 0,
+          secOther = 0;
         for (const s of secAlloc.byKind) {
           if (STOCK_KINDS.has(s.key)) secStocks += s.value;
           else if (BOND_KINDS.has(s.key)) secBonds += s.value;
@@ -461,11 +560,11 @@ export function WealthTab() {
         }
 
         // Pension by risk (already in ₪)
-        const penEquity = penAlloc.byRisk.find(s => s.key === "equity")?.value || 0;
-        const penBonds  = penAlloc.byRisk.find(s => s.key === "bonds")?.value  || 0;
-        const penCash   = penAlloc.byRisk.find(s => s.key === "cash")?.value   || 0;
-        const penAlt    = penAlloc.byRisk.find(s => s.key === "alternative")?.value || 0;
-        const penUnknown= penAlloc.byRisk.find(s => s.key === "unknown")?.value || 0;
+        const penEquity = penAlloc.byRisk.find((s) => s.key === "equity")?.value || 0;
+        const penBonds = penAlloc.byRisk.find((s) => s.key === "bonds")?.value || 0;
+        const penCash = penAlloc.byRisk.find((s) => s.key === "cash")?.value || 0;
+        const penAlt = penAlloc.byRisk.find((s) => s.key === "alternative")?.value || 0;
+        const penUnknown = penAlloc.byRisk.find((s) => s.key === "unknown")?.value || 0;
 
         // Real estate equity (value − mortgage)
         const reEquity = reProperties.reduce((sum: number, p: Property) => {
@@ -477,8 +576,17 @@ export function WealthTab() {
         // Cash from bank accounts
         const cashTotal = totalBankBalance(accounts);
 
-        const total = penEquity + penBonds + penCash + penAlt + penUnknown
-                    + secStocks + secBonds + secOther + reEquity + cashTotal;
+        const total =
+          penEquity +
+          penBonds +
+          penCash +
+          penAlt +
+          penUnknown +
+          secStocks +
+          secBonds +
+          secOther +
+          reEquity +
+          cashTotal;
 
         if (total === 0) return null;
 
@@ -486,16 +594,16 @@ export function WealthTab() {
         // is NOT liquid — locked until retirement. Show it as its own slice
         // so the user doesn't think it's emergency-fund money.
         const totalSlices = [
-          { key: "equity",     label: "מניות",            value: penEquity + secStocks, color: "#7C2D12" },
-          { key: "bonds",      label: "אג״ח",             value: penBonds + secBonds,   color: "#1E3A8A" },
-          { key: "re",         label: "נדל״ן",            value: reEquity,              color: "#1B4332" },
-          { key: "cash",       label: "מזומן נזיל",      value: cashTotal,             color: "#0F766E" },
-          { key: "pen_cash",   label: "פנסיוני שמרני",   value: penCash,               color: "#5b8b78" },
-          { key: "alt",        label: "אלטרנטיבי",        value: penAlt + secOther,     color: "#6B21A8" },
-          { key: "unknown",    label: "לא מזוהה",        value: penUnknown,            color: "#94a3b8" },
+          { key: "equity", label: "מניות", value: penEquity + secStocks, color: "#7C2D12" },
+          { key: "bonds", label: "אג״ח", value: penBonds + secBonds, color: "#1E3A8A" },
+          { key: "re", label: "נדל״ן", value: reEquity, color: "#1B4332" },
+          { key: "cash", label: "מזומן נזיל", value: cashTotal, color: "#0F766E" },
+          { key: "pen_cash", label: "פנסיוני שמרני", value: penCash, color: "#5b8b78" },
+          { key: "alt", label: "אלטרנטיבי", value: penAlt + secOther, color: "#6B21A8" },
+          { key: "unknown", label: "לא מזוהה", value: penUnknown, color: "#94a3b8" },
         ]
-          .filter(s => s.value > 0.5)
-          .map(s => ({ ...s, pct: (s.value / total) * 100 }))
+          .filter((s) => s.value > 0.5)
+          .map((s) => ({ ...s, pct: (s.value / total) * 100 }))
           .sort((a, b) => b.value - a.value);
 
         return (
@@ -509,7 +617,7 @@ export function WealthTab() {
         );
       })()}
 
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+      <section className="mb-6 grid grid-cols-1 gap-5 md:grid-cols-2">
         <div className="card-pad">
           <div className="caption mb-3">פיזור נכסים</div>
           <AssetDonut slices={assetSlices} />
@@ -523,14 +631,16 @@ export function WealthTab() {
       {/* ===== Multi-Dimensional Allocation ===== */}
       {allocationBreakdown.totalValue > 0 && (
         <section className="card-pad mb-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="text-sm font-extrabold text-verdant-ink">איך הכסף שלך מתחלק</h2>
-              <p className="text-[11px] text-verdant-muted mt-0.5">שווי כולל: {fmtILS(allocationBreakdown.totalValue)}</p>
+              <p className="mt-0.5 text-[11px] text-verdant-muted">
+                שווי כולל: {fmtILS(allocationBreakdown.totalValue)}
+              </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <div className="text-center">
               <div className="caption mb-2">באיזה מטבע</div>
               <WealthDonut data={allocationBreakdown.currency} />
@@ -550,11 +660,13 @@ export function WealthTab() {
           </div>
 
           {allocationInsights.length > 0 && (
-            <div className="mt-4 pt-4 border-t v-divider space-y-2">
+            <div className="v-divider mt-4 space-y-2 border-t pt-4">
               {allocationInsights.map((insight, i) => (
                 <div key={i} className="flex items-start gap-2 text-xs">
-                  <span className="material-symbols-outlined text-[14px] text-verdant-accent mt-0.5">lightbulb</span>
-                  <span className="text-verdant-ink font-bold">{insight}</span>
+                  <span className="material-symbols-outlined mt-0.5 text-[14px] text-verdant-accent">
+                    lightbulb
+                  </span>
+                  <span className="font-bold text-verdant-ink">{insight}</span>
                 </div>
               ))}
             </div>
@@ -564,11 +676,13 @@ export function WealthTab() {
 
       {/* ===== Assets Summary Cards — Drill Down ===== */}
       <section className="mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="material-symbols-outlined text-[18px] text-verdant-emerald">account_balance</span>
+        <div className="mb-3 flex items-center gap-2">
+          <span className="material-symbols-outlined text-[18px] text-verdant-emerald">
+            account_balance
+          </span>
           <h2 className="text-sm font-extrabold text-verdant-ink">נכסים לפי קטגוריה</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           {Object.entries(ASSET_GROUPS).map(([key, meta]) => {
             const group = assetGroups[key];
             if (!group) return null;
@@ -576,26 +690,42 @@ export function WealthTab() {
             const hasLink = meta.href !== "";
             const inner = (
               <>
-                <div className="flex items-center justify-between mb-3">
+                <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: meta.color + "15" }}>
-                      <span className="material-symbols-outlined text-[18px]" style={{ color: meta.color }}>{meta.icon}</span>
+                    <div
+                      className="flex h-8 w-8 items-center justify-center rounded-lg"
+                      style={{ background: meta.color + "15" }}
+                    >
+                      <span
+                        className="material-symbols-outlined text-[18px]"
+                        style={{ color: meta.color }}
+                      >
+                        {meta.icon}
+                      </span>
                     </div>
                     <div className="text-sm font-extrabold text-verdant-ink">{meta.label}</div>
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: meta.color + "15", color: meta.color }}>
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                    style={{ background: meta.color + "15", color: meta.color }}
+                  >
                     {pct}%
                   </span>
                 </div>
-                <div className="text-xl font-extrabold tabular" style={{ color: meta.color }}>{fmtILS(group.total)}</div>
-                <div className="text-[11px] text-verdant-muted mt-2">
+                <div className="tabular text-xl font-extrabold" style={{ color: meta.color }}>
+                  {fmtILS(group.total)}
+                </div>
+                <div className="mt-2 text-[11px] text-verdant-muted">
                   {group.items.length} פריטים
                   {group.items.length <= 3 && (
-                    <span> · {group.items.map(a => a.name).join(", ")}</span>
+                    <span> · {group.items.map((a) => a.name).join(", ")}</span>
                   )}
                 </div>
                 {hasLink && (
-                  <div className="flex items-center gap-1 mt-3 pt-3 border-t v-divider text-[10px] font-bold" style={{ color: meta.color }}>
+                  <div
+                    className="v-divider mt-3 flex items-center gap-1 border-t pt-3 text-[10px] font-bold"
+                    style={{ color: meta.color }}
+                  >
                     <span>צפה בפירוט</span>
                     <span className="material-symbols-outlined text-[12px]">arrow_back</span>
                   </div>
@@ -603,7 +733,11 @@ export function WealthTab() {
               </>
             );
             return hasLink ? (
-              <Link key={key} href={meta.href as any} className="card-pad flex flex-col justify-between hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
+              <Link
+                key={key}
+                href={meta.href as any}
+                className="card-pad flex cursor-pointer flex-col justify-between transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+              >
                 {inner}
               </Link>
             ) : (
@@ -617,11 +751,13 @@ export function WealthTab() {
 
       {/* ===== Liabilities Summary Cards — Drill Down ===== */}
       <section className="mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="material-symbols-outlined text-[18px]" style={{ color: "#b91c1c" }}>credit_score</span>
+        <div className="mb-3 flex items-center gap-2">
+          <span className="material-symbols-outlined text-[18px]" style={{ color: "#b91c1c" }}>
+            credit_score
+          </span>
           <h2 className="text-sm font-extrabold text-verdant-ink">התחייבויות לפי קטגוריה</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           {Object.entries(LIAB_GROUPS).map(([key, meta]) => {
             const group = liabGroups[key];
             if (!group) return null;
@@ -631,24 +767,40 @@ export function WealthTab() {
               <Link
                 key={key}
                 href={meta.href as any}
-                className="card-pad hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
+                className="card-pad cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
               >
-                <div className="flex items-center justify-between mb-3">
+                <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: meta.color + "15" }}>
-                      <span className="material-symbols-outlined text-[18px]" style={{ color: meta.color }}>{meta.icon}</span>
+                    <div
+                      className="flex h-8 w-8 items-center justify-center rounded-lg"
+                      style={{ background: meta.color + "15" }}
+                    >
+                      <span
+                        className="material-symbols-outlined text-[18px]"
+                        style={{ color: meta.color }}
+                      >
+                        {meta.icon}
+                      </span>
                     </div>
                     <div className="text-sm font-extrabold text-verdant-ink">{meta.label}</div>
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: meta.color + "15", color: meta.color }}>
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                    style={{ background: meta.color + "15", color: meta.color }}
+                  >
                     {pct}%
                   </span>
                 </div>
-                <div className="text-xl font-extrabold tabular" style={{ color: meta.color }}>{fmtILS(group.total)}</div>
-                <div className="text-[11px] text-verdant-muted mt-2">
+                <div className="tabular text-xl font-extrabold" style={{ color: meta.color }}>
+                  {fmtILS(group.total)}
+                </div>
+                <div className="mt-2 text-[11px] text-verdant-muted">
                   {group.items.length} פריטים · החזר חודשי: {fmtILS(totalMonthly)}
                 </div>
-                <div className="flex items-center gap-1 mt-3 pt-3 border-t v-divider text-[10px] font-bold" style={{ color: meta.color }}>
+                <div
+                  className="v-divider mt-3 flex items-center gap-1 border-t pt-3 text-[10px] font-bold"
+                  style={{ color: meta.color }}
+                >
                   <span>צפה בפירוט</span>
                   <span className="material-symbols-outlined text-[12px]">arrow_back</span>
                 </div>
@@ -662,26 +814,38 @@ export function WealthTab() {
       <section className="mb-6">
         <Link
           href="/balance?tab=accounts"
-          className="card-pad flex items-center justify-between hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
+          className="card-pad flex cursor-pointer items-center justify-between transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "#2B694D15" }}>
-              <span className="material-symbols-outlined text-[22px]" style={{ color: "#2B694D" }}>account_balance_wallet</span>
+            <div
+              className="flex h-10 w-10 items-center justify-center rounded-lg"
+              style={{ background: "#2B694D15" }}
+            >
+              <span className="material-symbols-outlined text-[22px]" style={{ color: "#2B694D" }}>
+                account_balance_wallet
+              </span>
             </div>
             <div>
-              <div className="text-[11px] font-bold uppercase tracking-[0.15em] text-verdant-muted mb-0.5">נזילים · עו״ש וחסכון</div>
+              <div className="mb-0.5 text-[11px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
+                נזילים · עו״ש וחסכון
+              </div>
               <div className="text-base font-extrabold text-verdant-ink">
                 {accounts.banks.length} חשבונות
-                {accounts.creditCards.length > 0 && ` · ${accounts.creditCards.length} כרטיסי אשראי`}
+                {accounts.creditCards.length > 0 &&
+                  ` · ${accounts.creditCards.length} כרטיסי אשראי`}
               </div>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-left">
-              <div className="text-2xl font-extrabold tabular" style={{ color: "#2B694D" }}>{fmtILS(liquidTotal)}</div>
-              <div className="text-[11px] text-verdant-muted mt-0.5">פירוט מלא בלשונית חשבונות</div>
+              <div className="tabular text-2xl font-extrabold" style={{ color: "#2B694D" }}>
+                {fmtILS(liquidTotal)}
+              </div>
+              <div className="mt-0.5 text-[11px] text-verdant-muted">פירוט מלא בלשונית חשבונות</div>
             </div>
-            <span className="material-symbols-outlined text-[20px] text-verdant-muted">arrow_back</span>
+            <span className="material-symbols-outlined text-[20px] text-verdant-muted">
+              arrow_back
+            </span>
           </div>
         </Link>
       </section>
@@ -689,12 +853,15 @@ export function WealthTab() {
       {/* ===== Net Worth Insight ===== */}
       <div className="card-forest">
         <div className="flex items-start gap-4">
-          <div className="icon-sm flex-shrink-0" style={{ background: "rgba(193,236,212,0.18)", color: "#C1ECD4" }}>
+          <div
+            className="icon-sm flex-shrink-0"
+            style={{ background: "rgba(193,236,212,0.18)", color: "#C1ECD4" }}
+          >
             <span className="material-symbols-outlined text-[20px]">insights</span>
           </div>
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="caption mb-2">סיכום הון עצמי</div>
-            <h3 className="t-lg font-extrabold text-white mb-2">
+            <h3 className="t-lg mb-2 font-extrabold text-white">
               הון עצמי: {fmtILS(netWorth)} · יחס חוב {ratio}%
             </h3>
             <p className="text-[13px] leading-6" style={{ color: "rgba(249,250,242,0.75)" }}>
@@ -721,12 +888,14 @@ export function WealthTab() {
 /* ══════════════════════════════════════════════════════ */
 
 function WealthDonut({ data }: { data: { label: string; pct: number; color: string }[] }) {
-  const r = 50, cx = 60, cy = 60;
+  const r = 50,
+    cx = 60,
+    cy = 60;
   let cum = 0;
 
   return (
     <div className="flex flex-col items-center">
-      <svg viewBox="0 0 120 120" className="w-28 h-28">
+      <svg viewBox="0 0 120 120" className="h-28 w-28">
         {data.map((d, i) => {
           const angle = (d.pct / 100) * 360;
           const start = cum;
@@ -739,18 +908,20 @@ function WealthDonut({ data }: { data: { label: string; pct: number; color: stri
             <path
               key={i}
               d={`M ${cx} ${cy} L ${cx + r * Math.cos(sr)} ${cy + r * Math.sin(sr)} A ${r} ${r} 0 ${la} 1 ${cx + r * Math.cos(er)} ${cy + r * Math.sin(er)} Z`}
-              fill={d.color} stroke="#fff" strokeWidth="2"
+              fill={d.color}
+              stroke="#fff"
+              strokeWidth="2"
             />
           );
         })}
         <circle cx={cx} cy={cy} r="28" fill="#f9faf2" />
       </svg>
-      <div className="space-y-0.5 mt-2">
+      <div className="mt-2 space-y-0.5">
         {data.map((d, i) => (
-          <div key={i} className="flex items-center gap-1.5 justify-center">
-            <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: d.color }} />
-            <span className="text-[10px] text-verdant-ink font-bold">{d.label}</span>
-            <span className="text-[10px] text-verdant-muted tabular">{d.pct}%</span>
+          <div key={i} className="flex items-center justify-center gap-1.5">
+            <div className="h-2 w-2 flex-shrink-0 rounded-sm" style={{ background: d.color }} />
+            <span className="text-[10px] font-bold text-verdant-ink">{d.label}</span>
+            <span className="tabular text-[10px] text-verdant-muted">{d.pct}%</span>
           </div>
         ))}
       </div>

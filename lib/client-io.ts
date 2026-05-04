@@ -172,7 +172,7 @@ export function downloadClientAsJSON(clientId: number): void {
 
 export function importClientFromJSON(
   payload: ClientExportPayload,
-  mode: "new" | "overwrite",
+  mode: "new" | "overwrite"
 ): LocalClient {
   if (typeof window === "undefined") {
     throw new Error("ייבוא זמין רק בדפדפן");

@@ -14,7 +14,9 @@ const SCOPES = [
 export function getOAuth2Client() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/gcal/callback`;
+  const redirectUri =
+    process.env.GOOGLE_REDIRECT_URI ||
+    `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/gcal/callback`;
 
   if (!clientId || !clientSecret) {
     throw new Error("Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET env vars");
@@ -27,8 +29,8 @@ export function getOAuth2Client() {
 export function getAuthUrl(): string {
   const oauth2 = getOAuth2Client();
   return oauth2.generateAuthUrl({
-    access_type: "offline",     // gets refresh_token
-    prompt: "consent",          // always show account picker
+    access_type: "offline", // gets refresh_token
+    prompt: "consent", // always show account picker
     scope: SCOPES,
   });
 }
@@ -83,8 +85,8 @@ export async function createCalendarEvent(
     summary: string;
     description?: string;
     startDateTime: string; // ISO
-    endDateTime: string;   // ISO
-  },
+    endDateTime: string; // ISO
+  }
 ) {
   const cal = getCalendarClient(accessToken, refreshToken);
   const res = await cal.events.insert({
@@ -93,7 +95,7 @@ export async function createCalendarEvent(
       summary: event.summary,
       description: event.description,
       start: { dateTime: event.startDateTime, timeZone: "Asia/Jerusalem" },
-      end:   { dateTime: event.endDateTime,   timeZone: "Asia/Jerusalem" },
+      end: { dateTime: event.endDateTime, timeZone: "Asia/Jerusalem" },
     },
   });
   return res.data;

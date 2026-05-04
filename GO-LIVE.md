@@ -35,6 +35,7 @@
 ### ד. אסוף 3 ערכים
 
 **Settings → API**:
+
 - 📋 העתק **Project URL** — שמור בצד
 - 📋 העתק **anon public** key — שמור בצד
 - 📋 העתק **service_role** key — שמור בצד (הסוד הגדול ביותר, לא לשתף)
@@ -97,9 +98,11 @@ NEXT_PUBLIC_BASE_URL = https://plan-app-XXXX.onrender.com
 ### א. עדכן `NEXT_PUBLIC_BASE_URL`
 
 עכשיו שיש לך URL אמיתי, תחזור ל-Render → Environment → תעדכן:
+
 ```
 NEXT_PUBLIC_BASE_URL = https://plan-app-abc.onrender.com
 ```
+
 (לא לשכוח **Save Changes**.)
 
 ### ב. צור משתמש יועץ ראשון (אתה)
@@ -107,20 +110,25 @@ NEXT_PUBLIC_BASE_URL = https://plan-app-abc.onrender.com
 המערכת לא מאפשרת הרשמה רגילה (סגרנו). יש 2 דרכים:
 
 **אופציה 1 (מומלצת — יועץ ראשי):**
+
 1. Supabase → **Authentication → Users → Invite user**
 2. אימייל שלך
 3. תקבל מייל עם קישור — תלחץ → קבע סיסמה → תהפוך ליועץ אוטומטית
 
 **אופציה 2 (admin SQL):**
+
 1. Supabase → SQL Editor
 2. הרץ:
+
 ```sql
 -- Activate signups for 60 seconds
 update auth.config set value = 'true' where key = 'enable_signup';
 ```
+
 3. לך ל-`https://your-render-url.onrender.com/login?signup=1`
 4. הירשם
 5. חזור ל-SQL וכבה:
+
 ```sql
 update auth.config set value = 'false' where key = 'enable_signup';
 ```
@@ -164,6 +172,7 @@ update auth.config set value = 'false' where key = 'enable_signup';
 ## אחרי Go-Live
 
 ה-checklist הקצר לשבוע הראשון:
+
 - [ ] בדוק 5 לקוחות מבחן (אתה + 4 אנשים שאתה סומך עליהם)
 - [ ] עקוב Render Logs פעם ביום
 - [ ] עקוב Supabase Logs

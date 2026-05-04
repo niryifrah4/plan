@@ -143,25 +143,25 @@ export function removeLinksForGoal(goalId: string): void {
 export function getLinksForAsset(
   assetType: AssetType,
   assetId: string,
-  links?: Record<string, AssetGoalLink>,
+  links?: Record<string, AssetGoalLink>
 ): AssetGoalLink[] {
   const src = links ?? loadLinks();
-  return Object.values(src).filter(l => l.assetType === assetType && l.assetId === assetId);
+  return Object.values(src).filter((l) => l.assetType === assetType && l.assetId === assetId);
 }
 
 export function getLinksForGoal(
   goalId: string,
-  links?: Record<string, AssetGoalLink>,
+  links?: Record<string, AssetGoalLink>
 ): AssetGoalLink[] {
   const src = links ?? loadLinks();
-  return Object.values(src).filter(l => l.goalId === goalId);
+  return Object.values(src).filter((l) => l.goalId === goalId);
 }
 
 /** Total % of an asset already allocated to goals (for validation/warnings). */
 export function totalAllocatedPct(
   assetType: AssetType,
   assetId: string,
-  links?: Record<string, AssetGoalLink>,
+  links?: Record<string, AssetGoalLink>
 ): number {
   return getLinksForAsset(assetType, assetId, links).reduce((s, l) => s + l.pct, 0);
 }
@@ -174,7 +174,7 @@ export function totalAllocatedPct(
 export function computeGoalAmountFromLinks(
   goalId: string,
   assetValueLookup: (assetType: AssetType, assetId: string) => number,
-  links?: Record<string, AssetGoalLink>,
+  links?: Record<string, AssetGoalLink>
 ): { total: number; byType: Record<AssetType, number> } {
   const byType: Record<AssetType, number> = {
     security: 0,

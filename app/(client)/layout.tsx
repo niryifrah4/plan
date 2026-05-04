@@ -28,7 +28,9 @@ export default async function ClientLayout({ children }: { children: React.React
 
   if (isConfigured) {
     const sb = createClient();
-    const { data: { user } } = await sb.auth.getUser();
+    const {
+      data: { user },
+    } = await sb.auth.getUser();
     if (!user) redirect("/login");
 
     const { data: advisor } = await sb
@@ -66,15 +68,13 @@ export default async function ClientLayout({ children }: { children: React.React
         .eq("id", client.household_id)
         .maybeSingle();
 
-      const path =
-        headers().get("x-pathname") ||
-        headers().get("x-invoke-path") ||
-        "";
+      const path = headers().get("x-pathname") || headers().get("x-invoke-path") || "";
       const onOnboarding = path.startsWith("/onboarding");
 
       // Onboarding gate disabled 2026-04-28 per Nir: land on dashboard always.
       // Users can still reach /onboarding via the sidebar when they want.
-      void household; void onOnboarding;
+      void household;
+      void onOnboarding;
     }
   }
 

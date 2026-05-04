@@ -24,8 +24,15 @@ export interface MatchResult {
 }
 
 const STOPWORDS = new Set([
-  "מסלול", "קרן", "השקעה", "השקעות", "כללי", "סוג",
-  "fund", "track", "general",
+  "מסלול",
+  "קרן",
+  "השקעה",
+  "השקעות",
+  "כללי",
+  "סוג",
+  "fund",
+  "track",
+  "general",
 ]);
 
 function normalize(s: string): string {
@@ -40,13 +47,13 @@ function normalize(s: string): string {
 function tokenize(s: string): string[] {
   return normalize(s)
     .split(" ")
-    .filter(t => t.length >= 2 && !STOPWORDS.has(t));
+    .filter((t) => t.length >= 2 && !STOPWORDS.has(t));
 }
 
 function tokenScore(a: string[], b: string[]): number {
   if (!a.length || !b.length) return 0;
   const setB = new Set(b);
-  const overlap = a.filter(t => setB.has(t)).length;
+  const overlap = a.filter((t) => setB.has(t)).length;
   // Jaccard-like: overlap / union
   const union = new Set([...a, ...b]).size;
   return overlap / Math.max(1, union);
@@ -70,23 +77,24 @@ export function matchFundByTrack(
   const providerNorm = normalize(provider);
 
   // Narrow by provider (substring match — registry uses canonical names).
-  let pool = FUND_REGISTRY.filter(f =>
-    normalize(f.provider).includes(providerNorm) ||
-    providerNorm.includes(normalize(f.provider))
+  let pool = FUND_REGISTRY.filter(
+    (f) =>
+      normalize(f.provider).includes(providerNorm) || providerNorm.includes(normalize(f.provider))
   );
   if (productType) {
-    pool = pool.filter(f => f.type === productType);
+    pool = pool.filter((f) => f.type === productType);
   }
 
   if (pool.length === 0 || trackTokens.length === 0) {
     return { fundId: null, confidence: 0, candidates: [] };
   }
 
-  const scored = pool.map(f => {
-    const fundTokens = tokenize(f.name);
-    return { id: f.id, name: f.name, score: tokenScore(trackTokens, fundTokens) };
-  })
-  .sort((a, b) => b.score - a.score);
+  const scored = pool
+    .map((f) => {
+      const fundTokens = tokenize(f.name);
+      return { id: f.id, name: f.name, score: tokenScore(trackTokens, fundTokens) };
+    })
+    .sort((a, b) => b.score - a.score);
 
   const best = scored[0];
   return {

@@ -12,8 +12,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(url);
   } catch {
     // No credentials configured — redirect back with error param
-    return NextResponse.redirect(
-      new URL("/crm?gcal=error&reason=not_configured", req.url),
-    );
+    return NextResponse.redirect(new URL("/crm?gcal=error&reason=not_configured", req.url));
   }
 }

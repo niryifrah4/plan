@@ -4,15 +4,15 @@
  * (In production, regenerate via `npm run db:types` from the live DB.)
  */
 
-export type PlannerRole   = "advisor" | "admin" | "viewer";
+export type PlannerRole = "advisor" | "admin" | "viewer";
 export type HouseholdStage = "onboarding" | "actuals" | "planning" | "active";
-export type TxKind        = "income" | "expense";
-export type TxCatGroup    = "income" | "fixed" | "variable" | "installments";
-export type AssetGroup    = "liquid" | "investments" | "pension" | "realestate" | "other";
+export type TxKind = "income" | "expense";
+export type TxCatGroup = "income" | "fixed" | "variable" | "installments";
+export type AssetGroup = "liquid" | "investments" | "pension" | "realestate" | "other";
 export type LiabilityGroup = "mortgage" | "loans" | "cc";
-export type GoalTrack     = "on" | "behind" | "at_risk";
-export type TaskSeverity  = "low" | "medium" | "high";
-export type TaskStatus    = "open" | "done" | "snoozed";
+export type GoalTrack = "on" | "behind" | "at_risk";
+export type TaskSeverity = "low" | "medium" | "high";
+export type TaskStatus = "open" | "done" | "snoozed";
 
 export interface Advisor {
   id: string;
@@ -145,7 +145,14 @@ export interface Task {
 export interface Scenario {
   id: string;
   household_id: string;
-  kind: "realestate" | "compound" | "mortgage" | "consolidation" | "miluim" | "alternatives" | "tax";
+  kind:
+    | "realestate"
+    | "compound"
+    | "mortgage"
+    | "consolidation"
+    | "miluim"
+    | "alternatives"
+    | "tax";
   label: string;
   inputs_json: Record<string, unknown>;
   outputs_json: Record<string, unknown>;

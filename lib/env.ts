@@ -13,10 +13,7 @@ type EnvCheck = {
   warnings: string[];
 };
 
-const CLIENT_REQUIRED = [
-  "NEXT_PUBLIC_SUPABASE_URL",
-  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-] as const;
+const CLIENT_REQUIRED = ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"] as const;
 
 const SERVER_REQUIRED = [
   "NEXT_PUBLIC_SUPABASE_URL",

@@ -26,8 +26,9 @@ supabase/migrations/0015_client_state_for_clients.sql
 Easiest path: copy each file's contents → Supabase dashboard → SQL Editor → Run.
 
 After migrations:
+
 1. **Authentication → Providers → Email**
-2. ❌ Disable **"Enable email signups"**  (clients enter only via invite)
+2. ❌ Disable **"Enable email signups"** (clients enter only via invite)
 3. ✅ Keep **"Enable email logins"**
 4. **Email Templates → Invite User** — customize subject/body in Hebrew if you want.
 
@@ -49,21 +50,21 @@ In the Render dashboard:
 
 Go to the new service → **Environment** tab. Set:
 
-| Key | Value |
-|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | from Supabase project settings → API |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | same |
-| `SUPABASE_SERVICE_ROLE_KEY` | same (this one is **secret**) |
-| `NEXT_PUBLIC_BASE_URL` | `https://your-render-url.onrender.com` (or custom domain after step 4) |
+| Key                             | Value                                                                  |
+| ------------------------------- | ---------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | from Supabase project settings → API                                   |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | same                                                                   |
+| `SUPABASE_SERVICE_ROLE_KEY`     | same (this one is **secret**)                                          |
+| `NEXT_PUBLIC_BASE_URL`          | `https://your-render-url.onrender.com` (or custom domain after step 4) |
 
 Optional but recommended:
 
-| Key | Value |
-|---|---|
-| `SENTRY_DSN` | from Sentry project settings |
-| `NEXT_PUBLIC_SENTRY_DSN` | same as above |
-| `RESEND_API_KEY` | from Resend dashboard |
-| `RESEND_FROM` | `Plan <noreply@your-domain.co.il>` |
+| Key                      | Value                              |
+| ------------------------ | ---------------------------------- |
+| `SENTRY_DSN`             | from Sentry project settings       |
+| `NEXT_PUBLIC_SENTRY_DSN` | same as above                      |
+| `RESEND_API_KEY`         | from Resend dashboard              |
+| `RESEND_FROM`            | `Plan <noreply@your-domain.co.il>` |
 
 After setting all → **Manual Deploy → Deploy latest commit**.
 
@@ -97,6 +98,7 @@ If any step fails, check Render logs (live tail under the service) and Supabase 
 ## Step 6 — Sentry source maps (optional)
 
 Once you have Sentry working:
+
 1. Generate an auth token in Sentry → API → Auth Tokens with project:write scope.
 2. Add to Render env: `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`.
 3. Redeploy. Builds will upload source maps so stack traces show real file/line numbers.
@@ -106,6 +108,7 @@ Once you have Sentry working:
 ## Rollback
 
 Render keeps every deploy. To roll back:
+
 - Service dashboard → **Deploys** tab → click any prior green deploy → **Redeploy**.
 
 ---
@@ -115,6 +118,7 @@ Render keeps every deploy. To roll back:
 Plan-app has a `/api/market/prices` endpoint that refreshes Yahoo + CoinGecko prices. To run it daily:
 
 **Free option**: cron-job.org → set up a POST every weekday 16:00 UTC to:
+
 ```
 https://app.your-domain.co.il/api/market/prices
 Header: Authorization: Bearer <CRON_SECRET from Render env>

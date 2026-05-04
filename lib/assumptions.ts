@@ -10,28 +10,28 @@ const STORAGE_KEY = "verdant:assumptions";
 
 export interface Assumptions {
   // ── Macro rates (updated manually when BoI changes policy) ──
-  boiRate: number;               // ריבית בנק ישראל — e.g. 0.045 = 4.5%
-  primeRate: number;             // ריבית הפריים = boiRate + 1.5% (מתעדכן יחד)
-  inflationRate: number;         // אינפלציה חזויה, e.g. 0.025 = 2.5%
-  macroUpdatedAt?: string;       // ISO timestamp of last macro update (BoI/Prime/Inflation)
+  boiRate: number; // ריבית בנק ישראל — e.g. 0.045 = 4.5%
+  primeRate: number; // ריבית הפריים = boiRate + 1.5% (מתעדכן יחד)
+  inflationRate: number; // אינפלציה חזויה, e.g. 0.025 = 2.5%
+  macroUpdatedAt?: string; // ISO timestamp of last macro update (BoI/Prime/Inflation)
 
   // ── Investment + fees ──
-  managementFeePension: number;  // e.g. 0.005 = 0.5%
-  managementFeeInvest: number;   // e.g. 0.008 = 0.8%
+  managementFeePension: number; // e.g. 0.005 = 0.5%
+  managementFeeInvest: number; // e.g. 0.008 = 0.8%
   expectedReturnPension: number; // e.g. 0.05
-  expectedReturnInvest: number;  // e.g. 0.065
-  expectedReturnSP500: number;   // e.g. 0.10
+  expectedReturnInvest: number; // e.g. 0.065
+  expectedReturnSP500: number; // e.g. 0.10
   /** Discount rate for NPV / opportunity-cost math. Defaults to boiRate. */
-  riskFreeRate: number;          // e.g. 0.04
-  safeWithdrawalRate: number;    // e.g. 0.04 (Rule of 300 → 1/300 monthly)
+  riskFreeRate: number; // e.g. 0.04
+  safeWithdrawalRate: number; // e.g. 0.04 (Rule of 300 → 1/300 monthly)
 
   // ── Personal ──
-  retirementAge: number;         // e.g. 67
-  currentAge: number;            // e.g. 42
-  monthlyIncome: number;         // gross monthly
-  monthlyExpenses: number;       // average monthly
-  monthlyInvestment: number;     // total monthly savings/investment
-  salaryGrowthRate: number;      // e.g. 0.03 = 3% annual salary growth
+  retirementAge: number; // e.g. 67
+  currentAge: number; // e.g. 42
+  monthlyIncome: number; // gross monthly
+  monthlyExpenses: number; // average monthly
+  monthlyInvestment: number; // total monthly savings/investment
+  salaryGrowthRate: number; // e.g. 0.03 = 3% annual salary growth
 
   // ── קצבת זקנה (ביטוח לאומי) — user-editable ──
   /** Monthly old-age allowance from Bituach Leumi, post-67 (2026 defaults). */
@@ -50,24 +50,24 @@ export interface Assumptions {
 
 export const DEFAULT_ASSUMPTIONS: Assumptions = {
   // Macro
-  boiRate: 0.045,                // 4.5% — בנק ישראל נכון לתחילת 2026 (ידני)
-  primeRate: 0.06,               // 6% = boiRate + 1.5%
-  inflationRate: 0.025,          // 2.5%
+  boiRate: 0.045, // 4.5% — בנק ישראל נכון לתחילת 2026 (ידני)
+  primeRate: 0.06, // 6% = boiRate + 1.5%
+  inflationRate: 0.025, // 2.5%
   macroUpdatedAt: undefined,
 
   // Investment
   managementFeePension: 0.005,
   managementFeeInvest: 0.008,
   expectedReturnPension: 0.05,
-  expectedReturnInvest: 0.07,    // 7% — market average
-  expectedReturnSP500: 0.10,
-  riskFreeRate: 0.045,           // = boiRate by default
+  expectedReturnInvest: 0.07, // 7% — market average
+  expectedReturnSP500: 0.1,
+  riskFreeRate: 0.045, // = boiRate by default
   safeWithdrawalRate: 0.04,
 
   // Personal — all start at 0 until the user actually sets them.
   // This prevents "ghost" numbers (e.g. ₪28,500) appearing in the dashboard
   // after factory-reset, before the client has entered their real data.
-  retirementAge: 67,              // legal Israeli default — keep
+  retirementAge: 67, // legal Israeli default — keep
   currentAge: 0,
   monthlyIncome: 0,
   monthlyExpenses: 0,
@@ -142,12 +142,10 @@ export function updateMacroRates(patch: {
 }): Assumptions {
   const current = loadAssumptions();
   const boiRate = patch.boiRate ?? current.boiRate;
-  const primeRate = patch.primeRate ?? (patch.boiRate !== undefined
-    ? boiRate + PRIME_OVER_BOI
-    : current.primeRate);
-  const riskFreeRate = patch.riskFreeRate ?? (patch.boiRate !== undefined
-    ? boiRate
-    : current.riskFreeRate);
+  const primeRate =
+    patch.primeRate ?? (patch.boiRate !== undefined ? boiRate + PRIME_OVER_BOI : current.primeRate);
+  const riskFreeRate =
+    patch.riskFreeRate ?? (patch.boiRate !== undefined ? boiRate : current.riskFreeRate);
   const inflationRate = patch.inflationRate ?? current.inflationRate;
 
   const updated: Assumptions = {
@@ -193,13 +191,13 @@ export function realReturn(nominal: number, inflation: number, fees: number): nu
  * ⚠️ מדרגות אלו מתעדכנות ב-1 בינואר בכל שנה. לעדכן לכשתצא טבלה חדשה.
  */
 export const TAX_BRACKETS_2026 = [
-  { limit:  84_960, rate: 0.10 },
+  { limit: 84_960, rate: 0.1 },
   { limit: 121_800, rate: 0.14 },
-  { limit: 195_600, rate: 0.20 },
+  { limit: 195_600, rate: 0.2 },
   { limit: 271_920, rate: 0.31 },
   { limit: 565_920, rate: 0.35 },
   { limit: 721_560, rate: 0.47 },
-  { limit: Infinity, rate: 0.50 },
+  { limit: Infinity, rate: 0.5 },
 ] as const;
 
 export function israeliIncomeTax(annualIncome: number): {
@@ -211,7 +209,7 @@ export function israeliIncomeTax(annualIncome: number): {
 
   let remaining = annualIncome;
   let totalTax = 0;
-  let marginalBracket = 0.10;
+  let marginalBracket = 0.1;
   let prev = 0;
 
   for (const b of brackets) {
@@ -253,7 +251,7 @@ export const PENSION_ANNUITY_EXEMPTION_RATE = 0.67;
 
 /** הסכום החודשי הפטור ממס על קצבה מזכה, אחרי רפורמת תיקון 190. */
 export const PENSION_ANNUITY_MONTHLY_EXEMPTION = Math.round(
-  PENSION_ANNUITY_CEILING_2026 * PENSION_ANNUITY_EXEMPTION_RATE,
+  PENSION_ANNUITY_CEILING_2026 * PENSION_ANNUITY_EXEMPTION_RATE
 );
 
 /* ═══════════════════════════════════════════════════════════
@@ -270,9 +268,9 @@ export const PENSION_ANNUITY_MONTHLY_EXEMPTION = Math.round(
    הפקדת חובה של 6% לא נכנסת לחשבון — היא כבר מנוכה מהשכר
    לפני מס. רק הפקדה וולונטרית נוספת זוכה בהטבה.
 */
-export const SECTION_45A_CREDIT_RATE = 0.35;   // זיכוי 35%
-export const SECTION_45A_PREMIUM_PCT = 0.05;   // עד 5% מהמשכורת המבוטחת
-export const SECTION_47_DEDUCTION_PCT = 0.07;  // עד 7% מהמשכורת המבוטחת
+export const SECTION_45A_CREDIT_RATE = 0.35; // זיכוי 35%
+export const SECTION_45A_PREMIUM_PCT = 0.05; // עד 5% מהמשכורת המבוטחת
+export const SECTION_47_DEDUCTION_PCT = 0.07; // עד 7% מהמשכורת המבוטחת
 /** תקרת המשכורת המבוטחת = 4× שכר ממוצע. */
 export const SECTION_45A_47_MONTHLY_CEILING = AVG_WAGE_2026 * 4;
 
@@ -286,10 +284,10 @@ export const SECTION_45A_47_MONTHLY_CEILING = AVG_WAGE_2026 * 4;
 export function section45and47Benefit(
   voluntaryMonthly: number,
   monthlyGross: number,
-  marginalTaxRate: number,
+  marginalTaxRate: number
 ): {
-  annualCredit: number;        // הטבת מס שנתית לפי סעיף 45א
-  annualDeduction: number;     // הטבת מס שנתית לפי סעיף 47 (ניכוי × שיעור שולי)
+  annualCredit: number; // הטבת מס שנתית לפי סעיף 45א
+  annualDeduction: number; // הטבת מס שנתית לפי סעיף 47 (ניכוי × שיעור שולי)
   totalAnnual: number;
   maxVoluntaryMonthly: number; // תקרת ההפקדה שמניבה הטבה מלאה לשכר הנוכחי
 } {
@@ -297,18 +295,18 @@ export function section45and47Benefit(
   const insuredMonthly = Math.min(Math.max(0, monthlyGross), SECTION_45A_47_MONTHLY_CEILING);
 
   const max45aAnnual = SECTION_45A_PREMIUM_PCT * insuredMonthly * 12;
-  const max47Annual  = SECTION_47_DEDUCTION_PCT * insuredMonthly * 12;
+  const max47Annual = SECTION_47_DEDUCTION_PCT * insuredMonthly * 12;
   // בפועל שני הסעיפים פועלים על אותה הפקדה: תחילה 5% זוכים בזיכוי 45א,
   // ומעבר לכך עד 7% זוכים בניכוי 47. לכן התקרה המשולבת היא max(5%,7%) = 7%.
-  const maxVoluntaryMonthly = Math.round((max47Annual) / 12);
+  const maxVoluntaryMonthly = Math.round(max47Annual / 12);
 
   const annual = Math.max(0, voluntaryMonthly) * 12;
-  const creditBase    = Math.min(annual, max45aAnnual);
+  const creditBase = Math.min(annual, max45aAnnual);
   // הניכוי חל רק על מה שמעבר לחלק שקיבל זיכוי (לא צובר פעמיים על אותו שקל).
   const deductionBase = Math.max(0, Math.min(annual, max47Annual) - creditBase);
 
   const mr = Math.max(0, Math.min(0.5, marginalTaxRate));
-  const annualCredit    = creditBase * SECTION_45A_CREDIT_RATE;
+  const annualCredit = creditBase * SECTION_45A_CREDIT_RATE;
   const annualDeduction = deductionBase * mr;
 
   return {
@@ -330,7 +328,7 @@ export function section45and47Benefit(
  */
 export function pensionAnnuityTax(
   grossMonthlyPension: number,
-  capitalReductionPct: number = 0,
+  capitalReductionPct: number = 0
 ): { monthlyExemption: number; taxable: number; estimatedTax: number; effectiveRate: number } {
   const reduction = Math.max(0, Math.min(1, capitalReductionPct));
   const monthlyExemption = Math.round(PENSION_ANNUITY_MONTHLY_EXEMPTION * (1 - reduction));
@@ -369,8 +367,8 @@ export function bituachLeumiEstimate(monthlyGross: number): {
   const high = Math.max(0, Math.min(monthlyGross, highLimit) - lowLimit);
 
   // Low tier: 0.4% NI + 3.1% health; High tier: 7.0% NI + 5.0% health.
-  const nationalInsuranceMonthly = low * 0.004 + high * 0.070;
-  const healthMonthly = low * 0.031 + high * 0.050;
+  const nationalInsuranceMonthly = low * 0.004 + high * 0.07;
+  const healthMonthly = low * 0.031 + high * 0.05;
   const monthly = nationalInsuranceMonthly + healthMonthly;
 
   return {

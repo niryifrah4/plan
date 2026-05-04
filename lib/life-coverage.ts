@@ -52,10 +52,10 @@ export interface LifeCoverage {
   planScore: number;
   /** Breakdown of the score so the UI can show "what's costing you points". */
   scoreBreakdown: {
-    goalCoverage: number;       // 0–50
-    savingsRate: number;        // 0–20
-    debtBurden: number;         // 0–15
-    emergencyFund: number;      // 0–15
+    goalCoverage: number; // 0–50
+    savingsRate: number; // 0–20
+    debtBurden: number; // 0–15
+    emergencyFund: number; // 0–15
   };
   /** Calendar year of retirement. */
   retirementYear: number;
@@ -113,10 +113,14 @@ export function buildLifeCoverage(): LifeCoverage {
   const securitiesValue = totalSecuritiesValue(securities);
   const pensionValue = pensions.reduce((s, f) => s + (f.balance || 0), 0);
   const reValue = properties.reduce((s, p) => s + (p.currentValue || 0), 0);
-  const mortgageBalance = (debt.mortgage?.tracks || [])
-    .reduce((s, t) => s + (t.remainingBalance || 0), 0);
-  const otherDebt = (debt.loans || [])
-    .reduce((s, l) => s + (l.totalPayments || 0) * (l.monthlyPayment || 0) * 0.5, 0);
+  const mortgageBalance = (debt.mortgage?.tracks || []).reduce(
+    (s, t) => s + (t.remainingBalance || 0),
+    0
+  );
+  const otherDebt = (debt.loans || []).reduce(
+    (s, l) => s + (l.totalPayments || 0) * (l.monthlyPayment || 0) * 0.5,
+    0
+  );
   const liabilities = mortgageBalance + otherDebt;
 
   const startNetWorth = Math.max(0, cash + securitiesValue + pensionValue + reValue - liabilities);
@@ -161,11 +165,11 @@ export function buildLifeCoverage(): LifeCoverage {
     // Add savings while working; deduct expenses (drawdown) in retirement
     if (!isRetired) {
       nw += Math.max(0, yearlyIncome - yearlyExpenses);
-      yearlyIncome *= (1 + salaryGrowth);
+      yearlyIncome *= 1 + salaryGrowth;
     } else {
       // Retirement: pension + Bituach Leumi roughly cover ~70% of expenses
-      const pensionIncome = (a.oldAgeAllowanceMonthly || 4500) * 12
-        + pensionValue * (a.safeWithdrawalRate || 0.04);
+      const pensionIncome =
+        (a.oldAgeAllowanceMonthly || 4500) * 12 + pensionValue * (a.safeWithdrawalRate || 0.04);
       nw += pensionIncome - yearlyExpenses;
     }
 
@@ -213,25 +217,27 @@ export function buildLifeCoverage(): LifeCoverage {
   // 20 pts: savings rate
   // 15 pts: debt burden (debt service / income)
   // 15 pts: emergency fund (>= 3 months expenses)
-  const coverage = goalsTotalPV > 0
-    ? Math.max(0, 1 - (missingPV / goalsTotalPV))
-    : 1; // no goals = full coverage
+  const coverage = goalsTotalPV > 0 ? Math.max(0, 1 - missingPV / goalsTotalPV) : 1; // no goals = full coverage
   const goalCoveragePts = Math.round(50 * coverage);
 
   const savingsRatio = monthlyIncome > 0 ? (monthlyIncome - monthlyExpenses) / monthlyIncome : 0;
   const savingsPts = Math.round(20 * Math.max(0, Math.min(1, savingsRatio / 0.25))); // cap at 25%
 
-  const monthlyDebtService = (debt.mortgage?.tracks || []).reduce((s, t) => s + (t.monthlyPayment || 0), 0)
-    + (debt.loans || []).reduce((s, l) => s + (l.monthlyPayment || 0), 0);
+  const monthlyDebtService =
+    (debt.mortgage?.tracks || []).reduce((s, t) => s + (t.monthlyPayment || 0), 0) +
+    (debt.loans || []).reduce((s, l) => s + (l.monthlyPayment || 0), 0);
   const debtRatio = monthlyIncome > 0 ? monthlyDebtService / monthlyIncome : 0;
   // 15 pts at 0% debt, 0 pts at 40%+ debt-to-income
-  const debtPts = Math.round(15 * Math.max(0, Math.min(1, 1 - (debtRatio / 0.4))));
+  const debtPts = Math.round(15 * Math.max(0, Math.min(1, 1 - debtRatio / 0.4)));
 
   const emergencyMonths = monthlyExpenses > 0 ? cash / monthlyExpenses : 0;
   // 15 pts at >=3 months, scaled down below
   const emergencyPts = Math.round(15 * Math.max(0, Math.min(1, emergencyMonths / 3)));
 
-  const planScore = Math.max(0, Math.min(100, goalCoveragePts + savingsPts + debtPts + emergencyPts));
+  const planScore = Math.max(
+    0,
+    Math.min(100, goalCoveragePts + savingsPts + debtPts + emergencyPts)
+  );
 
   return {
     series,

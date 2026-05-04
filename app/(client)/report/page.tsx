@@ -22,12 +22,7 @@ import {
 } from "@/lib/accounts-store";
 import { loadPensionFunds, type PensionFund } from "@/lib/pension-store";
 import { loadProperties, type Property } from "@/lib/realestate-store";
-import {
-  loadDebtData,
-  getDebtSummary,
-  type DebtData,
-  type DebtSummary,
-} from "@/lib/debt-store";
+import { loadDebtData, getDebtSummary, type DebtData, type DebtSummary } from "@/lib/debt-store";
 import { loadBuckets } from "@/lib/buckets-store";
 import type { Bucket } from "@shared/buckets-core";
 import { loadSecurities, totalSecuritiesValue, type SecurityRow } from "@/lib/securities-store";
@@ -145,10 +140,12 @@ export default function ReportPage() {
   return (
     <>
       <PrintStyles />
-      <div dir="rtl" className="report-root max-w-[210mm] mx-auto">
+      <div dir="rtl" className="report-root mx-auto max-w-[210mm]">
         {/* Toolbar — screen only */}
-        <div className="no-print flex items-center justify-between gap-3 mb-6 p-4 bg-white border rounded-lg"
-             style={{ borderColor: "#eef2e8" }}>
+        <div
+          className="no-print mb-6 flex items-center justify-between gap-3 rounded-lg border bg-white p-4"
+          style={{ borderColor: "#eef2e8" }}
+        >
           <div className="flex items-center gap-2">
             <Link
               href="/balance"
@@ -157,14 +154,14 @@ export default function ReportPage() {
               <span>→</span> חזרה
             </Link>
           </div>
-          <div className="flex-1 flex items-center gap-3">
+          <div className="flex flex-1 items-center gap-3">
             <label className="text-[11px] font-bold text-verdant-muted">שם לקוח:</label>
             <input
               type="text"
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
               placeholder="לדוגמה — משפחת כהן"
-              className="flex-1 max-w-[280px] px-3 py-1.5 text-sm border rounded"
+              className="max-w-[280px] flex-1 rounded border px-3 py-1.5 text-sm"
               style={{ borderColor: "#eef2e8" }}
             />
           </div>
@@ -179,18 +176,18 @@ export default function ReportPage() {
 
         {/* ═══ COVER ═══ */}
         <section className="report-section report-cover">
-          <div className="text-center py-12">
-            <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-verdant-muted mb-4">
+          <div className="py-12 text-center">
+            <div className="mb-4 text-[11px] font-bold uppercase tracking-[0.3em] text-verdant-muted">
               דוח פיננסי — תמונת מצב
             </div>
-            <div className="report-h1 text-[32px] font-extrabold text-verdant-ink mb-3">
+            <div className="report-h1 mb-3 text-[32px] font-extrabold text-verdant-ink">
               {clientName || "שם הלקוח"}
             </div>
-            <div className="text-sm text-verdant-muted mb-10">
-              תאריך הפקה: {today}
-            </div>
-            <div className="inline-block border-t-2 pt-3 text-[10px] font-bold uppercase tracking-[0.2em] text-verdant-muted"
-                 style={{ borderColor: "#1B4332", minWidth: 200 }}>
+            <div className="mb-10 text-sm text-verdant-muted">תאריך הפקה: {today}</div>
+            <div
+              className="inline-block border-t-2 pt-3 text-[10px] font-bold uppercase tracking-[0.2em] text-verdant-muted"
+              style={{ borderColor: "#1B4332", minWidth: 200 }}
+            >
               הופק על-ידי מערכת פלאן
             </div>
           </div>
@@ -206,22 +203,30 @@ export default function ReportPage() {
 
         {/* ═══ 8. RECOMMENDATIONS ═══ */}
         <section className="report-section mb-6">
-          <SectionHeader num={8} title="המלצות ושלבים הבאים" subtitle="פעולות מומלצות לתקופה הקרובה" />
+          <SectionHeader
+            num={8}
+            title="המלצות ושלבים הבאים"
+            subtitle="פעולות מומלצות לתקופה הקרובה"
+          />
           <textarea
             value={recommendations}
             onChange={(e) => setRecommendations(e.target.value)}
             rows={8}
-            className="w-full p-4 text-sm border rounded-lg bg-white report-recs-text"
+            className="report-recs-text w-full rounded-lg border bg-white p-4 text-sm"
             style={{ borderColor: "#eef2e8", fontFamily: "inherit", lineHeight: 1.7 }}
             placeholder="הקלד כאן המלצות ושלבי פעולה ללקוח…"
           />
         </section>
 
         {/* Footer */}
-        <footer className="report-footer pt-6 mt-6 border-t text-center text-[10px] text-verdant-muted"
-                style={{ borderColor: "#eef2e8" }}>
+        <footer
+          className="report-footer mt-6 border-t pt-6 text-center text-[10px] text-verdant-muted"
+          style={{ borderColor: "#eef2e8" }}
+        >
           <div>הופק ב-{today} על-ידי מערכת פלאן</div>
-          <div className="mt-1">מידע זה הוא תמונת מצב נכון לתאריך ההפקה — אין לראות בו ייעוץ פיננסי.</div>
+          <div className="mt-1">
+            מידע זה הוא תמונת מצב נכון לתאריך ההפקה — אין לראות בו ייעוץ פיננסי.
+          </div>
         </footer>
       </div>
     </>
@@ -242,21 +247,21 @@ function SectionHeader({
   subtitle?: string;
 }) {
   return (
-    <div className="flex items-start gap-3 mb-4">
+    <div className="mb-4 flex items-start gap-3">
       <div className="w-1 self-stretch rounded" style={{ background: "#1B4332", minHeight: 36 }} />
       <div className="flex-1">
         <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-verdant-muted">
           חלק {num}
         </div>
         <h2 className="report-h2 text-lg font-extrabold text-verdant-ink">{title}</h2>
-        {subtitle && <div className="text-[11px] text-verdant-muted mt-0.5">{subtitle}</div>}
+        {subtitle && <div className="mt-0.5 text-[11px] text-verdant-muted">{subtitle}</div>}
       </div>
     </div>
   );
 }
 
 function Empty({ text = "לא נוספו נתונים" }: { text?: string }) {
-  return <div className="text-[11px] text-verdant-muted italic py-2">{text}</div>;
+  return <div className="py-2 text-[11px] italic text-verdant-muted">{text}</div>;
 }
 
 /* ── 1. Net Worth ── */
@@ -274,21 +279,21 @@ function NetWorthSection({ data }: { data: ReportData }) {
   return (
     <section className="report-section mb-6">
       <SectionHeader num={1} title="תמונת מצב — שווי נקי" subtitle="סיכום נכסים והתחייבויות" />
-      <div className="rounded-lg p-6 mb-4" style={{ background: "#f4f7ed" }}>
+      <div className="mb-4 rounded-lg p-6" style={{ background: "#f4f7ed" }}>
         <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-verdant-muted">
           שווי נקי כולל
         </div>
-        <div className="text-[36px] font-extrabold text-verdant-ink leading-tight">
+        <div className="text-[36px] font-extrabold leading-tight text-verdant-ink">
           {fmtILS(snap.netWorth)}
         </div>
-        <div className="text-xs text-verdant-muted mt-1">
+        <div className="mt-1 text-xs text-verdant-muted">
           נכסים {fmtILS(snap.totalAssets)} · התחייבויות {fmtILS(snap.totalLiabilities)}
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <div className="text-[11px] font-bold text-verdant-ink mb-2">פירוט נכסים</div>
+          <div className="mb-2 text-[11px] font-bold text-verdant-ink">פירוט נכסים</div>
           <div className="space-y-1.5">
             {assetsParts.map((a) => (
               <div key={a.label}>
@@ -296,7 +301,7 @@ function NetWorthSection({ data }: { data: ReportData }) {
                   <span className="text-verdant-ink">{a.label}</span>
                   <span className="font-bold text-verdant-ink">{fmtILS(a.v)}</span>
                 </div>
-                <div className="h-1.5 rounded-full mt-1" style={{ background: "#eef2e8" }}>
+                <div className="mt-1 h-1.5 rounded-full" style={{ background: "#eef2e8" }}>
                   <div
                     className="h-full rounded-full"
                     style={{ width: `${(a.v / maxAsset) * 100}%`, background: "#1B4332" }}
@@ -307,7 +312,7 @@ function NetWorthSection({ data }: { data: ReportData }) {
           </div>
         </div>
         <div>
-          <div className="text-[11px] font-bold text-verdant-ink mb-2">פירוט התחייבויות</div>
+          <div className="mb-2 text-[11px] font-bold text-verdant-ink">פירוט התחייבויות</div>
           <table className="w-full text-[11px]">
             <tbody>
               <tr>
@@ -319,7 +324,7 @@ function NetWorthSection({ data }: { data: ReportData }) {
                 <td className="py-1 text-left font-bold">{fmtILS(b.debt)}</td>
               </tr>
               <tr>
-                <td className="py-1 text-verdant-ink font-bold">סה״כ</td>
+                <td className="py-1 font-bold text-verdant-ink">סה״כ</td>
                 <td className="py-1 text-left font-extrabold">{fmtILS(snap.totalLiabilities)}</td>
               </tr>
             </tbody>
@@ -345,18 +350,31 @@ function CashflowSection({ data }: { data: ReportData }) {
       const key = `verdant:budget_${now.getFullYear()}_${String(now.getMonth() + 1).padStart(2, "0")}`;
       const raw = localStorage.getItem(scopedKey(key));
       if (raw) {
-        const parsed = JSON.parse(raw) as { sections?: Record<string, { budget?: number; scope?: Scope; subItems?: { budget?: number }[] }[]> };
-        let p = 0, b = 0, has = false;
+        const parsed = JSON.parse(raw) as {
+          sections?: Record<
+            string,
+            { budget?: number; scope?: Scope; subItems?: { budget?: number }[] }[]
+          >;
+        };
+        let p = 0,
+          b = 0,
+          has = false;
         for (const sk of ["fixed", "variable"] as const) {
           for (const r of parsed.sections?.[sk] || []) {
-            const subSum = Array.isArray(r.subItems) && r.subItems.length > 0
-              ? r.subItems.reduce((s, sub) => s + (Number(sub.budget) || 0), 0)
-              : 0;
-            const amt = subSum > 0 ? subSum : (Number(r.budget) || 0);
+            const subSum =
+              Array.isArray(r.subItems) && r.subItems.length > 0
+                ? r.subItems.reduce((s, sub) => s + (Number(sub.budget) || 0), 0)
+                : 0;
+            const amt = subSum > 0 ? subSum : Number(r.budget) || 0;
             const eff = effectiveScope(r.scope);
-            if (eff === "business") { b += amt; has = true; }
-            else if (eff === "mixed") { b += amt / 2; p += amt / 2; has = true; }
-            else p += amt;
+            if (eff === "business") {
+              b += amt;
+              has = true;
+            } else if (eff === "mixed") {
+              b += amt / 2;
+              p += amt / 2;
+              has = true;
+            } else p += amt;
           }
         }
         if (has) scopeSplit = { personal: p, business: b };
@@ -388,25 +406,43 @@ function CashflowSection({ data }: { data: ReportData }) {
 
       {/* Business / personal split — only when there's at least one business row */}
       {scopeSplit && (
-        <div className="mt-3 rounded-lg p-3 border text-[11px]" style={{ borderColor: "#eef2e8", background: "#fafbf7" }}>
-          <div className="text-[10px] font-bold uppercase tracking-[0.1em] mb-1.5" style={{ color: "#5a7a6a" }}>
+        <div
+          className="mt-3 rounded-lg border p-3 text-[11px]"
+          style={{ borderColor: "#eef2e8", background: "#fafbf7" }}
+        >
+          <div
+            className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.1em]"
+            style={{ color: "#5a7a6a" }}
+          >
             חלוקת הוצאות — עסקי / פרטי
           </div>
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 font-bold" style={{ color: SCOPE_COLORS.personal }}>
-              <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: SCOPE_COLORS.personal }} />
+            <span
+              className="flex items-center gap-1.5 font-bold"
+              style={{ color: SCOPE_COLORS.personal }}
+            >
+              <span
+                className="inline-block h-1.5 w-1.5 rounded-full"
+                style={{ background: SCOPE_COLORS.personal }}
+              />
               פרטי
             </span>
-            <span className="tabular-nums font-bold" style={{ color: "#012d1d" }}>
+            <span className="font-bold tabular-nums" style={{ color: "#012d1d" }}>
               {fmtILS(Math.round(scopeSplit.personal))}
             </span>
           </div>
-          <div className="flex items-center justify-between mt-1">
-            <span className="flex items-center gap-1.5 font-bold" style={{ color: SCOPE_COLORS.business }}>
-              <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: SCOPE_COLORS.business }} />
+          <div className="mt-1 flex items-center justify-between">
+            <span
+              className="flex items-center gap-1.5 font-bold"
+              style={{ color: SCOPE_COLORS.business }}
+            >
+              <span
+                className="inline-block h-1.5 w-1.5 rounded-full"
+                style={{ background: SCOPE_COLORS.business }}
+              />
               עסקי
             </span>
-            <span className="tabular-nums font-bold" style={{ color: "#012d1d" }}>
+            <span className="font-bold tabular-nums" style={{ color: "#012d1d" }}>
               {fmtILS(Math.round(scopeSplit.business))}
             </span>
           </div>
@@ -426,11 +462,9 @@ function Stat({
   valueClass?: string;
 }) {
   return (
-    <div className="rounded-lg p-3 border" style={{ borderColor: "#eef2e8", background: "#fff" }}>
-      <div className="caption">
-        {label}
-      </div>
-      <div className={`text-lg font-extrabold text-verdant-ink mt-1 ${valueClass}`}>{value}</div>
+    <div className="rounded-lg border p-3" style={{ borderColor: "#eef2e8", background: "#fff" }}>
+      <div className="caption">{label}</div>
+      <div className={`mt-1 text-lg font-extrabold text-verdant-ink ${valueClass}`}>{value}</div>
     </div>
   );
 }
@@ -461,23 +495,22 @@ function PensionSection({ data }: { data: ReportData }) {
         <Empty />
       ) : (
         <>
-          <table className="w-full text-[11px] mb-4">
+          <table className="mb-4 w-full text-[11px]">
             <thead>
               <tr style={{ background: "#eef2e8" }}>
-                <th className="text-right p-2 font-bold text-verdant-ink">קרן</th>
-                <th className="text-right p-2 font-bold text-verdant-ink">סוג</th>
-                <th className="text-right p-2 font-bold text-verdant-ink">מסלול</th>
-                <th className="text-left p-2 font-bold text-verdant-ink">צבירה</th>
-                <th className="text-left p-2 font-bold text-verdant-ink">דמי ניהול (הפקדה/צבירה)</th>
-                <th className="text-left p-2 font-bold text-verdant-ink">הפקדה חודשית</th>
+                <th className="p-2 text-right font-bold text-verdant-ink">קרן</th>
+                <th className="p-2 text-right font-bold text-verdant-ink">סוג</th>
+                <th className="p-2 text-right font-bold text-verdant-ink">מסלול</th>
+                <th className="p-2 text-left font-bold text-verdant-ink">צבירה</th>
+                <th className="p-2 text-left font-bold text-verdant-ink">
+                  דמי ניהול (הפקדה/צבירה)
+                </th>
+                <th className="p-2 text-left font-bold text-verdant-ink">הפקדה חודשית</th>
               </tr>
             </thead>
             <tbody>
               {funds.map((f, i) => (
-                <tr
-                  key={f.id}
-                  style={{ background: i % 2 === 0 ? "#fff" : "#f4f7ed" }}
-                >
+                <tr key={f.id} style={{ background: i % 2 === 0 ? "#fff" : "#f4f7ed" }}>
                   <td className="p-2 text-verdant-ink">{f.company}</td>
                   <td className="p-2 text-verdant-ink">{typeLabel(f.type)}</td>
                   <td className="p-2 text-verdant-ink">{f.track}</td>
@@ -489,7 +522,9 @@ function PensionSection({ data }: { data: ReportData }) {
                 </tr>
               ))}
               <tr style={{ background: "#1B4332", color: "#fff" }}>
-                <td className="p-2 font-bold" colSpan={3}>סה״כ</td>
+                <td className="p-2 font-bold" colSpan={3}>
+                  סה״כ
+                </td>
                 <td className="p-2 text-left font-extrabold">{fmtILS(totalBalance)}</td>
                 <td className="p-2"></td>
                 <td className="p-2 text-left font-extrabold">{fmtILS(totalContrib)}</td>
@@ -539,12 +574,12 @@ function RealEstateSection({ data }: { data: ReportData }) {
       <table className="w-full text-[11px]">
         <thead>
           <tr style={{ background: "#eef2e8" }}>
-            <th className="text-right p-2 font-bold text-verdant-ink">נכס</th>
-            <th className="text-right p-2 font-bold text-verdant-ink">סוג</th>
-            <th className="text-left p-2 font-bold text-verdant-ink">שווי נוכחי</th>
-            <th className="text-left p-2 font-bold text-verdant-ink">יתרת משכנתא</th>
-            <th className="text-left p-2 font-bold text-verdant-ink">הון עצמי</th>
-            <th className="text-left p-2 font-bold text-verdant-ink">שכ״ד / הוצאות</th>
+            <th className="p-2 text-right font-bold text-verdant-ink">נכס</th>
+            <th className="p-2 text-right font-bold text-verdant-ink">סוג</th>
+            <th className="p-2 text-left font-bold text-verdant-ink">שווי נוכחי</th>
+            <th className="p-2 text-left font-bold text-verdant-ink">יתרת משכנתא</th>
+            <th className="p-2 text-left font-bold text-verdant-ink">הון עצמי</th>
+            <th className="p-2 text-left font-bold text-verdant-ink">שכ״ד / הוצאות</th>
           </tr>
         </thead>
         <tbody>
@@ -552,7 +587,7 @@ function RealEstateSection({ data }: { data: ReportData }) {
             const equity = (p.currentValue || 0) - (p.mortgageBalance || 0);
             return (
               <tr key={p.id} style={{ background: i % 2 === 0 ? "#fff" : "#f4f7ed" }}>
-                <td className="p-2 text-verdant-ink font-bold">{p.name}</td>
+                <td className="p-2 font-bold text-verdant-ink">{p.name}</td>
                 <td className="p-2 text-verdant-ink">{reTypeLabel(p.type)}</td>
                 <td className="p-2 text-left font-bold">{fmtILS(p.currentValue)}</td>
                 <td className="p-2 text-left">{fmtILS(p.mortgageBalance || 0)}</td>
@@ -602,21 +637,21 @@ function SecuritiesSection({ data }: { data: ReportData }) {
   return (
     <section className="report-section mb-6">
       <SectionHeader num={5} title="השקעות" subtitle="תיק ניירות ערך" />
-      <table className="w-full text-[11px] mb-3">
+      <table className="mb-3 w-full text-[11px]">
         <thead>
           <tr style={{ background: "#eef2e8" }}>
-            <th className="text-right p-2 font-bold text-verdant-ink">נייר</th>
-            <th className="text-right p-2 font-bold text-verdant-ink">סוג</th>
-            <th className="text-left p-2 font-bold text-verdant-ink">כמות</th>
-            <th className="text-left p-2 font-bold text-verdant-ink">שווי שוק</th>
-            <th className="text-left p-2 font-bold text-verdant-ink">רווח/הפסד</th>
-            <th className="text-left p-2 font-bold text-verdant-ink">%</th>
+            <th className="p-2 text-right font-bold text-verdant-ink">נייר</th>
+            <th className="p-2 text-right font-bold text-verdant-ink">סוג</th>
+            <th className="p-2 text-left font-bold text-verdant-ink">כמות</th>
+            <th className="p-2 text-left font-bold text-verdant-ink">שווי שוק</th>
+            <th className="p-2 text-left font-bold text-verdant-ink">רווח/הפסד</th>
+            <th className="p-2 text-left font-bold text-verdant-ink">%</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r, i) => (
             <tr key={r.id} style={{ background: i % 2 === 0 ? "#fff" : "#f4f7ed" }}>
-              <td className="p-2 text-verdant-ink font-bold">{r.symbol}</td>
+              <td className="p-2 font-bold text-verdant-ink">{r.symbol}</td>
               <td className="p-2 text-verdant-ink">{r.kind}</td>
               <td className="p-2 text-left">{r.quantity}</td>
               <td className="p-2 text-left font-bold">{fmtILS(r.market_value_ils)}</td>
@@ -643,17 +678,17 @@ function DebtSection({ data }: { data: ReportData }) {
       <SectionHeader num={6} title="חובות והתחייבויות" subtitle="משכנתאות והלוואות פעילות" />
       {m && m.tracks.length > 0 && (
         <>
-          <div className="text-[11px] font-bold text-verdant-ink mb-2">
+          <div className="mb-2 text-[11px] font-bold text-verdant-ink">
             משכנתא — {m.bank || "לא צוין"}
           </div>
-          <table className="w-full text-[11px] mb-4">
+          <table className="mb-4 w-full text-[11px]">
             <thead>
               <tr style={{ background: "#eef2e8" }}>
-                <th className="text-right p-2 font-bold text-verdant-ink">מסלול</th>
-                <th className="text-right p-2 font-bold text-verdant-ink">שיטה</th>
-                <th className="text-left p-2 font-bold text-verdant-ink">ריבית</th>
-                <th className="text-left p-2 font-bold text-verdant-ink">יתרה</th>
-                <th className="text-left p-2 font-bold text-verdant-ink">החזר חודשי</th>
+                <th className="p-2 text-right font-bold text-verdant-ink">מסלול</th>
+                <th className="p-2 text-right font-bold text-verdant-ink">שיטה</th>
+                <th className="p-2 text-left font-bold text-verdant-ink">ריבית</th>
+                <th className="p-2 text-left font-bold text-verdant-ink">יתרה</th>
+                <th className="p-2 text-left font-bold text-verdant-ink">החזר חודשי</th>
               </tr>
             </thead>
             <tbody>
@@ -673,14 +708,14 @@ function DebtSection({ data }: { data: ReportData }) {
 
       {s.activeLoans.length > 0 && (
         <>
-          <div className="text-[11px] font-bold text-verdant-ink mb-2">הלוואות פעילות</div>
-          <table className="w-full text-[11px] mb-4">
+          <div className="mb-2 text-[11px] font-bold text-verdant-ink">הלוואות פעילות</div>
+          <table className="mb-4 w-full text-[11px]">
             <thead>
               <tr style={{ background: "#eef2e8" }}>
-                <th className="text-right p-2 font-bold text-verdant-ink">נותן הלוואה</th>
-                <th className="text-left p-2 font-bold text-verdant-ink">תחילה</th>
-                <th className="text-left p-2 font-bold text-verdant-ink">תשלומים סה״כ</th>
-                <th className="text-left p-2 font-bold text-verdant-ink">החזר חודשי</th>
+                <th className="p-2 text-right font-bold text-verdant-ink">נותן הלוואה</th>
+                <th className="p-2 text-left font-bold text-verdant-ink">תחילה</th>
+                <th className="p-2 text-left font-bold text-verdant-ink">תשלומים סה״כ</th>
+                <th className="p-2 text-left font-bold text-verdant-ink">החזר חודשי</th>
               </tr>
             </thead>
             <tbody>
@@ -699,7 +734,7 @@ function DebtSection({ data }: { data: ReportData }) {
 
       {!m && s.activeLoans.length === 0 && s.activeInstallments.length === 0 && <Empty />}
 
-      <div className="grid grid-cols-3 gap-3 mt-3">
+      <div className="mt-3 grid grid-cols-3 gap-3">
         <Stat label="סה״כ יתרות" value={fmtILS(s.mortgageBalance + s.loansBalance)} />
         <Stat label="החזר חודשי כולל" value={fmtILS(s.monthlyTotal)} />
         <Stat label="ריבית משכנתא ממוצעת" value={fmtPct(s.mortgageAvgInterest)} />
@@ -726,20 +761,20 @@ function GoalsSection({ data }: { data: ReportData }) {
         {buckets.map((b) => {
           const p = pct(b.currentAmount || 0, b.targetAmount || 0);
           return (
-            <div key={b.id} className="rounded-lg p-3 border" style={{ borderColor: "#eef2e8" }}>
+            <div key={b.id} className="rounded-lg border p-3" style={{ borderColor: "#eef2e8" }}>
               <div className="flex items-center justify-between">
-                <div className="font-bold text-verdant-ink text-sm">{b.name}</div>
+                <div className="text-sm font-bold text-verdant-ink">{b.name}</div>
                 <div className="text-[11px] text-verdant-muted">
                   יעד: {formatHebDate(b.targetDate)}
                 </div>
               </div>
-              <div className="flex items-center justify-between text-[11px] mt-1">
+              <div className="mt-1 flex items-center justify-between text-[11px]">
                 <div className="text-verdant-ink">
                   {fmtILS(b.currentAmount)} / {fmtILS(b.targetAmount)}
                 </div>
                 <div className="font-bold text-verdant-emerald">{p}%</div>
               </div>
-              <div className="h-2 rounded-full mt-2" style={{ background: "#eef2e8" }}>
+              <div className="mt-2 h-2 rounded-full" style={{ background: "#eef2e8" }}>
                 <div
                   className="h-full rounded-full"
                   style={{ width: `${p}%`, background: "#1B4332" }}

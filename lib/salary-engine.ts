@@ -58,7 +58,7 @@ export const SALARY_PROFILE_EVENT = "verdant:salary_profile:updated";
 export interface SalaryBreakdown {
   /** Inputs echoed for convenience. */
   monthlyGross: number;
-  annualGross: number;         // includes annualized bonus
+  annualGross: number; // includes annualized bonus
   /** Taxable income after pension deduction (pension reduces taxable). */
   annualTaxable: number;
   /** Monthly pension deduction taken from gross (employee side). */
@@ -73,8 +73,8 @@ export interface SalaryBreakdown {
   studyFundTotalMonthly: number;
   /** Income tax after credit points + periphery benefit. */
   incomeTaxMonthly: number;
-  marginalBracket: number;    // 0.10 … 0.50
-  effectiveTaxRate: number;   // tax / taxable income
+  marginalBracket: number; // 0.10 … 0.50
+  effectiveTaxRate: number; // tax / taxable income
   /** Bituach Leumi (national insurance) monthly. */
   bituachLeumiMonthly: number;
   /** Health tax monthly (מס בריאות) — 3.1% / 5%. */
@@ -170,8 +170,8 @@ export function computeSalaryBreakdown(profile: SalaryProfile): SalaryBreakdown 
     incomeTaxMonthly +
     bituachLeumiMonthly +
     healthTaxMonthly +
-    pE +              // employee pension
-    sE;               // employee study fund
+    pE + // employee pension
+    sE; // employee study fund
 
   const netMonthly = Math.max(0, gross - totalDeductionsMonthly);
 

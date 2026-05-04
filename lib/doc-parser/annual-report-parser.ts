@@ -31,12 +31,12 @@ import pdfParse from "pdf-parse";
 /* ═══════════════════════════════════════════════════════════ */
 
 export type AnnualProductType =
-  | "pension_comprehensive"   // קרן פנסיה מקיפה
-  | "pension_general"          // קרן פנסיה כללית
-  | "insurance_manager"        // ביטוח מנהלים
-  | "gemel"                    // קופת גמל
-  | "hishtalmut"               // קרן השתלמות
-  | "gemel_investment"         // גמל להשקעה
+  | "pension_comprehensive" // קרן פנסיה מקיפה
+  | "pension_general" // קרן פנסיה כללית
+  | "insurance_manager" // ביטוח מנהלים
+  | "gemel" // קופת גמל
+  | "hishtalmut" // קרן השתלמות
+  | "gemel_investment" // גמל להשקעה
   | "unknown";
 
 export interface AnnualPolicy {
@@ -62,11 +62,11 @@ export interface AnnualPolicy {
 
   /** Employment context */
   employerName?: string;
-  joinDate?: string;        // "12/2022" or ISO
+  joinDate?: string; // "12/2022" or ISO
 
   /** Balance at end of report year */
   balance: number;
-  reportDate: string;       // "31/12/2025" or ISO
+  reportDate: string; // "31/12/2025" or ISO
 
   /** Annual deposits sum (employer + employee + severance) */
   annualDeposits?: number;
@@ -75,16 +75,16 @@ export interface AnnualPolicy {
   monthlyContrib?: number;
 
   /** Mgmt fees in % */
-  mgmtFeeBalance?: number;  // דמי ניהול מהחיסכון המצטבר
-  mgmtFeeDeposit?: number;  // דמי ניהול מהפקדה שוטפת
+  mgmtFeeBalance?: number; // דמי ניהול מהחיסכון המצטבר
+  mgmtFeeDeposit?: number; // דמי ניהול מהפקדה שוטפת
 
   /** Annual returns in % */
-  returnYear?: number;      // שיעור התשואה ברוטו (year)
-  return5y?: number;        // 5-year cumulative gross return
+  returnYear?: number; // שיעור התשואה ברוטו (year)
+  return5y?: number; // 5-year cumulative gross return
 
   /** Pension projection (only relevant for pension funds) */
-  projectedPensionAmount?: number;   // קצבה חודשית צפויה בפרישה
-  retirementAge?: number;            // גיל פרישה
+  projectedPensionAmount?: number; // קצבה חודשית צפויה בפרישה
+  retirementAge?: number; // גיל פרישה
 
   /** Salary base for severance/pension calc */
   salaryBase?: number;
@@ -117,41 +117,41 @@ export interface ParsedAnnualBundle {
 /* ═══════════════════════════════════════════════════════════ */
 
 const PROVIDER_HINTS: [string, string[]][] = [
-  ["הראל",        ["הראל", "harel"]],
-  ["מגדל",        ["מגדל", "magdal", "migdal"]],
-  ["מנורה",       ["מנורה", "menora", "מבטחים"]],
-  ["הפניקס",      ["הפניקס", "phoenix", "fnx"]],
-  ["מיטב",        ["מיטב", "meitav"]],
+  ["הראל", ["הראל", "harel"]],
+  ["מגדל", ["מגדל", "magdal", "migdal"]],
+  ["מנורה", ["מנורה", "menora", "מבטחים"]],
+  ["הפניקס", ["הפניקס", "phoenix", "fnx"]],
+  ["מיטב", ["מיטב", "meitav"]],
   ["אלטשולר שחם", ["אלטשולר", "altshuler"]],
-  ["אנליסט",      ["אנליסט", "analyst"]],
+  ["אנליסט", ["אנליסט", "analyst"]],
   ["ילין לפידות", ["ילין", "yelin", "lapidot"]],
-  ["כלל",          ["כלל", "clal"]],
-  ["מור",          ["מור גמל", "מור השקעות", "more"]],
-  ["פסגות",        ["פסגות", "psagot"]],
-  ["אינפיניטי",    ["אינפיניטי", "infinity"]],
+  ["כלל", ["כלל", "clal"]],
+  ["מור", ["מור גמל", "מור השקעות", "more"]],
+  ["פסגות", ["פסגות", "psagot"]],
+  ["אינפיניטי", ["אינפיניטי", "infinity"]],
 ];
 
 function detectProvider(text: string): string {
   const lower = text.toLowerCase();
   for (const [name, kws] of PROVIDER_HINTS) {
-    if (kws.some(k => lower.includes(k))) return name;
+    if (kws.some((k) => lower.includes(k))) return name;
   }
   return "לא זוהה";
 }
 
 const PRODUCT_HINTS: [AnnualProductType, string, string[]][] = [
-  ["pension_comprehensive", "קרן פנסיה מקיפה",  ["קרן פנסיה מקיפה חדשה", "פנסיה מקיפה"]],
-  ["pension_general",       "קרן פנסיה כללית",  ["קרן פנסיה כללית", "פנסיה כללית"]],
-  ["pension_comprehensive", "קרן פנסיה",        ["דוח שנתי מפורט בקרן פנסיה", "קרן פנסיה חדשה"]],
-  ["insurance_manager",     "ביטוח מנהלים",    ["ביטוח מנהלים"]],
-  ["hishtalmut",            "קרן השתלמות",     ["קרן השתלמות", "בקרן השתלמות"]],
-  ["gemel_investment",      "גמל להשקעה",      ["גמל להשקעה"]],
-  ["gemel",                 "קופת גמל",        ["קופת גמל", "בקופת גמל"]],
+  ["pension_comprehensive", "קרן פנסיה מקיפה", ["קרן פנסיה מקיפה חדשה", "פנסיה מקיפה"]],
+  ["pension_general", "קרן פנסיה כללית", ["קרן פנסיה כללית", "פנסיה כללית"]],
+  ["pension_comprehensive", "קרן פנסיה", ["דוח שנתי מפורט בקרן פנסיה", "קרן פנסיה חדשה"]],
+  ["insurance_manager", "ביטוח מנהלים", ["ביטוח מנהלים"]],
+  ["hishtalmut", "קרן השתלמות", ["קרן השתלמות", "בקרן השתלמות"]],
+  ["gemel_investment", "גמל להשקעה", ["גמל להשקעה"]],
+  ["gemel", "קופת גמל", ["קופת גמל", "בקופת גמל"]],
 ];
 
 function detectProduct(text: string): { type: AnnualProductType; label: string } {
   for (const [type, label, kws] of PRODUCT_HINTS) {
-    if (kws.some(k => text.includes(k))) return { type, label };
+    if (kws.some((k) => text.includes(k))) return { type, label };
   }
   return { type: "unknown", label: "לא ידוע" };
 }
@@ -163,7 +163,9 @@ function detectProduct(text: string): { type: AnnualProductType; label: string }
 /** Parse Israeli currency-formatted number: "117,064.70" → 117064.70 */
 function parseAmount(s: string | undefined | null): number {
   if (!s) return 0;
-  const cleaned = String(s).replace(/[₪$\s\u200E\u200F]/g, "").replace(/,/g, "");
+  const cleaned = String(s)
+    .replace(/[₪$\s\u200E\u200F]/g, "")
+    .replace(/,/g, "");
   const n = parseFloat(cleaned);
   return Number.isFinite(n) ? n : 0;
 }
@@ -250,9 +252,9 @@ function extractBalance(text: string, _reportDate: string): number {
 
   // Pattern 2: "<BLOB>31/12/YYYYיתרת החיסכון המצטבר ל-"
   // Appears twice: opening (year start) and closing (year end). Use last.
-  const breakdownMatches = [...text.matchAll(
-    /([\d,.]+)\s*\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4}\s*יתרת\s*החיסכון\s*המצטבר/g
-  )];
+  const breakdownMatches = [
+    ...text.matchAll(/([\d,.]+)\s*\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4}\s*יתרת\s*החיסכון\s*המצטבר/g),
+  ];
   if (breakdownMatches.length) {
     // The breakdown row visual order (RTL) puts TOTAL first then components,
     // so in extracted text the total is the FIRST number on the line.
@@ -285,7 +287,9 @@ function extractReportDate(text: string): string {
   const m2 = text.match(/תאריך\s*הדוח[:\s]*(\d{1,2}[\/\.\-]\d{1,2}[\/\.\-]\d{2,4})/);
   if (m2) return parseDate(m2[1]);
   // Fallback: report period
-  const m3 = text.match(/(\d{1,2}[\/\.\-]\d{1,2}[\/\.\-]\d{2,4})\s*-\s*\d{1,2}[\/\.\-]\d{1,2}[\/\.\-]\d{2,4}/);
+  const m3 = text.match(
+    /(\d{1,2}[\/\.\-]\d{1,2}[\/\.\-]\d{2,4})\s*-\s*\d{1,2}[\/\.\-]\d{1,2}[\/\.\-]\d{2,4}/
+  );
   if (m3) return parseDate(m3[1]);
   return "";
 }
@@ -319,15 +323,17 @@ function extractEmployer(text: string): string | undefined {
 
 function extractJoinDate(text: string): string | undefined {
   // "12/2022מועד הצטרפות העמית/ה לקרן ההשתלמות" or pension variant
-  const m = text.match(/(\d{1,2}[\/\.\-]\d{2,4})\s*מועד\s*הצטרפות/) ||
-            text.match(/(\d{1,2}[\/\.\-]\d{1,2}[\/\.\-]\d{2,4})\s*מועד\s*תחילת\s*חישוב\s*ותק/);
+  const m =
+    text.match(/(\d{1,2}[\/\.\-]\d{2,4})\s*מועד\s*הצטרפות/) ||
+    text.match(/(\d{1,2}[\/\.\-]\d{1,2}[\/\.\-]\d{2,4})\s*מועד\s*תחילת\s*חישוב\s*ותק/);
   return m ? m[1] : undefined;
 }
 
 function extractPlanName(text: string): string | undefined {
   // Track row: "<TRACK>מסלול ההשקעה בו מנוהלים כספי החיסכון"
-  const m = text.match(/([\u0590-\u05FF][\u0590-\u05FF\s\-']{2,40}?)\s*מסלול\s*ההשקעה\s*בו\s*מנוהלים/) ||
-            text.match(/שם\s*מסלול\s*השקעה[\s\S]{0,100}?([\u0590-\u05FF][\u0590-\u05FF\s\-']{2,40})/);
+  const m =
+    text.match(/([\u0590-\u05FF][\u0590-\u05FF\s\-']{2,40}?)\s*מסלול\s*ההשקעה\s*בו\s*מנוהלים/) ||
+    text.match(/שם\s*מסלול\s*השקעה[\s\S]{0,100}?([\u0590-\u05FF][\u0590-\u05FF\s\-']{2,40})/);
   return m?.[1]?.trim();
 }
 
@@ -337,12 +343,8 @@ function extractMgmtFees(text: string): { balance?: number; deposit?: number } {
   // Order in text: avg-of-industry, max-without-discount, end-of-discount, current, current(repeat), sum-shekels, LABEL
   // We want the CURRENT rate — that's the percentage closest to the label
   // (last percentage immediately before the shekels amount and label).
-  const balRow = text.match(
-    /([\d.]+)%\s*[\d.,]+\s*דמי\s*ניהול\s*מהחיסכון\s*המצטבר/,
-  );
-  const depRow = text.match(
-    /([\d.]+)%\s*[\d.,]+\s*דמי\s*ניהול\s*מהפקדה\s*שוטפת/,
-  );
+  const balRow = text.match(/([\d.]+)%\s*[\d.,]+\s*דמי\s*ניהול\s*מהחיסכון\s*המצטבר/);
+  const depRow = text.match(/([\d.]+)%\s*[\d.,]+\s*דמי\s*ניהול\s*מהפקדה\s*שוטפת/);
   return {
     balance: balRow ? parseFloat(balRow[1]) : undefined,
     deposit: depRow ? parseFloat(depRow[1]) : undefined,
@@ -359,10 +361,10 @@ function extractReturns(text: string): { year?: number; fiveY?: number } {
   const idx = text.indexOf("תשואה שהושגה");
   const searchText = idx >= 0 ? text.slice(idx, idx + 1500) : text;
   const tableMatch = searchText.match(
-    /([\d.]+)%\s*([\d.]+)%\s*([\d.]+)%\s*([\d.]+)%[\u0590-\u05FF\s\-'"]{2,40}?(?:כללי|מנייתי|אג["\u05F4]ח|כספי|s&p|מסלול|גילאי|השתלמות|מקיפה)/i,
+    /([\d.]+)%\s*([\d.]+)%\s*([\d.]+)%\s*([\d.]+)%[\u0590-\u05FF\s\-'"]{2,40}?(?:כללי|מנייתי|אג["\u05F4]ח|כספי|s&p|מסלול|גילאי|השתלמות|מקיפה)/i
   );
   if (!tableMatch) return {};
-  const nums = [1, 2, 3, 4].map(i => parseFloat(tableMatch[i])).sort((a, b) => b - a);
+  const nums = [1, 2, 3, 4].map((i) => parseFloat(tableMatch[i])).sort((a, b) => b - a);
   // Largest = 5Y; second largest = 1Y (only when meaningfully larger than the cost ~0.5%)
   const fiveY = nums[0];
   const yr = nums[1] > 3 ? nums[1] : undefined;
@@ -402,7 +404,7 @@ function extractAnnualDeposits(text: string): number | undefined {
       /([\d,]+\.\d{2})\s*([\d,]+\.\d{2})\s*([\d,]+\.\d{2})\s*([\d,]+\.\d{2})\s*סה[״"']כ/
     );
     if (totalRow) {
-      const nums = [1, 2, 3, 4].map(i => parseAmount(totalRow[i]));
+      const nums = [1, 2, 3, 4].map((i) => parseAmount(totalRow[i]));
       return Math.max(...nums);
     }
   }
@@ -418,7 +420,7 @@ function extractAnnualDeposits(text: string): number | undefined {
 
 export async function parseAnnualReportPdf(
   buffer: Buffer,
-  filename: string,
+  filename: string
 ): Promise<ParsedAnnualReport> {
   const warnings: string[] = [];
   let text = "";
@@ -453,9 +455,7 @@ export async function parseAnnualReportPdf(
     ...text.matchAll(/(\d{6,12})\s*מספר\s*חשבון\s*העמית/g),
     ...text.matchAll(/מספר\s*חשבון\s*העמית[\s\/ה]*(\d{6,12})/g),
   ];
-  const uniqueAccounts = Array.from(
-    new Set(allAccountMatches.map(m => m[1]))
-  );
+  const uniqueAccounts = Array.from(new Set(allAccountMatches.map((m) => m[1])));
 
   const accountNumber = extractAccountNumber(text) || uniqueAccounts[0] || "";
   const employer = extractEmployer(text);
@@ -473,7 +473,9 @@ export async function parseAnnualReportPdf(
 
   const notes: string[] = [];
   if (uniqueAccounts.length > 1) {
-    notes.push(`${uniqueAccounts.length} חשבונות בקובץ — היתרה היא הסכום הכולל. חשבונות: ${uniqueAccounts.join(", ")}`);
+    notes.push(
+      `${uniqueAccounts.length} חשבונות בקובץ — היתרה היא הסכום הכולל. חשבונות: ${uniqueAccounts.join(", ")}`
+    );
   }
 
   const policy: AnnualPolicy = {
@@ -513,7 +515,7 @@ export async function parseAnnualReportPdf(
 /* ═══════════════════════════════════════════════════════════ */
 
 export async function parseAnnualReportBundle(
-  files: { name: string; buffer: Buffer }[],
+  files: { name: string; buffer: Buffer }[]
 ): Promise<ParsedAnnualBundle> {
   const parsed: ParsedAnnualReport[] = [];
   const allWarnings: string[] = [];
@@ -522,20 +524,16 @@ export async function parseAnnualReportBundle(
     try {
       const r = await parseAnnualReportPdf(f.buffer, f.name);
       parsed.push(r);
-      allWarnings.push(...r.warnings.map(w => `[${f.name}] ${w}`));
+      allWarnings.push(...r.warnings.map((w) => `[${f.name}] ${w}`));
     } catch (e) {
       allWarnings.push(`[${f.name}] כשל גורף: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 
-  const policies = parsed.flatMap(f => f.policies);
+  const policies = parsed.flatMap((f) => f.policies);
   const totalBalance = policies.reduce((s, p) => s + p.balance, 0);
-  const totalProjectedPension = policies.reduce(
-    (s, p) => s + (p.projectedPensionAmount ?? 0), 0
-  );
-  const totalMonthlyContrib = policies.reduce(
-    (s, p) => s + (p.monthlyContrib ?? 0), 0
-  );
+  const totalProjectedPension = policies.reduce((s, p) => s + (p.projectedPensionAmount ?? 0), 0);
+  const totalMonthlyContrib = policies.reduce((s, p) => s + (p.monthlyContrib ?? 0), 0);
 
   const byType: Record<AnnualProductType, AnnualPolicy[]> = {
     pension_comprehensive: [],
@@ -548,8 +546,8 @@ export async function parseAnnualReportBundle(
   };
   for (const p of policies) byType[p.productType].push(p);
 
-  const customerName = policies.find(p => p.customerName)?.customerName;
-  const customerId = policies.find(p => p.customerId)?.customerId;
+  const customerName = policies.find((p) => p.customerName)?.customerName;
+  const customerId = policies.find((p) => p.customerId)?.customerId;
 
   return {
     files: parsed,

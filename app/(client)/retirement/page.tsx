@@ -17,7 +17,7 @@ export default function RetirementPageRedirect() {
     router.replace("/pension");
   }, [router]);
   return (
-    <div className="max-w-6xl mx-auto p-6 text-center text-sm text-verdant-muted">
+    <div className="mx-auto max-w-6xl p-6 text-center text-sm text-verdant-muted">
       מעבר לעמוד פנסיה ופרישה...
     </div>
   );

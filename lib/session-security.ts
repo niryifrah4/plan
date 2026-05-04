@@ -11,7 +11,7 @@
 import { signOut } from "@/lib/auth";
 
 const IDLE_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
-const WARNING_BEFORE_MS = 60 * 1000;    // 1 minute warning
+const WARNING_BEFORE_MS = 60 * 1000; // 1 minute warning
 const ACTIVITY_KEY = "verdant:last_activity";
 const ACTIVITY_EVENTS = ["mousedown", "keydown", "touchstart", "scroll"];
 

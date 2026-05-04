@@ -42,7 +42,9 @@ export async function sendEmail(msg: EmailMessage): Promise<SendResult> {
   const c = getClient();
   if (!c) {
     // Dev fallback — no real send, just log.
-    console.info(`[resend:dev] would send to=${Array.isArray(msg.to) ? msg.to.join(",") : msg.to} subject="${msg.subject}"\n${msg.text}`);
+    console.info(
+      `[resend:dev] would send to=${Array.isArray(msg.to) ? msg.to.join(",") : msg.to} subject="${msg.subject}"\n${msg.text}`
+    );
     return { ok: true, id: "dev-noop" };
   }
   try {

@@ -29,7 +29,9 @@ const MIGRATIONS_DIR = resolve(__dirname, "../../supabase/migrations");
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {
   console.error("❌ DATABASE_URL env var is required.");
-  console.error('   Example: DATABASE_URL="postgres://postgres:PW@db.xxx.supabase.co:5432/postgres"');
+  console.error(
+    '   Example: DATABASE_URL="postgres://postgres:PW@db.xxx.supabase.co:5432/postgres"'
+  );
   process.exit(1);
 }
 
