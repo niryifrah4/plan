@@ -18,10 +18,12 @@ export function CashflowForecast() {
     window.addEventListener("storage", refresh);
     window.addEventListener("verdant:assumptions", refresh);
     window.addEventListener("verdant:debt:updated", refresh);
+    window.addEventListener("verdant:special-events:updated", refresh);
     return () => {
       window.removeEventListener("storage", refresh);
       window.removeEventListener("verdant:assumptions", refresh);
       window.removeEventListener("verdant:debt:updated", refresh);
+      window.removeEventListener("verdant:special-events:updated", refresh);
     };
   }, []);
 
@@ -119,7 +121,11 @@ export function CashflowForecast() {
         {Math.round(
           ((months[months.length - 1]?.income || 0) / (months[0]?.income || 1) - 1) * 100
         )}
-        % / 12 חודשים. אירועים חד-פעמיים (חופשה, חגים) מוערכים אוטומטית.
+        % / 12 חודשים. אירועים מיוחדים (בונוס, החזרי מס וכו׳) — נכנסים מ-
+        <a href="/goals" className="underline hover:text-verdant-emerald">
+          /goals → אירועים מיוחדים
+        </a>
+        .
       </div>
     </section>
   );

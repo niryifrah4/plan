@@ -29,6 +29,7 @@ import {
 } from "@shared/buckets-rebalancing";
 import { MonthlyCheckIn, hasCheckedInThisMonth } from "@/components/MonthlyCheckIn";
 import { KidsSavingsSection } from "@/components/KidsSavingsSection";
+import { SpecialEventsSection } from "@/components/SpecialEventsSection";
 import { syncOnboardingToStores } from "@/lib/onboarding-sync";
 import {
   loadLinks,
@@ -1183,6 +1184,9 @@ export default function GoalsPage() {
       <div className="mt-8">
         <KidsSavingsSection />
       </div>
+
+      {/* ═══════ Special Events (cashflow forecast inputs) ═══════ */}
+      <SpecialEventsSection />
     </div>
   );
 }

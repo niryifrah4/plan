@@ -25,6 +25,7 @@ import {
   deriveMonthlyIncomeFromBudget,
   deriveMonthlyExpensesFromBudget,
 } from "./budget-store";
+import { loadSpecialEvents } from "./special-events-store";
 
 export interface ForecastMonth {
   /** YYYY-MM */
@@ -120,12 +121,23 @@ export function buildForecast(): ForecastMonth[] {
     return Math.ceil(-Math.log(1 - ratio) / Math.log(1 + r));
   })();
 
+  // User-defined special events (annual bonus, tax refund, planned car
+  // purchase, etc.). Indexed by year-month for fast monthly lookup.
+  // 2026-05-04: replaces the previous hardcoded heuristic events
+  // ("July=vacation", "June=bonus", etc.) which assumed every family the
+  // same. Now the user enters their own from /goals → "אירועים מיוחדים".
+  const specialEvents = loadSpecialEvents();
+  const eventsByMonth = new Map<string, typeof specialEvents>();
+  for (const ev of specialEvents) {
+    const list = eventsByMonth.get(ev.ym) || [];
+    list.push(ev);
+    eventsByMonth.set(ev.ym, list);
+  }
+
   // Build 12 months
   const out: ForecastMonth[] = [];
   const start = addMonths(new Date(), 1); // start next month
   let income = baseIncome;
-  // Salary boost month (e.g. annual bonus) — heuristic: month 12 of fiscal year
-  // i.e. June bonus is a common Israeli pattern. We add a "bonus" event.
 
   for (let i = 0; i < 12; i++) {
     const d = addMonths(start, i);
@@ -137,6 +149,7 @@ export function buildForecast(): ForecastMonth[] {
     income *= 1 + monthlyGrowth;
 
     let expenses = baseExpenses;
+    let monthIncome = income;
 
     // Drop mortgage payment if mortgage ended within this window
     if (mortgageMonthly > 0 && i + 1 >= mortgageMonthsLeft) {
@@ -162,27 +175,29 @@ export function buildForecast(): ForecastMonth[] {
       expenses -= originalMortgageMonthly;
     }
 
-    // Annual events:
-    if (d.getMonth() === 6) events.push("☀️ קיץ — חופשה משפחתית"); // July
-    if (d.getMonth() === 8) events.push("🎒 שנה ראשונה — שכר לימוד / חוגים"); // September
-    if (d.getMonth() === 11) events.push("🎁 חגים + מתנות"); // December
-
-    // Bonus month — June, optional
-    if (d.getMonth() === 5 && annualGrowth > 0) {
-      const bonus = Math.round(income * 0.5); // half-month bonus default
-      income += bonus;
-      events.push(`💰 בונוס שנתי משוער ₪${bonus.toLocaleString()}`);
+    // Apply user-defined special events for this month.
+    const monthSpecials = eventsByMonth.get(ym) || [];
+    for (const ev of monthSpecials) {
+      if (ev.type === "income") {
+        monthIncome += ev.amount;
+        events.push(`💰 ${ev.label} +₪${ev.amount.toLocaleString()}`);
+      } else {
+        expenses += ev.amount;
+        events.push(`💸 ${ev.label} −₪${ev.amount.toLocaleString()}`);
+      }
     }
+    // Suppress unused-warning when annualGrowth isn't applied via bonus heuristic
+    void annualGrowth;
 
-    const netCashflow = Math.round(income - expenses);
+    const netCashflow = Math.round(monthIncome - expenses);
     let status: ForecastMonth["status"] = "good";
     if (netCashflow < 0) status = "negative";
-    else if (netCashflow < income * 0.05) status = "tight";
+    else if (netCashflow < monthIncome * 0.05) status = "tight";
 
     out.push({
       ym,
       label,
-      income: Math.round(income),
+      income: Math.round(monthIncome),
       expenses: Math.round(expenses),
       netCashflow,
       events,
