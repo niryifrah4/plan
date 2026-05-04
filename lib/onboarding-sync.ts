@@ -358,19 +358,27 @@ function syncGoalsToBuckets(rows: OnboardingGoalRow[]): void {
   localStorage.setItem(scopedKey(GOALS_SEEDED), new Date().toISOString());
 }
 
-/* ── Emergency fund — auto-seed once ──
- * Per Nir 2026-04-28: emergency fund target is monthly INCOME × coverage.
- * Reasoning: the fund replaces lost income while the family looks for new
- * work; income — not expenses — measures the gap to fill. Default 3 months;
- * UI in /goals lets the user toggle to 6.
- * Idempotent — runs once per client (EMERGENCY_SEEDED flag).
- * Skips if user already created a bucket with the same name. */
+/* ── Emergency fund — sync with current income ──
+ * Per Nir: the emergency fund target is monthly INCOME × coverage. Reasoning:
+ * the fund replaces lost income while the family looks for new work — income
+ * (not expenses) measures the gap to fill. Default 3 months; UI in /goals
+ * lets the user toggle to 4/5/6.
+ *
+ * 2026-05-04 update — runs every time onboarding-sync runs (no longer one-shot
+ * via EMERGENCY_SEEDED). Behavior:
+ *   • No bucket yet           → create one. Target = income × 3, OR 0 if no
+ *                               income declared yet (user fills onboarding,
+ *                               sync re-runs, target updates automatically).
+ *   • Bucket already exists   → recalculate target = currentIncome ×
+ *                               bucket.coverageMonths. Preserves the user's
+ *                               coverage-months choice; just keeps the target
+ *                               aligned with the income they typed.
+ * The previous default of ₪30,000 (when income was unknown) was removed —
+ * it confused users who saw a target they hadn't set. */
 function seedEmergencyFundBucket(): void {
-  if (localStorage.getItem(scopedKey(EMERGENCY_SEEDED))) return;
-
   // Pull household income from the dynamic incomes list (both spouses + side
   // gigs all flow into ONB_INCOMES). Fallback to assumptions.monthlyIncome
-  // (legacy single-line entry), then a hard floor of ₪30k.
+  // (legacy single-line entry).
   let monthlyIncome = 0;
   try {
     const incomes = readJSON<Array<{ value?: string }>>(ONB_INCOMES, []);
@@ -381,31 +389,43 @@ function seedEmergencyFundBucket(): void {
     monthlyIncome = assumptions.monthlyIncome || 0;
   }
 
-  const coverageMonths = 3; // default — user can flip to 6 in /goals
-  const target = monthlyIncome > 0 ? Math.round(monthlyIncome * coverageMonths) : 30000;
-
   const existing = loadBuckets();
-  const hasIt = existing.some(
-    (b) => b.name.includes("חירום") || b.name.toLowerCase().includes("emergency")
+  const emergencyBucket = existing.find(
+    (b) => b.isEmergency || b.name.includes("חירום") || b.name.toLowerCase().includes("emergency")
   );
 
-  if (!hasIt) {
-    // 12-month horizon — short, so the goal stays urgent in the UI.
-    const targetDate = new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString().split("T")[0];
-    const emergencyBucket = createBucket({
-      name: "קרן חירום",
-      icon: "shield",
-      targetAmount: target,
-      targetDate,
-      priority: "high",
-      expectedAnnualReturn: 0.03, // money-market / cash equivalent
-      coverageMonths,
-      isEmergency: true,
-      notes: `מטרה אוטומטית: ${coverageMonths}× הכנסה חודשית. עדכן אם המספר לא מתאים.`,
-    });
-    saveBuckets([...existing, emergencyBucket]);
-    fireSync(BUCKETS_EVENT);
+  // Bucket exists — recalculate target from current income × user's coverageMonths choice.
+  if (emergencyBucket) {
+    const coverageMonths = emergencyBucket.coverageMonths || 3;
+    const newTarget = monthlyIncome > 0 ? Math.round(monthlyIncome * coverageMonths) : 0;
+    if (newTarget !== emergencyBucket.targetAmount) {
+      const updated = existing.map((b) =>
+        b.id === emergencyBucket.id ? { ...b, targetAmount: newTarget } : b
+      );
+      saveBuckets(updated);
+      fireSync(BUCKETS_EVENT);
+    }
+    localStorage.setItem(scopedKey(EMERGENCY_SEEDED), new Date().toISOString());
+    return;
   }
+
+  // No bucket yet — create with default 3-month coverage.
+  const coverageMonths = 3;
+  const target = monthlyIncome > 0 ? Math.round(monthlyIncome * coverageMonths) : 0;
+  const targetDate = new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString().split("T")[0];
+  const newBucket = createBucket({
+    name: "קרן חירום",
+    icon: "shield",
+    targetAmount: target,
+    targetDate,
+    priority: "high",
+    expectedAnnualReturn: 0.03, // money-market / cash equivalent
+    coverageMonths,
+    isEmergency: true,
+    notes: `מטרה אוטומטית: ${coverageMonths}× הכנסה חודשית. עדכן אם המספר לא מתאים.`,
+  });
+  saveBuckets([...existing, newBucket]);
+  fireSync(BUCKETS_EVENT);
 
   localStorage.setItem(scopedKey(EMERGENCY_SEEDED), new Date().toISOString());
 }
