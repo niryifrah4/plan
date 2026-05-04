@@ -1479,12 +1479,29 @@ export default function BudgetPage() {
       {/* 12-month cashflow forecast (2026-05-02). */}
       <CashflowForecast />
 
-      {/* Business/personal scope toggle — removed from main page in cleanup/budget-week1.
-         The feature still works for users who already enabled it; new activation will
-         move to a Settings page (out of scope for week 1). */}
-
-      {/* Charts + Insights already rendered above (lines ~1097-1118).
-         Duplicate block removed in cleanup/budget-week1. */}
+      {/* Business / personal scope toggle.
+          2026-05-04: restored per Nir — the colored personal/business split is
+          a key feature for self-employed couples. Enable shows the section +
+          the scope filter tabs above; disable hides them. */}
+      <div className="mb-4 flex justify-end">
+        <button
+          onClick={() => setBusinessScopeOverride(!businessEnabled)}
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-all hover:bg-verdant-bg"
+          style={{
+            color: businessEnabled ? "#012d1d" : "#5a7a6a",
+            border: `1px solid ${businessEnabled ? SCOPE_COLORS.business : "#d8e0d0"}`,
+            background: businessEnabled ? "#eff6ff" : "transparent",
+          }}
+          title={
+            businessEnabled
+              ? "הפרדת עסקי / פרטי פעילה. לחיצה תכבה את ההפרדה."
+              : "הפעל הפרדה בין הוצאות פרטיות לעסקיות (מומלץ אם אחד מבני הזוג עצמאי)."
+          }
+        >
+          <span className="material-symbols-outlined text-[13px]">work</span>
+          {businessEnabled ? "כבה הפרדת עסקי / פרטי" : "הפעל הפרדת עסקי / פרטי"}
+        </button>
+      </div>
 
       {/* ═══════════════════════════════════════════════════════════
           BUDGET SECTIONS — collapsible disclosures, Finav-style
