@@ -9,6 +9,7 @@ import { fmtILS } from "@/lib/format";
 import { onSync } from "@/lib/sync-engine";
 import { scopedKey } from "@/lib/client-scope";
 import { loadAssumptions } from "@/lib/assumptions";
+import { getMonthlyNetIncome } from "@/lib/income";
 import {
   Bucket,
   BucketPriority,
@@ -940,8 +941,9 @@ export default function GoalsPage() {
                 {/* Emergency-fund — 3/6-month coverage selector + needed-vs-liquid gauge. */}
                 {bucket.isEmergency &&
                   (() => {
-                    const a = loadAssumptions();
-                    const monthlyIncome = a.monthlyIncome || 0;
+                    // 2026-05-05: emergency-fund target uses NET monthly income
+                    // (the family lives off net). Single source of truth: lib/income.ts.
+                    const monthlyIncome = getMonthlyNetIncome();
                     const months = bucket.coverageMonths || 3;
                     const setCoverage = (m: number) => {
                       const clamped = Math.max(3, Math.min(6, Math.round(m))) as 3 | 4 | 5 | 6;

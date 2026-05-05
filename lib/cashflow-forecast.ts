@@ -22,9 +22,9 @@ import { loadDebtData } from "./debt-store";
 import {
   buildBudgetLines,
   totalBudget,
-  deriveMonthlyIncomeFromBudget,
   deriveMonthlyExpensesFromBudget,
 } from "./budget-store";
+import { getMonthlyNetIncome } from "./income";
 import { loadSpecialEvents } from "./special-events-store";
 
 export interface ForecastMonth {
@@ -76,11 +76,14 @@ export function buildForecast(): ForecastMonth[] {
   const a = loadAssumptions();
   const debt = loadDebtData();
 
-  // Base monthly numbers — derived from current budget.
+  // Base monthly numbers.
+  // 2026-05-05: income now comes from getMonthlyNetIncome — single source of
+  // truth (ONB_INCOMES net values, fallback to gross→net via salary engine).
+  // Previously this fell back to assumptions.monthlyIncome (gross), which
+  // produced inflated forecasts that didn't match what hits the bank.
   const lines = buildBudgetLines(0);
   const totals = totalBudget(lines);
-  const baseIncome =
-    deriveMonthlyIncomeFromBudget(a.monthlyIncome || 0) || a.monthlyIncome || 0 || totals.budget;
+  const baseIncome = getMonthlyNetIncome() || totals.budget;
   const baseExpenses =
     deriveMonthlyExpensesFromBudget(a.monthlyExpenses || 0) ||
     a.monthlyExpenses ||

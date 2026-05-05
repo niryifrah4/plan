@@ -39,6 +39,7 @@ import {
 import { loadBuckets, saveBuckets, BUCKETS_EVENT, createBucket } from "./buckets-store";
 import { fireSync } from "./sync-engine";
 import { syncChildLifeEvents } from "./life-events";
+import { getMonthlyNetIncome } from "./income";
 import type { Bucket, OnboardingGoalRow } from "@shared/buckets-core";
 import { migrateOnboardingGoals } from "@shared/buckets-core";
 import { loadSalaryProfile, saveSalaryProfile, DEFAULT_SALARY_PROFILE } from "./salary-engine";
@@ -376,18 +377,10 @@ function syncGoalsToBuckets(rows: OnboardingGoalRow[]): void {
  * The previous default of ₪30,000 (when income was unknown) was removed —
  * it confused users who saw a target they hadn't set. */
 function seedEmergencyFundBucket(): void {
-  // Pull household income from the dynamic incomes list (both spouses + side
-  // gigs all flow into ONB_INCOMES). Fallback to assumptions.monthlyIncome
-  // (legacy single-line entry).
-  let monthlyIncome = 0;
-  try {
-    const incomes = readJSON<Array<{ value?: string }>>(ONB_INCOMES, []);
-    monthlyIncome = incomes.reduce((s, r) => s + (parseFloat(r?.value || "0") || 0), 0);
-  } catch {}
-  if (monthlyIncome <= 0) {
-    const assumptions = loadAssumptions();
-    monthlyIncome = assumptions.monthlyIncome || 0;
-  }
+  // 2026-05-05: emergency-fund target is monthly NET × coverageMonths. The
+  // family lives off net, so net is what the fund must replace. Single source
+  // of truth lives in lib/income.ts.
+  const monthlyIncome = getMonthlyNetIncome();
 
   const existing = loadBuckets();
   const emergencyBucket = existing.find(
