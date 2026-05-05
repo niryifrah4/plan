@@ -449,10 +449,30 @@ function injectDebtRows(budget: BudgetData): BudgetData {
     });
   }
 
-  // Aggregate all loans + installments into one editable "החזר הלוואות" row
+  // Aggregate all loans + installments into one editable "החזר הלוואות" row.
+  // 2026-05-05 per Nir: build sub-items so each loan / installment shows as
+  // its own line under the parent row. The user can expand the row in /budget
+  // and see exactly which lender / merchant is consuming each shekel.
   const loansMonthly = summary.activeLoans.reduce((s, l) => s + (l.monthlyPayment || 0), 0);
   const installmentsMonthly = summary.installmentsMonthly || 0;
   const totalLoansMonthly = loansMonthly + installmentsMonthly;
+
+  const loanSubItems = [
+    ...summary.activeLoans.map((loan) => ({
+      id: uid(),
+      name: loan.lender || "הלוואה",
+      budget: loan.monthlyPayment || 0,
+      actual: loan.monthlyPayment || 0,
+      avg3: loan.monthlyPayment || 0,
+    })),
+    ...summary.activeInstallments.map((inst) => ({
+      id: uid(),
+      name: inst.merchant ? `${inst.merchant} (תשלומים)` : "עסקת תשלומים",
+      budget: inst.monthlyAmount || 0,
+      actual: inst.monthlyAmount || 0,
+      avg3: inst.monthlyAmount || 0,
+    })),
+  ];
 
   const loanRowIdx = fixedClean.findIndex((r) => r.name === "החזר הלוואות");
   if (loanRowIdx >= 0) {
@@ -462,6 +482,7 @@ function injectDebtRows(budget: BudgetData): BudgetData {
       ...existing,
       actual: totalLoansMonthly,
       budget: existing.budget > 0 ? existing.budget : totalLoansMonthly,
+      subItems: loanSubItems.length > 0 ? loanSubItems : existing.subItems,
     };
   } else if (totalLoansMonthly > 0) {
     // Safety net: if somehow the row is missing, add it
@@ -471,6 +492,7 @@ function injectDebtRows(budget: BudgetData): BudgetData {
       budget: totalLoansMonthly,
       actual: totalLoansMonthly,
       avg3: 0,
+      subItems: loanSubItems,
     });
   }
 
@@ -1561,6 +1583,7 @@ export default function BudgetPage() {
           sectionKey={sectionKey}
           meta={SECTION_META[sectionKey]}
           rows={filteredBudget.sections[sectionKey] || []}
+          incomeTotal={totals.incBudget}
           onUpdate={updateRow}
           onAdd={addRow}
           onDelete={deleteRow}
@@ -1684,6 +1707,7 @@ function BudgetSection({
   sectionKey,
   meta,
   rows,
+  incomeTotal,
   onUpdate,
   onAdd,
   onDelete,
@@ -1697,6 +1721,8 @@ function BudgetSection({
   sectionKey: string;
   meta: { label: string; icon: string; type: string };
   rows: BudgetRow[];
+  /** Total monthly income — drives the "% of income" metric on this section. */
+  incomeTotal: number;
   onUpdate: (section: string, rowId: string, field: string, value: string | number) => void;
   onAdd: (section: string) => void;
   onDelete: (section: string, rowId: string) => void;
@@ -1771,6 +1797,16 @@ function BudgetSection({
           </div>
           <div className="mt-0.5 text-[11px] font-semibold" style={{ color: "#5a7a6a" }}>
             {rows.length} {rows.length === 1 ? "שורה" : "שורות"}
+            {/* % of income — shown only for expense sections when income > 0.
+                Per Nir 2026-05-05: "דיור — וכמה אחוז זה לוקח מההכנסה. כנ״ל להכל." */}
+            {!isIncome && incomeTotal > 0 && secBudget > 0 && (
+              <>
+                {" · "}
+                <span style={{ color: accent }}>
+                  {Math.round((secBudget / incomeTotal) * 100)}% מההכנסה
+                </span>
+              </>
+            )}
             {over && (
               <>
                 {" · "}

@@ -43,7 +43,34 @@ export function CashflowForecast() {
     fireSync("verdant:assumptions");
   };
 
-  if (months.length === 0) return null;
+  // 2026-05-05 per ui-agent: don't return null silently — explain what's
+  // missing. Otherwise the user sees a blank where the forecast should be
+  // and never knows the panel exists.
+  if (months.length === 0) {
+    return (
+      <section className="card-pad mb-6">
+        <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-verdant-muted">
+          תזרים 12 חודשים קדימה
+        </div>
+        <h3 className="mb-2 text-base font-extrabold text-verdant-ink">מה צפוי לקרות בחשבון</h3>
+        <div
+          className="rounded-xl px-4 py-5 text-center"
+          style={{ background: "#F4F7ED", border: "1px dashed #d8e0d0" }}
+        >
+          <div className="mb-1 text-[13px] font-bold text-verdant-ink">
+            עוד אין תחזית להציג
+          </div>
+          <div className="text-[12px] text-verdant-muted leading-relaxed">
+            הזינו הכנסות והוצאות בתקציב, והוסיפו אירועים מיוחדים ב-{" "}
+            <a href="/goals" className="underline hover:text-verdant-emerald">
+              מטרות
+            </a>
+            {" "}— התחזית תבנה אוטומטית.
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   const max = Math.max(...months.map((m) => Math.abs(m.netCashflow)), 1);
   const negativeMonths = months.filter((m) => m.netCashflow < 0);

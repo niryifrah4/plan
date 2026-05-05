@@ -613,10 +613,10 @@ export default function DebtPage() {
                   />
                 </div>
                 <div className="mt-0.5 flex justify-between">
-                  <span className="text-[9px] font-semibold" style={{ color: "#9ca3af" }}>
+                  <span className="text-[11px] font-semibold" style={{ color: "#9ca3af" }}>
                     שולם {fmtILS(mortgageTotals.originalTotal - mortgageTotals.balanceTotal)}
                   </span>
-                  <span className="text-[9px] font-semibold" style={{ color: "#9ca3af" }}>
+                  <span className="text-[11px] font-semibold" style={{ color: "#9ca3af" }}>
                     נותר {fmtILS(mortgageTotals.balanceTotal)}
                   </span>
                 </div>
@@ -649,7 +649,7 @@ export default function DebtPage() {
 
             {/* Track column headers */}
             <div
-              className="mb-1 grid items-center pb-1 text-[9px] font-extrabold uppercase tracking-[0.08em]"
+              className="mb-1 grid items-center pb-1 text-[11px] font-extrabold uppercase tracking-[0.08em]"
               style={{
                 gridTemplateColumns: "minmax(80px,1fr) 56px 56px 68px 68px 64px 52px 24px",
                 color: "#1B4332",
@@ -821,7 +821,7 @@ export default function DebtPage() {
                         />
                       </div>
                       <span
-                        className="text-[9px] font-bold tabular-nums"
+                        className="text-[11px] font-bold tabular-nums"
                         style={{ color: "#9ca3af", fontFamily: "Assistant" }}
                       >
                         {(trackProgress * 100).toFixed(0)}%
@@ -1185,7 +1185,7 @@ export default function DebtPage() {
                       <div className="mr-4 mt-1">
                         {/* Sub-header */}
                         <div
-                          className="mb-1 grid items-center pb-1 text-[9px] font-extrabold uppercase tracking-[0.08em]"
+                          className="mb-1 grid items-center pb-1 text-[11px] font-extrabold uppercase tracking-[0.08em]"
                           style={{
                             gridTemplateColumns: "minmax(100px,1fr) 100px 90px 80px 28px",
                             color: "#5a7a6a",
@@ -1303,10 +1303,21 @@ export default function DebtPage() {
               })
             ) : (
               <div
-                className="py-6 text-center text-[12px] font-semibold"
-                style={{ color: "#5a7a6a" }}
+                className="rounded-xl px-4 py-6 text-center"
+                style={{ background: "#F4F7ED", border: "1px dashed #d8e0d0" }}
               >
-                אין עסקאות תשלומים. הוסף עסקה ראשונה.
+                <span
+                  className="material-symbols-outlined mb-1 inline-block"
+                  style={{ fontSize: 28, color: "#5a7a6a" }}
+                >
+                  shopping_cart
+                </span>
+                <div className="mb-1 text-[13px] font-bold text-verdant-ink">
+                  אין עדיין עסקאות תשלומים
+                </div>
+                <div className="text-[11px] text-verdant-muted">
+                  הוסיפו עסקה כדי לעקוב אחרי תשלומים שמתפרסים על מספר חודשים — כמו רכישת רהיטים בתשלומים או טיסה.
+                </div>
               </div>
             )}
 
