@@ -83,7 +83,9 @@ export const NAV_SECTIONS: NavGroup[] = [
     defaultOpen: true,
     items: [
       { id: "goals", label: "מטרות וחזון", href: "/goals", icon: "flag" },
-      { id: "roadmap", label: "מסלול חיים", href: "/roadmap", icon: "timeline" },
+      // 2026-05-05 per Nir: /roadmap hidden from sidebar — duplicates the
+      // long-term trajectory + summaries already on /dashboard. Route still
+      // exists for back-compat / future redesign; only the nav entry is gone.
       // 2026-04-29 per Nir: /retirement merged into /pension. The simulation
       // panels live there now. Sidebar entry removed; route still exists for
       // back-compat (any deep link auto-redirects via the page itself).
