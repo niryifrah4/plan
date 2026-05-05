@@ -109,15 +109,9 @@ async function resolveLandingPage(sb: ReturnType<typeof createClient>): Promise<
     return "/login?error=missing_role";
   }
 
-  // Check whether the client has finished onboarding.
-  const { data: household } = await sb
-    .from("households")
-    .select("stage")
-    .eq("id", client.household_id)
-    .maybeSingle();
-
-  if (!household || household.stage === "onboarding") {
-    return "/onboarding";
-  }
+  // 2026-05-05 per Nir: post-login always lands on /dashboard. The
+  // questionnaire is a one-time setup — it shouldn't be the front door
+  // every time a returning couple opens the app. The empty dashboard
+  // shows a "complete your profile" banner instead (see /dashboard).
   return "/dashboard";
 }

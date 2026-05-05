@@ -69,7 +69,10 @@ export function createSpecialEvent(input: Omit<SpecialEvent, "id">): SpecialEven
   };
 }
 
-export function addSpecialEvent(events: SpecialEvent[], input: Omit<SpecialEvent, "id">): SpecialEvent[] {
+export function addSpecialEvent(
+  events: SpecialEvent[],
+  input: Omit<SpecialEvent, "id">
+): SpecialEvent[] {
   return [...events, createSpecialEvent(input)];
 }
 

@@ -431,7 +431,8 @@ function injectDebtRows(budget: BudgetData): BudgetData {
           budget: track.monthlyPayment,
           actual: track.monthlyPayment,
           avg3: 0,
-          locked: true,
+          // 2026-05-05 per Nir: rows are editable. Auto-injection still
+      // refreshes them from source data on each mount.
           source: "debt",
         });
       }
@@ -443,7 +444,8 @@ function injectDebtRows(budget: BudgetData): BudgetData {
       budget: summary.mortgageMonthly,
       actual: summary.mortgageMonthly,
       avg3: 0,
-      locked: true,
+      // 2026-05-05 per Nir: rows are editable. Auto-injection still
+      // refreshes them from source data on each mount.
     });
   }
 
@@ -608,7 +610,8 @@ function injectOnboardingIncomeRows(budget: BudgetData): BudgetData {
       budget: amount,
       actual: amount,
       avg3: amount,
-      locked: true,
+      // 2026-05-05 per Nir: rows are editable. Auto-injection still
+      // refreshes them from source data on each mount.
       source: "onboarding",
     });
   }

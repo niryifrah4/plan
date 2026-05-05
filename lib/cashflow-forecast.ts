@@ -19,11 +19,7 @@
 
 import { loadAssumptions } from "./assumptions";
 import { loadDebtData } from "./debt-store";
-import {
-  buildBudgetLines,
-  totalBudget,
-  deriveMonthlyExpensesFromBudget,
-} from "./budget-store";
+import { buildBudgetLines, totalBudget, deriveMonthlyExpensesFromBudget } from "./budget-store";
 import { getMonthlyNetIncome } from "./income";
 import { loadSpecialEvents } from "./special-events-store";
 

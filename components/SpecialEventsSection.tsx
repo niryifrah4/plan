@@ -162,8 +162,8 @@ export function SpecialEventsSection() {
               >
                 {ev.icon || (ev.type === "income" ? "trending_up" : "trending_down")}
               </span>
-              <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-bold text-verdant-ink truncate">{ev.label}</div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[13px] font-bold text-verdant-ink">{ev.label}</div>
                 <div className="text-[11px] text-verdant-muted">{ymLabel(ev.ym)}</div>
               </div>
               <div

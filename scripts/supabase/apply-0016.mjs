@@ -43,9 +43,7 @@ try {
     select column_name from information_schema.columns
     where table_schema='public' and table_name='households' and column_name='signup_source'
   `);
-  console.log(
-    `  signup_source column before: ${before.rows.length > 0 ? "EXISTS" : "missing"}`
-  );
+  console.log(`  signup_source column before: ${before.rows.length > 0 ? "EXISTS" : "missing"}`);
 
   // Apply migration
   console.log("⚡ Applying migration...");
