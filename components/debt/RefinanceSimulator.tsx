@@ -49,13 +49,27 @@ export function RefinanceSimulator({ track, onClose }: Props) {
   // Scenario inputs
   const [newRate, setNewRate] = useState(Math.max(2, baseRatePct - 1));
   const [prepay, setPrepay] = useState(0);
+  // 2026-05-05 per finance-agent: most refinances also reset the term
+  // (typically extending it). User can keep current term or stretch up to
+  // 30 years; default = baseMonths so existing behavior is unchanged.
+  const [newMonths, setNewMonths] = useState(baseMonths);
+  // 2026-05-05 per finance-agent: typical bank refi fee in Israel is
+  // ₪1,000–2,500. Default ₪1,500. Without this number, "saving" is misleading
+  // because the refi cost can wipe out months of saving.
+  const [refiFee, setRefiFee] = useState(1500);
 
   const result = useMemo(() => {
-    // Refinance only — same months, lower rate
+    // Refinance only — uses new rate and (possibly) new term
     const refiRate = newRate / 100;
-    const refiMonthly = pmt(baseBalance, refiRate, baseMonths);
-    const refiTotal = Math.round(refiMonthly * baseMonths);
+    const refiMonthly = pmt(baseBalance, refiRate, newMonths);
+    const refiTotal = Math.round(refiMonthly * newMonths) + refiFee;
     const refiSaving = baseTotal - refiTotal;
+    const monthlyDelta = baseMonthly - refiMonthly;
+    // Break-even: how many months until cumulative monthly savings cover the
+    // refi fee. If monthlyDelta ≤ 0 (term extended, monthly went up or flat),
+    // there's no break-even on a monthly basis.
+    const breakEvenMonth = monthlyDelta > 0 ? Math.ceil(refiFee / monthlyDelta) : null;
+    const termDeltaMonths = newMonths - baseMonths;
 
     // Prepay only — reduce balance, keep monthly + rate, fewer months
     const prepayBalance = Math.max(0, baseBalance - prepay);
@@ -64,18 +78,24 @@ export function RefinanceSimulator({ track, onClose }: Props) {
     const prepaySaving = baseTotal - prepayTotal;
     const monthsSaved = baseMonths - prepayMonths;
 
-    // Combined — refinance + prepay
+    // Combined — refinance + prepay (uses new term too)
     const combinedBalance = Math.max(0, baseBalance - prepay);
-    const combinedMonthly = pmt(combinedBalance, refiRate, baseMonths);
-    const combinedTotal = Math.round(combinedMonthly * baseMonths) + prepay;
+    const combinedMonthly = pmt(combinedBalance, refiRate, newMonths);
+    const combinedTotal = Math.round(combinedMonthly * newMonths) + prepay + refiFee;
     const combinedSaving = baseTotal - combinedTotal;
 
     return {
-      refi: { monthly: refiMonthly, total: refiTotal, saving: refiSaving },
+      refi: {
+        monthly: refiMonthly,
+        total: refiTotal,
+        saving: refiSaving,
+        breakEvenMonth,
+        termDeltaMonths,
+      },
       prepay: { monthly: baseMonthly, total: prepayTotal, saving: prepaySaving, monthsSaved },
       combined: { monthly: combinedMonthly, total: combinedTotal, saving: combinedSaving },
     };
-  }, [newRate, prepay, baseBalance, baseMonths, baseMonthly, baseRate, baseTotal]);
+  }, [newRate, prepay, newMonths, refiFee, baseBalance, baseMonths, baseMonthly, baseRate, baseTotal]);
 
   return (
     <div
@@ -150,7 +170,85 @@ export function RefinanceSimulator({ track, onClose }: Props) {
                 סכום שאתה משלם היום מתוך כסף נזיל
               </div>
             </div>
+
+            {/* New term (months) */}
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="text-[12px] font-bold text-verdant-ink">תקופה חדשה</label>
+                <span className="text-[13px] font-extrabold tabular-nums text-verdant-ink">
+                  {Math.round(newMonths / 12)} שנים ({newMonths} חודשים)
+                </span>
+              </div>
+              <input
+                type="range"
+                min={Math.max(12, baseMonths - 60)}
+                max={360}
+                step={12}
+                value={newMonths}
+                onChange={(e) => setNewMonths(parseInt(e.target.value))}
+                className="h-1.5 w-full accent-[#1B4332]"
+              />
+              <div className="mt-0.5 text-[10px] text-verdant-muted">
+                תקופה נוכחית: {Math.round(baseMonths / 12)} שנים. הארכת התקופה תוריד את ההחזר
+                החודשי אבל עלולה להגדיל את הריבית הכוללת.
+              </div>
+            </div>
+
+            {/* Refi fee */}
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="text-[12px] font-bold text-verdant-ink">עמלת מיחזור</label>
+                <span className="text-[13px] font-extrabold tabular-nums text-verdant-ink">
+                  {fmtILS(refiFee)}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={5000}
+                step={100}
+                value={refiFee}
+                onChange={(e) => setRefiFee(parseInt(e.target.value))}
+                className="h-1.5 w-full accent-[#1B4332]"
+              />
+              <div className="mt-0.5 text-[10px] text-verdant-muted">
+                בנקים בישראל גובים בד״כ ₪500-2,500. ערך ברירת מחדל: ₪1,500.
+              </div>
+            </div>
           </div>
+
+          {/* Break-even insight */}
+          {result.refi.breakEvenMonth !== null && (
+            <div
+              className="rounded-xl px-4 py-3"
+              style={{
+                background: result.refi.termDeltaMonths > 0 ? "#FEF3C7" : "#F0F9F4",
+                border: `1px solid ${result.refi.termDeltaMonths > 0 ? "#FCD34D" : "#86efac"}`,
+              }}
+            >
+              <div className="text-[12px] font-bold text-verdant-ink">
+                נקודת איזון: {result.refi.breakEvenMonth} חודשים
+              </div>
+              <div className="mt-0.5 text-[11px] text-verdant-muted">
+                {result.refi.termDeltaMonths > 0
+                  ? `שים לב — הארכת על ${Math.round(result.refi.termDeltaMonths / 12)} שנים. החיסכון הכולל קטן יותר ממה שנראה — הריבית מצטברת על תקופה ארוכה יותר.`
+                  : `אם תישאר בנכס מעבר ל-${result.refi.breakEvenMonth} חודשים, המיחזור משתלם. אם תעזוב לפני — תפסיד.`}
+              </div>
+            </div>
+          )}
+          {result.refi.breakEvenMonth === null && refiFee > 0 && (
+            <div
+              className="rounded-xl px-4 py-3"
+              style={{ background: "#FEE2E2", border: "1px solid #FCA5A5" }}
+            >
+              <div className="text-[12px] font-bold" style={{ color: "#991B1B" }}>
+                אין נקודת איזון — ההחזר החודשי לא יורד
+              </div>
+              <div className="mt-0.5 text-[11px]" style={{ color: "#7F1D1D" }}>
+                המיחזור הזה לא מקטין את ההחזר החודשי, רק מאריך את התקופה. עמלת המיחזור לא תכוסה.
+              </div>
+            </div>
+          )}
 
           {/* 3 scenarios side-by-side */}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -180,8 +278,8 @@ export function RefinanceSimulator({ track, onClose }: Props) {
           </div>
 
           <div className="text-[11px] leading-relaxed text-verdant-muted">
-            הערכה אינדיקטיבית. עמלות מיחזור (פתיחת תיק חדש, פרעון מוקדם) לא נלקחו בחשבון — בנקים
-            גובים בד״כ ₪500-2,500. החיסכון בפועל מעט נמוך יותר.
+            הערכה אינדיקטיבית. עמלת המיחזור שהזנת ({fmtILS(refiFee)}) כלולה בחיסכון. עמלות פירעון
+            מוקדם (אם רלוונטי לבנק שלכם) — לא נלקחו בחשבון.
           </div>
         </div>
 
