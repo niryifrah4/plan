@@ -15,6 +15,7 @@ import {
 import { RefinanceSimulator } from "@/components/debt/RefinanceSimulator";
 import { type IndexationType, type RepaymentMethod } from "@/lib/debt-store";
 import { useAssumptions } from "@/lib/hooks/useAssumptions";
+import { getMonthlyNetIncome } from "@/lib/income";
 import { SolidKpi } from "@/components/ui/SolidKpi";
 
 /* ═══════════════════════════════════════════════════════════
@@ -147,14 +148,26 @@ export default function DebtPage() {
     (id: string, field: keyof Loan, value: string | number) => {
       update((prev) => ({
         ...prev,
-        loans: prev.loans.map((l) =>
-          l.id === id
-            ? {
-                ...l,
-                [field]: field === "lender" || field === "startDate" ? value : Number(value) || 0,
-              }
-            : l
-        ),
+        loans: prev.loans.map((l) => {
+          if (l.id !== id) return l;
+          // Lender / start date: pass through as string.
+          if (field === "lender" || field === "startDate") {
+            return { ...l, [field]: value };
+          }
+          // Interest rate: undefined means "not set" (vs. 0% which is rare).
+          // An empty input clears the field rather than defaulting to 0.
+          if (field === "interestRate") {
+            const trimmed = String(value).trim();
+            if (!trimmed) {
+              const { interestRate, ...rest } = l;
+              void interestRate;
+              return rest;
+            }
+            const num = Number(trimmed);
+            return { ...l, interestRate: Number.isFinite(num) ? num : undefined };
+          }
+          return { ...l, [field]: Number(value) || 0 };
+        }),
       }));
     },
     [update]
@@ -316,18 +329,61 @@ export default function DebtPage() {
 
   const mortgageTotals = useMemo(() => {
     const tracks = data.mortgage?.tracks || [];
+
+    // Total interest the family will still pay across the remaining life
+    // of all tracks. 2026-05-05 per finance-agent: shows the "true cost" of
+    // the mortgage and motivates accelerated payoff. Formula per track:
+    //   monthsRemaining = solve(balance, monthly, rate) — same closed-form as
+    //   in cashflow-forecast.
+    //   interestRemaining = monthly × monthsRemaining − balance
+    let interestRemaining = 0;
+    for (const t of tracks) {
+      const balance = t.remainingBalance || 0;
+      const monthly = t.monthlyPayment || 0;
+      if (!balance || !monthly) continue;
+      const rate = t.interestRate ?? primeRate ?? 0.05;
+      const r = rate / 12;
+      let monthsLeft: number;
+      if (r === 0) {
+        monthsLeft = Math.ceil(balance / monthly);
+      } else {
+        const ratio = (balance * r) / monthly;
+        monthsLeft = ratio >= 1 || ratio <= 0 ? 360 : Math.ceil(-Math.log(1 - ratio) / Math.log(1 + r));
+      }
+      const totalCost = monthly * monthsLeft;
+      interestRemaining += Math.max(0, totalCost - balance);
+    }
+
     return {
       monthlyTotal: mortgageTotalMonthly(tracks),
       balanceTotal: mortgageTotalBalance(tracks),
       originalTotal: mortgageTotalOriginal(tracks),
       avgInterest: weightedAvgInterest(tracks, primeRate),
       progress: mortgageOverallProgress(tracks),
+      interestRemaining,
       count: tracks.length,
     };
   }, [data.mortgage, primeRate]);
 
   const grandMonthly =
     loanTotals.monthlyTotal + installmentTotals.monthlyTotal + mortgageTotals.monthlyTotal;
+
+  // Debt-to-income (DTI). Uses NET monthly income (single source of truth in
+  // lib/income.ts). 2026-05-05 per finance-agent: a 6th KPI banks track
+  // tightly — under 30% healthy, 30–40% caution, over 40% critical. Without
+  // this number, every other figure on the page is in a vacuum.
+  const monthlyNetIncome = typeof window !== "undefined" ? getMonthlyNetIncome() : 0;
+  const dti = monthlyNetIncome > 0 ? grandMonthly / monthlyNetIncome : 0;
+  const dtiTone: "emerald" | "amber" | "red" =
+    dti < 0.3 ? "emerald" : dti < 0.4 ? "amber" : "red";
+  const dtiSub =
+    monthlyNetIncome === 0
+      ? "הזן הכנסה כדי לראות"
+      : dti < 0.3
+        ? "תקין · מתחת ל-30%"
+        : dti < 0.4
+          ? "זהירות · 30-40%"
+          : "קריטי · מעל 40%";
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -339,7 +395,7 @@ export default function DebtPage() {
               className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.18em]"
               style={{ color: "#5a7a6a" }}
             >
-              Debt Management
+              ניהול חובות
             </div>
             <h1
               className="text-[22px] font-extrabold leading-tight tracking-tight"
@@ -393,7 +449,7 @@ export default function DebtPage() {
           sub={`${installmentTotals.count} עסקאות`}
         />
       </section>
-      <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3">
+      <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         <SolidKpi
           label="יתרת משכנתא"
           value={fmtILS(mortgageTotals.balanceTotal)}
@@ -413,6 +469,13 @@ export default function DebtPage() {
           value={fmtILS(grandMonthly)}
           icon="paid"
           tone={grandMonthly > 0 ? "red" : "emerald"}
+        />
+        <SolidKpi
+          label="יחס חוב להכנסה (DTI)"
+          value={monthlyNetIncome > 0 ? `${(dti * 100).toFixed(0)}%` : "—"}
+          icon="balance"
+          tone={dtiTone}
+          sub={dtiSub}
         />
       </section>
 
@@ -452,6 +515,15 @@ export default function DebtPage() {
                   · יתרה{" "}
                   <span style={{ color: "#1B4332", fontFamily: "Assistant" }}>
                     {fmtILS(mortgageTotals.balanceTotal)}
+                  </span>
+                </>
+              )}
+              {mortgageTotals.interestRemaining > 0 && (
+                <>
+                  {" "}
+                  · ריבית צפויה לתשלום{" "}
+                  <span style={{ color: "#8B2E2E", fontFamily: "Assistant" }}>
+                    {fmtILS(mortgageTotals.interestRemaining)}
                   </span>
                 </>
               )}
@@ -727,7 +799,7 @@ export default function DebtPage() {
                     </button>
                     <button
                       onClick={() => deleteMortgageTrack(track.id)}
-                      className="opacity-0 transition-opacity group-hover:opacity-100"
+                      className="opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
                       style={{ color: "#5a7a6a" }}
                       title="מחק מסלול"
                     >
@@ -760,11 +832,23 @@ export default function DebtPage() {
               );
             })}
 
-            {/* Add track */}
-            <button onClick={addMortgageTrack} className="btn btn-secondary btn-sm mt-3">
-              <span className="material-symbols-outlined text-[14px]">add</span>
-              הוסף מסלול
-            </button>
+            {/* Add track + Load amortization schedule */}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button onClick={addMortgageTrack} className="btn btn-secondary btn-sm">
+                <span className="material-symbols-outlined text-[14px]">add</span>
+                הוסף מסלול
+              </button>
+              {/* Per Nir 2026-05-05: jump straight to the upload screen so the
+                  bank's amortization PDF can fill in rates / months / balance. */}
+              <a
+                href="/balance?tab=documents#amortization"
+                className="btn btn-secondary btn-sm"
+                title="העלה PDF של לוח סילוקין מהבנק — המערכת תקלוט מסלולים, ריביות ויתרות"
+              >
+                <span className="material-symbols-outlined text-[14px]">upload_file</span>
+                טען לוח סילוקין
+              </a>
+            </div>
           </div>
         )}
       </section>
@@ -834,9 +918,10 @@ export default function DebtPage() {
           <div className="px-5 pb-5 md:px-7">
             {/* Column headers */}
             <div
-              className="mb-1 grid items-center pb-1 text-[10px] font-extrabold uppercase tracking-[0.08em]"
+              className="mb-1 grid items-center pb-1 text-[11px] font-extrabold uppercase tracking-[0.08em]"
               style={{
-                gridTemplateColumns: "minmax(100px,1fr) 100px 80px 90px 100px 100px 28px",
+                gridTemplateColumns:
+                  "minmax(90px,1fr) 95px 70px 85px 60px 90px 90px 28px",
                 color: "#5a7a6a",
                 borderBottom: "1px solid #eef2e8",
                 columnGap: "6px",
@@ -846,6 +931,7 @@ export default function DebtPage() {
               <div className="text-left">תאריך התחלה</div>
               <div className="text-left">תשלומים</div>
               <div className="text-left">החזר חודשי</div>
+              <div className="text-left">ריבית %</div>
               <div className="text-left">מונה</div>
               <div className="text-left">יתרה לסילוק</div>
               <div />
@@ -863,7 +949,8 @@ export default function DebtPage() {
                   key={loan.id}
                   className="group grid items-center py-2"
                   style={{
-                    gridTemplateColumns: "minmax(100px,1fr) 100px 80px 90px 100px 100px 28px",
+                    gridTemplateColumns:
+                      "minmax(90px,1fr) 95px 70px 85px 60px 90px 90px 28px",
                     borderBottom: "1px solid #eef2e8",
                     columnGap: "6px",
                   }}
@@ -921,6 +1008,43 @@ export default function DebtPage() {
                       e.currentTarget.style.borderBottomColor = "transparent";
                     }}
                   />
+                  {/* Interest rate (%) */}
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="50"
+                    value={
+                      loan.interestRate !== undefined
+                        ? Math.round(loan.interestRate * 1000) / 10
+                        : ""
+                    }
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value);
+                      updateLoan(
+                        loan.id,
+                        "interestRate" as keyof Loan,
+                        Number.isFinite(v) ? String(v / 100) : ""
+                      );
+                    }}
+                    placeholder="—"
+                    title={
+                      loan.interestRate === undefined
+                        ? "הזינו ריבית כדי שהיתרה תחושב מדויק (אחרת מוערך)"
+                        : ""
+                    }
+                    className="w-full border-none bg-transparent text-left text-[12px] font-semibold tabular-nums focus:outline-none"
+                    style={{
+                      color: loan.interestRate === undefined ? "#9ca3af" : "#012d1d",
+                      borderBottom: "1px dotted transparent",
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderBottomColor = "#2B694D";
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderBottomColor = "transparent";
+                    }}
+                  />
                   {/* Counter */}
                   <div className="flex flex-col gap-0.5">
                     <div
@@ -954,7 +1078,7 @@ export default function DebtPage() {
                   {/* Delete */}
                   <button
                     onClick={() => deleteLoan(loan.id)}
-                    className="opacity-0 transition-opacity group-hover:opacity-100"
+                    className="opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
                     style={{ color: "#5a7a6a" }}
                     title="מחק"
                   >
@@ -1162,7 +1286,7 @@ export default function DebtPage() {
                             {/* Delete */}
                             <button
                               onClick={() => deleteInstallment(inst.id)}
-                              className="opacity-0 transition-opacity group-hover:opacity-100"
+                              className="opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
                               style={{ color: "#5a7a6a" }}
                               title="מחק"
                             >

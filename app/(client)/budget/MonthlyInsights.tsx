@@ -546,7 +546,7 @@ export default function MonthlyInsights({ month, year, onApply }: Props) {
               className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.15em]"
               style={{ color: "#5a7a6a" }}
             >
-              Monthly Strategy · {year}
+              תכנון חודשי · {year}
             </div>
           </div>
         </div>

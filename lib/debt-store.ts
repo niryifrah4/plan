@@ -64,6 +64,13 @@ export interface Loan {
   startDate: string; // YYYY-MM
   totalPayments: number;
   monthlyPayment: number;
+  /**
+   * Annual interest rate as a fraction (0.065 = 6.5%). Optional — older
+   * loans may lack it; calculations fall back to a heuristic only when
+   * undefined and surface a disclaimer to the user.
+   * Added 2026-05-05 per Nir + finance-agent: was previously hardcoded 6%.
+   */
+  interestRate?: number;
 }
 
 export interface Installment {

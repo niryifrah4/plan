@@ -1092,6 +1092,8 @@ export default function BudgetPage() {
         incActual: 0,
         expBudget: 0,
         expActual: 0,
+        savingsTransfersBudget: 0,
+        savingsTransfersActual: 0,
         ownerDrawBudget: 0,
         ownerDrawActual: 0,
       };
@@ -1105,6 +1107,8 @@ export default function BudgetPage() {
         incActual: 0,
         expBudget,
         expActual,
+        savingsTransfersBudget: 0,
+        savingsTransfersActual: 0,
         ownerDrawBudget: 0,
         ownerDrawActual: 0,
       };
@@ -1120,6 +1124,18 @@ export default function BudgetPage() {
       (s, k) => s + sectionTotal(filteredBudget.sections[k] || [], "actual"),
       0
     );
+
+    // Savings transfers (העברה לחיסכון, קרן השתלמות, פנסיה פרטית) live under
+    // the "חסכונות והשקעות" parent in `fixed`. They're savings, not consumption.
+    // 2026-05-05 per finance-agent: these were being counted as expenses, so the
+    // displayed savings rate under-stated the truth (often by 2-3×). Compute
+    // `savingsTransfers` so the rate calc can subtract them. Net consumption =
+    // expBudget - savingsTransfers.
+    const findSavingsRow = (rows: BudgetRow[]) =>
+      rows.find((r) => r.name === "חסכונות והשקעות");
+    const savingsRowBudget = findSavingsRow(filteredBudget.sections.fixed || []);
+    const savingsTransfersBudget = savingsRowBudget ? rowEffective(savingsRowBudget, "budget") : 0;
+    const savingsTransfersActual = savingsRowBudget ? rowEffective(savingsRowBudget, "actual") : 0;
 
     // Compute owner draw — business profit that flows to the family.
     // Negative profit (loss) doesn't pull from personal cashflow; clamp at 0.
@@ -1138,12 +1154,24 @@ export default function BudgetPage() {
       void bizExpA;
     }
 
-    return { incBudget, incActual, expBudget, expActual, ownerDrawBudget, ownerDrawActual };
+    return {
+      incBudget,
+      incActual,
+      expBudget,
+      expActual,
+      savingsTransfersBudget,
+      savingsTransfersActual,
+      ownerDrawBudget,
+      ownerDrawActual,
+    };
   }, [filteredBudget, scopeFilter, businessEnabled, budget]);
 
-  // Savings rate
+  // Savings rate — uses CONSUMPTION (expenses minus savings-transfer rows),
+  // not raw expenses. Otherwise the rate gets diluted by money the family
+  // is actually saving (העברה לחיסכון, קרן השתלמות, פנסיה פרטית).
   const balance = totals.incBudget - totals.expBudget;
-  const savingsRate = calcSavingsRate(totals.incBudget, totals.expBudget) * 100;
+  const consumptionBudget = totals.expBudget - totals.savingsTransfersBudget;
+  const savingsRate = calcSavingsRate(totals.incBudget, consumptionBudget) * 100;
 
   /* ── Daily allowance — the "how much can I spend today" number ──
      Only meaningful for the CURRENT month. For past/future months we hide it.
@@ -1562,7 +1590,7 @@ export default function BudgetPage() {
                 className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.18em]"
                 style={{ color: "#5a7a6a" }}
               >
-                Import Transactions
+                ייבוא תנועות
               </div>
               <h2
                 className="text-[18px] font-extrabold tracking-tight"
@@ -1988,7 +2016,7 @@ function BudgetSection({
                     {!isLocked && (
                       <button
                         onClick={() => onDelete(sectionKey, row.id)}
-                        className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                        className="shrink-0 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
                         style={{ color: "#5a7a6a" }}
                         title="מחק"
                       >
