@@ -185,9 +185,11 @@ function hasSubOverspend(row: BudgetRow): boolean {
    ═══════════════════════════════════════════════════════════ */
 
 /** Personal income sources. */
+// 2026-05-05 per Nir: משק בית מנוהל על נטו. השורות של ההכנסות מגיעות
+// אוטומטית — מהאונבורדינג (שכר בני הזוג, קצבאות) או מהמשך-עבודה (שכר דירה
+// מנכסים, ריבית מהפקדות). הסרנו את הplaceholders של 'משכורת נטו 1/2' שיצרו
+// כפילות לא-ברורה מול שורות האונבורדינג שכבר נושאות את הערכים האמיתיים.
 const EXPECTED_INCOME_ROWS: string[] = [
-  "משכורת נטו",
-  "משכורת נטו 2",
   "עצמאי / פרילנס",
   "שכר דירה",
   "קצבאות וזיכויים",
@@ -541,8 +543,22 @@ const ONB_SKIP_LABEL_PATTERNS = [
 function injectOnboardingIncomeRows(budget: BudgetData): BudgetData {
   if (typeof window === "undefined") return budget;
 
-  // Strip previously-injected onboarding rows; keep manual entries and other sources.
-  const incomeClean = (budget.sections.income || []).filter((r) => r.source !== "onboarding");
+  // Strip previously-injected onboarding rows AND empty legacy salary
+  // placeholders ("משכורת נטו" / "משכורת נטו 2" with value=0). The latter
+  // were default rows in older budgets that now duplicate the onboarding-
+  // injected rows — confusing users into thinking their entries didn't sync.
+  // 2026-05-05: also strip empty stale salary-engine rows when the user
+  // has no salary profile (so we don't carry forward dead placeholders).
+  const isEmptySalaryPlaceholder = (r: BudgetRow) =>
+    (r.budget || 0) === 0 &&
+    (r.actual || 0) === 0 &&
+    (r.avg3 || 0) === 0 &&
+    !r.subItems?.length &&
+    /^משכורת\s*נטו(\s*\d*)?$/.test(r.name.trim());
+
+  const incomeClean = (budget.sections.income || []).filter(
+    (r) => r.source !== "onboarding" && !isEmptySalaryPlaceholder(r)
+  );
 
   let list: Array<{ label?: string; value?: string }> = [];
   try {
