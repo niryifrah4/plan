@@ -8,13 +8,20 @@
 import { useEffect, useState } from "react";
 import { fmtILS } from "@/lib/format";
 import { buildForecast, type ForecastMonth } from "@/lib/cashflow-forecast";
+import { loadAssumptions, saveAssumptions } from "@/lib/assumptions";
+import { fireSync } from "@/lib/sync-engine";
 
 export function CashflowForecast() {
   const [months, setMonths] = useState<ForecastMonth[]>([]);
+  const [growthPct, setGrowthPct] = useState<number>(0);
 
   useEffect(() => {
     setMonths(buildForecast());
-    const refresh = () => setMonths(buildForecast());
+    setGrowthPct(Math.round((loadAssumptions().salaryGrowthRate || 0) * 100));
+    const refresh = () => {
+      setMonths(buildForecast());
+      setGrowthPct(Math.round((loadAssumptions().salaryGrowthRate || 0) * 100));
+    };
     window.addEventListener("storage", refresh);
     window.addEventListener("verdant:assumptions", refresh);
     window.addEventListener("verdant:debt:updated", refresh);
@@ -26,6 +33,15 @@ export function CashflowForecast() {
       window.removeEventListener("verdant:special-events:updated", refresh);
     };
   }, []);
+
+  const updateGrowth = (newPct: number) => {
+    const clamped = Math.max(0, Math.min(20, Math.round(newPct)));
+    setGrowthPct(clamped);
+    const a = loadAssumptions();
+    a.salaryGrowthRate = clamped / 100;
+    saveAssumptions(a);
+    fireSync("verdant:assumptions");
+  };
 
   if (months.length === 0) return null;
 
@@ -116,12 +132,33 @@ export function CashflowForecast() {
           ))}
       </div>
 
-      <div className="mt-3 text-[11px] text-verdant-muted">
-        תחזית מבוססת על הכנסה והוצאות נוכחיות + עליית שכר{" "}
-        {Math.round(
-          ((months[months.length - 1]?.income || 0) / (months[0]?.income || 1) - 1) * 100
-        )}
-        % / 12 חודשים. אירועים מיוחדים (בונוס, החזרי מס וכו׳) — נכנסים מ-
+      {/* Adjustable assumption: annual salary growth */}
+      <div
+        className="mt-3 flex flex-wrap items-center gap-3 rounded-lg px-3 py-2 text-[11px]"
+        style={{ background: "#F4F7ED", border: "1px solid #d8e0d0" }}
+      >
+        <label className="flex items-center gap-2 font-bold text-verdant-ink">
+          צפי גידול שכר שנתי
+          <input
+            type="number"
+            min={0}
+            max={20}
+            step={1}
+            value={growthPct}
+            onChange={(e) => updateGrowth(parseInt(e.target.value || "0"))}
+            className="w-14 rounded-md border px-2 py-1 text-center font-extrabold tabular-nums"
+            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            dir="ltr"
+          />
+          <span>%</span>
+        </label>
+        <span className="text-verdant-muted">
+          (קבע 0 לתחזית קבועה. ניתן להתאים — חישוב התחזית יתעדכן מיד.)
+        </span>
+      </div>
+
+      <div className="mt-2 text-[11px] text-verdant-muted">
+        אירועים מיוחדים (בונוס, החזרי מס, רכישות גדולות) — נכנסים מ-
         <a href="/goals" className="underline hover:text-verdant-emerald">
           /goals → אירועים מיוחדים
         </a>
