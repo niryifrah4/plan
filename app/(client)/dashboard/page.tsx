@@ -895,7 +895,7 @@ export default function DashboardPage() {
         {/* Zone 1 — Monthly Cashflow */}
         <Link
           href={"/balance" as any}
-          className="card-pad group transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+          className="card-pad group transition-all duration-300"
         >
           <div className="mb-5 flex items-start gap-3">
             <div className="icon-sm icon-forest">
@@ -1007,7 +1007,7 @@ export default function DashboardPage() {
         {/* Zone 2 — Net Worth + Donut (Forest Hero) */}
         <Link
           href={"/balance" as any}
-          className="card-forest group relative overflow-hidden transition-all duration-300 hover:-translate-y-0.5"
+          className="card-forest group relative overflow-hidden transition-all duration-300"
         >
           <div className="mb-5 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -1914,7 +1914,7 @@ export default function DashboardPage() {
               return (
                 <div
                   key={bucket.id}
-                  className="flex items-center gap-5 rounded-2xl px-5 py-4 transition-all hover:-translate-y-0.5"
+                  className="flex items-center gap-5 rounded-2xl px-5 py-4 transition-all"
                   style={{ background: "#D6EFDC", boxShadow: "0 1px 2px rgba(27,67,50,0.06)" }}
                 >
                   <div
@@ -2005,7 +2005,7 @@ export default function DashboardPage() {
                 <Link
                   key={ins.id}
                   href={(ins.href || "/dashboard") as any}
-                  className="card-pad transition-all hover:-translate-y-0.5"
+                  className="card-pad transition-all"
                   style={{ borderInlineStart: `4px solid ${bar}` }}
                 >
                   <div className="flex items-start gap-3">

@@ -600,7 +600,7 @@ export function DocumentsTab() {
           {/* Zone 1 — Bank / Credit */}
           <div
             onClick={() => inputRef.current?.click()}
-            className="card-pad cursor-pointer text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+            className="card-pad cursor-pointer text-center transition-all duration-200"
             style={{ borderTop: "3px solid #2B694D" }}
           >
             <div
@@ -625,7 +625,7 @@ export function DocumentsTab() {
           {/* Zone 2 — Amortization Schedules */}
           <div
             onClick={() => inputRef.current?.click()}
-            className="card-pad cursor-pointer text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+            className="card-pad cursor-pointer text-center transition-all duration-200"
             style={{ borderTop: "3px solid #3b82f6" }}
           >
             <div
@@ -653,7 +653,7 @@ export function DocumentsTab() {
           {/* Zone 3 — Pension XML */}
           <a
             href="/pension"
-            className="card-pad block text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+            className="card-pad block text-center transition-all duration-200"
             style={{ borderTop: "3px solid #2B694D" }}
           >
             <div

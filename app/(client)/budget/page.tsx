@@ -1319,14 +1319,14 @@ export default function BudgetPage() {
           HERO — one clear number per screen, Finav-inspired
           ═══════════════════════════════════════════════════════════ */}
       <section
-        className="relative mb-4 overflow-hidden rounded-2xl"
+        // 2026-05-05 visual-cleanup: softer flat fill instead of high-contrast
+        // gradient (less heavy), padding aligned to tailwind scale (20/24px),
+        // bigger gap below before the manage strip.
+        className="relative mb-6 overflow-hidden rounded-2xl"
         style={{
-          background:
-            balance >= 0
-              ? "linear-gradient(135deg, #1B4332 0%, #012D1D 100%)"
-              : "linear-gradient(135deg, #7a1818 0%, #4a0e0e 100%)",
+          background: balance >= 0 ? "#1B4332" : "#7a1818",
           color: "#F9FAF2",
-          padding: "14px 22px",
+          padding: "20px 24px",
         }}
       >
         {/* Top row — month nav + save indicator */}

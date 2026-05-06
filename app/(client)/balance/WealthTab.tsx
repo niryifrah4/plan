@@ -736,7 +736,7 @@ export function WealthTab() {
               <Link
                 key={key}
                 href={meta.href as any}
-                className="card-pad flex cursor-pointer flex-col justify-between transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+                className="card-pad flex cursor-pointer flex-col justify-between transition-all duration-200"
               >
                 {inner}
               </Link>
@@ -767,7 +767,7 @@ export function WealthTab() {
               <Link
                 key={key}
                 href={meta.href as any}
-                className="card-pad cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+                className="card-pad cursor-pointer transition-all duration-200"
               >
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -814,7 +814,7 @@ export function WealthTab() {
       <section className="mb-6">
         <Link
           href="/balance?tab=accounts"
-          className="card-pad flex cursor-pointer items-center justify-between transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+          className="card-pad flex cursor-pointer items-center justify-between transition-all duration-200"
         >
           <div className="flex items-center gap-3">
             <div

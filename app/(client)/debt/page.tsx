@@ -1345,7 +1345,7 @@ function KpiBox({
 }) {
   return (
     <div
-      className="relative flex flex-col gap-1 overflow-hidden rounded-xl p-3 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
+      className="relative flex flex-col gap-1 overflow-hidden rounded-xl p-3 transition-all duration-300"
       style={{
         background: `linear-gradient(180deg, ${color}0a 0%, #ffffff 55%)`,
         border: `1px solid ${color}22`,
