@@ -1420,12 +1420,14 @@ export default function BudgetPage() {
           </div>
 
           {dailyAllowance && (
-            <div className="border-l border-white/15 pl-4 pr-4 text-left" style={{ minWidth: 140 }}>
+            // 2026-05-05 visual-cleanup: dropped the divider line. The two
+            // numbers stand on their own — the spacing alone separates them.
+            <div className="text-left" style={{ minWidth: 140 }}>
               <div
-                className="text-[10px] font-bold uppercase tracking-[0.16em]"
+                className="text-[11px] font-semibold"
                 style={{ color: "rgba(255,255,255,0.65)" }}
               >
-                להיום
+                מותר/יום
               </div>
               <div
                 className="mt-0.5 text-[22px] font-extrabold tabular-nums leading-none"
@@ -1435,10 +1437,12 @@ export default function BudgetPage() {
                 }}
               >
                 {fmtILS(Math.round(dailyAllowance.perDay))}
-                <span className="text-[12px] font-bold opacity-70">/יום</span>
               </div>
-              <div className="mt-1 text-[10px]" style={{ color: "rgba(255,255,255,0.7)" }}>
-                {dailyAllowance.daysRemaining} ימים{dailyAllowance.overPace && " · חורג"}
+              <div className="mt-1 text-[11px]" style={{ color: "rgba(255,255,255,0.7)" }}>
+                {dailyAllowance.daysRemaining} ימים נותרו
+                {dailyAllowance.overPace && (
+                  <span style={{ color: "#fecaca" }}> · חורג</span>
+                )}
               </div>
             </div>
           )}
@@ -1450,10 +1454,14 @@ export default function BudgetPage() {
           ═══════════════════════════════════════════════════════════ */}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
         <div className="flex gap-1.5">
+          {/* 2026-05-05 visual-cleanup: dropped the borders on the toggle
+              buttons. They're secondary actions — the soft fill alone is
+              enough to mark them as buttons without adding three more
+              outlines to the page. */}
           <button
             onClick={openImportPreview}
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-all"
-            style={{ background: "#f0f4ec", color: "#1B4332", border: "1px solid #e2e8d8" }}
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors hover:bg-[#e8efe2]"
+            style={{ background: "#f0f4ec", color: "#1B4332" }}
             title="ייבא תנועות מקובץ בנק/אשראי שהועלה"
           >
             <span className="material-symbols-outlined text-[14px]">sync_alt</span>
@@ -1461,11 +1469,10 @@ export default function BudgetPage() {
           </button>
           <button
             onClick={() => setShowChart((v) => !v)}
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-all"
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors"
             style={{
-              background: showChart ? "#1B4332" : "#f0f4ec",
+              background: showChart ? "#1B4332" : "transparent",
               color: showChart ? "#fff" : "#5a7a6a",
-              border: "1px solid #e2e8d8",
             }}
           >
             <span className="material-symbols-outlined text-[14px]">bar_chart</span>
@@ -1473,11 +1480,10 @@ export default function BudgetPage() {
           </button>
           <button
             onClick={() => setShowInsights((v) => !v)}
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-all"
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors"
             style={{
-              background: showInsights ? "#1B4332" : "#f0f4ec",
+              background: showInsights ? "#1B4332" : "transparent",
               color: showInsights ? "#fff" : "#5a7a6a",
-              border: "1px solid #e2e8d8",
             }}
           >
             <span className="material-symbols-outlined text-[14px]">lightbulb</span>
@@ -1763,8 +1769,11 @@ function BudgetSection({
 
   return (
     <section
-      className="mb-3 overflow-hidden rounded-2xl bg-white"
-      style={{ border: "1px solid #e2e8d8", boxShadow: "0 1px 2px rgba(1,45,29,.04)" }}
+      // 2026-05-05 visual-cleanup: lighter border + bigger bottom margin so
+      // sections breathe between each other. Was mb-3 (cramped) + a darker
+      // border that made each section feel like a heavy card.
+      className="mb-5 overflow-hidden rounded-2xl bg-white"
+      style={{ border: "1px solid #f0f4ec", boxShadow: "none" }}
     >
       {/* Clickable section header (disclosure) */}
       <button
@@ -1795,18 +1804,17 @@ function BudgetSection({
           <div className="text-[15px] font-extrabold" style={{ color: "#012d1d" }}>
             {meta.label}
           </div>
-          <div className="mt-0.5 text-[11px] font-semibold" style={{ color: "#5a7a6a" }}>
-            {rows.length} {rows.length === 1 ? "שורה" : "שורות"}
-            {/* % of income — shown only for expense sections when income > 0.
-                Per Nir 2026-05-05: "דיור — וכמה אחוז זה לוקח מההכנסה. כנ״ל להכל." */}
+          {/* 2026-05-05 visual-cleanup: dropped the "X שורות" prefix — once
+              the section is open the user sees the rows directly. Keeping
+              just the % of income and the overrun warning gives a calm
+              two-piece line instead of three. */}
+          <div className="mt-0.5 text-[12px] font-semibold" style={{ color: "#5a7a6a" }}>
             {!isIncome && incomeTotal > 0 && secBudget > 0 && (
-              <>
-                {" · "}
-                <span style={{ color: accent }}>
-                  {Math.round((secBudget / incomeTotal) * 100)}% מההכנסה
-                </span>
-              </>
+              <span style={{ color: accent }}>
+                {Math.round((secBudget / incomeTotal) * 100)}% מההכנסה
+              </span>
             )}
+            {isIncome && <span>סה״כ {fmtILS(secBudget)}</span>}
             {over && (
               <>
                 {" · "}

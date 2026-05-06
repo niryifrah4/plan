@@ -236,12 +236,16 @@ body {
     border-color: #b91c1c;
   }
 
-  /* ─── Card (one true card) ─── */
+  /* ─── Card (one true card) ───
+     2026-05-05 visual-cleanup: lighter border + dropped the shadow for a
+     calmer, less "card-stacked" feel. The original 0 1px 2px shadow added
+     up across many cards on /dashboard and /budget and made the page feel
+     heavy. Subtle border alone gives enough containment. */
   .card {
     @apply border bg-white;
-    border-color: var(--botanical-line);
+    border-color: #f0f4ec;
     border-radius: 1rem;
-    box-shadow: 0 1px 2px rgba(27, 67, 50, 0.04);
+    box-shadow: none;
   }
   .card-pad {
     @apply card p-5;

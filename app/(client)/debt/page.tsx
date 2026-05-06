@@ -422,53 +422,23 @@ export default function DebtPage() {
         </div>
       </header>
 
-      {/* ═══ KPI Summary ═══ */}
-      <div className="mb-3 text-base font-extrabold" style={{ color: "#012d1d" }}>
-        סיכום חובות חודשי
-      </div>
-      <section className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-3">
-        <SolidKpi
-          label="משכנתא חודשי"
-          value={fmtILS(mortgageTotals.monthlyTotal)}
-          icon="home"
-          tone="ink"
-          sub={`${mortgageTotals.count} מסלולים · ${mortgageTotals.avgInterest.toFixed(2)}% ריבית`}
-        />
-        <SolidKpi
-          label="החזר הלוואות"
-          value={fmtILS(loanTotals.monthlyTotal)}
-          icon="credit_score"
-          tone="red"
-          sub={`${loanTotals.count} הלוואות`}
-        />
-        <SolidKpi
-          label="תשלומים חודשיים"
-          value={fmtILS(installmentTotals.monthlyTotal)}
-          icon="shopping_cart"
-          tone="sage"
-          sub={`${installmentTotals.count} עסקאות`}
-        />
-      </section>
+      {/* ═══ KPI Summary ═══
+          2026-05-05 visual-cleanup: dropped the first row (per-source monthly).
+          Each section header below already shows its own monthly total — having
+          the same number twice was visual noise. Kept the totals row plus DTI.
+          From 7 KPIs down to 4, with the most actionable ones (total monthly,
+          DTI, mortgage progress, mortgage interest remaining) front-and-center. */}
       <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         <SolidKpi
-          label="יתרת משכנתא"
-          value={fmtILS(mortgageTotals.balanceTotal)}
-          icon="account_balance"
-          tone="forest"
-          sub={`שולם ${(mortgageTotals.progress * 100).toFixed(0)}%`}
-        />
-        <SolidKpi
-          label="יתרת הלוואות"
-          value={fmtILS(loanTotals.balanceTotal)}
-          icon="receipt_long"
-          tone="ink"
-          sub="סה״כ יתרות"
-        />
-        <SolidKpi
-          label="סה״כ חודשי כולל"
+          label="סה״כ חודשי"
           value={fmtILS(grandMonthly)}
           icon="paid"
           tone={grandMonthly > 0 ? "red" : "emerald"}
+          sub={
+            grandMonthly > 0
+              ? `${mortgageTotals.count + loanTotals.count + installmentTotals.count} פריטים`
+              : undefined
+          }
         />
         <SolidKpi
           label="יחס חוב להכנסה (DTI)"
@@ -477,15 +447,36 @@ export default function DebtPage() {
           tone={dtiTone}
           sub={dtiSub}
         />
+        <SolidKpi
+          label="יתרת משכנתא"
+          value={fmtILS(mortgageTotals.balanceTotal)}
+          icon="account_balance"
+          tone="forest"
+          sub={
+            mortgageTotals.balanceTotal > 0
+              ? `שולם ${(mortgageTotals.progress * 100).toFixed(0)}%`
+              : undefined
+          }
+        />
+        <SolidKpi
+          label="יתרת הלוואות"
+          value={fmtILS(loanTotals.balanceTotal + installmentTotals.monthlyTotal * 0)}
+          icon="receipt_long"
+          tone="ink"
+          sub={
+            loanTotals.count + installmentTotals.count > 0
+              ? `${loanTotals.count + installmentTotals.count} פעילות`
+              : undefined
+          }
+        />
       </section>
 
-      {/* ═══ Mortgage Section ═══ */}
+      {/* ═══ Mortgage Section ═══
+          2026-05-05 visual-cleanup: dropped the heavy shadow + replaced the
+          off-palette purple tint with a clean botanical border. */}
       <section
-        className="mb-4 overflow-hidden rounded-2xl bg-white"
-        style={{
-          border: "1px solid #F3F4EC",
-          boxShadow: "0 1px 2px rgba(107,33,168,.04), 0 8px 24px rgba(107,33,168,.06)",
-        }}
+        className="mb-5 overflow-hidden rounded-2xl bg-white"
+        style={{ border: "1px solid #f0f4ec", boxShadow: "none" }}
       >
         <button
           onClick={() => setExpandedMortgage(!expandedMortgage)}
@@ -494,7 +485,7 @@ export default function DebtPage() {
         >
           <span
             className="flex h-9 w-9 flex-shrink-0 items-center justify-center"
-            style={{ background: "rgba(107,33,168,0.08)", borderRadius: "0.75rem" }}
+            style={{ background: "#f0f4ec", borderRadius: "0.75rem" }}
           >
             <span className="material-symbols-outlined text-[18px]" style={{ color: "#1B4332" }}>
               home
@@ -853,13 +844,11 @@ export default function DebtPage() {
         )}
       </section>
 
-      {/* ═══ Loans Section ═══ */}
+      {/* ═══ Loans Section ═══
+          2026-05-05 visual-cleanup: lighter border + no shadow. */}
       <section
-        className="mb-4 overflow-hidden rounded-2xl bg-white"
-        style={{
-          border: "1px solid #e2e8d8",
-          boxShadow: "0 1px 2px rgba(1,45,29,.04), 0 8px 24px rgba(1,45,29,.05)",
-        }}
+        className="mb-5 overflow-hidden rounded-2xl bg-white"
+        style={{ border: "1px solid #f0f4ec", boxShadow: "none" }}
       >
         <button
           onClick={() => setExpandedLoans(!expandedLoans)}
@@ -1099,13 +1088,11 @@ export default function DebtPage() {
         )}
       </section>
 
-      {/* ═══ Installments Section ═══ */}
+      {/* ═══ Installments Section ═══
+          2026-05-05 visual-cleanup: lighter border + no shadow. */}
       <section
-        className="mb-4 overflow-hidden rounded-2xl bg-white"
-        style={{
-          border: "1px solid #e2e8d8",
-          boxShadow: "0 1px 2px rgba(1,45,29,.04), 0 8px 24px rgba(1,45,29,.05)",
-        }}
+        className="mb-5 overflow-hidden rounded-2xl bg-white"
+        style={{ border: "1px solid #f0f4ec", boxShadow: "none" }}
       >
         <button
           onClick={() => setExpandedInstallments(!expandedInstallments)}
