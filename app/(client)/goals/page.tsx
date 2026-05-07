@@ -840,7 +840,7 @@ export default function GoalsPage() {
               style={{
                 background: "#fff",
                 border: "1px solid #E8E9E1",
-                boxShadow: "0 1px 3px rgba(27,67,50,0.04), 0 4px 16px rgba(27,67,50,0.04)",
+                boxShadow: "none",
               }}
             >
               {/* Row 1: Name + Badges */}

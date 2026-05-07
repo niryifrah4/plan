@@ -134,7 +134,7 @@ export default function BudgetPie({
       style={{
         background: "#f9faf2",
         border: "1px solid #e2e8d8",
-        boxShadow: "0 1px 2px rgba(1,45,29,.04), 0 8px 24px rgba(1,45,29,.05)",
+        boxShadow: "none",
       }}
     >
       <div

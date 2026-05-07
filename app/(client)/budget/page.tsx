@@ -1324,7 +1324,7 @@ export default function BudgetPage() {
         // bigger gap below before the manage strip.
         className="relative mb-6 overflow-hidden rounded-2xl"
         style={{
-          background: balance >= 0 ? "#1B4332" : "#7a1818",
+          background: balance >= 0 ? "#1B4332" : "#B85450",
           color: "#F9FAF2",
           padding: "20px 24px",
         }}

@@ -520,7 +520,7 @@ export default function MonthlyInsights({ month, year, onApply }: Props) {
       style={{
         background: "linear-gradient(135deg, #f0fdf4 0%, #f8fdf6 50%, #fefff9 100%)",
         border: "1.5px solid #a7f3d0",
-        boxShadow: "0 1px 3px rgba(10,122,74,.06), 0 8px 24px rgba(10,122,74,.08)",
+        boxShadow: "none",
       }}
     >
       {/* ── Header ── */}
