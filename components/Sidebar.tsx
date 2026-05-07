@@ -133,8 +133,8 @@ export function Sidebar({
             height: "46px",
             paddingInline: indent ? "14px" : "12px",
             paddingInlineStart: indent ? "28px" : "12px",
-            background: active ? "rgba(255,255,255,0.08)" : "transparent",
-            color: active ? "#F9FAF2" : "#A8C5B1",
+            background: active ? "#1B4332" : "transparent",
+            color: active ? "#FFFFFF" : "#5a7a6a",
           }}
           onMouseEnter={(e) => {
             if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.04)";
@@ -161,7 +161,7 @@ export function Sidebar({
           <span
             className="material-symbols-outlined text-[20px]"
             style={{
-              color: active ? "#C1ECD4" : "#7FA68D",
+              color: active ? "#C1ECD4" : "#5a7a6a",
               fontVariationSettings: active ? "'FILL' 1, 'wght' 500" : "'FILL' 0, 'wght' 400",
             }}
           >
@@ -171,7 +171,7 @@ export function Sidebar({
             className="flex-1 text-right text-[14px]"
             style={{
               fontWeight: active ? 700 : 500,
-              color: active ? "#F9FAF2" : "#A8C5B1",
+              color: active ? "#FFFFFF" : "#5a7a6a",
             }}
           >
             {item.label}
@@ -181,7 +181,7 @@ export function Sidebar({
               className="rounded-full px-2 py-0.5 text-[10px] font-bold"
               style={{
                 background: active ? "#C1ECD4" : "rgba(168,197,177,0.15)",
-                color: active ? "#012D1D" : "#A8C5B1",
+                color: active ? "#FFFFFF" : "#5a7a6a",
               }}
             >
               {item.badge}
@@ -201,7 +201,7 @@ export function Sidebar({
         <div
           key={group.id}
           className="mt-3 pt-3"
-          style={{ borderTop: "1px solid rgba(168,197,177,0.12)" }}
+          style={{ borderTop: "1px solid #f0f4ec" }}
         >
           <ul className="space-y-1">{group.items.map((it) => renderItem(it, false))}</ul>
         </div>
@@ -214,7 +214,7 @@ export function Sidebar({
         <div key={group.id} className="mt-5">
           <div
             className="mb-2 px-3 text-right text-[11px] font-bold uppercase tracking-[0.18em]"
-            style={{ color: "rgba(168,197,177,0.6)" }}
+            style={{ color: "#5a7a6a" }}
           >
             {group.label}
           </div>
@@ -232,7 +232,7 @@ export function Sidebar({
           onClick={() => toggleGroup(group.id)}
           className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 transition-all"
           style={{
-            color: hasActiveChild ? "#F9FAF2" : "#A8C5B1",
+            color: hasActiveChild ? "#012D1D" : "#5a7a6a",
             background: "transparent",
           }}
           onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
@@ -242,7 +242,7 @@ export function Sidebar({
           <span
             className="material-symbols-outlined text-[18px] transition-transform"
             style={{
-              color: "#7FA68D",
+              color: "#5a7a6a",
               transform: open ? "rotate(0deg)" : "rotate(90deg)",
             }}
           >
@@ -251,14 +251,14 @@ export function Sidebar({
           <span className="flex flex-1 items-center justify-end gap-2">
             <span
               className="text-right text-[12px] font-bold uppercase tracking-[0.14em]"
-              style={{ color: hasActiveChild ? "#F9FAF2" : "rgba(168,197,177,0.7)" }}
+              style={{ color: hasActiveChild ? "#012D1D" : "#5a7a6a" }}
             >
               {group.label}
             </span>
             {group.icon && (
               <span
                 className="material-symbols-outlined text-[18px]"
-                style={{ color: hasActiveChild ? "#C1ECD4" : "#7FA68D" }}
+                style={{ color: hasActiveChild ? "#1B4332" : "#5a7a6a" }}
               >
                 {group.icon}
               </span>
@@ -284,9 +284,9 @@ export function Sidebar({
     <aside
       className="fixed inset-y-0 right-0 z-40 flex w-[280px] flex-col"
       style={{
-        background: "#012D1D",
-        borderLeft: "1px solid rgba(255,255,255,0.06)",
-        color: "#A8C5B1",
+        background: "#FFFFFF",
+        borderLeft: "1px solid #f0f4ec",
+        color: "#5a7a6a",
       }}
     >
       {/* Brand */}
@@ -295,11 +295,11 @@ export function Sidebar({
           <div className="text-right">
             <div
               className="text-[20px] font-extrabold leading-tight tracking-tight"
-              style={{ color: "#F9FAF2", fontFamily: "Manrope, Assistant, system-ui, sans-serif" }}
+              style={{ color: "#012D1D", fontFamily: "Manrope, Assistant, system-ui, sans-serif" }}
             >
               פלאן
             </div>
-            <div className="mt-0.5 text-[11px] font-bold" style={{ color: "#A8C5B1" }}>
+            <div className="mt-0.5 text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
               מערכת לתכנון פיננסי
             </div>
           </div>
@@ -319,20 +319,20 @@ export function Sidebar({
         <div
           className="rounded-2xl px-4 py-3"
           style={{
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.08)",
+            background: "#f4f7ed",
+            border: "1px solid #e2e8d8",
           }}
         >
           <div
             className="text-right text-[10px] font-bold uppercase tracking-[0.18em]"
-            style={{ color: "rgba(168,197,177,0.6)" }}
+            style={{ color: "#5a7a6a" }}
           >
             תיק פעיל
           </div>
-          <div className="mt-1 text-right text-[15px] font-extrabold" style={{ color: "#F9FAF2" }}>
+          <div className="mt-1 text-right text-[15px] font-extrabold" style={{ color: "#012D1D" }}>
             {familyName}
           </div>
-          <div className="mt-0.5 text-right text-[11px]" style={{ color: "#A8C5B1" }}>
+          <div className="mt-0.5 text-right text-[11px]" style={{ color: "#5a7a6a" }}>
             {membersCount} בני משפחה
           </div>
         </div>
@@ -344,7 +344,7 @@ export function Sidebar({
       </nav>
 
       {/* Footer */}
-      <div className="px-6 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+      <div className="px-6 py-4" style={{ borderTop: "1px solid #f0f4ec" }}>
         <div className="flex items-center gap-3">
           <div
             className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-[14px] font-extrabold"
@@ -353,10 +353,10 @@ export function Sidebar({
             {advisorName.charAt(0)}
           </div>
           <div className="min-w-0 flex-1 text-right">
-            <div className="truncate text-[14px] font-bold" style={{ color: "#F9FAF2" }}>
+            <div className="truncate text-[14px] font-bold" style={{ color: "#012D1D" }}>
               {advisorName}
             </div>
-            <div className="text-[11px]" style={{ color: "#A8C5B1" }}>
+            <div className="text-[11px]" style={{ color: "#5a7a6a" }}>
               מתכנן אחראי
             </div>
           </div>
@@ -418,9 +418,9 @@ export function Sidebar({
             onClick={() => router.push("/crm")}
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-[13px] font-bold transition-all"
             style={{
-              background: "rgba(255,255,255,0.06)",
-              color: "#F9FAF2",
-              border: "1px solid rgba(255,255,255,0.1)",
+              background: "#f4f7ed",
+              color: "#012D1D",
+              border: "1px solid #e2e8d8",
             }}
             onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.10)")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
@@ -433,14 +433,14 @@ export function Sidebar({
         <button
           onClick={onExit ?? (() => router.push("/login"))}
           className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-[13px] font-bold transition-all"
-          style={{ background: "transparent", color: "#A8C5B1" }}
+          style={{ background: "transparent", color: "#5a7a6a" }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = "rgba(239,68,68,0.12)";
             e.currentTarget.style.color = "#FCA5A5";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "#A8C5B1";
+            e.currentTarget.style.color = "#5a7a6a";
           }}
         >
           <span className="material-symbols-outlined text-[16px]">logout</span>
