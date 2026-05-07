@@ -137,21 +137,140 @@ const uid = () => "r" + Math.random().toString(36).slice(2, 9);
 /* Drilldown categories — parent rows that expand into sub-items.
  * Each parent auto-sums its children's budget + actual.
  * When a row name matches (by substring), sub-items are seeded on first use. */
+// 2026-05-07: rich Israeli household defaults inspired by Daniel Navon's
+// TradingIL budget excel. Each parent category opens to a curated list of
+// 8-15 specific sub-items so couples don't stare at an empty section
+// wondering "what would I put here". User edits / deletes anything they
+// don't need — the list is a starting point, not a checklist.
 const DRILLDOWN_DEFAULTS: Record<string, string[]> = {
   // ── Fixed groups ───────────────────────────────────────
-  דיור: ["משכנתא / שכירות", "ועד בית", "ארנונה", "חשמל", "מים", "גז"],
-  מנויים: ["אינטרנט + טלוויזיה", "סלולר", "סטרימינג", "חדר כושר", "אפליקציות", "עיתונות"],
-  ביטוחים: ["ביטוח בריאות", "ביטוח חיים", "ביטוח רכב", "ביטוח דירה"],
-  "גן / חינוך": ["גן", "צהרון", "חוגים"],
-  "חסכונות והשקעות": ["העברה לחיסכון", "קרן השתלמות", "פנסיה פרטית"],
+  דיור: [
+    "משכנתא / שכירות",
+    "ועד בית",
+    "ארנונה",
+    "חשמל",
+    "מים",
+    "גז",
+    "תיקונים וטכנאים",
+    "עוזרת בית",
+    "תחזוקת הגינה",
+    "בר מים",
+  ],
+  מנויים: [
+    "אינטרנט",
+    "סלולר",
+    "טלוויזיה / כבלים",
+    "נטפליקס",
+    "ספוטיפיי",
+    "יוטיוב פרימיום",
+    "אפליקציות",
+    "עיתונים",
+    "חדר כושר",
+  ],
+  ביטוחים: [
+    "ביטוח בריאות",
+    "ביטוח חיים",
+    "ביטוח חיים למשכנתא",
+    "ביטוח דירה",
+    "ביטוח רכב",
+    "קופת חולים",
+    "טיפולי שיניים",
+    "תרופות",
+  ],
+  "גן / חינוך": [
+    "מטפלת",
+    "מעון",
+    "גן ילדים",
+    "צהרון",
+    "בית ספר",
+    "חטיבה ותיכון",
+    "חוגים",
+    "שיעורים פרטיים",
+    "ספרי לימוד ועזרים",
+    "דמי כיס",
+    "בייביסיטר",
+  ],
+  "חסכונות והשקעות": [
+    "העברה לחיסכון",
+    "קרן השתלמות",
+    "פנסיה פרטית",
+    "פוליסת חיסכון",
+    "קופת גמל להשקעה",
+    "קרן כספית",
+    "חיסכון לילדים",
+    "הפקדה לחשבון מסחר",
+  ],
   // ── Variable groups ────────────────────────────────────
-  רכב: ["דלק", "תחבורה ציבורית", "חניה ואגרות", "תחזוקת רכב"],
-  "פנאי ובילוי": ["מסעדות", "בילויים ויציאות", "קפה ומאפיות"],
-  תחביבים: ["תרבות", "ספרים", "סדנאות"],
-  בריאות: ["תרופות", "רופאים פרטיים", "טיפולים"],
-  טיפוח: ["ביגוד", "נעליים", "קוסמטיקה", "מספרה"],
+  רכב: [
+    "דלק",
+    "תחבורה ציבורית",
+    "מוסך",
+    "טסט",
+    "רישיון רכב",
+    "ביטוח רכב",
+    "חניונים",
+    "פנגו",
+    "כביש 6",
+    "רכבת",
+    "אוטובוס",
+  ],
+  "פנאי ובילוי": [
+    "מסעדות",
+    "בתי קפה",
+    "בתי מלון וטיסות",
+    "הצגות",
+    "סרטים",
+    "חופשות",
+    "מכון כושר",
+    "בילוי משפחתי",
+    "יציאות עם חברים",
+  ],
+  תחביבים: ["תרבות", "ספרים", "סדנאות", "קורסים"],
+  בריאות: [
+    "תרופות",
+    "רופאים פרטיים",
+    "טיפולים",
+    "פיזיותרפיה",
+    "פסיכולוג",
+    "טיפולי שיניים נוספים",
+    "טיפולים אלטרנטיביים",
+  ],
+  טיפוח: [
+    "ביגוד",
+    "נעליים",
+    "קוסמטיקה",
+    "מספרה",
+    "תספורת",
+    "קוסמטיקאית",
+    "עדשות ראיה",
+    "משקפיים",
+  ],
   "עזרה בבית": ["עוזרת / ניקיון", "בייביסיטר", "שיעורים פרטיים"],
-  "מתנות ותרומות": ["מתנות", "תרומות"],
+  "סופר / מזון": [
+    "קניות בסופר",
+    "השלמות בקיוסק",
+    "השלמות במכולת",
+    "מאפיה",
+    "ירקן",
+    "פיצוחים",
+    "משלוחים",
+    "רשתות פארם",
+  ],
+  "מתנות ותרומות": ["מתנות", "תרומות", "מתנות חתונות וברית", "מועדוני לקוחות"],
+  "חופשות וטיולים": ["חופשה משפחתית", "טיולים בארץ", "חופשה זוגית", "מלון", "חבילת טיסה"],
+  "חיות מחמד": [
+    "מזון לחיית מחמד",
+    "ביטוח / טיפולים לחיית מחמד",
+    "אביזרים ומשחקים",
+  ],
+  "תחזוקת בית": [
+    "תיקונים",
+    "ריהוט",
+    "אביזרי בית",
+    "כלי בית",
+    "כלי גן",
+  ],
+  שונות: ["סיגריות", "תשלום מזונות", "רכישה חריגה", "לימודים וקורסים"],
 };
 
 function getDrilldownKey(name: string): string | null {
@@ -1602,6 +1721,18 @@ export default function BudgetPage() {
         />
       ))}
 
+      {/* ═══════ Monthly Expense Summary — sorted by amount ═══════
+          2026-05-07 per Nir + Daniel-Navon excel inspiration: a single
+          consolidated table at the bottom listing every expense parent
+          row with its budget, actual, and % of income. Lets the family
+          see the full picture in one place without expanding sections. */}
+      <MonthlyExpenseSummary
+        budget={filteredBudget}
+        incomeTotal={totals.incBudget}
+        expenseBudgetTotal={totals.expBudget}
+        expenseActualTotal={totals.expActual}
+      />
+
       {/* ═══════ Import Preview Modal ═══════ */}
       {importPreview && (
         <div
@@ -2303,5 +2434,180 @@ function ScopePicker({
         </div>
       )}
     </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MonthlyExpenseSummary — consolidated category breakdown
+   ═══════════════════════════════════════════════════════════
+   Inspired by the bottom-of-sheet "סיכום הוצאות חודשי" table in Daniel
+   Navon's TradingIL excel. Shows every expense parent row in one place
+   with budget, actual, and percentage of income — sorted by spend so
+   the biggest categories are visible first.
+
+   Doesn't try to be smart. Just a clean read-only table. The user edits
+   numbers in the section drilldowns above; the summary mirrors the result.
+   ═══════════════════════════════════════════════════════════ */
+
+function MonthlyExpenseSummary({
+  budget,
+  incomeTotal,
+  expenseBudgetTotal,
+  expenseActualTotal,
+}: {
+  budget: BudgetData;
+  incomeTotal: number;
+  expenseBudgetTotal: number;
+  expenseActualTotal: number;
+}) {
+  // Collect all expense parent rows from fixed + variable. Use rowEffective
+  // so a row with sub-items rolls up its sub-totals.
+  const rows: { name: string; budget: number; actual: number; section: string }[] = [];
+  for (const sectionKey of ["fixed", "variable"] as const) {
+    for (const r of budget.sections[sectionKey] || []) {
+      const b = rowEffective(r, "budget");
+      const a = rowEffective(r, "actual");
+      if (b === 0 && a === 0) continue; // hide unused
+      rows.push({ name: r.name, budget: b, actual: a, section: sectionKey });
+    }
+  }
+  rows.sort((x, y) => y.budget - x.budget);
+
+  if (rows.length === 0) {
+    return (
+      <section className="mb-6">
+        <div className="mb-2 text-base font-extrabold text-verdant-ink">סיכום הוצאות חודשי</div>
+        <div
+          className="rounded-xl px-4 py-5 text-center text-[12px]"
+          style={{ background: "#F4F7ED", border: "1px dashed #d8e0d0", color: "#5a7a6a" }}
+        >
+          הזינו ערכים בסעיפים למעלה כדי לראות סיכום מאוחד לפי קטגוריות.
+        </div>
+      </section>
+    );
+  }
+
+  const balance = incomeTotal - expenseActualTotal;
+
+  return (
+    <section className="mb-6">
+      <div className="mb-3 flex items-baseline justify-between">
+        <div className="text-base font-extrabold text-verdant-ink">סיכום הוצאות חודשי</div>
+        <div className="text-[11px] text-verdant-muted">
+          ממוין לפי גודל ההוצאה
+        </div>
+      </div>
+      <div
+        className="overflow-hidden rounded-2xl bg-white"
+        style={{ border: "1px solid #f0f4ec" }}
+      >
+        {/* Header */}
+        <div
+          className="grid items-center px-4 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-verdant-muted"
+          style={{
+            gridTemplateColumns: "minmax(100px,1fr) 80px 80px minmax(80px,120px)",
+            columnGap: "12px",
+            borderBottom: "1px solid #f0f4ec",
+          }}
+        >
+          <div>קטגוריה</div>
+          <div className="text-left">תקציב</div>
+          <div className="text-left">בפועל</div>
+          <div className="text-left">% מההכנסה</div>
+        </div>
+        {/* Rows */}
+        {rows.map((r) => {
+          const pct = incomeTotal > 0 ? Math.round((r.budget / incomeTotal) * 100) : 0;
+          const overspend = r.actual > r.budget && r.budget > 0;
+          return (
+            <div
+              key={`${r.section}-${r.name}`}
+              className="grid items-center px-4 py-2.5 text-[13px]"
+              style={{
+                gridTemplateColumns: "minmax(100px,1fr) 80px 80px minmax(80px,120px)",
+                columnGap: "12px",
+                borderBottom: "1px solid #f4f7ed",
+              }}
+            >
+              <div className="truncate font-semibold text-verdant-ink">{r.name}</div>
+              <div className="text-left tabular-nums" style={{ color: "#5a7a6a" }}>
+                {fmtILS(r.budget)}
+              </div>
+              <div
+                className="text-left tabular-nums font-bold"
+                style={{ color: overspend ? "#B85450" : "#012D1D" }}
+              >
+                {fmtILS(r.actual)}
+              </div>
+              <div className="flex items-center gap-2">
+                <div
+                  className="h-1.5 flex-1 overflow-hidden rounded-full"
+                  style={{ background: "#f0f4ec" }}
+                >
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${Math.min(100, pct)}%`,
+                      background: overspend ? "#B85450" : "#1B4332",
+                    }}
+                  />
+                </div>
+                <span
+                  className="tabular-nums text-[12px] font-bold"
+                  style={{ color: "#012D1D", minWidth: 32, textAlign: "left" }}
+                >
+                  {pct}%
+                </span>
+              </div>
+            </div>
+          );
+        })}
+        {/* Total row */}
+        <div
+          className="grid items-center px-4 py-3 text-[13px]"
+          style={{
+            gridTemplateColumns: "minmax(100px,1fr) 80px 80px minmax(80px,120px)",
+            columnGap: "12px",
+            background: "#F4F7ED",
+            fontWeight: 700,
+          }}
+        >
+          <div className="text-verdant-ink">סה״כ הוצאות</div>
+          <div className="text-left tabular-nums text-verdant-ink">
+            {fmtILS(expenseBudgetTotal)}
+          </div>
+          <div
+            className="text-left tabular-nums"
+            style={{ color: expenseActualTotal > expenseBudgetTotal ? "#B85450" : "#012D1D" }}
+          >
+            {fmtILS(expenseActualTotal)}
+          </div>
+          <div
+            className="text-left tabular-nums"
+            style={{ color: "#012D1D" }}
+          >
+            {incomeTotal > 0
+              ? `${Math.round((expenseBudgetTotal / incomeTotal) * 100)}%`
+              : "—"}
+          </div>
+        </div>
+        {/* Net result */}
+        <div
+          className="flex items-baseline justify-between px-4 py-3"
+          style={{ borderTop: "1px solid #f0f4ec" }}
+        >
+          <div className="text-[12px] font-bold text-verdant-muted">
+            {balance >= 0 ? "נשאר לחיסכון / יתרה" : "חריגה"}
+          </div>
+          <div
+            className="text-[18px] font-extrabold tabular-nums"
+            style={{ color: balance >= 0 ? "#1B4332" : "#B85450" }}
+          >
+            {balance >= 0 ? "+" : "−"}
+            {fmtILS(Math.abs(balance))}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
