@@ -147,7 +147,7 @@ export default function PlanPage() {
           <button
             onClick={exportToExcel}
             disabled={entries.length === 0}
-            className="flex items-center justify-center gap-2 rounded-2xl bg-white p-4 transition-all hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex items-center justify-center gap-2 rounded-2xl bg-white p-4 transition-all disabled:cursor-not-allowed disabled:opacity-50"
             style={{ border: "1px solid #eef2e8", color: "#1B4332" }}
           >
             <span className="material-symbols-outlined text-[20px]">download</span>

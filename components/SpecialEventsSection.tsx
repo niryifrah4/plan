@@ -109,7 +109,7 @@ export function SpecialEventsSection() {
               setEditingId(null);
               setShowForm(true);
             }}
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-all hover:shadow-md"
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-all"
             style={{ background: "#1B4332", color: "#fff" }}
           >
             <span className="material-symbols-outlined text-[14px]">add</span>
@@ -325,7 +325,7 @@ function EventForm({ initial, onCancel, onSave }: EventFormProps) {
       <div className="mt-3 flex items-center gap-2">
         <button
           type="submit"
-          className="rounded-full px-5 py-2 text-[12px] font-bold transition-all hover:shadow-md"
+          className="rounded-full px-5 py-2 text-[12px] font-bold transition-all"
           style={{ background: "#1B4332", color: "#fff" }}
         >
           {initial ? "עדכן" : "הוסף"}

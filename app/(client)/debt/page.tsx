@@ -386,7 +386,7 @@ export default function DebtPage() {
           : "קריטי · מעל 40%";
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto max-w-5xl py-4 md:py-8">
       {/* ═══ Header ═══ */}
       <header className="mb-6 border-b pb-5" style={{ borderColor: "#e2e8d8" }}>
         <div className="mb-1 flex flex-wrap items-end justify-between gap-3">

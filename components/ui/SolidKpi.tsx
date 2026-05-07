@@ -56,7 +56,7 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg }: Solid
   if (bg) {
     return (
       <div
-        className="relative overflow-hidden p-4 transition-all duration-200 hover:shadow-md"
+        className="relative overflow-hidden p-4 transition-all duration-200"
         style={{
           background: bg,
           color: "#FFFFFF",
@@ -98,7 +98,7 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg }: Solid
   // Bank-style default: white card with thin tone accent on the right edge.
   return (
     <div
-      className="relative overflow-hidden bg-white px-5 py-4 transition-shadow duration-200 hover:shadow-sm"
+      className="relative overflow-hidden bg-white px-5 py-4 duration-200"
       style={{
         borderRadius: "0.75rem",
         border: "1px solid #eef2e8",

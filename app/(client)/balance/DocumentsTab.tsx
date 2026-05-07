@@ -1290,7 +1290,7 @@ export function DocumentsTab() {
               )}
               <button
                 onClick={handleTransfer}
-                className="flex items-center gap-2 rounded-xl px-8 py-3 text-sm font-extrabold text-white transition-all hover:scale-[0.98] hover:shadow-lg"
+                className="flex items-center gap-2 rounded-xl px-8 py-3 text-sm font-extrabold text-white transition-all hover:scale-[0.98]"
                 style={{ background: "#1B4332", fontFamily: "Assistant" }}
               >
                 <span className="material-symbols-outlined text-[18px]">

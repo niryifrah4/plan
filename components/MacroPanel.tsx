@@ -70,7 +70,7 @@ export function MacroPanel() {
     return (
       <button
         onClick={() => setExpanded(true)}
-        className="mb-4 flex w-full items-center justify-between gap-4 rounded-xl bg-white px-4 py-2.5 text-right transition-shadow hover:shadow-sm"
+        className="mb-4 flex w-full items-center justify-between gap-4 rounded-xl bg-white px-4 py-2.5 text-right transition-shadow"
         style={{ border: "1px solid #eef2e8" }}
         title="לחץ להרחבה ועריכה"
       >

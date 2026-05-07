@@ -212,7 +212,7 @@ export function InviteClientButton() {
                 <button
                   type="submit"
                   disabled={phase === "creating"}
-                  className="h-11 w-full rounded-xl text-sm font-bold transition-all hover:shadow-md disabled:opacity-50"
+                  className="h-11 w-full rounded-xl text-sm font-bold transition-all disabled:opacity-50"
                   style={{ background: "#1B4332", color: "#F9FAF2" }}
                 >
                   {phase === "creating" ? "שולח הזמנה..." : "שלח הזמנה ללקוח"}
@@ -298,7 +298,7 @@ export function InviteClientButton() {
                   <button
                     type="button"
                     onClick={copyLink}
-                    className="h-11 flex-1 rounded-xl text-sm font-bold transition-all hover:shadow-md"
+                    className="h-11 flex-1 rounded-xl text-sm font-bold transition-all"
                     style={{ background: "#1B4332", color: "#F9FAF2" }}
                   >
                     {copied ? "הועתק ✓" : "העתק קישור"}

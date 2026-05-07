@@ -730,7 +730,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl" style={{ fontFamily: "'Assistant', sans-serif" }}>
+    <div className="mx-auto max-w-5xl py-4 md:py-8" style={{ fontFamily: "'Assistant', sans-serif" }}>
       {/* ═══════ Monthly Check-in Popup ═══════ */}
       {showCheckin && (
         <div
@@ -773,7 +773,7 @@ export default function DashboardPage() {
               </button>
               <button
                 onClick={dismissCheckin}
-                className="flex-1 rounded-xl py-3 text-[12px] font-bold transition-shadow hover:shadow-md"
+                className="flex-1 rounded-xl py-3 text-[12px] font-bold transition-shadow"
                 style={{ background: "#f59e0b15", color: "#b45309", border: "1px solid #f59e0b30" }}
               >
                 לא, יש הפרש
@@ -1807,7 +1807,7 @@ export default function DashboardPage() {
                   <div className="col-span-4 mt-1">
                     <Link
                       href={"/retirement" as any}
-                      className="flex items-center justify-between rounded-xl px-4 py-3 transition-all hover:shadow-md"
+                      className="flex items-center justify-between rounded-xl px-4 py-3 transition-all"
                       style={{
                         background: "linear-gradient(135deg,#012d1d,#1B4332)",
                         color: "#fff",

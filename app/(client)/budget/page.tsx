@@ -1264,7 +1264,7 @@ export default function BudgetPage() {
   if (!budget || !filteredBudget) {
     // Loading skeleton — matches final layout so there's no flash-of-wrong-content.
     return (
-      <div className="mx-auto max-w-4xl" dir="rtl">
+      <div className="mx-auto max-w-4xl py-4 md:py-8" dir="rtl">
         <section
           className="mb-5 animate-pulse rounded-3xl p-8"
           style={{
@@ -1314,7 +1314,7 @@ export default function BudgetPage() {
     totals.incBudget > 0 ? Math.max(0, Math.min(100, (balance / totals.incBudget) * 100)) : 0;
 
   return (
-    <div className="mx-auto max-w-4xl" dir="rtl">
+    <div className="mx-auto max-w-4xl py-4 md:py-8" dir="rtl">
       {/* ═══════════════════════════════════════════════════════════
           HERO — one clear number per screen, Finav-inspired
           ═══════════════════════════════════════════════════════════ */}

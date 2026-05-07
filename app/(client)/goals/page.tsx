@@ -674,7 +674,7 @@ export default function GoalsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl" style={{ fontFamily: "'Assistant', sans-serif" }}>
+    <div className="mx-auto max-w-4xl py-4 md:py-8" style={{ fontFamily: "'Assistant', sans-serif" }}>
       <PageHeader
         subtitle="Plan · מטרות ויעדים"
         title="המטרות והיעדים שלי"
@@ -836,7 +836,7 @@ export default function GoalsPage() {
           return (
             <div
               key={bucket.id}
-              className="overflow-hidden rounded-2xl transition-all duration-200 hover:shadow-soft"
+              className="overflow-hidden rounded-2xl transition-all duration-200"
               style={{
                 background: "#fff",
                 border: "1px solid #E8E9E1",
@@ -906,7 +906,7 @@ export default function GoalsPage() {
                     <button
                       onClick={() => setEditingId(isEditing ? null : bucket.id)}
                       title={isEditing ? "סגור עריכה" : "ערוך יעד"}
-                      className="flex h-9 w-9 items-center justify-center rounded-full transition-all hover:shadow-sm"
+                      className="flex h-9 w-9 items-center justify-center rounded-full transition-all"
                       style={{ background: "#F3F4EC", color: "#1B4332" }}
                     >
                       <span className="material-symbols-outlined text-[18px]">
@@ -1422,7 +1422,7 @@ function BucketAddForm({
             <button
               key={p.name}
               onClick={() => applyPreset(p)}
-              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-bold transition-all hover:shadow-sm"
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-bold transition-all"
               style={{
                 background: `${p.color}10`,
                 color: "#012d1d",

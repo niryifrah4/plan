@@ -25,7 +25,7 @@ export function KpiCard({
 }: KpiCardProps) {
   const body = (
     <Card
-      className="relative overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
+      className="relative overflow-hidden transition-all duration-300 hover:-translate-y-0.5"
       style={{
         minHeight: 168,
         background: `linear-gradient(180deg, ${accent}08 0%, #ffffff 60%)`,

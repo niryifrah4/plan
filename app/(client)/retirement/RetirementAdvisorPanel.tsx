@@ -157,7 +157,7 @@ export function RetirementAdvisorPanel({
                   {ins.action && (
                     <button
                       onClick={() => handleApply(ins.action!)}
-                      className="mt-3 rounded-lg px-3 py-1.5 text-[11px] font-extrabold transition-shadow hover:shadow-md"
+                      className="mt-3 rounded-lg px-3 py-1.5 text-[11px] font-extrabold transition-shadow"
                       style={{ background: c.border, color: "#fff" }}
                     >
                       {ins.action.label} ←
