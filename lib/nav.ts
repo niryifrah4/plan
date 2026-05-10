@@ -15,6 +15,9 @@ export interface NavItem {
   href: string;
   icon: string; // Material Symbol name
   badge?: string;
+  /** Hide from the sidebar when the logged-in user is a self-serve client
+   *  (no advisor impersonation). Used for CRM-only tools like /plan. */
+  advisorOnly?: boolean;
 }
 
 export interface NavGroup {
@@ -33,12 +36,14 @@ export interface NavGroup {
 
 export const NAV_SECTIONS: NavGroup[] = [
   // ── Top: always visible ────────────────────────────────────────────
+  // Dashboard sits first — it's the home base. The questionnaire is a
+  // one-time setup, not a daily destination, so it appears second.
   {
     id: "top",
     label: null,
     items: [
-      { id: "onboarding", label: "אפיון הלקוח", href: "/onboarding", icon: "assignment" },
       { id: "dashboard", label: "תמונת מצב", href: "/dashboard", icon: "dashboard" },
+      { id: "onboarding", label: "אפיון הלקוח", href: "/onboarding", icon: "assignment" },
     ],
   },
 
@@ -89,7 +94,16 @@ export const NAV_SECTIONS: NavGroup[] = [
       // 2026-04-29 per Nir: /retirement merged into /pension. The simulation
       // panels live there now. Sidebar entry removed; route still exists for
       // back-compat (any deep link auto-redirects via the page itself).
-      { id: "plan", label: "תוכנית פעולה", href: "/plan", icon: "checklist" },
+      // /plan is the advisor's working canvas during a session — assigning
+      // tasks, drafting recommendations. Self-serve B2C clients don't need it
+      // (and would find it confusing); show only when an advisor is logged in.
+      {
+        id: "plan",
+        label: "תוכנית פעולה",
+        href: "/plan",
+        icon: "checklist",
+        advisorOnly: true,
+      },
     ],
   },
 

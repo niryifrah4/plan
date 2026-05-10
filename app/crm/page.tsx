@@ -1346,8 +1346,13 @@ export default function CrmPage() {
                                       setToast("❌ לא ניתן להיכנס לתיק — בדוק הרשאות");
                                       return;
                                     }
-                                    const target = c.step === 0 ? "/onboarding" : "/dashboard";
-                                    window.location.href = target;
+                                    // Always land on /dashboard. Earlier we sent
+                                    // step=0 clients straight to /onboarding;
+                                    // now /dashboard's empty state already
+                                    // points them at the questionnaire and at
+                                    // accounts/goals — a calmer first impression
+                                    // than a 5-step form on entry.
+                                    window.location.href = "/dashboard";
                                   } catch {
                                     setToast("❌ שגיאת רשת בכניסה לתיק");
                                   }

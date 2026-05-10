@@ -338,9 +338,14 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* Nav */}
+      {/* Nav — strip advisor-only items for self-serve clients so they
+           don't see CRM affordances they have no use for. */}
       <nav className="flex-1 overflow-y-auto px-4 pb-2">
-        {NAV_SECTIONS.map((g) => renderGroup(g))}
+        {NAV_SECTIONS.map((g) => {
+          const items = isAdvisor ? g.items : g.items.filter((it) => !it.advisorOnly);
+          if (items.length === 0) return null;
+          return renderGroup({ ...g, items });
+        })}
       </nav>
 
       {/* Footer */}

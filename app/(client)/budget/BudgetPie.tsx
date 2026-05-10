@@ -27,30 +27,25 @@ interface Props {
   mode?: "actual" | "budget";
 }
 
-/* ── Color palette used when the caller doesn't supply one ── */
+/* ── Color palette ──
+   Curated to stay inside the Botanical Wealth system (forest greens +
+   warm earth accents + a single muted slate for cool contrast). The
+   previous list mixed purple, cyan, and saturated reds which broke the
+   theme on charts with many slices. Order is deliberate: adjacent
+   indices stay visually distinct so back-to-back categories don't blend. */
 export const BUDGET_PIE_COLORS = [
-  "#1B4332",
-  "#2B694D",
-  "#1e6b3a",
-  "#2B694D",
-  "#34d399",
-  "#d97706",
-  "#f59e0b",
-  "#fbbf24",
-  "#fcd34d",
-  "#b91c1c",
-  "#dc2626",
-  "#ef4444",
-  "#f87171",
-  "#1d4ed8",
-  "#3b82f6",
-  "#60a5fa",
-  "#1B4332",
-  "#a78bfa",
-  "#C1ECD4",
-  "#0891b2",
-  "#06b6d4",
-  "#22d3ee",
+  "#012D1D", // deep forest
+  "#2B694D", // mid forest
+  "#A57F2C", // amber-olive
+  "#1B4332", // forest
+  "#5a7a6a", // muted sage
+  "#34d399", // mint
+  "#B45309", // warm amber
+  "#1e6b3a", // pine
+  "#94A3B8", // slate (cool neutral — only one in the rotation)
+  "#7A9684", // dusty sage
+  "#C1ECD4", // light leaf
+  "#6b7280", // neutral graphite
 ];
 
 /* polar → cartesian for arc paths */

@@ -951,6 +951,39 @@ export default function OnboardingPage() {
               </div>
             </div>
 
+            {/* Personal rent — for tenants. Owners flow housing burden through
+             * the mortgage liability (debt store). This question fills the gap
+             * for renters so /budget shows a realistic fixed-expense picture
+             * without the user having to add the row by hand. Empty = own /
+             * no rent. Updates flow into a locked "שכר דירה" row in /budget. */}
+            <div
+              className="mt-4 rounded-xl bg-white p-3"
+              style={{ border: "1px solid #e5e9dc" }}
+            >
+              <div className="mb-2 flex items-center gap-2">
+                <span className="material-symbols-outlined text-[16px] text-verdant-emerald">
+                  home
+                </span>
+                <h4 className="text-[13px] font-extrabold text-verdant-ink">
+                  שכר דירה (אם אתם שוכרים)
+                </h4>
+              </div>
+              <p className="mb-3 text-[11px] leading-relaxed text-verdant-muted">
+                ממלאים רק אם אתם שוכרים. אם אתם בעלי הדירה — המשכנתא נקלטת
+                אוטומטית מטבלת ההתחייבויות, ואין צורך למלא כאן.
+              </p>
+              <div className="max-w-[220px]">
+                <Fld
+                  label="שכ״ד חודשי (₪)"
+                  name="exp_rent"
+                  fields={fields}
+                  onChange={setField}
+                  type="number"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
             {/* Assets */}
             <div className="mt-6">
               <div className="mb-3 flex items-center justify-between">

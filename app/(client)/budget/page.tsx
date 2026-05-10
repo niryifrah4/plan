@@ -20,7 +20,6 @@ import {
 } from "@/lib/budget-import";
 import { syncOnboardingToStores } from "@/lib/onboarding-sync";
 
-const BudgetChart = dynamic(() => import("./BudgetChart"), { ssr: false });
 const BudgetPie = dynamic(() => import("./BudgetPie"), { ssr: false });
 const MonthlyInsights = dynamic(() => import("./MonthlyInsights"), { ssr: false });
 const CashflowForecast = dynamic(
@@ -60,7 +59,7 @@ interface BudgetRow {
   /** Locked rows are read-only — synced from another store (debt / assets). */
   locked?: boolean;
   /** Origin of a locked row. Undefined = manual user entry. */
-  source?: "debt" | "passive" | "salary" | "onboarding";
+  source?: "debt" | "passive" | "salary" | "onboarding" | "rent";
   notes?: string;
   /** Business / personal / mixed tag. Undefined = personal. */
   scope?: Scope;
@@ -634,6 +633,53 @@ function injectDebtRows(budget: BudgetData): BudgetData {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   Inject personal-rent row (tenants) into FIXED expenses
+
+   Read once from onboarding's `exp_rent`. Tenants who don't own
+   the apartment they live in have no mortgage to flow through
+   the debt store, so without this they'd need to add a "שכר דירה"
+   row by hand — the most predictable fixed expense in their life.
+   Source-tagged so re-injection on mount overwrites the same row
+   (rather than duplicating).
+   ═══════════════════════════════════════════════════════════ */
+
+function loadMonthlyRentFromOnboarding(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const raw = localStorage.getItem(scopedKey("verdant:onboarding:fields"));
+    if (!raw) return 0;
+    const fields = JSON.parse(raw);
+    const v = parseFloat(fields.exp_rent);
+    return isFinite(v) && v > 0 ? v : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function injectRentRow(budget: BudgetData): BudgetData {
+  const monthlyRent = loadMonthlyRentFromOnboarding();
+  const fixedClean = (budget.sections.fixed || []).filter((r) => r.source !== "rent");
+
+  if (monthlyRent <= 0) {
+    return { ...budget, sections: { ...budget.sections, fixed: fixedClean } };
+  }
+
+  const rentRow: BudgetRow = {
+    id: uid(),
+    name: "שכר דירה",
+    budget: monthlyRent,
+    actual: monthlyRent,
+    avg3: 0,
+    source: "rent",
+  };
+
+  return {
+    ...budget,
+    sections: { ...budget.sections, fixed: [...fixedClean, rentRow] },
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════
    Inject passive-income rows (rental / dividends) into INCOME
    ═══════════════════════════════════════════════════════════ */
 
@@ -733,7 +779,8 @@ function injectOnboardingIncomeRows(budget: BudgetData): BudgetData {
   const SALARY_RX = [/^משכורת/, /^\s*שכר\s*\(/, /שכר\s*ב?ן?\/?ב?ת?\s*זוג/];
   const RENT_RX = [/שכ[״""]?ד/, /שכר\s+דירה/, /נכסים\s+מניבים/];
 
-  const rows: BudgetRow[] = [];
+  const salaryRows: BudgetRow[] = [];
+  const otherRows: BudgetRow[] = [];
   for (const item of list) {
     const label = (item?.label || "").trim();
     const amount = Number(item?.value) || 0;
@@ -745,7 +792,7 @@ function injectOnboardingIncomeRows(budget: BudgetData): BudgetData {
     if (isSalaryLabel && salaryWillBeInjected) continue; // covered by injectSalaryRow
     if (isRentLabel && rentWillBeInjected) continue; // covered by injectPassiveIncomeRows
 
-    rows.push({
+    const row: BudgetRow = {
       id: uid(),
       name: label,
       budget: amount,
@@ -754,14 +801,20 @@ function injectOnboardingIncomeRows(budget: BudgetData): BudgetData {
       // 2026-05-05 per Nir: rows are editable. Auto-injection still
       // refreshes them from source data on each mount.
       source: "onboarding",
-    });
+    };
+    // Salary rows always sit at the top of income — that's the anchor
+    // line a couple looks for first. (2026-05-09 per Nir.) Without this
+    // split, onboarding-injected salary lines fall to the bottom of the
+    // list whenever there's no separate salary profile filled out.
+    if (isSalaryLabel) salaryRows.push(row);
+    else otherRows.push(row);
   }
 
   return {
     ...budget,
     sections: {
       ...budget.sections,
-      income: [...incomeClean, ...rows],
+      income: [...salaryRows, ...incomeClean, ...otherRows],
     },
   };
 }
@@ -829,7 +882,15 @@ export default function BudgetPage() {
   const [month, setMonth] = useState(now.getMonth());
   const [budget, setBudget] = useState<BudgetData | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
-  const [showChart, setShowChart] = useState(false);
+  // 2026-05-09 per ui-agent audit: page split into two views.
+  //  • "snapshot" — default — Hero + Pie + 12-month forecast. Read-only.
+  //    What a couple wants to see when they pop in for a weekly check.
+  //  • "edit" — manage strip + insights + the editable section tables.
+  //    Where they go when they actually want to change a number.
+  // Removed the standalone "גרפים" toggle entirely; the Pie now lives
+  // permanently inside snapshot, which solves the old problem of the
+  // most useful chart being hidden behind a click.
+  const [viewTab, setViewTab] = useState<"snapshot" | "edit">("snapshot");
   const [showInsights, setShowInsights] = useState(false);
   /** Scope filter: 'all' | 'personal' | 'business'. Not persisted. */
   const [scopeFilter, setScopeFilter] = useState<"all" | "personal" | "business">("all");
@@ -871,7 +932,7 @@ export default function BudgetPage() {
       setBudget((prev) => {
         if (!prev) return prev;
         const updated = injectOnboardingIncomeRows(
-          injectSalaryRow(injectPassiveIncomeRows(injectDebtRows(prev)))
+          injectSalaryRow(injectPassiveIncomeRows(injectRentRow(injectDebtRows(prev))))
         );
         saveBudget(updated);
         return updated;
@@ -895,7 +956,7 @@ export default function BudgetPage() {
     if (existing) {
       // Re-inject debt + passive income rows in case they changed
       const withSync = injectOnboardingIncomeRows(
-        injectSalaryRow(injectPassiveIncomeRows(injectDebtRows(existing)))
+        injectSalaryRow(injectPassiveIncomeRows(injectRentRow(injectDebtRows(existing))))
       );
       setBudget(withSync);
       return;
@@ -934,7 +995,7 @@ export default function BudgetPage() {
 
     // Inject locked debt rows + passive income
     fresh = injectOnboardingIncomeRows(
-      injectSalaryRow(injectPassiveIncomeRows(injectDebtRows(fresh)))
+      injectSalaryRow(injectPassiveIncomeRows(injectRentRow(injectDebtRows(fresh))))
     );
 
     setBudget(fresh);
@@ -1438,12 +1499,14 @@ export default function BudgetPage() {
           HERO — one clear number per screen, Finav-inspired
           ═══════════════════════════════════════════════════════════ */}
       <section
-        // 2026-05-05 visual-cleanup: softer flat fill instead of high-contrast
-        // gradient (less heavy), padding aligned to tailwind scale (20/24px),
-        // bigger gap below before the manage strip.
+        // Hero stays the calm forest tone in every state. Earlier the whole
+        // card flipped to a saturated coral on overspend — readable, but
+        // alarming for a couple already anxious about money. The "חריגה"
+        // signal now lives in the headline label and number color, not in
+        // a wall of red. (2026-05-09 per ui-agent audit.)
         className="relative mb-6 overflow-hidden rounded-2xl"
         style={{
-          background: balance >= 0 ? "#1B4332" : "#B85450",
+          background: "#1B4332",
           color: "#F9FAF2",
           padding: "20px 24px",
         }}
@@ -1518,14 +1581,22 @@ export default function BudgetPage() {
         <div className="flex flex-wrap items-center justify-between gap-6">
           <div>
             <div
-              className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em]"
-              style={{ color: "rgba(255,255,255,0.7)" }}
+              className="mb-1 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em]"
+              style={{
+                color: balance >= 0 ? "rgba(255,255,255,0.7)" : "#FECACA",
+              }}
             >
+              {balance < 0 && (
+                <span className="material-symbols-outlined text-[14px]">warning</span>
+              )}
               {balance >= 0 ? "נשאר בחודש" : "חריגה בחודש"}
             </div>
             <div
               className="text-[34px] font-extrabold tabular-nums leading-none tracking-tight"
-              style={{ color: "#F9FAF2", fontFamily: "Manrope, Assistant, system-ui, sans-serif" }}
+              style={{
+                color: balance >= 0 ? "#F9FAF2" : "#FECACA",
+                fontFamily: "Manrope, Assistant, system-ui, sans-serif",
+              }}
             >
               {fmtILS(Math.abs(balance))}
             </div>
@@ -1569,169 +1640,168 @@ export default function BudgetPage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════
-          MANAGE STRIP — subtle action row
+          TAB SWITCHER — תמונת מצב / עריכה
+          A weekly check-in just wants to *see* — open in snapshot.
+          Editing rows is the rarer action; gated behind one click so
+          the page doesn't hand a couple a wall of inputs by default.
           ═══════════════════════════════════════════════════════════ */}
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex gap-1.5">
-          {/* 2026-05-05 visual-cleanup: dropped the borders on the toggle
-              buttons. They're secondary actions — the soft fill alone is
-              enough to mark them as buttons without adding three more
-              outlines to the page. */}
-          <button
-            onClick={openImportPreview}
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors hover:bg-[#e8efe2]"
-            style={{ background: "#f0f4ec", color: "#1B4332" }}
-            title="ייבא תנועות מקובץ בנק/אשראי שהועלה"
-          >
-            <span className="material-symbols-outlined text-[14px]">sync_alt</span>
-            ייבא תנועות
-          </button>
-          <button
-            onClick={() => setShowChart((v) => !v)}
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors"
-            style={{
-              background: showChart ? "#1B4332" : "transparent",
-              color: showChart ? "#fff" : "#5a7a6a",
-            }}
-          >
-            <span className="material-symbols-outlined text-[14px]">bar_chart</span>
-            גרפים
-          </button>
-          <button
-            onClick={() => setShowInsights((v) => !v)}
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors"
-            style={{
-              background: showInsights ? "#1B4332" : "transparent",
-              color: showInsights ? "#fff" : "#5a7a6a",
-            }}
-          >
-            <span className="material-symbols-outlined text-[14px]">lightbulb</span>
-            תובנות
-          </button>
+      <div className="mb-6 flex justify-center">
+        <div
+          className="inline-flex rounded-full p-1"
+          style={{ background: "#f0f4ec", border: "1px solid #e2e8d8" }}
+        >
+          {(
+            [
+              { key: "snapshot", label: "תמונת מצב", icon: "donut_large" },
+              { key: "edit", label: "עריכה", icon: "tune" },
+            ] as const
+          ).map((tab) => {
+            const active = viewTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setViewTab(tab.key)}
+                className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-bold transition-colors"
+                style={{
+                  background: active ? "#1B4332" : "transparent",
+                  color: active ? "#fff" : "#5a7a6a",
+                }}
+              >
+                <span className="material-symbols-outlined text-[16px]">{tab.icon}</span>
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
-
-        {/* Scope filter — only shown when business scope enabled */}
-        {businessEnabled && (
-          <div className="flex items-center gap-1">
-            {(
-              [
-                { key: "all", label: "הכל" },
-                { key: "personal", label: "פרטי" },
-                { key: "business", label: "עסקי" },
-              ] as const
-            ).map((tab) => {
-              const active = scopeFilter === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => setScopeFilter(tab.key)}
-                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-all"
-                  style={{
-                    background: active ? "#012d1d" : "transparent",
-                    color: active ? "#fff" : "#5a7a6a",
-                    border: active ? "1px solid #012d1d" : "1px solid #e2e8d8",
-                  }}
-                >
-                  {tab.key === "business" && (
-                    <span
-                      className="inline-block h-1.5 w-1.5 rounded-full"
-                      style={{ background: active ? "#fff" : SCOPE_COLORS.business }}
-                    />
-                  )}
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {/* ═══════════════════════════════════════════════════════════
-          CHARTS (toggleable)
+          SNAPSHOT — read-only at-a-glance
           ═══════════════════════════════════════════════════════════ */}
-      {showChart && (
-        <div className="mb-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <BudgetChart
-            incBudget={totals.incBudget}
-            incActual={totals.incActual}
-            expBudget={totals.expBudget}
-            expActual={totals.expActual}
-          />
-          <BudgetPie
-            slices={pieData.slices}
-            mode={pieData.mode}
-            subtitle={pieData.mode === "actual" ? "בפועל" : "מתוכנן"}
-          />
-        </div>
+      {viewTab === "snapshot" && (
+        <>
+          <div className="mb-5">
+            <BudgetPie
+              slices={pieData.slices}
+              mode={pieData.mode}
+              subtitle={pieData.mode === "actual" ? "בפועל" : "מתוכנן"}
+            />
+          </div>
+          <CashflowForecast />
+        </>
       )}
 
       {/* ═══════════════════════════════════════════════════════════
-          INSIGHTS (toggleable)
+          EDIT — manage strip + insights + section tables
           ═══════════════════════════════════════════════════════════ */}
-      {showInsights && <MonthlyInsights month={month} year={year} onApply={applyInsights} />}
+      {viewTab === "edit" && (
+        <>
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex gap-1.5">
+              <button
+                onClick={openImportPreview}
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors hover:bg-[#e8efe2]"
+                style={{ background: "#f0f4ec", color: "#1B4332" }}
+                title="ייבא תנועות מקובץ בנק/אשראי שהועלה"
+              >
+                <span className="material-symbols-outlined text-[14px]">sync_alt</span>
+                ייבא תנועות
+              </button>
+              <button
+                onClick={() => setShowInsights((v) => !v)}
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors"
+                style={{
+                  background: showInsights ? "#1B4332" : "transparent",
+                  color: showInsights ? "#fff" : "#5a7a6a",
+                }}
+              >
+                <span className="material-symbols-outlined text-[14px]">lightbulb</span>
+                תובנות
+              </button>
+            </div>
 
-      {/* 12-month cashflow forecast (2026-05-02). */}
-      <CashflowForecast />
+            {/* Scope filter — only shown when business scope enabled */}
+            {businessEnabled && (
+              <div className="flex items-center gap-1">
+                {(
+                  [
+                    { key: "all", label: "הכל" },
+                    { key: "personal", label: "פרטי" },
+                    { key: "business", label: "עסקי" },
+                  ] as const
+                ).map((tab) => {
+                  const active = scopeFilter === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      onClick={() => setScopeFilter(tab.key)}
+                      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-all"
+                      style={{
+                        background: active ? "#012d1d" : "transparent",
+                        color: active ? "#fff" : "#5a7a6a",
+                        border: active ? "1px solid #012d1d" : "1px solid #e2e8d8",
+                      }}
+                    >
+                      {tab.key === "business" && (
+                        <span
+                          className="inline-block h-1.5 w-1.5 rounded-full"
+                          style={{ background: active ? "#fff" : SCOPE_COLORS.business }}
+                        />
+                      )}
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
-      {/* Business / personal scope toggle.
-          2026-05-04: restored per Nir — the colored personal/business split is
-          a key feature for self-employed couples. Enable shows the section +
-          the scope filter tabs above; disable hides them. */}
-      <div className="mb-4 flex justify-end">
-        <button
-          onClick={() => setBusinessScopeOverride(!businessEnabled)}
-          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-all hover:bg-verdant-bg"
-          style={{
-            color: businessEnabled ? "#012d1d" : "#5a7a6a",
-            border: `1px solid ${businessEnabled ? SCOPE_COLORS.business : "#d8e0d0"}`,
-            background: businessEnabled ? "#eff6ff" : "transparent",
-          }}
-          title={
-            businessEnabled
-              ? "הפרדת עסקי / פרטי פעילה. לחיצה תכבה את ההפרדה."
-              : "הפעל הפרדה בין הוצאות פרטיות לעסקיות (מומלץ אם אחד מבני הזוג עצמאי)."
-          }
-        >
-          <span className="material-symbols-outlined text-[13px]">work</span>
-          {businessEnabled ? "כבה הפרדת עסקי / פרטי" : "הפעל הפרדת עסקי / פרטי"}
-        </button>
-      </div>
+          {showInsights && <MonthlyInsights month={month} year={year} onApply={applyInsights} />}
 
-      {/* ═══════════════════════════════════════════════════════════
-          BUDGET SECTIONS — collapsible disclosures, Finav-style
-          ═══════════════════════════════════════════════════════════ */}
-      {SECTION_ORDER.filter(
-        (sk) => !(sk === "business" && (!businessEnabled || scopeFilter === "personal"))
-      ).map((sectionKey, idx) => (
-        <BudgetSection
-          key={sectionKey}
-          sectionKey={sectionKey}
-          meta={SECTION_META[sectionKey]}
-          rows={filteredBudget.sections[sectionKey] || []}
-          incomeTotal={totals.incBudget}
-          onUpdate={updateRow}
-          onAdd={addRow}
-          onDelete={deleteRow}
-          onUpdateSub={updateSubItem}
-          onAddSub={addSubItem}
-          onDeleteSub={deleteSubItem}
-          onSetScope={setRowScope}
-          showScopePicker={businessEnabled}
-          defaultOpen={idx < 2}
-        />
-      ))}
+          {/* Business / personal scope toggle. Restored 2026-05-04 per Nir
+              — the colored split is a key feature for self-employed couples. */}
+          <div className="mb-4 flex justify-end">
+            <button
+              onClick={() => setBusinessScopeOverride(!businessEnabled)}
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-all hover:bg-verdant-bg"
+              style={{
+                color: businessEnabled ? "#012d1d" : "#5a7a6a",
+                border: `1px solid ${businessEnabled ? SCOPE_COLORS.business : "#d8e0d0"}`,
+                background: businessEnabled ? "#eff6ff" : "transparent",
+              }}
+              title={
+                businessEnabled
+                  ? "הפרדת עסקי / פרטי פעילה. לחיצה תכבה את ההפרדה."
+                  : "הפעל הפרדה בין הוצאות פרטיות לעסקיות (מומלץ אם אחד מבני הזוג עצמאי)."
+              }
+            >
+              <span className="material-symbols-outlined text-[13px]">work</span>
+              {businessEnabled ? "כבה הפרדת עסקי / פרטי" : "הפעל הפרדת עסקי / פרטי"}
+            </button>
+          </div>
 
-      {/* ═══════ Monthly Expense Summary — sorted by amount ═══════
-          2026-05-07 per Nir + Daniel-Navon excel inspiration: a single
-          consolidated table at the bottom listing every expense parent
-          row with its budget, actual, and % of income. Lets the family
-          see the full picture in one place without expanding sections. */}
-      <MonthlyExpenseSummary
-        budget={filteredBudget}
-        incomeTotal={totals.incBudget}
-        expenseBudgetTotal={totals.expBudget}
-        expenseActualTotal={totals.expActual}
-      />
+          {SECTION_ORDER.filter(
+            (sk) => !(sk === "business" && (!businessEnabled || scopeFilter === "personal"))
+          ).map((sectionKey, idx) => (
+            <BudgetSection
+              key={sectionKey}
+              sectionKey={sectionKey}
+              meta={SECTION_META[sectionKey]}
+              rows={filteredBudget.sections[sectionKey] || []}
+              incomeTotal={totals.incBudget}
+              onUpdate={updateRow}
+              onAdd={addRow}
+              onDelete={deleteRow}
+              onUpdateSub={updateSubItem}
+              onAddSub={addSubItem}
+              onDeleteSub={deleteSubItem}
+              onSetScope={setRowScope}
+              showScopePicker={businessEnabled}
+              defaultOpen={idx < 2}
+            />
+          ))}
+        </>
+      )}
 
       {/* ═══════ Import Preview Modal ═══════ */}
       {importPreview && (
@@ -1980,7 +2050,7 @@ function BudgetSection({
           {/* Column headers — 5 columns. Label uses natural width so it sits
           tight next to the numbers; notes takes remaining space. */}
           <div
-            className="mb-1 grid items-center pb-1 text-[10px] font-extrabold uppercase tracking-[0.08em]"
+            className="mb-1 grid items-center pb-1 text-[11px] font-extrabold uppercase tracking-[0.08em]"
             style={{
               gridTemplateColumns: "minmax(120px,auto) 70px 70px 70px minmax(80px,1fr)",
               color: "#5a7a6a",
@@ -2187,10 +2257,20 @@ function BudgetSection({
                         onPick={(s) => onSetScope(sectionKey, row.id, s)}
                       />
                     )}
-                    {/* Delete — hover only, never for locked rows */}
+                    {/* Delete — hover only, never for locked rows. Confirms
+                        before destroying the row + any sub-items underneath
+                        (a single click on the X used to wipe a whole branch). */}
                     {!isLocked && (
                       <button
-                        onClick={() => onDelete(sectionKey, row.id)}
+                        onClick={() => {
+                          const subCount = row.subItems?.length ?? 0;
+                          const msg =
+                            subCount > 0
+                              ? `למחוק את "${row.name}" וכל ${subCount} הפריטים בפנים?`
+                              : `למחוק את "${row.name}"?`;
+                          if (!window.confirm(msg)) return;
+                          onDelete(sectionKey, row.id);
+                        }}
                         className="shrink-0 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
                         style={{ color: "#5a7a6a" }}
                         title="מחק"
@@ -2301,7 +2381,7 @@ function BudgetSection({
                                 onUpdateSub(sectionKey, row.id, sub.id, "notes", e.target.value)
                               }
                               placeholder="הערה…"
-                              className="w-full border-none bg-transparent text-right text-[10px] focus:outline-none"
+                              className="w-full border-none bg-transparent text-right text-[12px] focus:outline-none"
                               style={{
                                 color: "#5a7a6a",
                                 borderBottom: "1px dotted transparent",
@@ -2313,10 +2393,19 @@ function BudgetSection({
                                 e.currentTarget.style.borderBottomColor = "transparent";
                               }}
                             />
-                            {/* Delete sub — hover only */}
+                            {/* Delete sub — visible on mobile (no hover on
+                                touch), hover-reveal on desktop. Confirms first. */}
                             <button
-                              onClick={() => onDeleteSub(sectionKey, row.id, sub.id)}
-                              className="shrink-0 opacity-0 transition-opacity group-hover/sub:opacity-100"
+                              onClick={() => {
+                                if (
+                                  !window.confirm(
+                                    `למחוק את "${sub.name || "הפריט"}"?`
+                                  )
+                                )
+                                  return;
+                                onDeleteSub(sectionKey, row.id, sub.id);
+                              }}
+                              className="shrink-0 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/sub:opacity-100"
                               style={{ color: "#5a7a6a" }}
                               title="מחק פריט"
                             >
@@ -2331,7 +2420,7 @@ function BudgetSection({
                     {/* Add sub-item */}
                     <button
                       onClick={() => onAddSub(sectionKey, row.id)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold transition-colors hover:underline"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-bold transition-colors hover:underline"
                       style={{ color: "#1B4332" }}
                     >
                       <span className="material-symbols-outlined text-[11px]">add</span>
@@ -2434,180 +2523,5 @@ function ScopePicker({
         </div>
       )}
     </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════
-   MonthlyExpenseSummary — consolidated category breakdown
-   ═══════════════════════════════════════════════════════════
-   Inspired by the bottom-of-sheet "סיכום הוצאות חודשי" table in Daniel
-   Navon's TradingIL excel. Shows every expense parent row in one place
-   with budget, actual, and percentage of income — sorted by spend so
-   the biggest categories are visible first.
-
-   Doesn't try to be smart. Just a clean read-only table. The user edits
-   numbers in the section drilldowns above; the summary mirrors the result.
-   ═══════════════════════════════════════════════════════════ */
-
-function MonthlyExpenseSummary({
-  budget,
-  incomeTotal,
-  expenseBudgetTotal,
-  expenseActualTotal,
-}: {
-  budget: BudgetData;
-  incomeTotal: number;
-  expenseBudgetTotal: number;
-  expenseActualTotal: number;
-}) {
-  // Collect all expense parent rows from fixed + variable. Use rowEffective
-  // so a row with sub-items rolls up its sub-totals.
-  const rows: { name: string; budget: number; actual: number; section: string }[] = [];
-  for (const sectionKey of ["fixed", "variable"] as const) {
-    for (const r of budget.sections[sectionKey] || []) {
-      const b = rowEffective(r, "budget");
-      const a = rowEffective(r, "actual");
-      if (b === 0 && a === 0) continue; // hide unused
-      rows.push({ name: r.name, budget: b, actual: a, section: sectionKey });
-    }
-  }
-  rows.sort((x, y) => y.budget - x.budget);
-
-  if (rows.length === 0) {
-    return (
-      <section className="mb-6">
-        <div className="mb-2 text-base font-extrabold text-verdant-ink">סיכום הוצאות חודשי</div>
-        <div
-          className="rounded-xl px-4 py-5 text-center text-[12px]"
-          style={{ background: "#F4F7ED", border: "1px dashed #d8e0d0", color: "#5a7a6a" }}
-        >
-          הזינו ערכים בסעיפים למעלה כדי לראות סיכום מאוחד לפי קטגוריות.
-        </div>
-      </section>
-    );
-  }
-
-  const balance = incomeTotal - expenseActualTotal;
-
-  return (
-    <section className="mb-6">
-      <div className="mb-3 flex items-baseline justify-between">
-        <div className="text-base font-extrabold text-verdant-ink">סיכום הוצאות חודשי</div>
-        <div className="text-[11px] text-verdant-muted">
-          ממוין לפי גודל ההוצאה
-        </div>
-      </div>
-      <div
-        className="overflow-hidden rounded-2xl bg-white"
-        style={{ border: "1px solid #f0f4ec" }}
-      >
-        {/* Header */}
-        <div
-          className="grid items-center px-4 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-verdant-muted"
-          style={{
-            gridTemplateColumns: "minmax(100px,1fr) 80px 80px minmax(80px,120px)",
-            columnGap: "12px",
-            borderBottom: "1px solid #f0f4ec",
-          }}
-        >
-          <div>קטגוריה</div>
-          <div className="text-left">תקציב</div>
-          <div className="text-left">בפועל</div>
-          <div className="text-left">% מההכנסה</div>
-        </div>
-        {/* Rows */}
-        {rows.map((r) => {
-          const pct = incomeTotal > 0 ? Math.round((r.budget / incomeTotal) * 100) : 0;
-          const overspend = r.actual > r.budget && r.budget > 0;
-          return (
-            <div
-              key={`${r.section}-${r.name}`}
-              className="grid items-center px-4 py-2.5 text-[13px]"
-              style={{
-                gridTemplateColumns: "minmax(100px,1fr) 80px 80px minmax(80px,120px)",
-                columnGap: "12px",
-                borderBottom: "1px solid #f4f7ed",
-              }}
-            >
-              <div className="truncate font-semibold text-verdant-ink">{r.name}</div>
-              <div className="text-left tabular-nums" style={{ color: "#5a7a6a" }}>
-                {fmtILS(r.budget)}
-              </div>
-              <div
-                className="text-left tabular-nums font-bold"
-                style={{ color: overspend ? "#B85450" : "#012D1D" }}
-              >
-                {fmtILS(r.actual)}
-              </div>
-              <div className="flex items-center gap-2">
-                <div
-                  className="h-1.5 flex-1 overflow-hidden rounded-full"
-                  style={{ background: "#f0f4ec" }}
-                >
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${Math.min(100, pct)}%`,
-                      background: overspend ? "#B85450" : "#1B4332",
-                    }}
-                  />
-                </div>
-                <span
-                  className="tabular-nums text-[12px] font-bold"
-                  style={{ color: "#012D1D", minWidth: 32, textAlign: "left" }}
-                >
-                  {pct}%
-                </span>
-              </div>
-            </div>
-          );
-        })}
-        {/* Total row */}
-        <div
-          className="grid items-center px-4 py-3 text-[13px]"
-          style={{
-            gridTemplateColumns: "minmax(100px,1fr) 80px 80px minmax(80px,120px)",
-            columnGap: "12px",
-            background: "#F4F7ED",
-            fontWeight: 700,
-          }}
-        >
-          <div className="text-verdant-ink">סה״כ הוצאות</div>
-          <div className="text-left tabular-nums text-verdant-ink">
-            {fmtILS(expenseBudgetTotal)}
-          </div>
-          <div
-            className="text-left tabular-nums"
-            style={{ color: expenseActualTotal > expenseBudgetTotal ? "#B85450" : "#012D1D" }}
-          >
-            {fmtILS(expenseActualTotal)}
-          </div>
-          <div
-            className="text-left tabular-nums"
-            style={{ color: "#012D1D" }}
-          >
-            {incomeTotal > 0
-              ? `${Math.round((expenseBudgetTotal / incomeTotal) * 100)}%`
-              : "—"}
-          </div>
-        </div>
-        {/* Net result */}
-        <div
-          className="flex items-baseline justify-between px-4 py-3"
-          style={{ borderTop: "1px solid #f0f4ec" }}
-        >
-          <div className="text-[12px] font-bold text-verdant-muted">
-            {balance >= 0 ? "נשאר לחיסכון / יתרה" : "חריגה"}
-          </div>
-          <div
-            className="text-[18px] font-extrabold tabular-nums"
-            style={{ color: balance >= 0 ? "#1B4332" : "#B85450" }}
-          >
-            {balance >= 0 ? "+" : "−"}
-            {fmtILS(Math.abs(balance))}
-          </div>
-        </div>
-      </div>
-    </section>
   );
 }

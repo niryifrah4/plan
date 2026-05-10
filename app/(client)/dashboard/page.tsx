@@ -366,6 +366,20 @@ export default function DashboardPage() {
   };
 
   const totalAssets = assets.reduce((a, x) => a + x.balance, 0);
+  // Empty-state detection — true when nothing has been entered yet. Rendering
+  // dozens of widgets with zeros would tell a new couple "your money is gone";
+  // the welcome state instead points them at the 3 places to start.
+  const hasOnboardingFields = (() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const raw = localStorage.getItem(scopedKey("verdant:onboarding:fields"));
+      if (!raw) return false;
+      const f = JSON.parse(raw);
+      return f && Object.values(f).some((v) => String(v ?? "").trim() !== "");
+    } catch {
+      return false;
+    }
+  })();
   const reMortgageTotal = reProperties.reduce((s, p) => s + (p.mortgageBalance ?? 0), 0);
   const creditCharges = totalCreditCharges(accounts);
   // 2026-05-03 fix (Victor): same mortgage entered in BOTH debt-store and
@@ -381,6 +395,11 @@ export default function DashboardPage() {
   const latestGap = cashflow[0]?.cashflow_gap ?? 0;
   const latestIncome = cashflow[0]?.income_total ?? 0;
   const latestExpense = cashflow[0]?.expense_total ?? 0;
+  const isEmpty =
+    !hasOnboardingFields &&
+    cashflow.length === 0 &&
+    totalAssets === 0 &&
+    totalLiabilities === 0;
 
   // Net worth month-over-month tracking
   const [prevNetWorth, setPrevNetWorth] = useState<number | null>(null);
@@ -728,6 +747,88 @@ export default function DashboardPage() {
     if (v >= 1_000) return `₪${Math.round(v / 1_000)}K`;
     return `₪${v}`;
   };
+
+  // ═══════ Empty state — first-time visitor with no data ═══════
+  // A new couple landing here would otherwise see a wall of zeros and
+  // empty charts — confusing and demotivating. The welcome card points
+  // them at the 3 entry points that turn this dashboard into something
+  // worth looking at.
+  if (isEmpty) {
+    return (
+      <div
+        className="mx-auto max-w-3xl py-8 md:py-16"
+        style={{ fontFamily: "'Assistant', sans-serif" }}
+      >
+        <div className="card-pad text-center">
+          <div
+            className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-organic"
+            style={{ background: "#1B433215" }}
+          >
+            <span className="material-symbols-outlined text-[36px] text-verdant-emerald">
+              waving_hand
+            </span>
+          </div>
+          <h2 className="mb-2 text-xl font-extrabold text-verdant-ink">
+            ברוכים הבאים{familyName ? ` משפחת ${familyName}` : ""}
+          </h2>
+          <p className="mx-auto mb-7 max-w-md text-[13px] leading-relaxed text-verdant-muted">
+            הדאשבורד יראה את התזרים, הנכסים וההתחייבויות שלכם — אחרי שתספרו לנו על
+            עצמכם. השאלון הקצר לוקח כ-10 דקות, ונשמר אוטומטית.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Link
+              href="/onboarding"
+              className="card-pad block text-right transition-opacity hover:opacity-90"
+            >
+              <div className="icon-sm icon-forest mb-2.5">
+                <span className="material-symbols-outlined text-[20px]">edit_note</span>
+              </div>
+              <div className="mb-1 text-[13px] font-extrabold text-verdant-ink">מילוי שאלון</div>
+              <div className="text-[11px] leading-relaxed text-verdant-muted">
+                פרופיל משפחתי, הכנסות, נכסים והתחייבויות
+              </div>
+            </Link>
+            <Link
+              href="/balance"
+              className="card-pad block text-right transition-opacity hover:opacity-90"
+            >
+              <div className="icon-sm icon-forest mb-2.5">
+                <span className="material-symbols-outlined text-[20px]">account_balance</span>
+              </div>
+              <div className="mb-1 text-[13px] font-extrabold text-verdant-ink">חשבונות ונכסים</div>
+              <div className="text-[11px] leading-relaxed text-verdant-muted">
+                יתרות עו״ש, חיסכון וכרטיסי אשראי
+              </div>
+            </Link>
+            <Link
+              href="/goals"
+              className="card-pad block text-right transition-opacity hover:opacity-90"
+            >
+              <div className="icon-sm icon-forest mb-2.5">
+                <span className="material-symbols-outlined text-[20px]">flag</span>
+              </div>
+              <div className="mb-1 text-[13px] font-extrabold text-verdant-ink">מטרה ראשונה</div>
+              <div className="text-[11px] leading-relaxed text-verdant-muted">
+                קרן חירום, לימודי הילדים, חופשה — מה חשוב לכם
+              </div>
+            </Link>
+          </div>
+          <div
+            className="mt-7 flex items-start gap-2 rounded-xl p-3 text-right"
+            style={{ background: "#eef7f1", border: "1px solid #c9e3d4" }}
+          >
+            <span className="material-symbols-outlined mt-0.5 text-[16px] text-verdant-emerald">
+              tips_and_updates
+            </span>
+            <div className="text-[11px] leading-relaxed text-verdant-ink">
+              אין סדר מחייב. אפשר להתחיל מאיפה שמרגיש לכם קל יותר. כל מה שתמלאו —
+              נשמר אוטומטית, ותמיד אפשר לחזור ולערוך.
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-5xl py-4 md:py-8" style={{ fontFamily: "'Assistant', sans-serif" }}>

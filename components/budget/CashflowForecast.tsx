@@ -86,10 +86,11 @@ export function CashflowForecast() {
         </div>
         {negativeMonths.length > 0 && (
           <span
-            className="rounded-full px-2.5 py-1 text-[11px] font-bold"
+            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold"
             style={{ background: "#FEE2E2", color: "#991B1B" }}
           >
-            ⚠️ {negativeMonths.length} חודשים שליליים
+            <span className="material-symbols-outlined text-[14px]">warning</span>
+            {negativeMonths.length} חודשים שליליים
           </span>
         )}
       </div>
@@ -119,7 +120,7 @@ export function CashflowForecast() {
           );
         })}
       </div>
-      <div className="mb-4 grid grid-cols-12 gap-1 text-center text-[9px] text-verdant-muted">
+      <div className="mb-4 grid grid-cols-12 gap-1 text-center text-[11px] font-semibold text-verdant-muted">
         {months.map((m) => (
           <div key={m.ym + "_lbl"}>{m.label.split(" ")[0].slice(0, 3)}</div>
         ))}
