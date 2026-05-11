@@ -31,6 +31,19 @@ export default async function PlannerLayout({ children }: { children: React.Reac
 
     const impHhId = cookies().get(IMPERSONATE_COOKIE)?.value;
     if (!advisor || !impHhId) redirect("/dashboard");
+
+    // Verify the impersonation cookie actually points at a household this
+    // advisor owns — without this an attacker who pasted another advisor's
+    // cookie value could open /plan against a tenant they don't own.
+    // (RLS still blocks DB reads, but the canvas itself would render.)
+    // Mirrors the same check in app/(client)/layout.tsx.
+    const { data: owned } = await sb
+      .from("households")
+      .select("id")
+      .eq("id", impHhId)
+      .eq("advisor_id", user.id)
+      .maybeSingle();
+    if (!owned) redirect("/crm");
   }
 
   return <>{children}</>;
