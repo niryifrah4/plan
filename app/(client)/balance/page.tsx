@@ -14,12 +14,14 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { WealthTab } from "./WealthTab";
 import { AccountsTab } from "./AccountsTab";
+import { DailyCashflowTab } from "./DailyCashflowTab";
 
-type Tab = "wealth" | "accounts";
+type Tab = "wealth" | "accounts" | "daily";
 
 const TABS: { key: Tab; label: string; icon: string }[] = [
   { key: "wealth", label: "מאזן נכסים", icon: "insights" },
   { key: "accounts", label: "חשבונות", icon: "credit_card" },
+  { key: "daily", label: "תזרים יומי", icon: "calendar_month" },
 ];
 
 export default function BalancePage() {
@@ -34,7 +36,7 @@ export default function BalancePage() {
       router.replace("/files");
       return;
     }
-    if (t === "wealth" || t === "accounts") setTab(t);
+    if (t === "wealth" || t === "accounts" || t === "daily") setTab(t);
   }, [router]);
 
   return (
@@ -60,6 +62,7 @@ export default function BalancePage() {
 
       {tab === "wealth" && <WealthTab />}
       {tab === "accounts" && <AccountsTab />}
+      {tab === "daily" && <DailyCashflowTab />}
     </div>
   );
 }
