@@ -160,6 +160,91 @@ export function CashflowForecast() {
           ))}
       </div>
 
+      {/* ═══════ Relief timeline — when do obligations free up cashflow? ═══════
+          Pulls every "✅" event from the forecast (loan/installment/mortgage
+          endings) and lists them by month. Built per Nir 2026-05-12 so a couple
+          carrying credit-card installments can see exactly when each commitment
+          drops off and how much each release adds back to their monthly margin. */}
+      {(() => {
+        const reliefMonths = months
+          .map((m) => ({
+            ...m,
+            reliefEvents: m.events.filter((e) => e.startsWith("✅")),
+          }))
+          .filter((m) => m.reliefEvents.length > 0);
+
+        if (reliefMonths.length === 0) return null;
+
+        const totalMonthlyRelief = reliefMonths.reduce((sum, m) => {
+          for (const ev of m.reliefEvents) {
+            const match = ev.match(/₪([\d,]+)/);
+            if (match) sum += parseInt(match[1].replace(/,/g, ""), 10) || 0;
+          }
+          return sum;
+        }, 0);
+
+        return (
+          <div
+            className="mt-4 rounded-xl"
+            style={{ background: "#eef7f1", border: "1px solid #c9e3d4" }}
+          >
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <div className="flex items-center gap-2">
+                <span
+                  className="material-symbols-outlined text-[18px]"
+                  style={{ color: "#1B4332" }}
+                >
+                  trending_up
+                </span>
+                <div>
+                  <div className="text-[13px] font-extrabold text-verdant-ink">
+                    מה מתפנה תזרימית
+                  </div>
+                  <div className="text-[11px] font-semibold text-verdant-muted">
+                    התחייבויות שמסתיימות ב-12 החודשים הקרובים
+                  </div>
+                </div>
+              </div>
+              {totalMonthlyRelief > 0 && (
+                <div className="text-right">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
+                    סה״כ לשחרור
+                  </div>
+                  <div
+                    className="text-[15px] font-extrabold tabular-nums"
+                    style={{ color: "#1B4332" }}
+                  >
+                    +{fmtILS(totalMonthlyRelief)}/ח׳
+                  </div>
+                </div>
+              )}
+            </div>
+            <div
+              className="space-y-1 px-4 pb-3 pt-1"
+              style={{ borderTop: "1px solid #c9e3d4" }}
+            >
+              {reliefMonths.map((m) => (
+                <div key={m.ym + "_relief"} className="flex items-start gap-3 pt-1.5 text-[12px]">
+                  <span
+                    className="min-w-[88px] shrink-0 font-extrabold"
+                    style={{ color: "#012D1D" }}
+                  >
+                    {m.label}
+                  </span>
+                  <div className="flex-1 space-y-0.5">
+                    {m.reliefEvents.map((ev, idx) => (
+                      <div key={idx} style={{ color: "#1B4332" }}>
+                        {ev.replace(/^✅\s*/, "")}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Adjustable assumption: annual salary growth */}
       <div
         className="mt-3 flex flex-wrap items-center gap-3 rounded-lg px-3 py-2 text-[11px]"

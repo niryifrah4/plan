@@ -99,6 +99,21 @@ export function buildForecast(): ForecastMonth[] {
     return { lender: l.lender, monthly, remainingPays };
   });
 
+  // Installment schedules — credit-card multi-payment commitments (3/12, 5/24…).
+  // Same shape as loans: each entry decrements one payment per month and, on
+  // the final payment, surfaces a "freed-up" event. `currentPayment` is the
+  // *next* installment due (per isInstallmentActive: active while
+  // currentPayment <= totalPayments). So remaining ahead of the forecast =
+  // totalPayments - currentPayment + 1 (inclusive of the upcoming month).
+  // (2026-05-12 per Nir: forward cashflow visibility for installments.)
+  const installmentScheds = (debt.installments || [])
+    .filter((inst) => inst.currentPayment <= inst.totalPayments)
+    .map((inst) => ({
+      merchant: inst.merchant || "עסקת תשלומים",
+      monthly: inst.monthlyAmount || 0,
+      remainingPays: Math.max(0, (inst.totalPayments || 0) - (inst.currentPayment || 0) + 1),
+    }));
+
   // Mortgage: aggregate from tracks. Estimate end based on weighted balance
   // + monthly payment + average rate.
   const mortgageTracks = debt.mortgage?.tracks || [];
@@ -156,7 +171,11 @@ export function buildForecast(): ForecastMonth[] {
       mortgageMonthly = 0; // future months: also no mortgage
     }
 
-    // Drop loans that end this month
+    // Drop loans that end this month. The original code surfaced the event
+    // but never subtracted the freed-up payment from projected expenses, so
+    // future months still looked tight even after a loan paid off. Now we
+    // mirror the installment + mortgage pattern: from the ending month
+    // onwards, reduce expenses by the loan's monthly amount.
     for (const ls of loanScheds) {
       if (ls.remainingPays > 0) {
         ls.remainingPays--;
@@ -164,7 +183,28 @@ export function buildForecast(): ForecastMonth[] {
           events.push(
             `✅ סיום הלוואה ${ls.lender} — ₪${Math.round(ls.monthly).toLocaleString()}/חודש מתפנה`
           );
+          expenses -= ls.monthly;
         }
+      } else if (ls.monthly > 0) {
+        expenses -= ls.monthly;
+      }
+    }
+
+    // Drop installments that end this month. Sum the relief into a single
+    // running deduction so future months reflect the freed-up cashflow.
+    for (const inst of installmentScheds) {
+      if (inst.remainingPays > 0) {
+        inst.remainingPays--;
+        if (inst.remainingPays === 0 && inst.monthly > 0) {
+          events.push(
+            `✅ סיום ${inst.merchant} — ₪${Math.round(inst.monthly).toLocaleString()}/חודש מתפנה`
+          );
+          expenses -= inst.monthly;
+        }
+      } else if (inst.monthly > 0) {
+        // Already-ended series — keep subtracting from baseExpenses every month
+        // so the freed-up amount stays freed.
+        expenses -= inst.monthly;
       }
     }
 
