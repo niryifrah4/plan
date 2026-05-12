@@ -1175,6 +1175,39 @@ export default function DashboardPage() {
                     {fmtILS(totalLiabilities)}
                   </span>
                 </div>
+                {/* Leverage = liabilities / assets. Surfacing it here so the
+                    couple sees the ratio next to its inputs — the conversation
+                    "we have ₪X in debt against ₪Y in assets" has a clean answer
+                    in one number. */}
+                {totalAssets > 0 && (() => {
+                  const lev = Math.round((totalLiabilities / totalAssets) * 100);
+                  const levColor =
+                    lev > 60 ? "#fca5a5" : lev > 40 ? "#FCD34D" : "#C1ECD4";
+                  const levLabel =
+                    lev === 0
+                      ? "ללא חובות"
+                      : lev <= 40
+                        ? "בריא"
+                        : lev <= 60
+                          ? "סביר"
+                          : "גבוה";
+                  return (
+                    <div className="pill-inner flex items-center justify-between">
+                      <span
+                        className="text-[12px] font-bold"
+                        style={{ color: "rgba(249,250,242,0.65)" }}
+                      >
+                        מינוף · {levLabel}
+                      </span>
+                      <span
+                        className="tabular text-[13px] font-extrabold"
+                        style={{ color: levColor }}
+                      >
+                        {lev}%
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 

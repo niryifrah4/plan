@@ -425,11 +425,19 @@ export function WealthTab() {
           tone="emerald"
         />
         <SolidKpi
-          label="יחס חוב/נכס"
+          label="מינוף (חוב/נכס)"
           value={`${ratio}%`}
           icon="balance"
-          tone={ratio > 40 ? "red" : "sage"}
-          sub="בריא: מתחת ל-40%"
+          tone={ratio > 60 ? "red" : ratio > 40 ? "sage" : "emerald"}
+          sub={
+            ratio === 0
+              ? "ללא חובות"
+              : ratio <= 40
+                ? "בריא"
+                : ratio <= 60
+                  ? "סביר"
+                  : "גבוה — סיכון"
+          }
         />
       </SolidKpiRow>
 
