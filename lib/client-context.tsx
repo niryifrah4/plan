@@ -5,7 +5,30 @@ import { useSearchParams } from "next/navigation";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import type { Household, Profile } from "@/types/db";
 import { runClientMigration } from "@/lib/client-migration";
-import { ACTIVE_CLIENT_CHANGED, dispatchAllRefreshEvents } from "@/lib/client-scope";
+import { ACTIVE_CLIENT_CHANGED, dispatchAllRefreshEvents, scopedKey } from "@/lib/client-scope";
+
+const ONB_CHILDREN_KEY = "verdant:onboarding:children";
+
+/** Count children declared in the onboarding questionnaire. A row is "real"
+ *  if it has at least a name OR a date of birth filled in — that's the same
+ *  rule onboarding-sync uses when deciding whether to seed kids' savings. */
+function countOnboardingKids(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const raw = localStorage.getItem(scopedKey(ONB_CHILDREN_KEY));
+    if (!raw) return 0;
+    const list = JSON.parse(raw) as Array<{ name?: string; dob?: string } | null>;
+    if (!Array.isArray(list)) return 0;
+    return list.filter((c) => {
+      if (!c) return false;
+      const name = (c.name || "").trim();
+      const dob = (c.dob || "").trim();
+      return name.length > 0 || dob.length > 0;
+    }).length;
+  } catch {
+    return 0;
+  }
+}
 
 /* ───── localStorage keys ───── */
 const LS_CLIENTS = "verdant:clients";
@@ -72,6 +95,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
   const [household, setHousehold] = useState<Household | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [kidsCount, setKidsCount] = useState(0);
 
   // Read client ID from URL (?hh=<id>) or fallback to last used
   const hhParam = searchParams.get("hh");
@@ -93,6 +117,31 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     window.addEventListener(ACTIVE_CLIENT_CHANGED, handler);
     return () => window.removeEventListener(ACTIVE_CLIENT_CHANGED, handler);
   }, []);
+
+  // Live-track the kids list so "X בני משפחה" in the sidebar updates the
+  // moment the user fills a child row in /onboarding (no manual refresh).
+  // The static `client.members` (set in CRM) counts the couple only — this
+  // adds the children on top so the sidebar reflects reality. (2026-05-12.)
+  //
+  // Listening to 3 signals:
+  //   - storage          → another tab edited the questionnaire
+  //   - kids_savings:updated → same tab, fired by syncOnboardingToStores
+  //   - focus            → fall-back for any other path that mutates the list
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const refresh = () => setKidsCount(countOnboardingKids());
+    refresh();
+    window.addEventListener("storage", refresh);
+    window.addEventListener("verdant:kids_savings:updated", refresh);
+    window.addEventListener(ACTIVE_CLIENT_CHANGED, refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.removeEventListener("storage", refresh);
+      window.removeEventListener("verdant:kids_savings:updated", refresh);
+      window.removeEventListener(ACTIVE_CLIENT_CHANGED, refresh);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [switchTick]);
 
   useEffect(() => {
     setLoading(true);
@@ -147,7 +196,10 @@ export function ClientProvider({ children }: { children: ReactNode }) {
   const value: ClientContextValue = {
     clientId: client?.id ?? null,
     familyName: client ? client.family : "לקוח חדש",
-    membersCount: client?.members ?? 1,
+    // Couple count (from CRM, default 2) + live children count from
+    // the onboarding questionnaire. Without the live add, "X בני משפחה"
+    // in the sidebar stayed stuck at 2 even after kids were entered.
+    membersCount: (client?.members ?? 2) + kidsCount,
     client,
     household,
     profile,
