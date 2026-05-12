@@ -14,14 +14,12 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { WealthTab } from "./WealthTab";
 import { AccountsTab } from "./AccountsTab";
-import { DailyCashflowTab } from "./DailyCashflowTab";
 
-type Tab = "wealth" | "accounts" | "daily";
+type Tab = "wealth" | "accounts";
 
 const TABS: { key: Tab; label: string; icon: string }[] = [
   { key: "wealth", label: "מאזן נכסים", icon: "insights" },
   { key: "accounts", label: "חשבונות", icon: "credit_card" },
-  { key: "daily", label: "תזרים יומי", icon: "calendar_month" },
 ];
 
 export default function BalancePage() {
@@ -36,7 +34,15 @@ export default function BalancePage() {
       router.replace("/files");
       return;
     }
-    if (t === "wealth" || t === "accounts" || t === "daily") setTab(t);
+    // 2026-05-12: daily-cashflow tab moved to /budget where it belongs
+    // (cashflow lives with the rest of cashflow, not in net-worth land).
+    // Keep a soft redirect so any bookmarks of /balance?tab=daily land
+    // on the new home.
+    if (t === "daily") {
+      router.replace("/budget?tab=daily");
+      return;
+    }
+    if (t === "wealth" || t === "accounts") setTab(t);
   }, [router]);
 
   return (
@@ -62,7 +68,6 @@ export default function BalancePage() {
 
       {tab === "wealth" && <WealthTab />}
       {tab === "accounts" && <AccountsTab />}
-      {tab === "daily" && <DailyCashflowTab />}
     </div>
   );
 }

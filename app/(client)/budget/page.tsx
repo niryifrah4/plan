@@ -26,6 +26,10 @@ const CashflowForecast = dynamic(
   () => import("@/components/budget/CashflowForecast").then((m) => m.CashflowForecast),
   { ssr: false }
 );
+const DailyCashflowTab = dynamic(
+  () => import("./DailyCashflowTab").then((m) => m.DailyCashflowTab),
+  { ssr: false }
+);
 
 import type { BudgetAdjustment } from "./MonthlyInsights";
 import { scopedKey } from "@/lib/client-scope";
@@ -882,15 +886,23 @@ export default function BudgetPage() {
   const [month, setMonth] = useState(now.getMonth());
   const [budget, setBudget] = useState<BudgetData | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
-  // 2026-05-09 per ui-agent audit: page split into two views.
+  // 2026-05-09 per ui-agent audit: page split into views.
   //  • "snapshot" — default — Hero + Pie + 12-month forecast. Read-only.
   //    What a couple wants to see when they pop in for a weekly check.
+  //  • "daily" — added 2026-05-12. Day-by-day cashflow projection for
+  //    THIS month: when does the checking account dip lowest? Lives in
+  //    /budget (not /balance — cashflow with cashflow).
   //  • "edit" — manage strip + insights + the editable section tables.
   //    Where they go when they actually want to change a number.
-  // Removed the standalone "גרפים" toggle entirely; the Pie now lives
-  // permanently inside snapshot, which solves the old problem of the
-  // most useful chart being hidden behind a click.
-  const [viewTab, setViewTab] = useState<"snapshot" | "edit">("snapshot");
+  const [viewTab, setViewTab] = useState<"snapshot" | "daily" | "edit">("snapshot");
+  // Deep-link: /budget?tab=daily opens the daily-cashflow tab directly. Used
+  // by the /balance soft-redirect that catches old bookmarks, and as a stable
+  // anchor from the sidebar or external links.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t === "snapshot" || t === "daily" || t === "edit") setViewTab(t);
+  }, []);
   const [showInsights, setShowInsights] = useState(false);
   /** Scope filter: 'all' | 'personal' | 'business'. Not persisted. */
   const [scopeFilter, setScopeFilter] = useState<"all" | "personal" | "business">("all");
@@ -1653,6 +1665,7 @@ export default function BudgetPage() {
           {(
             [
               { key: "snapshot", label: "תמונת מצב", icon: "donut_large" },
+              { key: "daily", label: "תזרים יומי", icon: "calendar_month" },
               { key: "edit", label: "עריכה", icon: "tune" },
             ] as const
           ).map((tab) => {
@@ -1690,6 +1703,11 @@ export default function BudgetPage() {
           <CashflowForecast />
         </>
       )}
+
+      {/* ═══════════════════════════════════════════════════════════
+          DAILY — day-by-day cashflow projection for this month
+          ═══════════════════════════════════════════════════════════ */}
+      {viewTab === "daily" && <DailyCashflowTab />}
 
       {/* ═══════════════════════════════════════════════════════════
           EDIT — manage strip + insights + section tables
