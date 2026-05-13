@@ -23,11 +23,37 @@ import {
 const fmtILS = (n: number) => `₪${n.toLocaleString("he-IL")}`;
 const today = () => new Date().toISOString().split("T")[0];
 
+/** Days from today until the next occurrence of `day` of the month.
+ *  Returns 0 if today === day. Loops to next month if the day already passed. */
+function daysUntilBillingDay(day: number): number {
+  if (!day || day < 1 || day > 31) return 0;
+  const now = new Date();
+  const thisYear = now.getFullYear();
+  const thisMonth = now.getMonth();
+  const monthLen = new Date(thisYear, thisMonth + 1, 0).getDate();
+  const clamped = Math.min(day, monthLen);
+  const target = new Date(thisYear, thisMonth, clamped);
+  if (target < new Date(thisYear, thisMonth, now.getDate())) {
+    const nextMonthLen = new Date(thisYear, thisMonth + 2, 0).getDate();
+    target.setMonth(thisMonth + 1);
+    target.setDate(Math.min(day, nextMonthLen));
+  }
+  return Math.max(
+    0,
+    Math.round(
+      (target.getTime() - new Date(thisYear, thisMonth, now.getDate()).getTime()) /
+        (1000 * 60 * 60 * 24)
+    )
+  );
+}
+
 export function AccountsTab() {
   const [data, setData] = useState<AccountsData>({ banks: [], creditCards: [] });
   const [addingBank, setAddingBank] = useState(false);
   const [addingCard, setAddingCard] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  // Card id currently in "+הוסף עסקה" quick-add mode.
+  const [quickAddId, setQuickAddId] = useState<string | null>(null);
 
   const reload = useCallback(() => setData(loadAccounts()), []);
   useEffect(() => {
@@ -310,7 +336,9 @@ export function AccountsTab() {
           </div>
         )}
 
-        {data.creditCards.map((card) => (
+        {data.creditCards.map((card) => {
+          const daysLeft = daysUntilBillingDay(card.billingDay);
+          return (
           <div key={card.id}>
             {editingId === card.id ? (
               <CardForm
@@ -321,10 +349,10 @@ export function AccountsTab() {
                 onDelete={() => handleDeleteCard(card.id)}
               />
             ) : (
+              <>
               <div
-                className="flex cursor-pointer items-center gap-4 border-b px-5 py-4 transition-colors hover:bg-gray-50/40"
+                className="flex items-center gap-4 border-b px-5 py-4 transition-colors hover:bg-gray-50/40"
                 style={{ borderColor: "var(--verdant-border)" }}
-                onClick={() => setEditingId(card.id)}
               >
                 <div
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
@@ -337,12 +365,23 @@ export function AccountsTab() {
                     credit_card
                   </span>
                 </div>
-                <div className="min-w-0 flex-1">
+                <div
+                  className="min-w-0 flex-1 cursor-pointer"
+                  onClick={() => setEditingId(card.id)}
+                >
                   <div className="text-sm font-extrabold" style={{ color: "var(--verdant-ink)" }}>
                     {card.company}
                   </div>
                   <div className="text-xs" style={{ color: "var(--verdant-muted)" }}>
-                    •••• {card.lastFourDigits} · יום חיוב: {card.billingDay}
+                    •••• {card.lastFourDigits} · יום חיוב: {card.billingDay} ·{" "}
+                    <span
+                      style={{
+                        color: daysLeft <= 3 ? "#b91c1c" : daysLeft <= 7 ? "#b45309" : "var(--verdant-muted)",
+                        fontWeight: daysLeft <= 7 ? 700 : 500,
+                      }}
+                    >
+                      {daysLeft === 0 ? "היום!" : `${daysLeft} ימים נותרו`}
+                    </span>
                   </div>
                 </div>
                 <div className="max-w-[200px] flex-1">
@@ -388,16 +427,59 @@ export function AccountsTab() {
                     מסגרת: {fmtILS(card.creditLimit)}
                   </div>
                 </div>
-                <span
-                  className="material-symbols-outlined text-[16px]"
-                  style={{ color: "var(--verdant-muted)" }}
+                <button
+                  onClick={() => setQuickAddId(quickAddId === card.id ? null : card.id)}
+                  title="הוסף עסקה לסל"
+                  className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-green-50"
+                  style={{
+                    background: quickAddId === card.id ? "#C1ECD4" : "#eef7f1",
+                    color: "#1B4332",
+                  }}
                 >
-                  edit
-                </span>
+                  <span className="material-symbols-outlined text-[16px]">
+                    {quickAddId === card.id ? "close" : "add"}
+                  </span>
+                </button>
+                <button
+                  onClick={() => setEditingId(card.id)}
+                  title="ערוך פרטי כרטיס"
+                  className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-gray-100"
+                >
+                  <span
+                    className="material-symbols-outlined text-[16px]"
+                    style={{ color: "var(--verdant-muted)" }}
+                  >
+                    edit
+                  </span>
+                </button>
               </div>
+              {/* Inline quick-add: bumps currentCharge in one click, appends a
+                  trace to notes. The "סל מצטבר" UX from Nir's Excel — record
+                  a purchase as it happens, see the basket grow, know what'll
+                  hit the bank on charge day. (2026-05-13 stage 3.) */}
+              {quickAddId === card.id && (
+                <QuickAddPurchase
+                  card={card}
+                  onCancel={() => setQuickAddId(null)}
+                  onAdd={(amount, description) => {
+                    const trace = description
+                      ? `${new Date().toLocaleDateString("he-IL")}: ${description} +${amount}`
+                      : `${new Date().toLocaleDateString("he-IL")}: +${amount}`;
+                    const newNotes = card.notes ? `${card.notes}\n${trace}` : trace;
+                    handleUpdateCard(card.id, {
+                      currentCharge: (card.currentCharge || 0) + amount,
+                      notes: newNotes,
+                      lastUpdated: today(),
+                    });
+                    setQuickAddId(null);
+                  }}
+                />
+              )}
+              </>
             )}
           </div>
-        ))}
+          );
+        })}
       </section>
     </div>
   );
@@ -611,6 +693,88 @@ function BankForm({
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+/* ── Quick-add purchase: inline mini-form that bumps currentCharge by N₪. ── */
+function QuickAddPurchase({
+  card,
+  onAdd,
+  onCancel,
+}: {
+  card: CreditCard;
+  onAdd: (amount: number, description: string) => void;
+  onCancel: () => void;
+}) {
+  const [amount, setAmount] = useState("");
+  const [description, setDescription] = useState("");
+
+  const submit = () => {
+    const n = parseFloat(amount);
+    if (!n || n <= 0) return;
+    onAdd(n, description.trim());
+  };
+
+  const projectedAfter = (card.currentCharge || 0) + (parseFloat(amount) || 0);
+  const utilPct =
+    card.creditLimit > 0 ? Math.round((projectedAfter / card.creditLimit) * 100) : 0;
+
+  return (
+    <div
+      className="flex flex-wrap items-center gap-3 border-b px-5 py-3"
+      style={{ background: "#f9faf2", borderColor: "var(--verdant-border)" }}
+    >
+      <span className="text-[12px] font-bold" style={{ color: "#1B4332" }}>
+        הוסף לסל:
+      </span>
+      <input
+        type="number"
+        value={amount}
+        onChange={(e) => setAmount(e.target.value)}
+        placeholder="סכום"
+        autoFocus
+        onKeyDown={(e) => {
+          if (e.key === "Enter") submit();
+          if (e.key === "Escape") onCancel();
+        }}
+        className="w-24 rounded-md border bg-white px-2 py-1.5 text-center text-[13px] font-extrabold tabular-nums focus:outline-none"
+        style={{ borderColor: "#d8e0d0" }}
+        dir="ltr"
+      />
+      <input
+        type="text"
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        placeholder="לדוגמה: סופר, דלק, מתנה"
+        onKeyDown={(e) => {
+          if (e.key === "Enter") submit();
+          if (e.key === "Escape") onCancel();
+        }}
+        className="min-w-[140px] flex-1 rounded-md border bg-white px-2 py-1.5 text-[12px] focus:outline-none"
+        style={{ borderColor: "#d8e0d0" }}
+      />
+      {parseFloat(amount) > 0 && card.creditLimit > 0 && (
+        <span
+          className="text-[11px] font-bold"
+          style={{ color: utilPct >= 80 ? "#b91c1c" : "#1B4332" }}
+        >
+          → {fmtILS(projectedAfter)} ({utilPct}%)
+        </span>
+      )}
+      <button
+        onClick={submit}
+        disabled={!parseFloat(amount)}
+        className="btn-botanical !px-4 !py-1.5 text-[12px] disabled:opacity-40"
+      >
+        שמור
+      </button>
+      <button
+        onClick={onCancel}
+        className="text-[11px] font-bold text-verdant-muted hover:underline"
+      >
+        ביטול
+      </button>
     </div>
   );
 }
