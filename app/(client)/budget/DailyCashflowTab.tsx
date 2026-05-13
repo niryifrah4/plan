@@ -68,9 +68,12 @@ export function DailyCashflowTab() {
     };
   }, []);
 
-  // Auto-derived events (credit cards). Computed fresh on every render — cheap,
-  // re-runs when underlying stores change because we listen above.
-  const autoEvents = useMemo<DailyEvent[]>(() => buildAutoEvents(), [data]);
+  // Auto-derived events (credit cards + salary). Computed fresh on every render
+  // — cheap, re-runs when underlying stores change because we listen above.
+  const autoEvents = useMemo<DailyEvent[]>(
+    () => buildAutoEvents(data?.salaryDayOfMonth),
+    [data]
+  );
 
   const update = useCallback((patch: Partial<DailyCashflow>) => {
     setData((prev) => {
@@ -274,6 +277,26 @@ export function DailyCashflowTab() {
               dir="ltr"
             />
             <span className="text-verdant-muted">₪</span>
+          </label>
+          <span className="text-verdant-muted">·</span>
+          <label
+            className="flex items-center gap-2 text-[12px] font-bold text-verdant-ink"
+            title="היום שבו המשכורת נכנסת לבנק. כשמוגדר — המערכת מזרימה את ההכנסה הנטו לאותו יום בגרף."
+          >
+            יום שכר
+            <input
+              type="number"
+              min={1}
+              max={31}
+              value={data.salaryDayOfMonth || 0}
+              onChange={(e) =>
+                update({ salaryDayOfMonth: parseInt(e.target.value, 10) || 0 })
+              }
+              className="w-16 rounded-md border bg-white px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
+              style={{ borderColor: "#d8e0d0" }}
+              placeholder="—"
+              dir="ltr"
+            />
           </label>
         </div>
 

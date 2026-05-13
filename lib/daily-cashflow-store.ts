@@ -20,6 +20,7 @@
 import { scopedKey } from "./client-scope";
 import { loadAccounts } from "./accounts-store";
 import { loadDebtData } from "./debt-store";
+import { getMonthlyNetIncome } from "./income";
 
 export interface DailyEvent {
   id: string;
@@ -44,6 +45,11 @@ export interface DailyCashflow {
    *  a couple in a routine ₪-2,000 inside their ₪10,000 frame is in a very
    *  different place than a couple hitting the frame ceiling. */
   creditLine?: number;
+  /** Day of month payroll lands. When set, the daily projection auto-credits
+   *  the monthly net income (read live from the income module) on that day,
+   *  so the user doesn't have to enter "משכורת" as a manual recurring event.
+   *  (2026-05-13 per Nir.) */
+  salaryDayOfMonth?: number;
   /** Recurring monthly events. */
   events: DailyEvent[];
 }
@@ -55,6 +61,7 @@ const DEFAULT_DATA: DailyCashflow = {
   openingBalance: 0,
   threshold: 1000,
   creditLine: 0,
+  salaryDayOfMonth: 0,
   events: [],
 };
 
@@ -68,6 +75,7 @@ export function loadDailyCashflow(): DailyCashflow {
       openingBalance: Number(parsed.openingBalance) || 0,
       threshold: Number(parsed.threshold) || 1000,
       creditLine: Number(parsed.creditLine) || 0,
+      salaryDayOfMonth: Number(parsed.salaryDayOfMonth) || 0,
       events: Array.isArray(parsed.events) ? parsed.events : [],
     };
   } catch {
@@ -105,7 +113,7 @@ export function newEventId(): string {
  * card identifier. Installments not matched to any card stay as a separate
  * fallback event so they still appear in the projection.
  */
-export function buildAutoEvents(): DailyEvent[] {
+export function buildAutoEvents(salaryDay?: number): DailyEvent[] {
   if (typeof window === "undefined") return [];
   const accounts = loadAccounts();
   const debt = loadDebtData();
@@ -159,6 +167,24 @@ export function buildAutoEvents(): DailyEvent[] {
     });
   }
 
+  // Salary auto-credit: when the user has declared a payday, drop the
+  // monthly net income onto that day. Sourced from getMonthlyNetIncome()
+  // (the single source of truth for net) so a salary change anywhere in
+  // the system flows through.
+  if (salaryDay && salaryDay >= 1 && salaryDay <= 31) {
+    const monthlyNet = getMonthlyNetIncome();
+    if (monthlyNet > 0) {
+      events.push({
+        id: "auto-salary",
+        label: "משכורת (נטו)",
+        dayOfMonth: salaryDay,
+        amount: Math.round(monthlyNet),
+        origin: "card",
+        source: "salary",
+      });
+    }
+  }
+
   return events;
 }
 
@@ -204,7 +230,7 @@ export function buildTrajectory(
     ...e,
     origin: e.origin || "manual",
   }));
-  const autoEvents = buildAutoEvents();
+  const autoEvents = buildAutoEvents(data.salaryDayOfMonth);
   const allEvents = [...manualEvents, ...autoEvents];
 
   const eventsByDay = new Map<number, DailyEvent[]>();
