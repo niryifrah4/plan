@@ -13,15 +13,18 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { fmtILS } from "@/lib/format";
+import Link from "next/link";
 import {
   loadDailyCashflow,
   saveDailyCashflow,
   buildTrajectory,
+  buildAutoEvents,
   newEventId,
   DAILY_CASHFLOW_EVENT,
   type DailyCashflow,
   type DailyEvent,
 } from "@/lib/daily-cashflow-store";
+import { ACCOUNTS_EVENT } from "@/lib/accounts-store";
 
 const HE_DAY_SUFFIX = "ה-";
 const HE_MONTHS = [
@@ -50,14 +53,24 @@ export function DailyCashflowTab() {
 
   useEffect(() => {
     setData(loadDailyCashflow());
+    // Refresh on any change that could affect the projection — own store,
+    // credit-cards (auto-fed events), and debt-store (installments).
     const refresh = () => setData(loadDailyCashflow());
     window.addEventListener("storage", refresh);
     window.addEventListener(DAILY_CASHFLOW_EVENT, refresh);
+    window.addEventListener(ACCOUNTS_EVENT, refresh);
+    window.addEventListener("verdant:debt:updated", refresh);
     return () => {
       window.removeEventListener("storage", refresh);
       window.removeEventListener(DAILY_CASHFLOW_EVENT, refresh);
+      window.removeEventListener(ACCOUNTS_EVENT, refresh);
+      window.removeEventListener("verdant:debt:updated", refresh);
     };
   }, []);
+
+  // Auto-derived events (credit cards). Computed fresh on every render — cheap,
+  // re-runs when underlying stores change because we listen above.
+  const autoEvents = useMemo<DailyEvent[]>(() => buildAutoEvents(), [data]);
 
   const update = useCallback((patch: Partial<DailyCashflow>) => {
     setData((prev) => {
@@ -131,7 +144,12 @@ export function DailyCashflowTab() {
   const avgBalColor = colorForBalance(traj.averageBalance);
   const endBalColor = colorForBalance(traj.endingBalance);
 
-  const sortedEvents = [...data.events].sort((a, b) => a.dayOfMonth - b.dayOfMonth);
+  // Manual events tagged for the UI, plus the auto-fed card events,
+  // shown together but auto-events are read-only (no inline editing).
+  const sortedManual = [...data.events]
+    .map((e) => ({ ...e, origin: e.origin || ("manual" as const) }))
+    .sort((a, b) => a.dayOfMonth - b.dayOfMonth);
+  const sortedAuto = [...autoEvents].sort((a, b) => a.dayOfMonth - b.dayOfMonth);
   const currentMonthLabel = `${HE_MONTHS[new Date().getMonth()]} ${new Date().getFullYear()}`;
   const buffer = recommendedBuffer(traj.totalRecurringOutflows);
   const bufferGap = buffer - data.openingBalance;
@@ -322,14 +340,76 @@ export function DailyCashflowTab() {
           </button>
         </div>
 
-        {sortedEvents.length === 0 ? (
+        {/* Auto-fed events from credit cards. Read-only — to change them the
+            user edits the card itself in /balance → חשבונות. Shown above the
+            manual list because they're usually the biggest items in the month. */}
+        {sortedAuto.length > 0 && (
+          <div
+            className="mb-3 overflow-hidden rounded-xl"
+            style={{ border: "1px solid #c9e3d4", background: "#eef7f1" }}
+          >
+            <div
+              className="flex items-center justify-between px-3 py-2 text-[11px] font-extrabold uppercase tracking-[0.08em]"
+              style={{ color: "#1B4332", borderBottom: "1px solid #c9e3d4" }}
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[14px]">credit_card</span>
+                מחויב אוטומטית מכרטיסי אשראי
+              </span>
+              <Link
+                href="/balance?tab=accounts"
+                className="text-[10px] font-bold text-verdant-emerald underline-offset-2 hover:underline"
+              >
+                לעדכון →
+              </Link>
+            </div>
+            {sortedAuto.map((ev) => (
+              <div
+                key={ev.id}
+                className="grid items-center px-3 py-2 text-[13px]"
+                style={{
+                  gridTemplateColumns: "60px minmax(120px,1fr) 110px",
+                  borderTop: "1px solid #c9e3d4",
+                  columnGap: "8px",
+                  background: "#fff",
+                }}
+              >
+                <div className="text-center font-extrabold tabular-nums text-verdant-ink">
+                  {ev.dayOfMonth}
+                </div>
+                <div className="min-w-0">
+                  <div className="truncate font-extrabold text-verdant-ink">{ev.label}</div>
+                  {ev.notes && (
+                    <div className="truncate text-[11px] text-verdant-muted">{ev.notes}</div>
+                  )}
+                </div>
+                <div
+                  className="text-left font-extrabold tabular-nums"
+                  style={{ color: ev.amount < 0 ? "#991B1B" : "#1B4332" }}
+                  dir="ltr"
+                >
+                  {ev.amount.toLocaleString("he-IL")}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {sortedManual.length === 0 && sortedAuto.length === 0 ? (
           <div
             className="rounded-xl px-4 py-8 text-center text-[13px]"
             style={{ background: "#F4F7ED", border: "1px dashed #d8e0d0", color: "#5a7a6a" }}
           >
             <div className="font-bold text-verdant-ink">עוד אין חיובים מוגדרים</div>
-            <div className="mt-1 text-[12px]">
-              הוסיפו לפחות שורה אחת — לדוגמה: "משכורת" ביום 5, "ויזה כאל" ביום 10
+            <div className="mt-1 text-[12px] leading-relaxed">
+              הוסיפו שורה ידנית, או הזינו כרטיסי אשראי ב-
+              <Link
+                href="/balance?tab=accounts"
+                className="underline hover:text-verdant-emerald"
+              >
+                חשבונות
+              </Link>{" "}
+              — והם יוזרמו לכאן אוטומטית.
             </div>
           </div>
         ) : (
@@ -344,18 +424,24 @@ export function DailyCashflowTab() {
               }}
             >
               <div className="text-center">יום</div>
-              <div>תיאור</div>
+              <div>תיאור (ידני)</div>
               <div className="text-left">סכום (₪)</div>
               <div />
             </div>
-            {sortedEvents.map((ev) => (
-              <EventRow
-                key={ev.id}
-                event={ev}
-                onUpdate={(patch) => updateEvent(ev.id, patch)}
-                onRemove={() => removeEvent(ev.id)}
-              />
-            ))}
+            {sortedManual.length === 0 ? (
+              <div className="px-3 py-3 text-center text-[12px] text-verdant-muted">
+                אין שורות ידניות — הוסף משכורת, מזונות, חיובי הוראת קבע וכו׳
+              </div>
+            ) : (
+              sortedManual.map((ev) => (
+                <EventRow
+                  key={ev.id}
+                  event={ev}
+                  onUpdate={(patch) => updateEvent(ev.id, patch)}
+                  onRemove={() => removeEvent(ev.id)}
+                />
+              ))
+            )}
           </div>
         )}
       </section>

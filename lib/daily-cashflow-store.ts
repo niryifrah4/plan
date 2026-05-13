@@ -18,6 +18,8 @@
  */
 
 import { scopedKey } from "./client-scope";
+import { loadAccounts } from "./accounts-store";
+import { loadDebtData } from "./debt-store";
 
 export interface DailyEvent {
   id: string;
@@ -26,6 +28,9 @@ export interface DailyEvent {
   amount: number; // signed: positive = income, negative = expense
   source?: string; // optional bank / card identifier
   notes?: string;
+  /** Origin tag — "manual" means user-entered, otherwise this event is
+   *  auto-derived from another store and is read-only in the table. */
+  origin?: "manual" | "card";
 }
 
 export interface DailyCashflow {
@@ -84,6 +89,79 @@ export function newEventId(): string {
   return "dc-" + Math.random().toString(36).slice(2, 9);
 }
 
+/**
+ * Auto-derived events from other stores — credit cards charge their accumulated
+ * basket on their billingDay. (2026-05-12 stage 1: card-as-entity model.)
+ *
+ * Why this matters: the family already maintains their cards in /balance →
+ * Accounts. Forcing them to re-type the same charges into the daily cashflow
+ * is exactly the "double entry" that made the Excel template painful. Now the
+ * daily view automatically reflects what's been entered on the card.
+ *
+ * Each card produces ONE expense event per month on its billingDay, summing:
+ *   - currentCharge       (the basket — variable spend already accumulated)
+ *   - sum of installments (recurring multi-payment commitments)
+ * The card's installments are matched by Installment.source containing the
+ * card identifier. Installments not matched to any card stay as a separate
+ * fallback event so they still appear in the projection.
+ */
+export function buildAutoEvents(): DailyEvent[] {
+  if (typeof window === "undefined") return [];
+  const accounts = loadAccounts();
+  const debt = loadDebtData();
+  const activeInstallments = (debt.installments || []).filter(
+    (i) => i.currentPayment <= i.totalPayments
+  );
+
+  // Track which installments got attached to a card so the fallback bucket
+  // (installments-without-a-card) doesn't double-count them.
+  const matchedInstallmentIds = new Set<string>();
+
+  const events: DailyEvent[] = [];
+
+  for (const card of accounts.creditCards || []) {
+    if (!card.billingDay || card.billingDay < 1 || card.billingDay > 31) continue;
+
+    // Match installments to this card. Source field is free text the user
+    // typed (often "ויזה כאל" or "כאל 1234"); we match loosely by checking
+    // whether the card name appears in source OR the last4 digits appear.
+    const cardName = (card.company || "").toLowerCase();
+    const last4 = card.lastFourDigits || "";
+    const cardInstallments = activeInstallments.filter((inst) => {
+      const src = (inst.source || "").toLowerCase();
+      if (!src) return false;
+      if (cardName && src.includes(cardName)) return true;
+      if (last4 && src.includes(last4)) return true;
+      return false;
+    });
+    cardInstallments.forEach((i) => matchedInstallmentIds.add(i.id));
+    const installmentsSum = cardInstallments.reduce((s, i) => s + (i.monthlyAmount || 0), 0);
+
+    const totalCharge = (card.currentCharge || 0) + installmentsSum;
+    if (totalCharge <= 0) continue; // nothing to project
+
+    const label =
+      card.company && card.lastFourDigits
+        ? `${card.company} ••${card.lastFourDigits}`
+        : card.company || "כרטיס אשראי";
+
+    events.push({
+      id: `auto-card-${card.id}`,
+      label,
+      dayOfMonth: card.billingDay,
+      amount: -totalCharge,
+      source: `card:${card.id}`,
+      origin: "card",
+      notes:
+        installmentsSum > 0
+          ? `סל מצטבר ${Math.round(card.currentCharge || 0).toLocaleString()} + תשלומים ${Math.round(installmentsSum).toLocaleString()}`
+          : undefined,
+    });
+  }
+
+  return events;
+}
+
 export interface DailyPoint {
   day: number; // 1-31 within the current month
   balance: number; // projected balance at end of this day
@@ -120,8 +198,17 @@ export function buildTrajectory(
   data: DailyCashflow,
   monthLength: number = daysInCurrentMonth()
 ): TrajectoryResult {
+  // Combine manually-entered events with auto-derived ones (credit cards).
+  // Manual events tagged origin='manual' for the UI; auto ones tagged 'card'.
+  const manualEvents: DailyEvent[] = data.events.map((e) => ({
+    ...e,
+    origin: e.origin || "manual",
+  }));
+  const autoEvents = buildAutoEvents();
+  const allEvents = [...manualEvents, ...autoEvents];
+
   const eventsByDay = new Map<number, DailyEvent[]>();
-  for (const ev of data.events) {
+  for (const ev of allEvents) {
     const day = Math.min(monthLength, Math.max(1, Math.round(ev.dayOfMonth)));
     const list = eventsByDay.get(day) || [];
     list.push(ev);
