@@ -939,6 +939,7 @@ export default function BudgetPage() {
   const [importPreview, setImportPreview] = useState<{
     summary: ImportSummary;
     updatedBudget: BudgetData;
+    installmentExtraction?: import("@/lib/installment-extractor").ExtractionResult;
   } | null>(null);
   const [importToast, setImportToast] = useState<string | null>(null);
 
@@ -1187,7 +1188,7 @@ export default function BudgetPage() {
   );
 
   // Open the import-preview modal using the currently saved parsed transactions
-  const openImportPreview = useCallback(() => {
+  const openImportPreview = useCallback(async () => {
     if (!budget) return;
     const all = loadParsedTransactions();
     const forMonth = filterByMonth(all, year, month);
@@ -1197,13 +1198,18 @@ export default function BudgetPage() {
       return;
     }
     const { budget: updatedBudget, summary } = importTransactionsIntoBudget(budget, forMonth);
-    setImportPreview({ summary, updatedBudget });
+    // Scan ALL parsed transactions for installment series (not just this
+    // month's) — the "תשלום 3 מתוך 12" pattern is often visible only in
+    // months that aren't the latest, so we want the widest window possible.
+    const { extractInstallments } = await import("@/lib/installment-extractor");
+    const installmentExtraction = extractInstallments(all);
+    setImportPreview({ summary, updatedBudget, installmentExtraction });
   }, [budget, year, month]);
 
   // Confirm — persist the preview, close modal, show feedback
-  const confirmImport = useCallback(() => {
+  const confirmImport = useCallback(async () => {
     if (!importPreview) return;
-    const { updatedBudget, summary } = importPreview;
+    const { updatedBudget, summary, installmentExtraction } = importPreview;
     setBudget(updatedBudget);
     saveBudget(updatedBudget);
     setSaveStatus("saving");
@@ -1211,9 +1217,21 @@ export default function BudgetPage() {
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 1500);
     }, 250);
+
+    // Roll detected installment series into the debt store. Idempotent —
+    // existing series get their currentPayment bumped forward only.
+    let installmentMsg = "";
+    if (installmentExtraction && installmentExtraction.detected.length > 0) {
+      const { mergeIntoDebtStore } = await import("@/lib/installment-extractor");
+      const { added, updated } = mergeIntoDebtStore(installmentExtraction.detected);
+      if (added > 0 || updated > 0) {
+        installmentMsg = ` · ${added} חדשות + ${updated} עודכנו ב-/debt`;
+      }
+    }
+
     setImportPreview(null);
-    setImportToast(`יובאו ${summary.matched + summary.unmatched} תנועות`);
-    setTimeout(() => setImportToast(null), 3000);
+    setImportToast(`יובאו ${summary.matched + summary.unmatched} תנועות${installmentMsg}`);
+    setTimeout(() => setImportToast(null), 4000);
   }, [importPreview]);
 
   const cancelImport = useCallback(() => setImportPreview(null), []);
@@ -1908,6 +1926,78 @@ export default function BudgetPage() {
                 {importPreview.summary.unmatched} תנועות ללא מיפוי יתווספו כשורות חדשות.
               </div>
             )}
+
+            {/* Installment auto-detection — the "blind hole" Nir called out.
+                When the importer recognised "תשלום X מתוך Y" patterns, list
+                them here so the user sees them BEFORE confirming and isn't
+                surprised by new rows in /debt. */}
+            {importPreview.installmentExtraction &&
+              (importPreview.installmentExtraction.detected.length > 0 ||
+                importPreview.installmentExtraction.existing.length > 0) && (
+                <div
+                  className="mb-4 rounded-xl p-3 text-xs"
+                  style={{ background: "#eef7f1", border: "1px solid #c9e3d4" }}
+                >
+                  <div className="mb-2 flex items-center gap-2 text-[13px] font-extrabold text-verdant-ink">
+                    <span className="material-symbols-outlined text-[16px] text-verdant-emerald">
+                      credit_score
+                    </span>
+                    זיהוי עסקאות תשלומים
+                  </div>
+                  {importPreview.installmentExtraction.detected.length > 0 && (
+                    <div className="mb-2">
+                      <div
+                        className="mb-1 text-[11px] font-bold"
+                        style={{ color: "#1B4332" }}
+                      >
+                        {importPreview.installmentExtraction.detected.length} עסקאות
+                        חדשות — יתווספו אוטומטית ל-/debt עם האישור
+                      </div>
+                      <ul
+                        className="max-h-32 space-y-1 overflow-y-auto rounded-lg bg-white px-2 py-1.5"
+                        style={{ border: "1px solid #c9e3d4" }}
+                      >
+                        {importPreview.installmentExtraction.detected.map((e, i) => (
+                          <li
+                            key={i}
+                            className="flex items-center justify-between text-[11px]"
+                          >
+                            <span
+                              className="truncate font-bold"
+                              style={{ color: "#012d1d" }}
+                            >
+                              {e.merchant}
+                            </span>
+                            <span
+                              className="flex shrink-0 items-center gap-3 tabular-nums"
+                              style={{ color: "#5a7a6a" }}
+                            >
+                              <span>
+                                תשלום {e.currentPayment}/{e.totalPayments}
+                              </span>
+                              <span
+                                className="font-extrabold"
+                                style={{ color: "#1B4332" }}
+                              >
+                                {fmtILS(e.monthlyAmount)}/ח׳
+                              </span>
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {importPreview.installmentExtraction.existing.length > 0 && (
+                    <div
+                      className="text-[11px] font-bold"
+                      style={{ color: "#5a7a6a" }}
+                    >
+                      ועוד {importPreview.installmentExtraction.existing.length} עסקאות
+                      קיימות יתעדכנו (מספר תשלום נוכחי)
+                    </div>
+                  )}
+                </div>
+              )}
 
             <div className="flex items-center justify-end gap-2">
               <button
