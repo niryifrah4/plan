@@ -30,6 +30,10 @@ const DailyCashflowTab = dynamic(
   () => import("./DailyCashflowTab").then((m) => m.DailyCashflowTab),
   { ssr: false }
 );
+const InstallmentsTimeline = dynamic(
+  () => import("./InstallmentsTimeline").then((m) => m.InstallmentsTimeline),
+  { ssr: false }
+);
 
 import type { BudgetAdjustment } from "./MonthlyInsights";
 import { scopedKey } from "@/lib/client-scope";
@@ -1700,6 +1704,7 @@ export default function BudgetPage() {
               subtitle={pieData.mode === "actual" ? "בפועל" : "מתוכנן"}
             />
           </div>
+          <InstallmentsTimeline />
           <CashflowForecast />
         </>
       )}
