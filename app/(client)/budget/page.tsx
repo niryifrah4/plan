@@ -30,6 +30,10 @@ const DailyCashflowTab = dynamic(
   () => import("./DailyCashflowTab").then((m) => m.DailyCashflowTab),
   { ssr: false }
 );
+const InvestmentSurplusCard = dynamic(
+  () => import("@/components/budget/InvestmentSurplusCard").then((m) => m.InvestmentSurplusCard),
+  { ssr: false }
+);
 const InstallmentsTimeline = dynamic(
   () => import("./InstallmentsTimeline").then((m) => m.InstallmentsTimeline),
   { ssr: false }
@@ -1697,6 +1701,14 @@ export default function BudgetPage() {
           ═══════════════════════════════════════════════════════════ */}
       {viewTab === "snapshot" && (
         <>
+          {/* Surfaces the "כמה אני יכול לקחת להשקעות" answer up top — it's
+              the question Nir said clients open the page to answer. Reads
+              from the same 12-month forecast as CashflowForecast below, so
+              numbers are consistent. */}
+          <InvestmentSurplusCard
+            currentIncome={totals.incBudget}
+            currentExpenses={totals.expBudget}
+          />
           <div className="mb-5">
             <BudgetPie
               slices={pieData.slices}
