@@ -189,15 +189,33 @@ export function buildAutoEvents(salaryDay?: number): DailyEvent[] {
 }
 
 export interface DailyPoint {
-  day: number; // 1-31 within the current month
-  balance: number; // projected balance at end of this day
-  events: DailyEvent[]; // events that hit this day (for tooltips)
+  /** Index 1..N across the whole window — useful for charting on a continuous
+   *  x-axis. */
+  index: number;
+  /** Day of month (1..28-31), repeats each month. */
+  day: number;
+  /** YYYY-MM the day belongs to. */
+  ym: string;
+  /** Hebrew month label, e.g. "מאי 2026". */
+  monthLabel: string;
+  /** Projected balance at end of this day. */
+  balance: number;
+  /** Events that hit this day (for tooltips). */
+  events: DailyEvent[];
 }
 
 export interface TrajectoryResult {
   points: DailyPoint[];
   minBalance: number;
+  /** Day of month where minimum sits (1-31). Within the FIRST month of the
+   *  window — keeps the existing KPI "ה-21 לחודש" hint readable. */
   minDay: number;
+  /** 1-based position of the minimum in the points array — used to place the
+   *  marker on the chart regardless of how many months the window spans. */
+  minIndex: number;
+  /** Human label for the lowest point, e.g. "21 ביוני 2026". Useful when
+   *  the window spans multiple months and the minimum is far away. */
+  minLabel: string;
   /** Days where projected balance dipped below the threshold. */
   daysBelowThreshold: number;
   /** Days where the balance was below zero (true minus, regardless of frame). */
@@ -205,27 +223,48 @@ export interface TrajectoryResult {
   /** Days that broke through the approved overdraft line (only meaningful when
    *  creditLine > 0). */
   daysOverFrame: number;
-  /** Average daily balance across the month — the "ממוצע יתרה חודשי" that a CFP
-   *  uses to gauge breathing room separate from worst-case timing. */
+  /** Average daily balance across the window. */
   averageBalance: number;
-  /** Sum of all negative recurring outflows in the month. Used to size a
-   *  recommended buffer (~half of this is the CFP rule-of-thumb). */
+  /** Sum of all negative recurring outflows in a single month. Used to size
+   *  the recommended buffer (~half of this is the CFP rule-of-thumb). Stays
+   *  month-scoped even when the window spans multiple months. */
   totalRecurringOutflows: number;
   endingBalance: number;
+  /** Number of months projected (1, 3, 6, 12). */
+  monthsProjected: number;
 }
 
+const HE_MONTHS = [
+  "ינואר",
+  "פברואר",
+  "מרץ",
+  "אפריל",
+  "מאי",
+  "יוני",
+  "יולי",
+  "אוגוסט",
+  "ספטמבר",
+  "אוקטובר",
+  "נובמבר",
+  "דצמבר",
+];
+
 /**
- * Project the checking-account balance day-by-day across the current month.
- * Income events add to the balance on their day; expense events subtract.
- * Days past month length are clamped to the last day of the month, so an
- * event scheduled for "31" in a 30-day month still applies on day 30.
+ * Project the checking-account balance day-by-day. Each recurring event
+ * (manual + auto-derived) fires every month on its assigned day.
+ *
+ * `monthsAhead` defaults to 1 (current month only). Set 3/6/12 to extend
+ * the window — the trajectory stays continuous (no balance reset between
+ * months), so the user sees the actual rhythm of their cashflow rather
+ * than a fresh start each month.
+ *
+ * Events scheduled for day 31 in a 30-day month still apply on day 30 of
+ * that month, then back to 31 in the next 31-day month.
  */
 export function buildTrajectory(
   data: DailyCashflow,
-  monthLength: number = daysInCurrentMonth()
+  monthsAhead: number = 1
 ): TrajectoryResult {
-  // Combine manually-entered events with auto-derived ones (credit cards).
-  // Manual events tagged origin='manual' for the UI; auto ones tagged 'card'.
   const manualEvents: DailyEvent[] = data.events.map((e) => ({
     ...e,
     origin: e.origin || "manual",
@@ -233,59 +272,78 @@ export function buildTrajectory(
   const autoEvents = buildAutoEvents(data.salaryDayOfMonth);
   const allEvents = [...manualEvents, ...autoEvents];
 
-  const eventsByDay = new Map<number, DailyEvent[]>();
-  for (const ev of allEvents) {
-    const day = Math.min(monthLength, Math.max(1, Math.round(ev.dayOfMonth)));
-    const list = eventsByDay.get(day) || [];
-    list.push(ev);
-    eventsByDay.set(day, list);
-  }
-
   const points: DailyPoint[] = [];
   let balance = data.openingBalance;
-  // 2026-05-12 per finance-agent: seed minDay to 1 so the chart marker and
-  // the KPI hint both have a sensible value when the worst day IS day-1
-  // (e.g. balance only ever rises after a single payday at start of month).
   let minBalance = balance;
-  let minDay = 1;
+  let minIndex = 1;
   let daysBelowThreshold = 0;
   let daysBelowZero = 0;
   let daysOverFrame = 0;
   let balanceSum = 0;
-  let totalRecurringOutflows = 0;
   const frameFloor = -(data.creditLine || 0);
 
-  for (let day = 1; day <= monthLength; day++) {
-    const dayEvents = eventsByDay.get(day) || [];
-    for (const ev of dayEvents) {
-      balance += ev.amount;
-      if (ev.amount < 0) totalRecurringOutflows += -ev.amount;
+  // Total recurring outflows for ONE month — basis of the buffer recommendation.
+  // We compute once from allEvents, not by accumulating across the window.
+  const totalRecurringOutflows = Math.round(
+    allEvents.reduce((s, e) => (e.amount < 0 ? s + -e.amount : s), 0)
+  );
+
+  const now = new Date();
+  let firstMonthDays = 0;
+  let firstMonthMinDay = 1;
+
+  let runningIndex = 0;
+  for (let monthOffset = 0; monthOffset < monthsAhead; monthOffset++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+    const monthLength = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const monthLabel = `${HE_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+    if (monthOffset === 0) firstMonthDays = monthLength;
+
+    // Rebuild eventsByDay each month so "day 31" maps correctly per month.
+    const eventsByDay = new Map<number, DailyEvent[]>();
+    for (const ev of allEvents) {
+      const day = Math.min(monthLength, Math.max(1, Math.round(ev.dayOfMonth)));
+      const list = eventsByDay.get(day) || [];
+      list.push(ev);
+      eventsByDay.set(day, list);
     }
-    if (balance < minBalance) {
-      minBalance = balance;
-      minDay = day;
+
+    for (let day = 1; day <= monthLength; day++) {
+      runningIndex++;
+      const dayEvents = eventsByDay.get(day) || [];
+      for (const ev of dayEvents) balance += ev.amount;
+      if (balance < minBalance) {
+        minBalance = balance;
+        minIndex = runningIndex;
+        if (monthOffset === 0) firstMonthMinDay = day;
+      }
+      if (balance < data.threshold) daysBelowThreshold++;
+      if (balance < 0) daysBelowZero++;
+      if (balance < frameFloor) daysOverFrame++;
+      balanceSum += balance;
+      points.push({ index: runningIndex, day, ym, monthLabel, balance, events: dayEvents });
     }
-    if (balance < data.threshold) daysBelowThreshold++;
-    if (balance < 0) daysBelowZero++;
-    if (balance < frameFloor) daysOverFrame++;
-    balanceSum += balance;
-    points.push({ day, balance, events: dayEvents });
   }
+
+  // Friendly label for the lowest point ("21 ביוני 2026").
+  const minPoint = points.find((p) => p.index === minIndex);
+  const minLabel = minPoint ? `${minPoint.day} ב${minPoint.monthLabel}` : "";
 
   return {
     points,
     minBalance,
-    minDay,
+    // Keep minDay = the day-of-month inside the FIRST month so KPI hints stay
+    // readable for single-month users. multi-month users get minLabel.
+    minDay: firstMonthMinDay && firstMonthDays > 0 ? firstMonthMinDay : 1,
+    minIndex,
+    minLabel,
     daysBelowThreshold,
     daysBelowZero,
     daysOverFrame,
-    averageBalance: Math.round(balanceSum / Math.max(1, monthLength)),
-    totalRecurringOutflows: Math.round(totalRecurringOutflows),
+    averageBalance: Math.round(balanceSum / Math.max(1, points.length)),
+    totalRecurringOutflows,
     endingBalance: balance,
+    monthsProjected: monthsAhead,
   };
-}
-
-function daysInCurrentMonth(): number {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
 }

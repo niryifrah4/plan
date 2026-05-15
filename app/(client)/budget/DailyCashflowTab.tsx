@@ -50,6 +50,7 @@ function recommendedBuffer(totalRecurringOutflows: number): number {
 
 export function DailyCashflowTab() {
   const [data, setData] = useState<DailyCashflow | null>(null);
+  const [monthsAhead, setMonthsAhead] = useState<1 | 3 | 6 | 12>(1);
 
   useEffect(() => {
     setData(loadDailyCashflow());
@@ -123,7 +124,10 @@ export function DailyCashflowTab() {
     });
   }, []);
 
-  const traj = useMemo(() => (data ? buildTrajectory(data) : null), [data]);
+  const traj = useMemo(
+    () => (data ? buildTrajectory(data, monthsAhead) : null),
+    [data, monthsAhead]
+  );
 
   if (!data || !traj) {
     return (
@@ -164,25 +168,61 @@ export function DailyCashflowTab() {
         className="rounded-2xl p-5"
         style={{ background: "#fff", border: "1px solid #e8e9e1" }}
       >
-        <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-verdant-muted">
-          תזרים יומי — {currentMonthLabel}
+        <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-verdant-muted">
+              תזרים יומי —{" "}
+              {monthsAhead === 1
+                ? currentMonthLabel
+                : `${monthsAhead} חודשים קדימה`}
+            </div>
+            <h3 className="text-base font-extrabold text-verdant-ink">
+              {monthsAhead === 1
+                ? "מה צפוי לקרות בעו״ש לפי יום בחודש"
+                : "מה צפוי לקרות בעו״ש לאורך זמן"}
+            </h3>
+          </div>
+          {/* Multi-month selector — single month is the precision view, longer
+              windows show the rhythm and reveal medium-term overdraft risk. */}
+          <div
+            className="inline-flex rounded-full p-0.5"
+            style={{ background: "#F4F7ED", border: "1px solid #d8e0d0" }}
+          >
+            {([1, 3, 6, 12] as const).map((n) => {
+              const active = monthsAhead === n;
+              return (
+                <button
+                  key={n}
+                  onClick={() => setMonthsAhead(n)}
+                  className="rounded-full px-3 py-1 text-[11px] font-bold transition-colors"
+                  style={{
+                    background: active ? "#1B4332" : "transparent",
+                    color: active ? "#fff" : "#5a7a6a",
+                  }}
+                >
+                  {n === 1 ? "החודש" : `${n} חודשים`}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <h3 className="mb-4 text-base font-extrabold text-verdant-ink">
-          מה צפוי לקרות בעו״ש לפי יום בחודש
-        </h3>
 
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <Kpi
             label="נקודה נמוכה ביותר"
             value={fmtILS(traj.minBalance)}
             color={minBalColor}
-            hint={`${HE_DAY_SUFFIX}${traj.minDay} לחודש`}
+            hint={
+              monthsAhead > 1 && traj.minLabel
+                ? traj.minLabel
+                : `${HE_DAY_SUFFIX}${traj.minDay} לחודש`
+            }
           />
           <Kpi
             label="ממוצע יתרה"
             value={fmtILS(traj.averageBalance)}
             color={avgBalColor}
-            hint="לאורך החודש"
+            hint={monthsAhead === 1 ? "לאורך החודש" : `לאורך ${monthsAhead} חודשים`}
           />
           <Kpi
             label="ימים מתחת לסף"
@@ -195,7 +235,7 @@ export function DailyCashflowTab() {
             }
           />
           <Kpi
-            label="יתרה בסוף החודש"
+            label={monthsAhead === 1 ? "יתרה בסוף החודש" : "יתרה בסוף החלון"}
             value={fmtILS(traj.endingBalance)}
             color={endBalColor}
             hint={
@@ -695,11 +735,12 @@ function TrajectoryChart({
             </g>
           ) : null
         )}
-        {/* Min marker */}
-        {trajectory.minDay > 0 && (
+        {/* Min marker — uses minIndex so it lands on the right point
+            regardless of how many months the window spans. */}
+        {trajectory.minIndex > 0 && (
           <g>
             <circle
-              cx={xOf(trajectory.minDay - 1)}
+              cx={xOf(trajectory.minIndex - 1)}
               cy={yOf(trajectory.minBalance)}
               r={5}
               fill="none"
@@ -708,24 +749,71 @@ function TrajectoryChart({
             />
           </g>
         )}
-        {/* X-axis day labels */}
-        {[1, 5, 10, 15, 20, 25, points.length].map((d) => {
-          if (d > points.length) return null;
-          const i = d - 1;
-          return (
-            <text
-              key={`xl-${d}`}
-              x={xOf(i)}
-              y={PAD.top + innerH + 18}
-              fontSize="10"
-              textAnchor="middle"
-              fill="#5a7a6a"
-              fontWeight="600"
-            >
-              {d}
-            </text>
-          );
-        })}
+        {/* Month dividers (only when multi-month). Vertical hairlines + labels
+            so the user can read the trajectory month-by-month. */}
+        {trajectory.monthsProjected > 1 &&
+          points.map((p, i) => {
+            if (p.day !== 1 || i === 0) return null;
+            return (
+              <line
+                key={`md-${i}`}
+                x1={xOf(i)}
+                x2={xOf(i)}
+                y1={PAD.top}
+                y2={PAD.top + innerH}
+                stroke="#d8e0d0"
+                strokeWidth={0.7}
+                strokeDasharray="2 3"
+              />
+            );
+          })}
+        {/* X-axis labels */}
+        {trajectory.monthsProjected === 1
+          ? // Single month — show days at intervals.
+            [1, 5, 10, 15, 20, 25, points.length].map((d) => {
+              if (d > points.length) return null;
+              const i = d - 1;
+              return (
+                <text
+                  key={`xl-${d}`}
+                  x={xOf(i)}
+                  y={PAD.top + innerH + 18}
+                  fontSize="10"
+                  textAnchor="middle"
+                  fill="#5a7a6a"
+                  fontWeight="600"
+                >
+                  {d}
+                </text>
+              );
+            })
+          : // Multi-month — show ONE label at the midpoint of each month, short form.
+            (() => {
+              // Group by ym to find midpoint of each month
+              const byYm = new Map<string, number[]>();
+              points.forEach((p, i) => {
+                const arr = byYm.get(p.ym) || [];
+                arr.push(i);
+                byYm.set(p.ym, arr);
+              });
+              return Array.from(byYm.entries()).map(([ym, idxs]) => {
+                const mid = idxs[Math.floor(idxs.length / 2)];
+                const label = points[mid].monthLabel.split(" ")[0].slice(0, 3);
+                return (
+                  <text
+                    key={`xm-${ym}`}
+                    x={xOf(mid)}
+                    y={PAD.top + innerH + 18}
+                    fontSize="10"
+                    textAnchor="middle"
+                    fill="#5a7a6a"
+                    fontWeight="600"
+                  >
+                    {label}
+                  </text>
+                );
+              });
+            })()}
       </svg>
     </div>
   );
