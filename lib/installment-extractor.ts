@@ -79,6 +79,7 @@ export function parseInstallmentFromDescription(
     const total = parseInt(m[3], 10);
     if (!Number.isFinite(current) || !Number.isFinite(total)) continue;
     if (total <= 1) continue; // 1-payment isn't a real installment series
+    if (total > 120) continue; // 10 years is the upper bound for real Israeli card plans; anything more is a parse error
     if (current < 1 || current > total) continue;
 
     // Clean trailing punctuation/separators that often precede the X-of-Y
