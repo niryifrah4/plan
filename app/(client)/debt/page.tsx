@@ -13,6 +13,7 @@ import {
   type MortgageTrack,
 } from "@/lib/debt-store";
 import { RefinanceSimulator } from "@/components/debt/RefinanceSimulator";
+import { PayoffSimulator } from "@/components/debt/PayoffSimulator";
 import { type IndexationType, type RepaymentMethod } from "@/lib/debt-store";
 import { useAssumptions } from "@/lib/hooks/useAssumptions";
 import { getMonthlyNetIncome } from "@/lib/income";
@@ -1316,6 +1317,14 @@ export default function DebtPage() {
           </div>
         )}
       </section>
+
+      {/* Payoff simulator — "if I throw ₪X at one obligation, which one wins?".
+          Renders only when there's something to simulate. (2026-05-14.) */}
+      {(data.loans.length > 0 || data.installments.length > 0) && (
+        <section className="mb-6">
+          <PayoffSimulator data={data} />
+        </section>
+      )}
 
       {/* Refinance simulator modal — pops on row "savings" icon click. */}
       {refiTrackId &&
