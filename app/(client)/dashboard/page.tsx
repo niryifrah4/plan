@@ -74,7 +74,7 @@ import { scopedKey } from "@/lib/client-scope";
 import { SCOPE_COLORS, effectiveScope, type Scope } from "@/lib/scope-types";
 
 const TRACK_COLOR: Record<string, string> = {
-  on: "#1B4332",
+  on: "#A8E040",
   behind: "#f59e0b",
   at_risk: "#b91c1c",
 };
@@ -544,20 +544,20 @@ export default function DashboardPage() {
     savingsRate >= 20 ? "מעולה" : savingsRate >= 10 ? "טוב" : savingsRate >= 5 ? "סביר" : null;
   const savingsLabelColor =
     savingsRate >= 20
-      ? "#1B4332"
+      ? "#A8E040"
       : savingsRate >= 10
-        ? "#1B4332"
+        ? "#A8E040"
         : savingsRate >= 5
           ? "#b45309"
-          : "#012d1d";
+          : "#F8FAFC";
 
   // Allocation slices for donut
   const allocationSlices = useMemo(() => {
     const groups: Record<string, { label: string; color: string; total: number }> = {
-      liquid: { label: "נזיל", color: "#1B4332", total: 0 },
-      investments: { label: "השקעות", color: "#012d1d", total: 0 },
-      pension: { label: "פנסיוני", color: "#1e6b3a", total: 0 },
-      realestate: { label: "נדל״ן", color: "#2B694D", total: 0 },
+      liquid: { label: "נזיל", color: "#A8E040", total: 0 },
+      investments: { label: "השקעות", color: "#F8FAFC", total: 0 },
+      pension: { label: "פנסיוני", color: "#4ADE80", total: 0 },
+      realestate: { label: "נדל״ן", color: "#4ADE80", total: 0 },
       kids: { label: "חיסכון ילדים", color: "#6366f1", total: 0 },
     };
     assets.forEach((a) => {
@@ -803,7 +803,7 @@ export default function DashboardPage() {
         <div className="card-pad text-center">
           <div
             className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-organic"
-            style={{ background: "#1B433215" }}
+            style={{ background: "#A8E04015" }}
           >
             <span className="material-symbols-outlined text-[36px] text-verdant-emerald">
               waving_hand
@@ -856,7 +856,7 @@ export default function DashboardPage() {
           </div>
           <div
             className="mt-7 flex items-start gap-2 rounded-xl p-3 text-right"
-            style={{ background: "#eef7f1", border: "1px solid #c9e3d4" }}
+            style={{ background: "#1A2438", border: "1px solid #c9e3d4" }}
           >
             <span className="material-symbols-outlined mt-0.5 text-[16px] text-verdant-emerald">
               tips_and_updates
@@ -881,12 +881,12 @@ export default function DashboardPage() {
         >
           <div
             className="mx-4 w-full max-w-md rounded-organic p-8 shadow-soft"
-            style={{ background: "#fff", border: "2px solid #1B433230" }}
+            style={{ background: "#fff", border: "2px solid #A8E04030" }}
           >
             <div className="mb-6 flex items-center gap-3">
               <div
                 className="flex h-11 w-11 items-center justify-center rounded-xl"
-                style={{ background: "linear-gradient(135deg,#012d1d,#1B4332)" }}
+                style={{ background: "linear-gradient(135deg,#F8FAFC,#A8E040)" }}
               >
                 <span className="material-symbols-outlined text-[22px] text-white">fact_check</span>
               </div>
@@ -898,7 +898,7 @@ export default function DashboardPage() {
 
             <div
               className="mb-6 rounded-xl p-5"
-              style={{ background: "#f9faf2", border: "1px solid #d8e0d0" }}
+              style={{ background: "#F8FAFC", border: "1px solid #1F2A3F" }}
             >
               <div className="mb-2 text-[11px] font-bold text-verdant-muted">
                 יתרת עו״ש צפויה לפי התחזית:
@@ -923,7 +923,7 @@ export default function DashboardPage() {
               <button
                 onClick={dismissCheckin}
                 className="rounded-xl px-4 py-3 text-[12px] font-bold text-verdant-muted transition-colors hover:bg-verdant-bg"
-                style={{ background: "#eef2e8" }}
+                style={{ background: "#1F2A3F" }}
               >
                 דלג
               </button>
@@ -980,8 +980,8 @@ export default function DashboardPage() {
         const SEV: Record<string, { bg: string; border: string; text: string }> = {
           critical: { bg: "#fef2f2", border: "#fca5a5", text: "#b91c1c" },
           warning: { bg: "#fffbeb", border: "#fcd34d", text: "#92400e" },
-          info: { bg: "#eff6ff", border: "#93c5fd", text: "#1d4ed8" },
-          opportunity: { bg: "#f0fdf4", border: "#86efac", text: "#166534" },
+          info: { bg: "#1A2438", border: "#93c5fd", text: "#1d4ed8" },
+          opportunity: { bg: "#1A2438", border: "#86efac", text: "#166534" },
         };
         return (
           <section className="mb-6">
@@ -1057,7 +1057,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <div className="caption mb-1.5">יתרה פנויה</div>
-              <div className="kpi-value" style={{ color: latestGap >= 0 ? "#1B4332" : "#b91c1c" }}>
+              <div className="kpi-value" style={{ color: latestGap >= 0 ? "#A8E040" : "#b91c1c" }}>
                 {fmtILS(latestGap)}
               </div>
             </div>
@@ -1073,7 +1073,7 @@ export default function DashboardPage() {
                       <span
                         className="rounded px-1.5 py-0.5 text-[10px] font-bold"
                         style={{
-                          background: savingsRate >= 10 ? "#C1ECD4" : `${savingsLabelColor}15`,
+                          background: savingsRate >= 10 ? "#A8E040" : `${savingsLabelColor}15`,
                           color: savingsLabelColor,
                         }}
                       >
@@ -1082,7 +1082,7 @@ export default function DashboardPage() {
                     )}
                   </>
                 ) : (
-                  <span className="kpi-value" style={{ color: "#8aab99" }}>
+                  <span className="kpi-value" style={{ color: "#94A3B8" }}>
                     —
                   </span>
                 )}
@@ -1091,7 +1091,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Savings rate bar */}
-          <div className="h-1.5 w-full rounded-full" style={{ background: "#eef2e8" }}>
+          <div className="h-1.5 w-full rounded-full" style={{ background: "#1F2A3F" }}>
             <div
               className="h-full rounded-full transition-all duration-700"
               style={{
@@ -1105,7 +1105,7 @@ export default function DashboardPage() {
           {scopeSplit && (
             <div
               className="mt-4 border-t pt-3 text-[10px]"
-              style={{ borderColor: "#eef2e8", color: "#5a7a6a" }}
+              style={{ borderColor: "#1F2A3F", color: "#94A3B8" }}
             >
               <div className="mb-1 flex items-center justify-between">
                 <span className="flex items-center gap-1.5 font-bold">
@@ -1133,12 +1133,12 @@ export default function DashboardPage() {
               </div>
               <div
                 className="flex items-center justify-between border-t pt-1"
-                style={{ borderColor: "#eef2e8" }}
+                style={{ borderColor: "#1F2A3F" }}
               >
-                <span className="font-extrabold" style={{ color: "#012d1d" }}>
+                <span className="font-extrabold" style={{ color: "#F8FAFC" }}>
                   סה״כ
                 </span>
-                <span className="font-extrabold tabular-nums" style={{ color: "#012d1d" }}>
+                <span className="font-extrabold tabular-nums" style={{ color: "#F8FAFC" }}>
                   {fmtILS(Math.round(scopeSplit.personal + scopeSplit.business))}
                 </span>
               </div>
@@ -1155,7 +1155,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3">
               <div
                 className="icon-sm"
-                style={{ background: "rgba(255,255,255,0.08)", color: "#C1ECD4" }}
+                style={{ background: "rgba(255,255,255,0.08)", color: "#A8E040" }}
               >
                 <span className="material-symbols-outlined text-[20px]">insights</span>
               </div>
@@ -1180,7 +1180,7 @@ export default function DashboardPage() {
             <div className="flex-1">
               <div
                 className="kpi-value tabular"
-                style={{ fontSize: 30, lineHeight: "36px", color: "#FFFFFF" }}
+                style={{ fontSize: 30, lineHeight: "36px", color: "#131C2E" }}
               >
                 {fmtILS(netWorthVal)}
               </div>
@@ -1223,7 +1223,7 @@ export default function DashboardPage() {
                 {totalAssets > 0 && (() => {
                   const lev = Math.round((totalLiabilities / totalAssets) * 100);
                   const levColor =
-                    lev > 60 ? "#fca5a5" : lev > 40 ? "#FCD34D" : "#C1ECD4";
+                    lev > 60 ? "#fca5a5" : lev > 40 ? "#FCD34D" : "#A8E040";
                   const levLabel =
                     lev === 0
                       ? "ללא חובות"
@@ -1286,11 +1286,11 @@ export default function DashboardPage() {
                   fireResult.yearsToFire >= 0 && (
                     <div
                       className="mt-2 inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-extrabold"
-                      style={{ background: "#D6EFDC", color: "#1B4332" }}
+                      style={{ background: "#A8E040", color: "#A8E040" }}
                     >
                       <span
                         className="material-symbols-outlined text-[14px]"
-                        style={{ color: "#2B694D" }}
+                        style={{ color: "#4ADE80" }}
                       >
                         explore
                       </span>
@@ -1314,13 +1314,13 @@ export default function DashboardPage() {
                     style={{
                       background:
                         lifeCoverage.planScore >= 75
-                          ? "#D6EFDC"
+                          ? "#A8E040"
                           : lifeCoverage.planScore >= 50
                             ? "#FEF3C7"
                             : "#FEE2E2",
                       color:
                         lifeCoverage.planScore >= 75
-                          ? "#1B4332"
+                          ? "#A8E040"
                           : lifeCoverage.planScore >= 50
                             ? "#92400E"
                             : "#7F1D1D",
@@ -1359,30 +1359,30 @@ export default function DashboardPage() {
                 {viewMode === "capital" ? (
                   <>
                     <span className="flex items-center gap-1.5">
-                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#2B694D" }} />
+                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#4ADE80" }} />
                       נדל&quot;ן
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#012d1d" }} />
+                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#F8FAFC" }} />
                       פנסיוני
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#1B4332" }} />
+                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#A8E040" }} />
                       נזיל + השקעות
                     </span>
                   </>
                 ) : (
                   <>
                     <span className="flex items-center gap-1.5">
-                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#2B694D" }} />
+                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#4ADE80" }} />
                       שכ&quot;ד נטו
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#012d1d" }} />
+                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#F8FAFC" }} />
                       פנסיה + בט&quot;ל + השתלמות
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#1B4332" }} />
+                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#A8E040" }} />
                       משיכה נזילה (SWR)
                     </span>
                   </>
@@ -1459,7 +1459,7 @@ export default function DashboardPage() {
             {displayMode === "real" && (
               <span
                 className="rounded-full px-2 py-1 text-[10px] font-bold"
-                style={{ background: "#D6EFDC", color: "#1B4332" }}
+                style={{ background: "#A8E040", color: "#A8E040" }}
               >
                 ערכי היום · כולל אינפלציה ומס 25%
               </span>
@@ -1469,25 +1469,25 @@ export default function DashboardPage() {
           <svg
             viewBox={`0 0 ${CW} ${CH}`}
             className="w-full"
-            style={{ height: 280, background: "#fafcf8", borderRadius: 8 }}
+            style={{ height: 280, background: "#0A1929", borderRadius: 8 }}
           >
             <defs>
               <linearGradient id="wm-re" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor="#2B694D" stopOpacity="0.85" />
-                <stop offset="100%" stopColor="#2B694D" stopOpacity="0.15" />
+                <stop offset="0%" stopColor="#4ADE80" stopOpacity="0.85" />
+                <stop offset="100%" stopColor="#4ADE80" stopOpacity="0.15" />
               </linearGradient>
               <linearGradient id="wm-pen" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor="#1e6b3a" stopOpacity="0.75" />
-                <stop offset="100%" stopColor="#1e6b3a" stopOpacity="0.1" />
+                <stop offset="0%" stopColor="#4ADE80" stopOpacity="0.75" />
+                <stop offset="100%" stopColor="#4ADE80" stopOpacity="0.1" />
               </linearGradient>
               <linearGradient id="wm-liq" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor="#1B4332" stopOpacity="0.7" />
-                <stop offset="100%" stopColor="#1B4332" stopOpacity="0.08" />
+                <stop offset="0%" stopColor="#A8E040" stopOpacity="0.7" />
+                <stop offset="100%" stopColor="#A8E040" stopOpacity="0.08" />
               </linearGradient>
               <linearGradient id="wm-total" x1="0" x2="1" y1="0" y2="0">
-                <stop offset="0%" stopColor="#012d1d" />
-                <stop offset="55%" stopColor="#1B4332" />
-                <stop offset="100%" stopColor="#2B694D" />
+                <stop offset="0%" stopColor="#F8FAFC" />
+                <stop offset="55%" stopColor="#A8E040" />
+                <stop offset="100%" stopColor="#4ADE80" />
               </linearGradient>
               <filter id="wm-glow" x="-20%" y="-20%" width="140%" height="140%">
                 <feGaussianBlur stdDeviation="3.5" result="blur" />
@@ -1509,7 +1509,7 @@ export default function DashboardPage() {
                     x2={CW - 44}
                     y1={yPos}
                     y2={yPos}
-                    stroke="#eef2e8"
+                    stroke="#1F2A3F"
                     strokeWidth="1"
                     strokeDasharray={f === 0 ? undefined : "2 4"}
                   />
@@ -1519,7 +1519,7 @@ export default function DashboardPage() {
                       y={yPos + 4}
                       textAnchor="end"
                       fontSize="9"
-                      fill="#8aab99"
+                      fill="#94A3B8"
                       fontWeight="600"
                       fontFamily="Assistant, sans-serif"
                     >
@@ -1635,8 +1635,8 @@ export default function DashboardPage() {
                 const y = CHART_PAD_TOP + (CH - CHART_PAD_TOP) * (1 - last.total / maxNW);
                 return (
                   <g>
-                    <circle cx={x} cy={y} r="7" fill="#2B694D" opacity="0.25" />
-                    <circle cx={x} cy={y} r="4" fill="#ffffff" stroke="#1B4332" strokeWidth="2" />
+                    <circle cx={x} cy={y} r="7" fill="#4ADE80" opacity="0.25" />
+                    <circle cx={x} cy={y} r="4" fill="#131C2E" stroke="#A8E040" strokeWidth="2" />
                   </g>
                 );
               })()}
@@ -1657,14 +1657,14 @@ export default function DashboardPage() {
                 const labelX = Math.max(0, Math.min(x - labelW / 2, chartW - labelW));
                 return (
                   <g>
-                    <circle cx={x} cy={y} r="4" fill="#1B4332" opacity="0.5" />
+                    <circle cx={x} cy={y} r="4" fill="#A8E040" opacity="0.5" />
                     <rect
                       x={labelX}
                       y={y - 20}
                       width={labelW}
                       height="16"
                       rx="3"
-                      fill="#012d1d"
+                      fill="#F8FAFC"
                       opacity="0.8"
                     />
                     <text
@@ -1672,7 +1672,7 @@ export default function DashboardPage() {
                       y={y - 8}
                       textAnchor="middle"
                       fontSize="8.5"
-                      fill="#ffffff"
+                      fill="#131C2E"
                       fontWeight="700"
                       fontFamily="Assistant, sans-serif"
                     >
@@ -1745,9 +1745,9 @@ export default function DashboardPage() {
                       />
                       <circle cx={x} cy={pinY} r="4" fill={color} />
                       {isCovered ? (
-                        <circle cx={x} cy={pinY} r="1.5" fill="#ffffff" />
+                        <circle cx={x} cy={pinY} r="1.5" fill="#131C2E" />
                       ) : (
-                        <g stroke="#ffffff" strokeWidth="1.2" strokeLinecap="round">
+                        <g stroke="#131C2E" strokeWidth="1.2" strokeLinecap="round">
                           <line x1={x - 2} y1={pinY - 2} x2={x + 2} y2={pinY + 2} />
                           <line x1={x - 2} y1={pinY + 2} x2={x + 2} y2={pinY - 2} />
                         </g>
@@ -1778,20 +1778,20 @@ export default function DashboardPage() {
                       x2={x}
                       y1={CHART_PAD_TOP}
                       y2={CH}
-                      stroke="#2B694D"
+                      stroke="#4ADE80"
                       strokeDasharray="3 3"
                       strokeWidth="1.5"
                       opacity="0.7"
                     />
-                    <circle cx={x} cy={y} r="6" fill="#2B694D" opacity="0.2" />
-                    <circle cx={x} cy={y} r="3.5" fill="#2B694D" />
+                    <circle cx={x} cy={y} r="6" fill="#4ADE80" opacity="0.2" />
+                    <circle cx={x} cy={y} r="3.5" fill="#4ADE80" />
                     <rect
                       x={x - 22}
                       y={20}
                       width="44"
                       height="14"
                       rx="4"
-                      fill="#2B694D"
+                      fill="#4ADE80"
                       opacity="0.15"
                     />
                     <text
@@ -1799,7 +1799,7 @@ export default function DashboardPage() {
                       y={30}
                       textAnchor="middle"
                       fontSize="9"
-                      fill="#1B4332"
+                      fill="#A8E040"
                       fontWeight="800"
                       fontFamily="Assistant, sans-serif"
                     >
@@ -1930,8 +1930,8 @@ export default function DashboardPage() {
               const gap = incomeResult.gapAtRetirement;
               const shortfall = gap > 0;
               const sev = shortfall ? (gap / targetRetireIncome > 0.3 ? "critical" : "warn") : "ok";
-              const color = sev === "critical" ? "#8B2E2E" : sev === "warn" ? "#B45309" : "#1B4332";
-              const bg = sev === "critical" ? "#FEE2E2" : sev === "warn" ? "#FEF3C7" : "#D6EFDC";
+              const color = sev === "critical" ? "#8B2E2E" : sev === "warn" ? "#B45309" : "#A8E040";
+              const bg = sev === "critical" ? "#FEE2E2" : sev === "warn" ? "#FEF3C7" : "#A8E040";
               return (
                 <div className="mt-4 grid grid-cols-4 gap-3">
                   <div
@@ -1947,7 +1947,7 @@ export default function DashboardPage() {
                   </div>
                   <div
                     className="rounded-xl p-3"
-                    style={{ background: "#f9faf2", border: "1px solid #d8e0d0" }}
+                    style={{ background: "#F8FAFC", border: "1px solid #1F2A3F" }}
                   >
                     <div className="text-[10px] font-bold text-verdant-muted">בפרישה צפוי</div>
                     <div className="tabular text-lg font-extrabold text-verdant-ink">
@@ -1967,14 +1967,14 @@ export default function DashboardPage() {
                   </div>
                   <div
                     className="rounded-xl p-3"
-                    style={{ background: "#f9faf2", border: "1px solid #d8e0d0" }}
+                    style={{ background: "#F8FAFC", border: "1px solid #1F2A3F" }}
                   >
                     <div className="text-[10px] font-bold text-verdant-muted">
                       פער ממוצע (לכל תקופת פרישה)
                     </div>
                     <div
                       className="tabular text-lg font-extrabold"
-                      style={{ color: incomeResult.gapAverage > 0 ? "#8B2E2E" : "#1B4332" }}
+                      style={{ color: incomeResult.gapAverage > 0 ? "#8B2E2E" : "#A8E040" }}
                     >
                       {fmtILS(Math.round(Math.abs(incomeResult.gapAverage)))}
                     </div>
@@ -1984,7 +1984,7 @@ export default function DashboardPage() {
                       href={"/retirement" as any}
                       className="flex items-center justify-between rounded-xl px-4 py-3 transition-all"
                       style={{
-                        background: "linear-gradient(135deg,#012d1d,#1B4332)",
+                        background: "linear-gradient(135deg,#F8FAFC,#A8E040)",
                         color: "#fff",
                       }}
                     >
@@ -2048,9 +2048,9 @@ export default function DashboardPage() {
               // Status → botanical palette (no stray purple/blue — aligned with brand)
               const statusColor =
                 projection.status === "ahead"
-                  ? "#1B4332" // forest
+                  ? "#A8E040" // forest
                   : projection.status === "on_track"
-                    ? "#2B694D" // emerald
+                    ? "#4ADE80" // emerald
                     : projection.status === "behind"
                       ? "#B45309" // amber
                       : "#8B2E2E"; // deep red
@@ -2090,7 +2090,7 @@ export default function DashboardPage() {
                 <div
                   key={bucket.id}
                   className="flex items-center gap-5 rounded-2xl px-5 py-4 transition-all"
-                  style={{ background: "#D6EFDC", boxShadow: "0 1px 2px rgba(27,67,50,0.06)" }}
+                  style={{ background: "#A8E040", boxShadow: "0 1px 2px rgba(27,67,50,0.06)" }}
                 >
                   <div
                     className="icon-sm"
@@ -2161,7 +2161,7 @@ export default function DashboardPage() {
           <div className="mb-4 flex items-baseline justify-between">
             <h2 className="text-xl font-extrabold text-verdant-ink">תובנות פרואקטיביות</h2>
             {totalAnnualOpportunity(insights) > 0 && (
-              <span className="tabular text-[11px] font-bold" style={{ color: "#2B694D" }}>
+              <span className="tabular text-[11px] font-bold" style={{ color: "#4ADE80" }}>
                 הזדמנות שנתית כוללת: {fmtILS(totalAnnualOpportunity(insights))}
               </span>
             )}
@@ -2174,8 +2174,8 @@ export default function DashboardPage() {
                   : ins.severity === "warning"
                     ? "#d97706"
                     : ins.severity === "opportunity"
-                      ? "#2B694D"
-                      : "#1B4332";
+                      ? "#4ADE80"
+                      : "#A8E040";
               return (
                 <Link
                   key={ins.id}
