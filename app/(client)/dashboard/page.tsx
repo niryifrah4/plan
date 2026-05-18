@@ -234,6 +234,30 @@ export default function DashboardPage() {
         doReload();
       });
     };
+    // Reference-stable setter — only updates state when the value's JSON
+    // form has actually changed. Uses the functional setState form so we
+    // see the LATEST committed state (the closure-captured state is stale,
+    // it only refreshes when the effect re-runs on clientId change).
+    //
+    // Why this matters: 17 event listeners all trigger reload, and each
+    // load*() helper returns a NEW object every time (same data, different
+    // reference). Without this guard, every storage event invalidates the
+    // trajectory useMemo (which loops 50 years × 12 months) and forces a
+    // full re-render even when nothing has actually changed. (2026-05-18.)
+    const stableSet = <T,>(
+      setter: (updater: (prev: T) => T) => void,
+      next: T
+    ) => {
+      setter((prev) => {
+        try {
+          if (JSON.stringify(prev) === JSON.stringify(next)) return prev;
+        } catch {
+          /* fall through */
+        }
+        return next;
+      });
+    };
+
     const doReload = () => {
       // 2026-05-18 perf: read assumptions ONCE and pass through (previously
       // loaded twice — once for setAssumptions and again 20 lines later for
@@ -241,10 +265,10 @@ export default function DashboardPage() {
       // reload, of which we get ~17 different events triggering).
       const a = loadAssumptions();
       setRealLiab(getTotalLiabilities());
-      setAssumptions(a);
-      setReProperties(loadProperties());
-      setPensionFunds(loadPensionFunds());
-      setAccounts(loadAccounts());
+      stableSet(setAssumptions, a);
+      stableSet(setReProperties, loadProperties());
+      stableSet(setPensionFunds, loadPensionFunds());
+      stableSet(setAccounts, loadAccounts());
       setSecuritiesTotal(totalSecuritiesValue(loadSecurities()));
       setKidsSavingsTotal(loadKidsSavings().reduce((sum, k) => sum + k.currentBalance, 0));
 
