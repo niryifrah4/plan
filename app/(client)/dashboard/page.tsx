@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { fmtILS, fmtPct } from "@/lib/format";
 import { savingsRate as calcSavingsRate } from "@/lib/financial-math";
@@ -47,7 +48,14 @@ import type { Assumptions } from "@/lib/assumptions";
 import { AssetDonut } from "@/components/charts/AssetDonut";
 import { buildLifeCoverage } from "@/lib/life-coverage";
 import { useClient } from "@/lib/client-context";
-import { MacroPanel } from "@/components/MacroPanel";
+// MacroPanel makes its own network call to fetch BoI rates and renders
+// a chart — fully below-fold-ish on the dashboard and not part of the
+// "answer in 3 seconds" promise. Lazy-load it so it doesn't block the
+// initial paint.
+const MacroPanel = dynamic(
+  () => import("@/components/MacroPanel").then((m) => m.MacroPanel),
+  { ssr: false, loading: () => null }
+);
 import { buildNudges, type Nudge } from "@/lib/benchmark-advice";
 import {
   syncGoalsToDepositPlans,
@@ -56,7 +64,12 @@ import {
   currentMonthKey,
   DEPOSITS_EVENT,
 } from "@/lib/deposits-store";
-import { DepositsWidget } from "@/components/DepositsWidget";
+// DepositsWidget is its own data-driven section in the middle of the
+// dashboard — lazy-load it so the hero + cashflow card render first.
+const DepositsWidget = dynamic(
+  () => import("@/components/DepositsWidget").then((m) => m.DepositsWidget),
+  { ssr: false, loading: () => null }
+);
 import { scopedKey } from "@/lib/client-scope";
 import { SCOPE_COLORS, effectiveScope, type Scope } from "@/lib/scope-types";
 
@@ -222,8 +235,13 @@ export default function DashboardPage() {
       });
     };
     const doReload = () => {
+      // 2026-05-18 perf: read assumptions ONCE and pass through (previously
+      // loaded twice — once for setAssumptions and again 20 lines later for
+      // the cashflow calculation, doubling the localStorage IO on every
+      // reload, of which we get ~17 different events triggering).
+      const a = loadAssumptions();
       setRealLiab(getTotalLiabilities());
-      setAssumptions(loadAssumptions());
+      setAssumptions(a);
       setReProperties(loadProperties());
       setPensionFunds(loadPensionFunds());
       setAccounts(loadAccounts());
@@ -240,10 +258,9 @@ export default function DashboardPage() {
       // Proactive tax/cashflow insights
       setInsights(loadProactiveInsights());
 
-      // Recompute current-month cashflow from budget store + assumptions
+      // Recompute current-month cashflow from budget store + assumptions.
       const lines = buildBudgetLines(0);
       const totals = totalBudget(lines);
-      const a = loadAssumptions();
       // Live income from the budget (salary + passive + manual); falls back to
       // assumptions only if the budget has no income rows yet.
       const income = deriveMonthlyIncomeFromBudget(a.monthlyIncome || 0);
