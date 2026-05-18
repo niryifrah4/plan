@@ -113,14 +113,14 @@ function MetricBox({ label, value, accent }: { label: string; value: string; acc
   return (
     <div
       className="v-divider rounded-lg border p-3 text-right"
-      style={accent ? { background: "#1B433211", borderColor: "#1B4332" } : undefined}
+      style={accent ? { background: "#A8E04011", borderColor: "#A8E040" } : undefined}
     >
       <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
         {label}
       </div>
       <div
         className="tabular text-lg font-extrabold"
-        style={accent ? { color: "#1B4332" } : undefined}
+        style={accent ? { color: "#A8E040" } : undefined}
       >
         {value}
       </div>

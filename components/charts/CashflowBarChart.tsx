@@ -45,14 +45,14 @@ export function CashflowBarChart({ data, height = 420 }: Props) {
           <CartesianGrid strokeDasharray="2 4" stroke="#eef2ea" vertical={false} />
           <XAxis
             dataKey="month"
-            tick={{ fontSize: 12, fontWeight: 800, fill: "#012d1d" }}
-            axisLine={{ stroke: "#d8e0d0" }}
+            tick={{ fontSize: 12, fontWeight: 800, fill: "#F8FAFC" }}
+            axisLine={{ stroke: "#1F2A3F" }}
             tickLine={false}
             reversed /* RTL */
           />
           <YAxis
-            tick={{ fontSize: 11, fill: "#5a7a6a", fontWeight: 700 }}
-            axisLine={{ stroke: "#d8e0d0" }}
+            tick={{ fontSize: 11, fill: "#94A3B8", fontWeight: 700 }}
+            axisLine={{ stroke: "#1F2A3F" }}
             tickLine={false}
             tickFormatter={fmtK}
             orientation="right"
@@ -61,7 +61,7 @@ export function CashflowBarChart({ data, height = 420 }: Props) {
             formatter={(v: number) => fmtILS(v)}
             contentStyle={{
               background: "#fff",
-              border: "1px solid #d8e0d0",
+              border: "1px solid #1F2A3F",
               borderRadius: 8,
               fontFamily: "Assistant",
               fontWeight: 700,
@@ -71,7 +71,7 @@ export function CashflowBarChart({ data, height = 420 }: Props) {
             verticalAlign="bottom"
             height={32}
             formatter={(v) => (
-              <span style={{ color: "#012d1d", fontWeight: 700, fontSize: 12 }}>{v}</span>
+              <span style={{ color: "#F8FAFC", fontWeight: 700, fontSize: 12 }}>{v}</span>
             )}
           />
           <Bar
@@ -110,7 +110,7 @@ export function CashflowBarChart({ data, height = 420 }: Props) {
               dataKey="gap"
               position="top"
               formatter={(v: number) => fmtILS(v)}
-              style={{ fontSize: 10, fontWeight: 800, fill: "#012d1d" }}
+              style={{ fontSize: 10, fontWeight: 800, fill: "#F8FAFC" }}
             />
           </Bar>
         </BarChart>

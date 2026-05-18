@@ -34,17 +34,17 @@ interface Props {
    theme on charts with many slices. Order is deliberate: adjacent
    indices stay visually distinct so back-to-back categories don't blend. */
 export const BUDGET_PIE_COLORS = [
-  "#012D1D", // deep forest
-  "#2B694D", // mid forest
+  "#F8FAFC", // deep forest
+  "#4ADE80", // mid forest
   "#A57F2C", // amber-olive
-  "#1B4332", // forest
-  "#5a7a6a", // muted sage
+  "#A8E040", // forest
+  "#94A3B8", // muted sage
   "#34d399", // mint
   "#B45309", // warm amber
-  "#1e6b3a", // pine
+  "#4ADE80", // pine
   "#94A3B8", // slate (cool neutral — only one in the rotation)
   "#7A9684", // dusty sage
-  "#C1ECD4", // light leaf
+  "#A8E040", // light leaf
   "#6b7280", // neutral graphite
 ];
 
@@ -127,28 +127,28 @@ export default function BudgetPie({
     <section
       className="relative mb-4 overflow-hidden rounded-2xl p-5 md:p-7"
       style={{
-        background: "#f9faf2",
-        border: "1px solid #e2e8d8",
+        background: "#F8FAFC",
+        border: "1px solid #1F2A3F",
         boxShadow: "none",
       }}
     >
       <div
         className="absolute left-0 right-0 top-0 h-1"
-        style={{ background: "linear-gradient(90deg, #1B4332 0%, #2B694D 100%)" }}
+        style={{ background: "linear-gradient(90deg, #A8E040 0%, #4ADE80 100%)" }}
       />
 
       <div className="mb-4 flex items-start gap-3">
         <div
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-          style={{ background: "#1B433215", color: "#1B4332" }}
+          style={{ background: "#A8E04015", color: "#A8E040" }}
         >
           <span className="material-symbols-outlined text-[20px]">donut_large</span>
         </div>
         <div>
-          <div className="text-base font-extrabold" style={{ color: "#012d1d" }}>
+          <div className="text-base font-extrabold" style={{ color: "#F8FAFC" }}>
             {title}
           </div>
-          <div className="mt-0.5 text-[11px] font-semibold" style={{ color: "#5a7a6a" }}>
+          <div className="mt-0.5 text-[11px] font-semibold" style={{ color: "#94A3B8" }}>
             {subtitle ??
               (mode === "actual"
                 ? "כמה יצא באחוז על כל קטגוריה — בפועל"
@@ -160,20 +160,20 @@ export default function BudgetPie({
       {total <= 0 ? (
         <div
           className="rounded-xl bg-white py-10 text-center"
-          style={{ border: "1px dashed #e2e8d8" }}
+          style={{ border: "1px dashed #1F2A3F" }}
         >
-          <span className="material-symbols-outlined text-[36px]" style={{ color: "#5a7a6a" }}>
+          <span className="material-symbols-outlined text-[36px]" style={{ color: "#94A3B8" }}>
             pie_chart
           </span>
-          <div className="mt-2 text-[13px] font-bold" style={{ color: "#012d1d" }}>
+          <div className="mt-2 text-[13px] font-bold" style={{ color: "#F8FAFC" }}>
             אין עדיין הוצאות להצגה
           </div>
-          <div className="mt-1 text-[11px]" style={{ color: "#5a7a6a" }}>
+          <div className="mt-1 text-[11px]" style={{ color: "#94A3B8" }}>
             הזן סכומים בשורות התקציב כדי לראות פיזור אחוזי
           </div>
         </div>
       ) : (
-        <div className="rounded-xl bg-white p-4" style={{ border: "1px solid #eef2e8" }}>
+        <div className="rounded-xl bg-white p-4" style={{ border: "1px solid #1F2A3F" }}>
           <div className="flex flex-wrap items-center gap-5 md:flex-nowrap">
             {/* ── Donut SVG ── */}
             <div className="relative shrink-0" style={{ width: 260, height: 260 }}>
@@ -197,7 +197,7 @@ export default function BudgetPie({
                       d={arcPath(CX, CY, rOut, R_IN, seg.startAngle, seg.endAngle)}
                       fill={seg.color}
                       opacity={hoverIdx === null || isHover ? 1 : 0.35}
-                      stroke="#ffffff"
+                      stroke="#131C2E"
                       strokeWidth="2"
                       style={{ cursor: "pointer", transition: "all 0.15s ease-out" }}
                       onMouseEnter={() => setHoverIdx(i)}
@@ -220,13 +220,13 @@ export default function BudgetPie({
                     </div>
                     <div
                       className="mt-1 text-[28px] font-extrabold tabular-nums leading-none"
-                      style={{ color: "#012d1d" }}
+                      style={{ color: "#F8FAFC" }}
                     >
                       {hovered.pct.toFixed(1)}%
                     </div>
                     <div
                       className="mt-1 text-[11px] font-bold tabular-nums"
-                      style={{ color: "#5a7a6a" }}
+                      style={{ color: "#94A3B8" }}
                     >
                       {fmtILS(hovered.value)}
                     </div>
@@ -235,17 +235,17 @@ export default function BudgetPie({
                   <>
                     <div
                       className="text-[10px] font-bold uppercase tracking-[0.12em]"
-                      style={{ color: "#5a7a6a" }}
+                      style={{ color: "#94A3B8" }}
                     >
                       סך הכל
                     </div>
                     <div
                       className="mt-1 text-[24px] font-extrabold tabular-nums leading-none"
-                      style={{ color: "#012d1d" }}
+                      style={{ color: "#F8FAFC" }}
                     >
                       {fmtILS(total)}
                     </div>
-                    <div className="mt-1 text-[10px] font-bold" style={{ color: "#5a7a6a" }}>
+                    <div className="mt-1 text-[10px] font-bold" style={{ color: "#94A3B8" }}>
                       {cleaned.length} קטגוריות
                     </div>
                   </>
@@ -276,13 +276,13 @@ export default function BudgetPie({
                       />
                       <span
                         className="flex-1 truncate text-[12px] font-bold"
-                        style={{ color: "#012d1d" }}
+                        style={{ color: "#F8FAFC" }}
                       >
                         {seg.label}
                       </span>
                       <span
                         className="shrink-0 text-[11px] font-bold tabular-nums"
-                        style={{ color: "#5a7a6a" }}
+                        style={{ color: "#94A3B8" }}
                       >
                         {fmtILS(seg.value)}
                       </span>

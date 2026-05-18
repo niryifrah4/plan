@@ -21,14 +21,14 @@ export function KpiCard({
   icon = "trending_up",
   href,
   signed,
-  accent = "#1B4332",
+  accent = "#A8E040",
 }: KpiCardProps) {
   const body = (
     <Card
       className="relative overflow-hidden transition-all duration-300 hover:-translate-y-0.5"
       style={{
         minHeight: 168,
-        background: `linear-gradient(180deg, ${accent}08 0%, #ffffff 60%)`,
+        background: `linear-gradient(180deg, ${accent}08 0%, #131C2E 60%)`,
       }}
     >
       {/* Top accent bar */}

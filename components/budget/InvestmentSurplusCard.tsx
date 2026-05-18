@@ -96,21 +96,21 @@ export function InvestmentSurplusCard({ currentIncome, currentExpenses }: Props)
     <section
       className="mb-6 rounded-2xl p-5"
       style={{
-        background: positive ? "#eef7f1" : "#fffbea",
-        border: `1px solid ${positive ? "#c9e3d4" : "#fde68a"}`,
+        background: positive ? "#1A2438" : "#fffbea",
+        border: `1px solid ${positive ? "#1F2A3F" : "#fde68a"}`,
       }}
     >
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <div
             className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.18em]"
-            style={{ color: positive ? "#1B4332" : "#92400E" }}
+            style={{ color: positive ? "#A8E040" : "#92400E" }}
           >
             תזרים פנוי להשקעות
           </div>
           <h3
             className="text-base font-extrabold"
-            style={{ color: positive ? "#012D1D" : "#78350F" }}
+            style={{ color: positive ? "#F8FAFC" : "#78350F" }}
           >
             {positive
               ? "כמה אני יכול לקחת להשקעות"
@@ -120,7 +120,7 @@ export function InvestmentSurplusCard({ currentIncome, currentExpenses }: Props)
         <Link
           href="/goals"
           className="text-[11px] font-bold underline-offset-2 hover:underline"
-          style={{ color: positive ? "#1B4332" : "#92400E" }}
+          style={{ color: positive ? "#A8E040" : "#92400E" }}
         >
           לכוון ליעדים →
         </Link>
@@ -132,7 +132,7 @@ export function InvestmentSurplusCard({ currentIncome, currentExpenses }: Props)
           <div className="mb-1 text-[11px] font-bold text-verdant-muted">החודש</div>
           <div
             className="text-[22px] font-extrabold tabular-nums leading-tight"
-            style={{ color: positive ? "#1B4332" : "#991B1B" }}
+            style={{ color: positive ? "#A8E040" : "#FCA5A5" }}
           >
             {summary.currentSurplus >= 0 ? "+" : ""}
             {fmtILS(summary.currentSurplus)}
@@ -146,14 +146,14 @@ export function InvestmentSurplusCard({ currentIncome, currentExpenses }: Props)
         {forecast.length > 0 && (
           <div
             className="border-r pr-4"
-            style={{ borderColor: positive ? "#c9e3d4" : "#fde68a" }}
+            style={{ borderColor: positive ? "#1F2A3F" : "#fde68a" }}
           >
             <div className="mb-1 text-[11px] font-bold text-verdant-muted">
               ממוצע 12 חודשים קדימה
             </div>
             <div
               className="text-[22px] font-extrabold tabular-nums leading-tight"
-              style={{ color: summary.annualizedSurplus >= 0 ? "#1B4332" : "#991B1B" }}
+              style={{ color: summary.annualizedSurplus >= 0 ? "#A8E040" : "#FCA5A5" }}
             >
               {summary.annualizedSurplus >= 0 ? "+" : ""}
               {fmtILS(summary.annualizedSurplus)}/ח׳
@@ -174,12 +174,12 @@ export function InvestmentSurplusCard({ currentIncome, currentExpenses }: Props)
         {forecast.length > 0 && summary.peakSurplus > summary.currentSurplus && (
           <div
             className="border-r pr-4"
-            style={{ borderColor: positive ? "#c9e3d4" : "#fde68a" }}
+            style={{ borderColor: positive ? "#1F2A3F" : "#fde68a" }}
           >
             <div className="mb-1 text-[11px] font-bold text-verdant-muted">חודש השיא</div>
             <div
               className="text-[22px] font-extrabold tabular-nums leading-tight"
-              style={{ color: "#1B4332" }}
+              style={{ color: "#A8E040" }}
             >
               +{fmtILS(summary.peakSurplus)}
             </div>
@@ -192,9 +192,9 @@ export function InvestmentSurplusCard({ currentIncome, currentExpenses }: Props)
         <div
           className="mt-4 rounded-xl px-3 py-2 text-[12px] leading-relaxed"
           style={{
-            background: "#ffffff",
-            border: `1px solid ${positive ? "#c9e3d4" : "#fde68a"}`,
-            color: "#012D1D",
+            background: "#131C2E",
+            border: `1px solid ${positive ? "#1F2A3F" : "#fde68a"}`,
+            color: "#F8FAFC",
           }}
         >
           <span className="font-extrabold">

@@ -45,17 +45,17 @@ const ASSET_GROUPS: Record<string, { label: string; icon: string; color: string;
   investments: {
     label: "ניירות ערך ותיק השקעות",
     icon: "candlestick_chart",
-    color: "#1B4332",
+    color: "#A8E040",
     href: "/investments",
   },
-  pension: { label: "פנסיוני ארוך טווח", icon: "elderly", color: "#1a6b42", href: "/pension" },
-  realestate: { label: "נדל״ן", icon: "home", color: "#125c38", href: "/realestate" },
+  pension: { label: "פנסיוני ארוך טווח", icon: "elderly", color: "#4ADE80", href: "/pension" },
+  realestate: { label: "נדל״ן", icon: "home", color: "#4ADE80", href: "/realestate" },
   kids: { label: "חיסכון לכל ילד", icon: "child_care", color: "#6366f1", href: "" },
-  other: { label: "רכב ונכסים נוספים", icon: "directions_car", color: "#2B694D", href: "" },
+  other: { label: "רכב ונכסים נוספים", icon: "directions_car", color: "#4ADE80", href: "" },
 };
 const LIAB_GROUPS: Record<string, { label: string; icon: string; color: string; href: string }> = {
-  mortgage: { label: "משכנתא", icon: "home_work", color: "#7f1d1d", href: "/debt" },
-  loans: { label: "הלוואות", icon: "credit_score", color: "#b91c1c", href: "/debt" },
+  mortgage: { label: "משכנתא", icon: "home_work", color: "#F87171", href: "/debt" },
+  loans: { label: "הלוואות", icon: "credit_score", color: "#F87171", href: "/debt" },
   cc: { label: "אשראי ותשלומים", icon: "credit_card", color: "#ef4444", href: "/debt" },
 };
 
@@ -398,8 +398,8 @@ export function WealthTab() {
     [allocationBreakdown]
   );
 
-  const severityColors = { warn: "#b91c1c", good: "#1B4332", info: "#1d4ed8" };
-  const severityBg = { warn: "#fef2f2", good: "#f0fdf4", info: "#eff6ff" };
+  const severityColors = { warn: "#F87171", good: "#A8E040", info: "#1d4ed8" };
+  const severityBg = { warn: "#fef2f2", good: "#1A2438", info: "#1A2438" };
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -510,7 +510,7 @@ export function WealthTab() {
                 .map((s) => (
                   <div
                     key={s.id}
-                    className="group flex items-center justify-between rounded px-2 py-1.5 transition-colors hover:bg-[#f4f7ed]"
+                    className="group flex items-center justify-between rounded px-2 py-1.5 transition-colors hover:bg-[#1A2438]"
                   >
                     <div className="flex items-center gap-3">
                       <span className="tabular text-xs font-bold text-verdant-ink">
@@ -604,7 +604,7 @@ export function WealthTab() {
         const totalSlices = [
           { key: "equity", label: "מניות", value: penEquity + secStocks, color: "#7C2D12" },
           { key: "bonds", label: "אג״ח", value: penBonds + secBonds, color: "#1E3A8A" },
-          { key: "re", label: "נדל״ן", value: reEquity, color: "#1B4332" },
+          { key: "re", label: "נדל״ן", value: reEquity, color: "#A8E040" },
           { key: "cash", label: "מזומן נזיל", value: cashTotal, color: "#0F766E" },
           { key: "pen_cash", label: "פנסיוני שמרני", value: penCash, color: "#5b8b78" },
           { key: "alt", label: "אלטרנטיבי", value: penAlt + secOther, color: "#6B21A8" },
@@ -760,7 +760,7 @@ export function WealthTab() {
       {/* ===== Liabilities Summary Cards — Drill Down ===== */}
       <section className="mb-6">
         <div className="mb-3 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px]" style={{ color: "#b91c1c" }}>
+          <span className="material-symbols-outlined text-[18px]" style={{ color: "#F87171" }}>
             credit_score
           </span>
           <h2 className="text-sm font-extrabold text-verdant-ink">התחייבויות לפי קטגוריה</h2>
@@ -827,9 +827,9 @@ export function WealthTab() {
           <div className="flex items-center gap-3">
             <div
               className="flex h-10 w-10 items-center justify-center rounded-lg"
-              style={{ background: "#2B694D15" }}
+              style={{ background: "#4ADE8015" }}
             >
-              <span className="material-symbols-outlined text-[22px]" style={{ color: "#2B694D" }}>
+              <span className="material-symbols-outlined text-[22px]" style={{ color: "#4ADE80" }}>
                 account_balance_wallet
               </span>
             </div>
@@ -846,7 +846,7 @@ export function WealthTab() {
           </div>
           <div className="flex items-center gap-4">
             <div className="text-left">
-              <div className="tabular text-2xl font-extrabold" style={{ color: "#2B694D" }}>
+              <div className="tabular text-2xl font-extrabold" style={{ color: "#4ADE80" }}>
                 {fmtILS(liquidTotal)}
               </div>
               <div className="mt-0.5 text-[11px] text-verdant-muted">פירוט מלא בלשונית חשבונות</div>
@@ -863,7 +863,7 @@ export function WealthTab() {
         <div className="flex items-start gap-4">
           <div
             className="icon-sm flex-shrink-0"
-            style={{ background: "rgba(193,236,212,0.18)", color: "#C1ECD4" }}
+            style={{ background: "rgba(193,236,212,0.18)", color: "#A8E040" }}
           >
             <span className="material-symbols-outlined text-[20px]">insights</span>
           </div>
@@ -922,7 +922,7 @@ function WealthDonut({ data }: { data: { label: string; pct: number; color: stri
             />
           );
         })}
-        <circle cx={cx} cy={cy} r="28" fill="#f9faf2" />
+        <circle cx={cx} cy={cy} r="28" fill="#F8FAFC" />
       </svg>
       <div className="mt-2 space-y-0.5">
         {data.map((d, i) => (

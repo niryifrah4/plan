@@ -117,7 +117,7 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
   return (
     <section
       className="rounded-2xl p-5"
-      style={{ background: "#fff", border: "1px solid #e8e9e1" }}
+      style={{ background: "#fff", border: "1px solid #1F2A3F" }}
     >
       <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-verdant-muted">
         סימולטור
@@ -130,7 +130,7 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
         איזו עסקה תשחרר הכי הרבה תזרים חודשי בכל שקל מושקע.
       </p>
 
-      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl bg-[#F4F7ED] px-4 py-3">
+      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl bg-[#1A2438] px-4 py-3">
         <label className="flex items-center gap-2 text-[12px] font-bold text-verdant-ink">
           סכום פנוי
           <input
@@ -140,7 +140,7 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
             onChange={(e) => setCapitalStr(e.target.value)}
             placeholder="לדוגמה 5,000"
             className="w-32 rounded-md border bg-white px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
-            style={{ borderColor: "#d8e0d0" }}
+            style={{ borderColor: "#1F2A3F" }}
             dir="ltr"
           />
           <span className="text-verdant-muted">₪</span>
@@ -155,7 +155,7 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
       {options.length === 0 ? (
         <div
           className="rounded-xl px-4 py-6 text-center text-[12px]"
-          style={{ background: "#F4F7ED", border: "1px dashed #d8e0d0", color: "#5a7a6a" }}
+          style={{ background: "#1A2438", border: "1px dashed #1F2A3F", color: "#94A3B8" }}
         >
           אין עסקאות פתוחות שאפשר לסגור — הזינו הלוואות ועסקאות תשלומים למעלה.
         </div>
@@ -172,16 +172,16 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
                 className="block w-full rounded-xl px-4 py-3 text-right transition-all"
                 style={{
                   background: isSelected
-                    ? "#eef7f1"
+                    ? "#1A2438"
                     : disabled
-                      ? "#f9faf2"
+                      ? "#F8FAFC"
                       : "#fff",
                   border: `1px solid ${
                     isSelected
-                      ? "#1B4332"
+                      ? "#A8E040"
                       : disabled
-                        ? "#eef2e8"
-                        : "#d8e0d0"
+                        ? "#1F2A3F"
+                        : "#1F2A3F"
                   }`,
                   opacity: disabled ? 0.55 : 1,
                   cursor: disabled ? "not-allowed" : "pointer",
@@ -193,8 +193,8 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
                       <span
                         className="rounded-full px-2 py-0.5 text-[10px] font-extrabold"
                         style={{
-                          background: opt.kind === "loan" ? "#fef2f2" : "#eff6ff",
-                          color: opt.kind === "loan" ? "#991B1B" : "#1d4ed8",
+                          background: opt.kind === "loan" ? "#fef2f2" : "#1A2438",
+                          color: opt.kind === "loan" ? "#FCA5A5" : "#1d4ed8",
                         }}
                       >
                         {opt.kind === "loan" ? "הלוואה" : "תשלומים"}
@@ -211,7 +211,7 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
                   <div className="text-left">
                     <div
                       className="text-[16px] font-extrabold tabular-nums"
-                      style={{ color: "#1B4332" }}
+                      style={{ color: "#A8E040" }}
                     >
                       +{fmtILS(opt.monthlyRelief)}/ח׳
                     </div>
@@ -224,33 +224,33 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
                 {isSelected && (
                   <div
                     className="mt-3 grid grid-cols-2 gap-3 rounded-lg p-3 text-[12px] md:grid-cols-4"
-                    style={{ background: "#fff", border: "1px solid #c9e3d4" }}
+                    style={{ background: "#fff", border: "1px solid #1F2A3F" }}
                   >
                     <ScenarioStat
                       label="עלות סגירה"
                       value={fmtILS(opt.costToClose)}
-                      color="#012D1D"
+                      color="#F8FAFC"
                     />
                     <ScenarioStat
                       label="הקלה חודשית"
                       value={`+${fmtILS(opt.monthlyRelief)}`}
-                      color="#1B4332"
+                      color="#A8E040"
                     />
                     <ScenarioStat
                       label="זמן עד שמחזירים"
                       value={`${Math.ceil(opt.costToClose / Math.max(1, opt.monthlyRelief))} חודשים`}
-                      color="#1B4332"
+                      color="#A8E040"
                       sub="אם מפנים את ההקלה לחזרה לחיסכון"
                     />
                     <ScenarioStat
                       label="תשואה שנתית מוערכת"
                       value={`${(opt.annualizedRoi * 100).toFixed(1)}%`}
-                      color="#1B4332"
+                      color="#A8E040"
                       sub="הקלה × 12 ÷ עלות סגירה"
                     />
                     <div
                       className="col-span-2 md:col-span-4 mt-1 border-t pt-2 text-[12px] leading-relaxed text-verdant-ink"
-                      style={{ borderColor: "#c9e3d4" }}
+                      style={{ borderColor: "#1F2A3F" }}
                     >
                       <span className="font-extrabold">לפני: </span>
                       החזר חודשי כולל {fmtILS(currentMonthlyService)} · <br />

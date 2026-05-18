@@ -184,12 +184,12 @@ export function MonthlyCheckIn({ open, onClose, onDone }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="border-b px-8 pb-5 pt-7" style={{ borderColor: "#eef2e8" }}>
+        <div className="border-b px-8 pb-5 pt-7" style={{ borderColor: "#1F2A3F" }}>
           <div className="flex items-start justify-between gap-4">
             <div>
               <div
                 className="text-[10px] font-bold uppercase tracking-[0.25em]"
-                style={{ color: "#1B4332" }}
+                style={{ color: "#A8E040" }}
               >
                 Check-in · רגע של כנות
               </div>
@@ -231,7 +231,7 @@ export function MonthlyCheckIn({ open, onClose, onDone }: Props) {
                   className="rounded-xl p-4"
                   style={{
                     background: "#fff",
-                    border: "1px solid #eef2e8",
+                    border: "1px solid #1F2A3F",
                     borderRight: `4px solid ${b.color}`,
                   }}
                 >
@@ -261,7 +261,7 @@ export function MonthlyCheckIn({ open, onClose, onDone }: Props) {
                         key: "full" as Choice,
                         label: "הפקדתי הכל",
                         icon: "check_circle",
-                        color: "#1B4332",
+                        color: "#A8E040",
                       },
                       {
                         key: "partial" as Choice,
@@ -269,7 +269,7 @@ export function MonthlyCheckIn({ open, onClose, onDone }: Props) {
                         icon: "adjust",
                         color: "#f59e0b",
                       },
-                      { key: "skip" as Choice, label: "דילגתי", icon: "cancel", color: "#b91c1c" },
+                      { key: "skip" as Choice, label: "דילגתי", icon: "cancel", color: "#F87171" },
                     ].map((opt) => {
                       const active = row.choice === opt.key;
                       return (
@@ -280,7 +280,7 @@ export function MonthlyCheckIn({ open, onClose, onDone }: Props) {
                           style={{
                             background: active ? `${opt.color}14` : "#f8faf6",
                             color: active ? opt.color : "#6b7a72",
-                            border: active ? `1px solid ${opt.color}40` : "1px solid #eef2e8",
+                            border: active ? `1px solid ${opt.color}40` : "1px solid #1F2A3F",
                           }}
                         >
                           <span className="material-symbols-outlined text-[16px]">{opt.icon}</span>
@@ -300,7 +300,7 @@ export function MonthlyCheckIn({ open, onClose, onDone }: Props) {
                           value={row.partialAmount}
                           onChange={(e) => updateRow(b.id, { partialAmount: e.target.value })}
                           className="tabular w-full rounded-lg px-3 py-2 pr-7 text-[13px] font-bold text-verdant-ink"
-                          style={{ background: "#f8faf6", border: "1px solid #eef2e8" }}
+                          style={{ background: "#f8faf6", border: "1px solid #1F2A3F" }}
                           placeholder="0"
                         />
                         <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] font-bold text-verdant-muted">
@@ -319,7 +319,7 @@ export function MonthlyCheckIn({ open, onClose, onDone }: Props) {
         {buckets.length > 0 && (
           <div
             className="flex items-center justify-between gap-4 border-t px-8 py-5"
-            style={{ borderColor: "#eef2e8", background: "#f8faf6" }}
+            style={{ borderColor: "#1F2A3F", background: "#f8faf6" }}
           >
             <div>
               <div className="text-[10px] font-bold uppercase tracking-wide text-verdant-muted">
@@ -331,7 +331,7 @@ export function MonthlyCheckIn({ open, onClose, onDone }: Props) {
                 </div>
                 <div
                   className="tabular text-[11px] font-bold"
-                  style={{ color: deltaFromPlan >= 0 ? "#1B4332" : "#b91c1c" }}
+                  style={{ color: deltaFromPlan >= 0 ? "#A8E040" : "#F87171" }}
                 >
                   {deltaFromPlan >= 0 ? "+" : ""}
                   {fmtILS(deltaFromPlan)} מול תכנון

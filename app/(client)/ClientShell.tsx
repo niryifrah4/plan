@@ -92,8 +92,8 @@ export function ClientShell({
       <header
         className="fixed inset-x-0 top-0 z-20 flex h-14 items-center justify-between px-4 md:hidden"
         style={{
-          background: "#012D1D",
-          color: "#F9FAF2",
+          background: "#F8FAFC",
+          color: "#F8FAFC",
           borderBottom: "1px solid rgba(255,255,255,0.06)",
         }}
         dir="rtl"

@@ -39,8 +39,8 @@ export function CompoundCalc() {
             onClick={() => setShowReal(!showReal)}
             className="flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold transition-colors"
             style={{
-              background: showReal ? "#1B433212" : "#1B433212",
-              color: showReal ? "#1B4332" : "#1B4332",
+              background: showReal ? "#A8E04012" : "#A8E04012",
+              color: showReal ? "#A8E040" : "#A8E040",
             }}
           >
             <span className="material-symbols-outlined text-[12px]">swap_horiz</span>
@@ -96,7 +96,7 @@ export function CompoundCalc() {
         <h3 className="mb-4 text-right text-lg font-extrabold text-verdant-ink">
           תוצאות{" "}
           {showReal && (
-            <span className="text-xs font-bold" style={{ color: "#1B4332" }}>
+            <span className="text-xs font-bold" style={{ color: "#A8E040" }}>
               (ערכים ריאליים)
             </span>
           )}
@@ -112,15 +112,15 @@ export function CompoundCalc() {
             <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
               {showReal ? "ריבית ריאלית" : "ריבית מצטברת"}
             </div>
-            <div className="tabular text-xl font-extrabold" style={{ color: "#1B4332" }}>
+            <div className="tabular text-xl font-extrabold" style={{ color: "#A8E040" }}>
               {fmtILS(interest)}
             </div>
           </div>
           <div
             className="rounded-lg p-4 text-right"
             style={{
-              background: showReal ? "#1B433208" : "#1B433211",
-              border: `1px solid ${showReal ? "#1B4332" : "#1B4332"}`,
+              background: showReal ? "#A8E04008" : "#A8E04011",
+              border: `1px solid ${showReal ? "#A8E040" : "#A8E040"}`,
             }}
           >
             <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
@@ -128,7 +128,7 @@ export function CompoundCalc() {
             </div>
             <div
               className="tabular text-2xl font-extrabold"
-              style={{ color: showReal ? "#1B4332" : "#1B4332" }}
+              style={{ color: showReal ? "#A8E040" : "#A8E040" }}
             >
               {fmtILS(fv)}
             </div>

@@ -148,7 +148,7 @@ export default function PlanPage() {
             onClick={exportToExcel}
             disabled={entries.length === 0}
             className="flex items-center justify-center gap-2 rounded-2xl bg-white p-4 transition-all disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ border: "1px solid #eef2e8", color: "#1B4332" }}
+            style={{ border: "1px solid #1F2A3F", color: "#A8E040" }}
           >
             <span className="material-symbols-outlined text-[20px]">download</span>
             <span className="text-sm font-extrabold">ייצוא ל-Excel</span>
@@ -161,7 +161,7 @@ export default function PlanPage() {
             <button
               onClick={() => setComposerOpen(true)}
               className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-sm font-bold transition-all"
-              style={{ background: "#012D1D", color: "#F9FAF2" }}
+              style={{ background: "#F8FAFC", color: "#F8FAFC" }}
             >
               <span className="material-symbols-outlined text-[20px]">add_circle</span>
               רשומה חדשה
@@ -169,16 +169,16 @@ export default function PlanPage() {
           ) : (
             <div
               className="space-y-4 rounded-2xl p-5"
-              style={{ background: "#fff", border: "2px solid #1B433233" }}
+              style={{ background: "#fff", border: "2px solid #A8E04033" }}
             >
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-extrabold" style={{ color: "#012D1D" }}>
+                <h3 className="text-base font-extrabold" style={{ color: "#F8FAFC" }}>
                   רשומה חדשה
                 </h3>
                 <button
                   onClick={() => setComposerOpen(false)}
                   className="text-xs font-bold"
-                  style={{ color: "#5a7a6a" }}
+                  style={{ color: "#94A3B8" }}
                 >
                   ביטול
                 </button>
@@ -196,7 +196,7 @@ export default function PlanPage() {
                       className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-[12px] font-bold transition-all"
                       style={{
                         background: active ? meta.color : `${meta.color}12`,
-                        color: active ? "#F9FAF2" : meta.color,
+                        color: active ? "#F8FAFC" : meta.color,
                         border: active ? `1px solid ${meta.color}` : `1px solid ${meta.color}30`,
                       }}
                     >
@@ -209,7 +209,7 @@ export default function PlanPage() {
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div className="md:col-span-2">
-                  <label className="mb-1 block text-[10px] font-bold" style={{ color: "#5a7a6a" }}>
+                  <label className="mb-1 block text-[10px] font-bold" style={{ color: "#94A3B8" }}>
                     כותרת
                   </label>
                   <input
@@ -226,11 +226,11 @@ export default function PlanPage() {
                             : "למשל: הערה למפגש הבא"
                     }
                     className="w-full rounded-lg border px-3 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-verdant-accent/30"
-                    style={{ borderColor: "#d8e0d0", background: "#fff", color: "#012D1D" }}
+                    style={{ borderColor: "#1F2A3F", background: "#fff", color: "#F8FAFC" }}
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[10px] font-bold" style={{ color: "#5a7a6a" }}>
+                  <label className="mb-1 block text-[10px] font-bold" style={{ color: "#94A3B8" }}>
                     תאריך
                   </label>
                   <input
@@ -238,13 +238,13 @@ export default function PlanPage() {
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
                     className="w-full rounded-lg border px-3 py-2.5 text-sm font-semibold outline-none"
-                    style={{ borderColor: "#d8e0d0", background: "#fff", color: "#012D1D" }}
+                    style={{ borderColor: "#1F2A3F", background: "#fff", color: "#F8FAFC" }}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="mb-1 block text-[10px] font-bold" style={{ color: "#5a7a6a" }}>
+                <label className="mb-1 block text-[10px] font-bold" style={{ color: "#94A3B8" }}>
                   פרטים (אופציונלי)
                 </label>
                 <textarea
@@ -253,7 +253,7 @@ export default function PlanPage() {
                   rows={4}
                   placeholder="על מה דיברתם, איך הרגשת, מה החלטתם..."
                   className="w-full resize-none rounded-lg border px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-verdant-accent/30"
-                  style={{ borderColor: "#d8e0d0", background: "#fff", color: "#012D1D" }}
+                  style={{ borderColor: "#1F2A3F", background: "#fff", color: "#F8FAFC" }}
                 />
               </div>
 
@@ -262,7 +262,7 @@ export default function PlanPage() {
                   onClick={handleAdd}
                   disabled={!title.trim()}
                   className="rounded-xl px-5 py-2.5 text-sm font-bold transition-all disabled:opacity-40"
-                  style={{ background: "#1B4332", color: "#F9FAF2" }}
+                  style={{ background: "#A8E040", color: "#F8FAFC" }}
                 >
                   שמור רשומה
                 </button>
@@ -279,7 +279,7 @@ export default function PlanPage() {
             active={filter === "all"}
             onClick={() => setFilter("all")}
             count={entries.length}
-            color="#012D1D"
+            color="#F8FAFC"
           />
           {(Object.keys(LOG_TYPE_META) as LogEntryType[]).map((t) => {
             const meta = LOG_TYPE_META[t];
@@ -303,7 +303,7 @@ export default function PlanPage() {
           {filtered.length === 0 ? (
             <div
               className="rounded-2xl py-16 text-center"
-              style={{ background: "#fff", border: "1px dashed #d8e0d0" }}
+              style={{ background: "#fff", border: "1px dashed #1F2A3F" }}
             >
               <span
                 className="material-symbols-outlined mb-3 block text-[48px]"
@@ -311,10 +311,10 @@ export default function PlanPage() {
               >
                 auto_stories
               </span>
-              <div className="mb-1 text-sm font-bold" style={{ color: "#012D1D" }}>
+              <div className="mb-1 text-sm font-bold" style={{ color: "#F8FAFC" }}>
                 היומן ריק
               </div>
-              <div className="text-xs" style={{ color: "#5a7a6a" }}>
+              <div className="text-xs" style={{ color: "#94A3B8" }}>
                 לחץ על "רשומה חדשה" כדי לתעד את הפגישה הראשונה
               </div>
             </div>
@@ -358,26 +358,26 @@ function StatCard({
       className="flex items-center justify-between rounded-2xl px-5 py-4"
       style={{
         background: highlight ? "#fffbeb" : "#fff",
-        border: `1px solid ${highlight ? "#f59e0b33" : "#d8e0d0"}`,
+        border: `1px solid ${highlight ? "#f59e0b33" : "#1F2A3F"}`,
       }}
     >
       <div>
         <div
           className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em]"
-          style={{ color: "#5a7a6a" }}
+          style={{ color: "#94A3B8" }}
         >
           {label}
         </div>
         <div
           className="text-2xl font-extrabold tabular-nums"
-          style={{ color: highlight ? "#b45309" : "#012D1D" }}
+          style={{ color: highlight ? "#b45309" : "#F8FAFC" }}
         >
           {value}
         </div>
       </div>
       <span
         className="material-symbols-outlined text-[24px]"
-        style={{ color: highlight ? "#b45309" : "#1B4332", opacity: 0.7 }}
+        style={{ color: highlight ? "#b45309" : "#A8E040", opacity: 0.7 }}
       >
         {icon}
       </span>
@@ -406,7 +406,7 @@ function FilterChip({
       className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-bold transition-all"
       style={{
         background: active ? color : `${color}12`,
-        color: active ? "#F9FAF2" : color,
+        color: active ? "#F8FAFC" : color,
         border: `1px solid ${active ? color : `${color}30`}`,
       }}
     >
@@ -461,7 +461,7 @@ function EntryCard({
             aria-label={entry.done ? "סמן כלא בוצע" : "סמן כבוצע"}
           >
             {entry.done && (
-              <span className="material-symbols-outlined text-[16px]" style={{ color: "#F9FAF2" }}>
+              <span className="material-symbols-outlined text-[16px]" style={{ color: "#F8FAFC" }}>
                 check
               </span>
             )}
@@ -486,13 +486,13 @@ function EntryCard({
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
                 className="flex-1 rounded border px-2 py-1 text-sm font-bold outline-none"
-                style={{ borderColor: meta.color, color: "#012D1D" }}
+                style={{ borderColor: meta.color, color: "#F8FAFC" }}
               />
             ) : (
               <div
                 className="flex-1 text-sm font-extrabold"
                 style={{
-                  color: "#012D1D",
+                  color: "#F8FAFC",
                   textDecoration: entry.type === "task" && entry.done ? "line-through" : "none",
                 }}
               >
@@ -501,7 +501,7 @@ function EntryCard({
             )}
             <div
               className="flex-shrink-0 text-[10px] font-bold tabular-nums"
-              style={{ color: "#5a7a6a" }}
+              style={{ color: "#94A3B8" }}
             >
               {formatDateHe(entry.entryDate)}
             </div>
@@ -522,7 +522,7 @@ function EntryCard({
               onChange={(e) => setEditBody(e.target.value)}
               rows={3}
               className="mb-2 w-full resize-none rounded border px-2 py-1.5 text-sm outline-none"
-              style={{ borderColor: "#d8e0d0", color: "#012D1D" }}
+              style={{ borderColor: "#1F2A3F", color: "#F8FAFC" }}
             />
           ) : (
             entry.body && (
@@ -543,7 +543,7 @@ function EntryCard({
               <button
                 onClick={handleSave}
                 className="rounded px-2 py-1 text-xs font-bold"
-                style={{ background: meta.color, color: "#F9FAF2" }}
+                style={{ background: meta.color, color: "#F8FAFC" }}
               >
                 שמור
               </button>
@@ -554,7 +554,7 @@ function EntryCard({
                   setEditBody(entry.body ?? "");
                 }}
                 className="rounded px-2 py-1 text-xs font-bold"
-                style={{ color: "#5a7a6a" }}
+                style={{ color: "#94A3B8" }}
               >
                 בטל
               </button>
@@ -568,7 +568,7 @@ function EntryCard({
               >
                 <span
                   className="material-symbols-outlined text-[16px]"
-                  style={{ color: "#5a7a6a" }}
+                  style={{ color: "#94A3B8" }}
                 >
                   edit
                 </span>
@@ -580,7 +580,7 @@ function EntryCard({
               >
                 <span
                   className="material-symbols-outlined text-[16px]"
-                  style={{ color: "#b91c1c" }}
+                  style={{ color: "#F87171" }}
                 >
                   delete
                 </span>

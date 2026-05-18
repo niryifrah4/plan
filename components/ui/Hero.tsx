@@ -45,17 +45,17 @@ export interface HeroProps {
 }
 
 const TONE_BG: Record<HeroTone, string> = {
-  forest: "linear-gradient(135deg, #012D1D 0%, #1B4332 100%)",
-  emerald: "linear-gradient(135deg, #1B4332 0%, #2B694D 100%)",
+  forest: "linear-gradient(135deg, #F8FAFC 0%, #A8E040 100%)",
+  emerald: "linear-gradient(135deg, #A8E040 0%, #4ADE80 100%)",
   danger: "linear-gradient(135deg, #4A0E0E 0%, #7A1818 100%)",
-  muted: "linear-gradient(135deg, #1B4332 0%, #5C6058 100%)",
+  muted: "linear-gradient(135deg, #A8E040 0%, #94A3B8 100%)",
 };
 
 export function Hero({ eyebrow, value, sub, action, tone = "forest", centered = true }: HeroProps) {
   return (
     <section
       className={`mb-4 rounded-3xl px-6 py-7 md:px-10 md:py-9 ${centered ? "text-center" : "text-right"}`}
-      style={{ background: TONE_BG[tone], color: "#F9FAF2" }}
+      style={{ background: TONE_BG[tone], color: "#F8FAFC" }}
       dir="rtl"
     >
       <div className={action ? "flex flex-wrap items-center gap-6" : ""}>
@@ -71,7 +71,7 @@ export function Hero({ eyebrow, value, sub, action, tone = "forest", centered = 
             style={{
               fontSize: "clamp(2.5rem, 7vw, 4rem)",
               letterSpacing: "-0.02em",
-              color: "#FFFFFF",
+              color: "#131C2E",
             }}
           >
             {value}

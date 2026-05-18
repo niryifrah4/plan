@@ -142,7 +142,7 @@ export function RefinanceSimulator({ track, onClose }: Props) {
                 step={0.1}
                 value={newRate}
                 onChange={(e) => setNewRate(parseFloat(e.target.value))}
-                className="h-1.5 w-full accent-[#1B4332]"
+                className="h-1.5 w-full accent-[#A8E040]"
               />
               <div className="mt-0.5 text-[10px] text-verdant-muted">
                 ריבית נוכחית: {baseRatePct.toFixed(2)}% ·{" "}
@@ -164,7 +164,7 @@ export function RefinanceSimulator({ track, onClose }: Props) {
                 step={5000}
                 value={prepay}
                 onChange={(e) => setPrepay(parseInt(e.target.value))}
-                className="h-1.5 w-full accent-[#1B4332]"
+                className="h-1.5 w-full accent-[#A8E040]"
               />
               <div className="mt-0.5 text-[10px] text-verdant-muted">
                 סכום שאתה משלם היום מתוך כסף נזיל
@@ -186,7 +186,7 @@ export function RefinanceSimulator({ track, onClose }: Props) {
                 step={12}
                 value={newMonths}
                 onChange={(e) => setNewMonths(parseInt(e.target.value))}
-                className="h-1.5 w-full accent-[#1B4332]"
+                className="h-1.5 w-full accent-[#A8E040]"
               />
               <div className="mt-0.5 text-[10px] text-verdant-muted">
                 תקופה נוכחית: {Math.round(baseMonths / 12)} שנים. הארכת התקופה תוריד את ההחזר
@@ -209,7 +209,7 @@ export function RefinanceSimulator({ track, onClose }: Props) {
                 step={100}
                 value={refiFee}
                 onChange={(e) => setRefiFee(parseInt(e.target.value))}
-                className="h-1.5 w-full accent-[#1B4332]"
+                className="h-1.5 w-full accent-[#A8E040]"
               />
               <div className="mt-0.5 text-[10px] text-verdant-muted">
                 בנקים בישראל גובים בד״כ ₪500-2,500. ערך ברירת מחדל: ₪1,500.
@@ -241,10 +241,10 @@ export function RefinanceSimulator({ track, onClose }: Props) {
               className="rounded-xl px-4 py-3"
               style={{ background: "#FEE2E2", border: "1px solid #FCA5A5" }}
             >
-              <div className="text-[12px] font-bold" style={{ color: "#991B1B" }}>
+              <div className="text-[12px] font-bold" style={{ color: "#FCA5A5" }}>
                 אין נקודת איזון — ההחזר החודשי לא יורד
               </div>
-              <div className="mt-0.5 text-[11px]" style={{ color: "#7F1D1D" }}>
+              <div className="mt-0.5 text-[11px]" style={{ color: "#F87171" }}>
                 המיחזור הזה לא מקטין את ההחזר החודשי, רק מאריך את התקופה. עמלת המיחזור לא תכוסה.
               </div>
             </div>
@@ -287,7 +287,7 @@ export function RefinanceSimulator({ track, onClose }: Props) {
           <button
             onClick={onClose}
             className="rounded-lg px-4 py-2 text-[13px] font-bold"
-            style={{ background: "#1B4332", color: "#fff" }}
+            style={{ background: "#A8E040", color: "#fff" }}
           >
             סגור
           </button>
@@ -319,28 +319,28 @@ function ScenarioCard({
     <div
       className="rounded-xl p-4"
       style={{
-        background: highlight ? "linear-gradient(135deg, #1B4332 0%, #012D1D 100%)" : "#fff",
-        color: highlight ? "#F9FAF2" : "#012D1D",
-        border: highlight ? "none" : "1px solid #eef2e8",
+        background: highlight ? "linear-gradient(135deg, #A8E040 0%, #F8FAFC 100%)" : "#fff",
+        color: highlight ? "#F8FAFC" : "#F8FAFC",
+        border: highlight ? "none" : "1px solid #1F2A3F",
         opacity: dim ? 0.5 : 1,
       }}
     >
       <div
         className="mb-2 text-[10px] font-bold uppercase tracking-[0.15em]"
-        style={{ color: highlight ? "rgba(255,255,255,0.7)" : "#5a7a6a" }}
+        style={{ color: highlight ? "rgba(255,255,255,0.7)" : "#94A3B8" }}
       >
         {title}
       </div>
       <div
         className="mb-1 text-[11px] font-medium"
-        style={{ color: highlight ? "rgba(255,255,255,0.85)" : "#5a7a6a" }}
+        style={{ color: highlight ? "rgba(255,255,255,0.85)" : "#94A3B8" }}
       >
         חיסכון כולל
       </div>
       <div
         className="mb-2 text-2xl font-extrabold tabular-nums leading-none"
         style={{
-          color: highlight ? "#C1ECD4" : positive ? "#1B4332" : "#8B2E2E",
+          color: highlight ? "#A8E040" : positive ? "#A8E040" : "#8B2E2E",
           fontFamily: "Manrope, Assistant, sans-serif",
         }}
       >
@@ -348,7 +348,7 @@ function ScenarioCard({
       </div>
       <div
         className="space-y-0.5 text-[11px]"
-        style={{ color: highlight ? "rgba(255,255,255,0.85)" : "#5a7a6a" }}
+        style={{ color: highlight ? "rgba(255,255,255,0.85)" : "#94A3B8" }}
       >
         <div>
           החזר חודשי: <strong>{fmtILS(Math.round(monthly))}</strong>
@@ -361,8 +361,8 @@ function ScenarioCard({
         <div
           className="mt-2 border-t pt-2 text-[10px] font-medium"
           style={{
-            color: highlight ? "rgba(255,255,255,0.7)" : "#5a7a6a",
-            borderColor: highlight ? "rgba(255,255,255,0.15)" : "#eef2e8",
+            color: highlight ? "rgba(255,255,255,0.7)" : "#94A3B8",
+            borderColor: highlight ? "rgba(255,255,255,0.15)" : "#1F2A3F",
           }}
         >
           {extra}

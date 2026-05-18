@@ -348,7 +348,7 @@ export default function OnboardingPage() {
         <div className="mb-2 flex items-center justify-end">
           <div
             className="flex items-center gap-2 text-[11px] font-semibold"
-            style={{ color: saveStatus === "saved" ? "#2B694D" : "#5a7a6a" }}
+            style={{ color: saveStatus === "saved" ? "#4ADE80" : "#94A3B8" }}
           >
             <span className="material-symbols-outlined text-[16px]">
               {saveStatus === "saving" ? "cloud_sync" : "cloud_done"}
@@ -380,8 +380,8 @@ export default function OnboardingPage() {
                   <div
                     className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-extrabold transition-all"
                     style={{
-                      background: done ? "#2B694D" : active ? "#012d1d" : "#eef2e8",
-                      color: done || active ? "#fff" : "#5a7a6a",
+                      background: done ? "#4ADE80" : active ? "#F8FAFC" : "#1F2A3F",
+                      color: done || active ? "#fff" : "#94A3B8",
                     }}
                   >
                     {done ? (
@@ -401,11 +401,11 @@ export default function OnboardingPage() {
           </div>
           <div
             className="h-1.5 w-full overflow-hidden rounded-full"
-            style={{ background: "#eef2e8" }}
+            style={{ background: "#1F2A3F" }}
           >
             <div
               className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${((step - 1) / (TOTAL_STEPS - 1)) * 100}%`, background: "#2B694D" }}
+              style={{ width: `${((step - 1) / (TOTAL_STEPS - 1)) * 100}%`, background: "#4ADE80" }}
             />
           </div>
         </div>
@@ -681,7 +681,7 @@ export default function OnboardingPage() {
                             </label>
                             <div
                               className="flex gap-1 rounded-xl p-0.5"
-                              style={{ background: "#eef2e8" }}
+                              style={{ background: "#1F2A3F" }}
                             >
                               <button
                                 type="button"
@@ -692,12 +692,12 @@ export default function OnboardingPage() {
                                 style={{
                                   background:
                                     (Number(c.savings_parent_deposit) || 0) > 0
-                                      ? "#2B694D"
+                                      ? "#4ADE80"
                                       : "transparent",
                                   color:
                                     (Number(c.savings_parent_deposit) || 0) > 0
-                                      ? "#F9FAF2"
-                                      : "#5C6058",
+                                      ? "#F8FAFC"
+                                      : "#94A3B8",
                                 }}
                               >
                                 כן
@@ -709,12 +709,12 @@ export default function OnboardingPage() {
                                 style={{
                                   background:
                                     (Number(c.savings_parent_deposit) || 0) === 0
-                                      ? "#2B694D"
+                                      ? "#4ADE80"
                                       : "transparent",
                                   color:
                                     (Number(c.savings_parent_deposit) || 0) === 0
-                                      ? "#F9FAF2"
-                                      : "#5C6058",
+                                      ? "#F8FAFC"
+                                      : "#94A3B8",
                                 }}
                               >
                                 לא
@@ -864,7 +864,7 @@ export default function OnboardingPage() {
                 ))}
                 <li
                   className="flex items-center justify-between border-t-2 px-3 py-2"
-                  style={{ background: "#f4f8f0", borderColor: "#c9e3d4" }}
+                  style={{ background: "#f4f8f0", borderColor: "#1F2A3F" }}
                 >
                   <span className="text-[12px] font-bold text-verdant-ink">
                     סה&quot;כ הכנסות חודשיות
@@ -877,7 +877,7 @@ export default function OnboardingPage() {
             </div>
 
             {/* Gross salary breakdown — feeds salary-engine (tax & pension calculators) */}
-            <details className="mb-4 rounded-xl border border-verdant-line bg-[#f9faf2] p-3">
+            <details className="mb-4 rounded-xl border border-verdant-line bg-[#F8FAFC] p-3">
               <summary className="flex cursor-pointer select-none items-center gap-2 text-[11px] font-bold text-verdant-muted">
                 <span className="material-symbols-outlined text-[14px]">tune</span>
                 פירוט שכר ברוטו (אופציונלי — לדיוק חישובי המס)
@@ -941,7 +941,7 @@ export default function OnboardingPage() {
              * מייצר נתון מזויף שמתחרה עם הנתון האמיתי מהמיפוי. */}
             <div
               className="mb-3 mt-6 flex items-start gap-2 rounded-xl p-3"
-              style={{ background: "#eef7f1", border: "1px solid #c9e3d4" }}
+              style={{ background: "#1A2438", border: "1px solid #1F2A3F" }}
             >
               <span className="material-symbols-outlined mt-0.5 text-[18px] text-verdant-emerald">
                 info
@@ -1014,7 +1014,7 @@ export default function OnboardingPage() {
                 }
                 onRemove={(i) => setAssets((p) => p.filter((_, j) => j !== i))}
                 footer={
-                  <tr className="v-divider border-t" style={{ background: "#eef7f1" }}>
+                  <tr className="v-divider border-t" style={{ background: "#1A2438" }}>
                     <td colSpan={2} className="px-3 py-2 text-xs font-bold text-verdant-ink">
                       סה&quot;כ נכסים
                     </td>
@@ -1075,7 +1075,7 @@ export default function OnboardingPage() {
                       <div
                         key={`rent-${i}`}
                         className="rounded-xl p-3"
-                        style={{ background: "#f9faf2", border: "1px solid #e5e9dc" }}
+                        style={{ background: "#F8FAFC", border: "1px solid #e5e9dc" }}
                       >
                         <div className="mb-2 text-[12px] font-extrabold text-verdant-ink">
                           {a.desc || "נכס ללא שם"} {a.value ? `· ${fmt(Number(a.value))}` : ""}
@@ -1236,7 +1236,7 @@ export default function OnboardingPage() {
               />
               <div
                 className="mt-3 flex items-start gap-2 rounded-xl p-3"
-                style={{ background: "#eef7f1", border: "1px solid #c9e3d4" }}
+                style={{ background: "#1A2438", border: "1px solid #1F2A3F" }}
               >
                 <span className="material-symbols-outlined mt-0.5 text-[18px] text-verdant-emerald">
                   info
@@ -1292,7 +1292,7 @@ export default function OnboardingPage() {
             </div>
             <div className="card mb-6 overflow-hidden" style={{ borderRadius: 8 }}>
               <table className="w-full text-sm">
-                <thead className="v-divider border-b" style={{ background: "#f9faf2" }}>
+                <thead className="v-divider border-b" style={{ background: "#F8FAFC" }}>
                   <tr className="text-right">
                     <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
                       סוג כיסוי
@@ -1606,7 +1606,7 @@ export default function OnboardingPage() {
 
             <div
               className="mb-4 flex items-start gap-2 rounded-xl p-3"
-              style={{ background: "#eef7f1", border: "1px solid #c9e3d4" }}
+              style={{ background: "#1A2438", border: "1px solid #1F2A3F" }}
             >
               <span className="material-symbols-outlined mt-0.5 text-[18px] text-verdant-emerald">
                 info
@@ -1710,7 +1710,7 @@ function StepCard({
 }) {
   return (
     <section className="card overflow-hidden">
-      <div className="px-5 py-4 text-white" style={{ background: "#012d1d" }}>
+      <div className="px-5 py-4 text-white" style={{ background: "#F8FAFC" }}>
         <div className="flex items-center gap-3">
           <span className="material-symbols-outlined text-[20px] opacity-70">{icon}</span>
           <h2 className="text-base font-extrabold">{title}</h2>
@@ -1832,7 +1832,7 @@ function DynTable<T extends Record<string, string>>({
   return (
     <div className="card overflow-hidden" style={{ borderRadius: 8 }}>
       <table className="w-full text-sm">
-        <thead className="v-divider border-b" style={{ background: "#f9faf2" }}>
+        <thead className="v-divider border-b" style={{ background: "#F8FAFC" }}>
           <tr className="text-right">
             {headers.map((h) => (
               <th

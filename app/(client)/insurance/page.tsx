@@ -24,7 +24,7 @@ const STATUS_CONFIG: Record<
   CoverageStatus,
   { label: string; color: string; bg: string; icon: string }
 > = {
-  covered: { label: "מכוסה", color: "#2B694D", bg: "#ecfdf5", icon: "check_circle" },
+  covered: { label: "מכוסה", color: "#4ADE80", bg: "#ecfdf5", icon: "check_circle" },
   partial: { label: "חלקי", color: "#f59e0b", bg: "#fffbeb", icon: "warning" },
   missing: { label: "חסר", color: "#ef4444", bg: "#fef2f2", icon: "cancel" },
   not_relevant: { label: "לא רלוונטי", color: "#94a3b8", bg: "#f8fafc", icon: "do_not_disturb_on" },
@@ -116,7 +116,7 @@ export default function RiskManagementPage() {
           value={`${pct}%`}
           icon="verified"
           tone="forest"
-          bg={pct >= 80 ? "#012D1D" : pct >= 50 ? "#B45309" : "#8B2E2E"}
+          bg={pct >= 80 ? "#F8FAFC" : pct >= 50 ? "#B45309" : "#8B2E2E"}
           sub={pct >= 80 ? "כיסוי מלא" : pct >= 50 ? "פערים חלקיים" : "פערים מהותיים"}
         />
         <SolidKpi label="מכוסים" value={String(stats.covered)} icon="check_circle" tone="emerald" />
@@ -224,7 +224,7 @@ function CategoryCard({
   onAdd,
 }: CategoryCardProps) {
   const catPct = Math.round(stats.coveragePct * 100);
-  const barColor = catPct >= 80 ? "#2B694D" : catPct >= 50 ? "#f59e0b" : "#ef4444";
+  const barColor = catPct >= 80 ? "#4ADE80" : catPct >= 50 ? "#f59e0b" : "#ef4444";
 
   return (
     <div className="card overflow-hidden">
@@ -249,7 +249,7 @@ function CategoryCard({
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
             {stats.covered > 0 && (
-              <span className="text-xs font-bold" style={{ color: "#2B694D" }}>
+              <span className="text-xs font-bold" style={{ color: "#4ADE80" }}>
                 {stats.covered}
                 <span className="material-symbols-outlined align-middle" style={{ fontSize: 14 }}>
                   check_circle
@@ -339,7 +339,7 @@ function CategoryCard({
                         {ri.coverageAmount ? (
                           <span
                             className="rounded px-1.5 py-0.5 text-[10px]"
-                            style={{ background: "#ecfdf5", color: "#2B694D" }}
+                            style={{ background: "#ecfdf5", color: "#4ADE80" }}
                           >
                             כיסוי: {fmtCurrency(ri.coverageAmount)}
                           </span>
@@ -347,7 +347,7 @@ function CategoryCard({
                         {ri.monthlyCost ? (
                           <span
                             className="rounded px-1.5 py-0.5 text-[10px]"
-                            style={{ background: "#eff6ff", color: "#3b82f6" }}
+                            style={{ background: "#1A2438", color: "#3b82f6" }}
                           >
                             {fmtCurrency(ri.monthlyCost)}/חודש
                           </span>

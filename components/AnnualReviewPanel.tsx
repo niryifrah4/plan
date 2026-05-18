@@ -51,7 +51,7 @@ export function AnnualReviewPanel() {
         <button
           onClick={() => setShowForm(true)}
           className="rounded-lg border px-3 py-1.5 text-[12px] font-bold"
-          style={{ background: "#F3F4EC", color: "#1B4332", borderColor: "#c9d3c0" }}
+          style={{ background: "#1A2438", color: "#A8E040", borderColor: "#c9d3c0" }}
         >
           + הוסף סיכום שנתי
         </button>
@@ -62,7 +62,7 @@ export function AnnualReviewPanel() {
         <div
           className="mb-3 rounded-xl p-4"
           style={{
-            background: verdict.totalSurplus > 0 ? "#f0fdf4" : "#fffbeb",
+            background: verdict.totalSurplus > 0 ? "#1A2438" : "#fffbeb",
             border: `1px solid ${verdict.totalSurplus > 0 ? "#86efac" : "#fcd34d"}`,
           }}
         >
@@ -163,7 +163,7 @@ function CompareCell({
 }) {
   const diff = actual - forecast;
   const positive = lowerIsBetter ? diff < 0 : diff > 0;
-  const color = diff === 0 ? "#5a7a6a" : positive ? "#1B4332" : "#8B2E2E";
+  const color = diff === 0 ? "#94A3B8" : positive ? "#A8E040" : "#8B2E2E";
   return (
     <div>
       <div className="text-[10px] font-bold text-verdant-muted">{label}</div>
@@ -260,12 +260,12 @@ function AnnualReviewForm({ onClose }: { onClose: () => void }) {
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
               className="w-full rounded-lg border px-3 py-2 text-sm"
-              style={{ borderColor: "#d8e0d0" }}
+              style={{ borderColor: "#1F2A3F" }}
             />
           </div>
           <div
             className="rounded-lg p-2.5 text-[11px]"
-            style={{ background: "#f4f7ed", color: "#5a7a6a" }}
+            style={{ background: "#1A2438", color: "#94A3B8" }}
           >
             <strong>תחזית מערכתית:</strong> הון {fmtILS(forecast.forecastNetWorth)} · הכנסה{" "}
             {fmtILS(forecast.forecastIncome)} · הוצאות {fmtILS(forecast.forecastExpenses)}
@@ -281,7 +281,7 @@ function AnnualReviewForm({ onClose }: { onClose: () => void }) {
           <button
             onClick={submit}
             className="rounded-lg px-4 py-2 text-[12px] font-bold"
-            style={{ background: "#1B4332", color: "#fff" }}
+            style={{ background: "#A8E040", color: "#fff" }}
           >
             שמור
           </button>
@@ -313,7 +313,7 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="w-full rounded-lg border px-3 py-2 text-sm tabular-nums"
-        style={{ borderColor: "#d8e0d0" }}
+        style={{ borderColor: "#1F2A3F" }}
       />
     </div>
   );

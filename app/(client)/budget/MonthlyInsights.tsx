@@ -518,7 +518,7 @@ export default function MonthlyInsights({ month, year, onApply }: Props) {
     <section
       className="mb-4 rounded-2xl p-5 transition-all md:p-7"
       style={{
-        background: "linear-gradient(135deg, #f0fdf4 0%, #f8fdf6 50%, #fefff9 100%)",
+        background: "linear-gradient(135deg, #1A2438 0%, #f8fdf6 50%, #fefff9 100%)",
         border: "1.5px solid #a7f3d0",
         boxShadow: "none",
       }}
@@ -538,13 +538,13 @@ export default function MonthlyInsights({ month, year, onApply }: Props) {
           <div>
             <h2
               className="text-[15px] font-extrabold leading-tight"
-              style={{ color: "#012d1d", fontFamily: "Assistant" }}
+              style={{ color: "#F8FAFC", fontFamily: "Assistant" }}
             >
               תובנות לתכנון {HE_MONTHS[month]}
             </h2>
             <div
               className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.15em]"
-              style={{ color: "#5a7a6a" }}
+              style={{ color: "#94A3B8" }}
             >
               תכנון חודשי · {year}
             </div>
@@ -555,7 +555,7 @@ export default function MonthlyInsights({ month, year, onApply }: Props) {
         <button
           onClick={() => setDismissed(true)}
           className="rounded-lg px-2 py-1 text-[11px] font-bold transition-colors hover:bg-white/60"
-          style={{ color: "#5a7a6a" }}
+          style={{ color: "#94A3B8" }}
           title="הסתר תובנות"
         >
           <span className="material-symbols-outlined text-[16px]">close</span>
@@ -579,7 +579,7 @@ export default function MonthlyInsights({ month, year, onApply }: Props) {
               <div className="min-w-0 flex-1">
                 <div
                   className="mb-1 text-[13px] font-extrabold"
-                  style={{ color: "#012d1d", fontFamily: "Assistant" }}
+                  style={{ color: "#F8FAFC", fontFamily: "Assistant" }}
                 >
                   {ins.title}
                 </div>
@@ -620,7 +620,7 @@ export default function MonthlyInsights({ month, year, onApply }: Props) {
           className="mt-4 flex items-center justify-between pt-3"
           style={{ borderTop: "1px solid #d1fae5" }}
         >
-          <div className="text-[11px] font-semibold" style={{ color: "#5a7a6a" }}>
+          <div className="text-[11px] font-semibold" style={{ color: "#94A3B8" }}>
             {allAdjustments.length} התאמות מוצעות לשדות התכנון
           </div>
           {applied ? (
@@ -636,7 +636,7 @@ export default function MonthlyInsights({ month, year, onApply }: Props) {
               onClick={handleApply}
               className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-[12px] font-extrabold text-white transition-all hover:scale-[1.02] active:scale-[0.98]"
               style={{
-                background: "linear-gradient(135deg, #1B4332, #065f46)",
+                background: "linear-gradient(135deg, #A8E040, #065f46)",
                 boxShadow: "0 2px 8px rgba(10,122,74,.25)",
               }}
             >

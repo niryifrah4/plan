@@ -47,7 +47,7 @@ const TRACK_COLORS: Record<string, string> = {
   low: "#3b82f6",
   medium: "#f59e0b",
   high: "#ef4444",
-  halacha: "#2B694D",
+  halacha: "#4ADE80",
 };
 
 /* ════════════════════════════════════════════════════════════
@@ -400,7 +400,7 @@ function EditKidPanel({
                     : "bg-white text-verdant-ink hover:bg-gray-100"
                 }`}
                 style={{
-                  borderColor: track === t.key ? TRACK_COLORS[t.key] : "#d8e0d0",
+                  borderColor: track === t.key ? TRACK_COLORS[t.key] : "#1F2A3F",
                   background: track === t.key ? TRACK_COLORS[t.key] : undefined,
                 }}
               >
@@ -731,7 +731,7 @@ function AddKidForm({
                     : "bg-white text-verdant-ink hover:bg-gray-100"
                 }`}
                 style={{
-                  borderColor: track === t.key ? TRACK_COLORS[t.key] : "#d8e0d0",
+                  borderColor: track === t.key ? TRACK_COLORS[t.key] : "#1F2A3F",
                   background: track === t.key ? TRACK_COLORS[t.key] : undefined,
                 }}
               >

@@ -115,7 +115,7 @@ export function RealEstateCalc() {
           <Metric
             label="תזרים חודשי נטו"
             value={fmtILS(result.monthlyCashflow)}
-            color={result.monthlyCashflow >= 0 ? "#1B4332" : "#b91c1c"}
+            color={result.monthlyCashflow >= 0 ? "#A8E040" : "#F87171"}
           />
         </div>
 
@@ -126,7 +126,7 @@ export function RealEstateCalc() {
           <Metric
             label="Cash-on-Cash"
             value={`${(result.cashOnCash * 100).toFixed(2)}%`}
-            color={result.cashOnCash >= 0 ? "#1B4332" : "#b91c1c"}
+            color={result.cashOnCash >= 0 ? "#A8E040" : "#F87171"}
           />
           <Metric label="תשואה ברוטו" value={`${(result.grossYield * 100).toFixed(2)}%`} />
           <Metric label="תשואה נטו" value={`${(result.netYield * 100).toFixed(2)}%`} />
@@ -140,7 +140,7 @@ export function RealEstateCalc() {
           <Metric
             label="רווח כולל"
             value={fmtILS(result.totalProfit)}
-            color={result.totalProfit >= 0 ? "#1B4332" : "#b91c1c"}
+            color={result.totalProfit >= 0 ? "#A8E040" : "#F87171"}
           />
           <Metric label="מכפיל הון (EM)" value={`×${result.equityMultiple.toFixed(2)}`} />
         </div>
@@ -149,11 +149,11 @@ export function RealEstateCalc() {
 
         <div
           className="flex items-center justify-between rounded-lg p-4"
-          style={{ background: "#1B433211" }}
+          style={{ background: "#A8E04011" }}
         >
           <span
             className="tabular text-3xl font-extrabold"
-            style={{ color: result.irr >= 0 ? "#1B4332" : "#b91c1c" }}
+            style={{ color: result.irr >= 0 ? "#A8E040" : "#F87171" }}
           >
             {Number.isNaN(result.irr) ? "N/A" : `${(result.irr * 100).toFixed(2)}%`}
           </span>

@@ -106,8 +106,8 @@ export function PortfolioGrowthProjector({ currentValue }: Props) {
       <div
         className="mb-4 rounded-2xl py-4 text-center"
         style={{
-          background: "linear-gradient(135deg, #1B4332 0%, #012D1D 100%)",
-          color: "#F9FAF2",
+          background: "linear-gradient(135deg, #A8E040 0%, #F8FAFC 100%)",
+          color: "#F8FAFC",
         }}
       >
         <div
@@ -145,7 +145,7 @@ export function PortfolioGrowthProjector({ currentValue }: Props) {
                 className="w-full rounded-t transition-all"
                 style={{
                   height: `${Math.max(heightPct, 2)}%`,
-                  background: "#1B4332",
+                  background: "#A8E040",
                   opacity: 0.7 + (p.year / years) * 0.3,
                 }}
               />
@@ -210,7 +210,7 @@ function SliderField({
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="h-1.5 w-full accent-[#1B4332]"
+        className="h-1.5 w-full accent-[#A8E040]"
       />
     </div>
   );
@@ -218,13 +218,13 @@ function SliderField({
 
 function Stat({ label, value, positive }: { label: string; value: number; positive?: boolean }) {
   return (
-    <div className="rounded-xl bg-white p-3" style={{ border: "1px solid #eef2e8" }}>
+    <div className="rounded-xl bg-white p-3" style={{ border: "1px solid #1F2A3F" }}>
       <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
         {label}
       </div>
       <div
         className="text-base font-extrabold tabular-nums"
-        style={{ color: positive && value > 0 ? "#1B4332" : "#012D1D" }}
+        style={{ color: positive && value > 0 ? "#A8E040" : "#F8FAFC" }}
       >
         {positive && value > 0 ? "+" : ""}
         {fmtILS(value)}

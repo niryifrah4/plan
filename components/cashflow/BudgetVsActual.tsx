@@ -20,13 +20,13 @@ import {
 import { computeImpact, loadImpactGoals } from "@/lib/impact-engine";
 
 const STATUS_COLOR = {
-  safe: "#1B4332",
+  safe: "#A8E040",
   warning: "#b45309",
-  over: "#b91c1c",
+  over: "#F87171",
 };
 
 const STATUS_BG = {
-  safe: "#f0fdf4",
+  safe: "#1A2438",
   warning: "#fffbeb",
   over: "#fef2f2",
 };
@@ -57,7 +57,7 @@ export function BudgetVsActual() {
       className="rounded-2xl p-7"
       style={{
         background: "#fff",
-        border: "1px solid #d8e0d0",
+        border: "1px solid #1F2A3F",
         boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
       }}
     >
@@ -78,7 +78,7 @@ export function BudgetVsActual() {
           </div>
           <div
             className="tabular text-2xl font-extrabold"
-            style={{ color: totalPct >= 1 ? "#b91c1c" : totalPct >= 0.8 ? "#b45309" : "#1B4332" }}
+            style={{ color: totalPct >= 1 ? "#F87171" : totalPct >= 0.8 ? "#b45309" : "#A8E040" }}
           >
             {fmtILS(totals.actual)}
           </div>
@@ -92,7 +92,7 @@ export function BudgetVsActual() {
       <div className="mb-7">
         <div
           className="h-2.5 w-full overflow-hidden rounded-full"
-          style={{ background: "#eef2e8" }}
+          style={{ background: "#1F2A3F" }}
         >
           <div
             className="h-full rounded-full transition-all duration-700"
@@ -100,10 +100,10 @@ export function BudgetVsActual() {
               width: `${Math.min(100, totalPct * 100)}%`,
               background:
                 totalPct >= 1
-                  ? "linear-gradient(90deg,#b91c1c,#dc2626)"
+                  ? "linear-gradient(90deg,#F87171,#dc2626)"
                   : totalPct >= 0.8
                     ? "linear-gradient(90deg,#b45309,#f59e0b)"
-                    : "linear-gradient(90deg,#1B4332,#2B694D)",
+                    : "linear-gradient(90deg,#A8E040,#4ADE80)",
             }}
           />
         </div>
@@ -181,7 +181,7 @@ export function BudgetVsActual() {
                     <div className="text-[9px] uppercase tracking-[0.1em] text-verdant-muted">
                       נותר
                     </div>
-                    <div style={{ color: line.remaining >= 0 ? "#1B4332" : "#b91c1c" }}>
+                    <div style={{ color: line.remaining >= 0 ? "#A8E040" : "#F87171" }}>
                       {line.remaining >= 0
                         ? fmtILS(line.remaining)
                         : `-${fmtILS(Math.abs(line.remaining))}`}
@@ -193,7 +193,7 @@ export function BudgetVsActual() {
               {/* Progress bar */}
               <div
                 className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full"
-                style={{ background: "#ffffff80" }}
+                style={{ background: "#131C2E80" }}
               >
                 <div
                   className="h-full rounded-full transition-all duration-500"
@@ -221,10 +221,10 @@ export function BudgetVsActual() {
       {goals.length === 0 && (
         <div
           className="mt-5 rounded-xl p-3 text-center text-[11px] font-bold text-verdant-muted"
-          style={{ background: "#f9faf2" }}
+          style={{ background: "#F8FAFC" }}
         >
           הגדר יעדים ב-
-          <Link href={"/goals" as any} className="underline" style={{ color: "#1B4332" }}>
+          <Link href={"/goals" as any} className="underline" style={{ color: "#A8E040" }}>
             עמוד המטרות
           </Link>{" "}
           כדי לראות איך כל חריגה משפיעה על החלומות שלך

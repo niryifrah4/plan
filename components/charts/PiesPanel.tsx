@@ -121,7 +121,7 @@ function Donut({
           <div className="mb-3 flex items-center justify-center">
             <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
               {arcs.map((a, i) => (
-                <path key={i} d={a.d} fill={a.slice.color} stroke="#FFFFFF" strokeWidth={1.5} />
+                <path key={i} d={a.d} fill={a.slice.color} stroke="#131C2E" strokeWidth={1.5} />
               ))}
               {/* Center text — dominant slice % */}
               {dominant && (
@@ -131,7 +131,7 @@ function Donut({
                     y={cy - 4}
                     textAnchor="middle"
                     className="tabular font-extrabold"
-                    style={{ fontSize: compact ? 18 : 22, fill: "#012D1D" }}
+                    style={{ fontSize: compact ? 18 : 22, fill: "#F8FAFC" }}
                   >
                     {Math.round(dominant.pct)}%
                   </text>

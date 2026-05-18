@@ -68,14 +68,14 @@ export function GoalContextStrip({ domain, title }: Props) {
     <div
       className="relative mb-6 overflow-hidden rounded-2xl p-5"
       style={{
-        background: "linear-gradient(135deg,#012d1d 0%,#064e32 100%)",
+        background: "linear-gradient(135deg,#F8FAFC 0%,#064e32 100%)",
         color: "#fff",
       }}
     >
       <div
         className="absolute inset-0 opacity-[0.04]"
         style={{
-          backgroundImage: "radial-gradient(circle at 85% 20%, #2B694D 0%, transparent 60%)",
+          backgroundImage: "radial-gradient(circle at 85% 20%, #4ADE80 0%, transparent 60%)",
         }}
       />
       <div className="relative">
@@ -83,7 +83,7 @@ export function GoalContextStrip({ domain, title }: Props) {
           <div>
             <div
               className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em]"
-              style={{ color: "#2B694D" }}
+              style={{ color: "#4ADE80" }}
             >
               Wealth Architecture · הכלי ביחס לחיים
             </div>
@@ -96,7 +96,7 @@ export function GoalContextStrip({ domain, title }: Props) {
             className="whitespace-nowrap rounded-full px-3 py-1.5 text-[10px] font-bold transition-colors hover:bg-white/10"
             style={{
               background: "rgba(88,225,176,0.12)",
-              color: "#2B694D",
+              color: "#4ADE80",
               border: "1px solid rgba(88,225,176,0.25)",
             }}
           >
@@ -126,7 +126,7 @@ export function GoalContextStrip({ domain, title }: Props) {
                   >
                     <span
                       className="material-symbols-outlined text-[18px]"
-                      style={{ color: "#2B694D" }}
+                      style={{ color: "#4ADE80" }}
                     >
                       {g.icon}
                     </span>
@@ -150,7 +150,7 @@ export function GoalContextStrip({ domain, title }: Props) {
             <Link
               href={"/goals" as any}
               className="font-extrabold underline"
-              style={{ color: "#2B694D" }}
+              style={{ color: "#4ADE80" }}
             >
               הגדר יעדים
             </Link>{" "}

@@ -114,7 +114,7 @@ export function FundSimulationModal({ fund, onClose }: Props) {
         </div>
 
         {/* Results */}
-        <div className="v-divider border-t px-6 py-4" style={{ background: "#F9FAF2" }}>
+        <div className="v-divider border-t px-6 py-4" style={{ background: "#F8FAFC" }}>
           <div className="grid grid-cols-2 gap-4">
             <ResultCard
               label="צבירה צפויה בפרישה"
@@ -143,7 +143,7 @@ export function FundSimulationModal({ fund, onClose }: Props) {
           <button
             onClick={onClose}
             className="rounded-lg px-4 py-2 text-[12px] font-bold"
-            style={{ background: "#1B4332", color: "#fff" }}
+            style={{ background: "#A8E040", color: "#fff" }}
           >
             סגור
           </button>
@@ -187,7 +187,7 @@ function SliderRow({
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="h-1.5 w-full accent-[#1B4332]"
+        className="h-1.5 w-full accent-[#A8E040]"
       />
     </div>
   );
@@ -208,10 +208,10 @@ function ResultCard({
 }) {
   const positive = delta > 0;
   const negative = delta < 0;
-  const color = positive ? "#1B4332" : negative ? "#8B2E2E" : "#5a7a6a";
+  const color = positive ? "#A8E040" : negative ? "#8B2E2E" : "#94A3B8";
   const sign = positive ? "+" : "";
   return (
-    <div className="rounded-xl bg-white p-4" style={{ border: "1px solid #eef2e8" }}>
+    <div className="rounded-xl bg-white p-4" style={{ border: "1px solid #1F2A3F" }}>
       <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
         {label}
       </div>

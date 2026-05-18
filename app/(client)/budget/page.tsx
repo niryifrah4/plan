@@ -1446,9 +1446,9 @@ export default function BudgetPage() {
     if (!filteredBudget) return { slices: [], mode: "actual" as const };
     const sectionKeys = ["fixed", "variable", "business"] as const;
     const sectionColorBase: Record<string, string> = {
-      fixed: "#1B4332",
+      fixed: "#A8E040",
       variable: "#d97706",
-      business: "#1B4332",
+      business: "#A8E040",
     };
     type RawSlice = {
       label: string;
@@ -1492,7 +1492,7 @@ export default function BudgetPage() {
         <section
           className="mb-5 animate-pulse rounded-3xl p-8"
           style={{
-            background: "linear-gradient(135deg, #1B4332 0%, #012D1D 100%)",
+            background: "linear-gradient(135deg, #A8E040 0%, #F8FAFC 100%)",
             minHeight: 180,
           }}
         >
@@ -1550,8 +1550,8 @@ export default function BudgetPage() {
         // a wall of red. (2026-05-09 per ui-agent audit.)
         className="relative mb-6 overflow-hidden rounded-2xl"
         style={{
-          background: "#1B4332",
-          color: "#F9FAF2",
+          background: "#A8E040",
+          color: "#F8FAFC",
           padding: "20px 24px",
         }}
       >
@@ -1574,10 +1574,10 @@ export default function BudgetPage() {
                 value={month}
                 onChange={(e) => setMonth(Number(e.target.value))}
                 className="cursor-pointer border-none bg-transparent text-[14px] font-bold focus:outline-none"
-                style={{ color: "#F9FAF2" }}
+                style={{ color: "#F8FAFC" }}
               >
                 {HE_MONTHS.map((m, i) => (
-                  <option key={i} value={i} style={{ color: "#012d1d" }}>
+                  <option key={i} value={i} style={{ color: "#F8FAFC" }}>
                     {m}
                   </option>
                 ))}
@@ -1586,10 +1586,10 @@ export default function BudgetPage() {
                 value={year}
                 onChange={(e) => setYear(Number(e.target.value))}
                 className="cursor-pointer border-none bg-transparent text-[14px] font-bold focus:outline-none"
-                style={{ color: "#F9FAF2" }}
+                style={{ color: "#F8FAFC" }}
               >
                 {yearOptions.map((y) => (
-                  <option key={y} value={y} style={{ color: "#012d1d" }}>
+                  <option key={y} value={y} style={{ color: "#F8FAFC" }}>
                     {y}
                   </option>
                 ))}
@@ -1638,7 +1638,7 @@ export default function BudgetPage() {
             <div
               className="text-[34px] font-extrabold tabular-nums leading-none tracking-tight"
               style={{
-                color: balance >= 0 ? "#F9FAF2" : "#FECACA",
+                color: balance >= 0 ? "#F8FAFC" : "#FECACA",
                 fontFamily: "Manrope, Assistant, system-ui, sans-serif",
               }}
             >
@@ -1666,7 +1666,7 @@ export default function BudgetPage() {
               <div
                 className="mt-0.5 text-[22px] font-extrabold tabular-nums leading-none"
                 style={{
-                  color: dailyAllowance.overPace ? "#fecaca" : "#D6EFDC",
+                  color: dailyAllowance.overPace ? "#fecaca" : "#A8E040",
                   fontFamily: "Manrope, Assistant, system-ui, sans-serif",
                 }}
               >
@@ -1692,7 +1692,7 @@ export default function BudgetPage() {
       <div className="mb-6 flex justify-center">
         <div
           className="inline-flex rounded-full p-1"
-          style={{ background: "#f0f4ec", border: "1px solid #e2e8d8" }}
+          style={{ background: "#f0f4ec", border: "1px solid #1F2A3F" }}
         >
           {(
             [
@@ -1709,8 +1709,8 @@ export default function BudgetPage() {
                 onClick={() => setViewTab(tab.key)}
                 className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-bold transition-colors"
                 style={{
-                  background: active ? "#1B4332" : "transparent",
-                  color: active ? "#fff" : "#5a7a6a",
+                  background: active ? "#A8E040" : "transparent",
+                  color: active ? "#fff" : "#94A3B8",
                 }}
               >
                 <span className="material-symbols-outlined text-[16px]">{tab.icon}</span>
@@ -1766,7 +1766,7 @@ export default function BudgetPage() {
               <button
                 onClick={openImportPreview}
                 className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors hover:bg-[#e8efe2]"
-                style={{ background: "#f0f4ec", color: "#1B4332" }}
+                style={{ background: "#f0f4ec", color: "#A8E040" }}
                 title="ייבא תנועות מקובץ בנק/אשראי שהועלה"
               >
                 <span className="material-symbols-outlined text-[14px]">sync_alt</span>
@@ -1776,8 +1776,8 @@ export default function BudgetPage() {
                 onClick={() => setShowInsights((v) => !v)}
                 className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors"
                 style={{
-                  background: showInsights ? "#1B4332" : "transparent",
-                  color: showInsights ? "#fff" : "#5a7a6a",
+                  background: showInsights ? "#A8E040" : "transparent",
+                  color: showInsights ? "#fff" : "#94A3B8",
                 }}
               >
                 <span className="material-symbols-outlined text-[14px]">lightbulb</span>
@@ -1802,9 +1802,9 @@ export default function BudgetPage() {
                       onClick={() => setScopeFilter(tab.key)}
                       className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-all"
                       style={{
-                        background: active ? "#012d1d" : "transparent",
-                        color: active ? "#fff" : "#5a7a6a",
-                        border: active ? "1px solid #012d1d" : "1px solid #e2e8d8",
+                        background: active ? "#F8FAFC" : "transparent",
+                        color: active ? "#fff" : "#94A3B8",
+                        border: active ? "1px solid #F8FAFC" : "1px solid #1F2A3F",
                       }}
                     >
                       {tab.key === "business" && (
@@ -1830,9 +1830,9 @@ export default function BudgetPage() {
               onClick={() => setBusinessScopeOverride(!businessEnabled)}
               className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-all hover:bg-verdant-bg"
               style={{
-                color: businessEnabled ? "#012d1d" : "#5a7a6a",
-                border: `1px solid ${businessEnabled ? SCOPE_COLORS.business : "#d8e0d0"}`,
-                background: businessEnabled ? "#eff6ff" : "transparent",
+                color: businessEnabled ? "#F8FAFC" : "#94A3B8",
+                border: `1px solid ${businessEnabled ? SCOPE_COLORS.business : "#1F2A3F"}`,
+                background: businessEnabled ? "#1A2438" : "transparent",
               }}
               title={
                 businessEnabled
@@ -1877,23 +1877,23 @@ export default function BudgetPage() {
         >
           <div
             className="w-full max-w-lg rounded-organic p-6 shadow-soft"
-            style={{ background: "#ffffff" }}
+            style={{ background: "#131C2E" }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4">
               <div
                 className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.18em]"
-                style={{ color: "#5a7a6a" }}
+                style={{ color: "#94A3B8" }}
               >
                 ייבוא תנועות
               </div>
               <h2
                 className="text-[18px] font-extrabold tracking-tight"
-                style={{ color: "#012d1d" }}
+                style={{ color: "#F8FAFC" }}
               >
                 ייבוא תנועות לתקציב
               </h2>
-              <p className="mt-2 text-xs" style={{ color: "#5a7a6a" }}>
+              <p className="mt-2 text-xs" style={{ color: "#94A3B8" }}>
                 נמצאו {importPreview.summary.matched + importPreview.summary.unmatched} תנועות לחודש{" "}
                 {HE_MONTHS[month]} {year}
               </p>
@@ -1901,25 +1901,25 @@ export default function BudgetPage() {
 
             <div
               className="mb-4 max-h-72 overflow-y-auto rounded-lg p-3"
-              style={{ background: "#f0f4ec", border: "1px solid #e2e8d8" }}
+              style={{ background: "#f0f4ec", border: "1px solid #1F2A3F" }}
             >
               {importPreview.summary.byRow.length === 0 ? (
-                <div className="text-xs" style={{ color: "#5a7a6a" }}>
+                <div className="text-xs" style={{ color: "#94A3B8" }}>
                   אין תנועות לתצוגה.
                 </div>
               ) : (
                 <ul className="space-y-1.5">
                   {importPreview.summary.byRow.map((r, i) => (
                     <li key={i} className="flex items-center justify-between text-xs">
-                      <span className="truncate font-bold" style={{ color: "#012d1d" }}>
+                      <span className="truncate font-bold" style={{ color: "#F8FAFC" }}>
                         {r.rowName}
                       </span>
                       <span
                         className="flex shrink-0 items-center gap-3 tabular-nums"
-                        style={{ color: "#5a7a6a" }}
+                        style={{ color: "#94A3B8" }}
                       >
                         <span>{r.count} תנועות</span>
-                        <span className="font-extrabold" style={{ color: "#012d1d" }}>
+                        <span className="font-extrabold" style={{ color: "#F8FAFC" }}>
                           {fmtILS(r.total)}
                         </span>
                       </span>
@@ -1948,7 +1948,7 @@ export default function BudgetPage() {
                 importPreview.installmentExtraction.existing.length > 0) && (
                 <div
                   className="mb-4 rounded-xl p-3 text-xs"
-                  style={{ background: "#eef7f1", border: "1px solid #c9e3d4" }}
+                  style={{ background: "#1A2438", border: "1px solid #1F2A3F" }}
                 >
                   <div className="mb-2 flex items-center gap-2 text-[13px] font-extrabold text-verdant-ink">
                     <span className="material-symbols-outlined text-[16px] text-verdant-emerald">
@@ -1960,14 +1960,14 @@ export default function BudgetPage() {
                     <div className="mb-2">
                       <div
                         className="mb-1 text-[11px] font-bold"
-                        style={{ color: "#1B4332" }}
+                        style={{ color: "#A8E040" }}
                       >
                         {importPreview.installmentExtraction.detected.length} עסקאות
                         חדשות — יתווספו אוטומטית ל-/debt עם האישור
                       </div>
                       <ul
                         className="max-h-32 space-y-1 overflow-y-auto rounded-lg bg-white px-2 py-1.5"
-                        style={{ border: "1px solid #c9e3d4" }}
+                        style={{ border: "1px solid #1F2A3F" }}
                       >
                         {importPreview.installmentExtraction.detected.map((e, i) => (
                           <li
@@ -1976,20 +1976,20 @@ export default function BudgetPage() {
                           >
                             <span
                               className="truncate font-bold"
-                              style={{ color: "#012d1d" }}
+                              style={{ color: "#F8FAFC" }}
                             >
                               {e.merchant}
                             </span>
                             <span
                               className="flex shrink-0 items-center gap-3 tabular-nums"
-                              style={{ color: "#5a7a6a" }}
+                              style={{ color: "#94A3B8" }}
                             >
                               <span>
                                 תשלום {e.currentPayment}/{e.totalPayments}
                               </span>
                               <span
                                 className="font-extrabold"
-                                style={{ color: "#1B4332" }}
+                                style={{ color: "#A8E040" }}
                               >
                                 {fmtILS(e.monthlyAmount)}/ח׳
                               </span>
@@ -2002,7 +2002,7 @@ export default function BudgetPage() {
                   {importPreview.installmentExtraction.existing.length > 0 && (
                     <div
                       className="text-[11px] font-bold"
-                      style={{ color: "#5a7a6a" }}
+                      style={{ color: "#94A3B8" }}
                     >
                       ועוד {importPreview.installmentExtraction.existing.length} עסקאות
                       קיימות יתעדכנו (מספר תשלום נוכחי)
@@ -2034,7 +2034,7 @@ export default function BudgetPage() {
       {importToast && (
         <div
           className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg px-4 py-2.5 text-xs font-bold shadow-lg"
-          style={{ background: "#012d1d", color: "#ffffff" }}
+          style={{ background: "#F8FAFC", color: "#131C2E" }}
         >
           {importToast}
         </div>
@@ -2093,13 +2093,13 @@ function BudgetSection({
 
   // Accent color per section type
   const accent = isIncome
-    ? "#2B694D"
+    ? "#4ADE80"
     : sectionKey === "fixed"
       ? "#B45309"
       : sectionKey === "business"
-        ? "#5C6058"
-        : "#1B4332";
-  const accentSoft = isIncome ? "#D6EFDC" : sectionKey === "fixed" ? "#FEF3C7" : "#f0f4ec";
+        ? "#94A3B8"
+        : "#A8E040";
+  const accentSoft = isIncome ? "#A8E040" : sectionKey === "fixed" ? "#FEF3C7" : "#f0f4ec";
 
   const toggleExpand = (rowId: string) => {
     setExpanded((prev) => ({ ...prev, [rowId]: !prev[rowId] }));
@@ -2122,7 +2122,7 @@ function BudgetSection({
         {/* Chevron */}
         <span
           className="material-symbols-outlined text-[20px] transition-transform"
-          style={{ color: "#5a7a6a", transform: open ? "rotate(0deg)" : "rotate(90deg)" }}
+          style={{ color: "#94A3B8", transform: open ? "rotate(0deg)" : "rotate(90deg)" }}
         >
           expand_more
         </span>
@@ -2139,14 +2139,14 @@ function BudgetSection({
 
         {/* Label */}
         <div className="flex-1 text-right">
-          <div className="text-[15px] font-extrabold" style={{ color: "#012d1d" }}>
+          <div className="text-[15px] font-extrabold" style={{ color: "#F8FAFC" }}>
             {meta.label}
           </div>
           {/* 2026-05-05 visual-cleanup: dropped the "X שורות" prefix — once
               the section is open the user sees the rows directly. Keeping
               just the % of income and the overrun warning gives a calm
               two-piece line instead of three. */}
-          <div className="mt-0.5 text-[12px] font-semibold" style={{ color: "#5a7a6a" }}>
+          <div className="mt-0.5 text-[12px] font-semibold" style={{ color: "#94A3B8" }}>
             {!isIncome && incomeTotal > 0 && secBudget > 0 && (
               <span style={{ color: accent }}>
                 {Math.round((secBudget / incomeTotal) * 100)}% מההכנסה
@@ -2156,7 +2156,7 @@ function BudgetSection({
             {over && (
               <>
                 {" · "}
-                <span style={{ color: "#b91c1c" }}>חריגה {fmtILS(secActual - secBudget)}</span>
+                <span style={{ color: "#F87171" }}>חריגה {fmtILS(secActual - secBudget)}</span>
               </>
             )}
           </div>
@@ -2166,13 +2166,13 @@ function BudgetSection({
         <div className="shrink-0 text-left">
           <div
             className="text-[18px] font-extrabold tabular-nums leading-none"
-            style={{ color: isIncome ? "#2B694D" : over ? "#b91c1c" : "#012d1d" }}
+            style={{ color: isIncome ? "#4ADE80" : over ? "#F87171" : "#F8FAFC" }}
           >
             {fmtILS(secBudget)}
           </div>
           {secActual > 0 && secActual !== secBudget && (
-            <div className="mt-1 text-[10px] font-bold tabular-nums" style={{ color: "#5a7a6a" }}>
-              בפועל <span style={{ color: ok ? "#1B4332" : "#b91c1c" }}>{fmtILS(secActual)}</span>
+            <div className="mt-1 text-[10px] font-bold tabular-nums" style={{ color: "#94A3B8" }}>
+              בפועל <span style={{ color: ok ? "#A8E040" : "#F87171" }}>{fmtILS(secActual)}</span>
             </div>
           )}
         </div>
@@ -2190,8 +2190,8 @@ function BudgetSection({
             className="mb-1 grid items-center pb-1 text-[11px] font-extrabold uppercase tracking-[0.08em]"
             style={{
               gridTemplateColumns: "minmax(120px,auto) 70px 70px 70px minmax(80px,1fr)",
-              color: "#5a7a6a",
-              borderBottom: "1px solid #eef2e8",
+              color: "#94A3B8",
+              borderBottom: "1px solid #1F2A3F",
               columnGap: "10px",
             }}
           >
@@ -2221,7 +2221,7 @@ function BudgetSection({
                   className="group relative grid items-center py-1.5"
                   style={{
                     gridTemplateColumns: "minmax(120px,auto) 70px 70px 70px minmax(80px,1fr)",
-                    borderBottom: isExpanded ? "none" : "1px solid #eef2e8",
+                    borderBottom: isExpanded ? "none" : "1px solid #1F2A3F",
                     columnGap: "10px",
                     opacity: isLocked ? 0.85 : 1,
                   }}
@@ -2232,19 +2232,19 @@ function BudgetSection({
                       row.source === "passive" ? (
                         <div
                           className="flex items-center gap-1.5 text-[13px] font-semibold"
-                          style={{ color: "#1B4332" }}
+                          style={{ color: "#A8E040" }}
                           title="מסונכרן מנדל״ן"
                         >
                           <span
                             className="material-symbols-outlined text-[13px]"
-                            style={{ color: "#2B694D" }}
+                            style={{ color: "#4ADE80" }}
                           >
                             home_work
                           </span>
                           {row.name}
                           <span
                             className="material-symbols-outlined text-[11px]"
-                            style={{ color: "#8aab99" }}
+                            style={{ color: "#94A3B8" }}
                           >
                             sync
                           </span>
@@ -2252,7 +2252,7 @@ function BudgetSection({
                       ) : (
                         <div
                           className="flex items-center gap-1.5 text-[13px] font-semibold"
-                          style={{ color: "#5a7a6a" }}
+                          style={{ color: "#94A3B8" }}
                           title="הוצאה קשיחה — נמשכת מדף חובות"
                         >
                           <span
@@ -2268,13 +2268,13 @@ function BudgetSection({
                       <button
                         onClick={() => toggleExpand(row.id)}
                         className="flex cursor-pointer items-center gap-1 border-none bg-transparent text-[13px] font-semibold transition-opacity hover:opacity-80"
-                        style={{ color: subOverspend ? "#b91c1c" : "#012d1d" }}
+                        style={{ color: subOverspend ? "#F87171" : "#F8FAFC" }}
                       >
                         <span
                           className="material-symbols-outlined text-[14px] transition-transform"
                           style={{
                             transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
-                            color: "#5a7a6a",
+                            color: "#94A3B8",
                           }}
                         >
                           chevron_left
@@ -2283,7 +2283,7 @@ function BudgetSection({
                         {subOverspend && (
                           <span
                             className="material-symbols-outlined mr-0.5 text-[12px]"
-                            style={{ color: "#b91c1c" }}
+                            style={{ color: "#F87171" }}
                           >
                             error
                           </span>
@@ -2296,9 +2296,9 @@ function BudgetSection({
                         onChange={(e) => onUpdate(sectionKey, row.id, "name", e.target.value)}
                         placeholder="שם קטגוריה"
                         className="w-full border-none bg-transparent text-[13px] font-semibold focus:outline-none"
-                        style={{ color: "#012d1d", borderBottom: "1px dotted transparent" }}
+                        style={{ color: "#F8FAFC", borderBottom: "1px dotted transparent" }}
                         onFocus={(e) => {
-                          e.currentTarget.style.borderBottomColor = "#2B694D";
+                          e.currentTarget.style.borderBottomColor = "#4ADE80";
                         }}
                         onBlur={(e) => {
                           e.currentTarget.style.borderBottomColor = "transparent";
@@ -2313,9 +2313,9 @@ function BudgetSection({
                       style={{
                         color: isLocked
                           ? row.source === "passive"
-                            ? "#1B4332"
+                            ? "#A8E040"
                             : "#9a6458"
-                          : "#012d1d",
+                          : "#F8FAFC",
                       }}
                     >
                       {fmtILS(b)}
@@ -2327,9 +2327,9 @@ function BudgetSection({
                       onChange={(e) => onUpdate(sectionKey, row.id, "budget", e.target.value)}
                       placeholder="0"
                       className="w-full border-none bg-transparent text-left text-[13px] font-bold tabular-nums focus:outline-none"
-                      style={{ color: "#012d1d", borderBottom: "1px dotted transparent" }}
+                      style={{ color: "#F8FAFC", borderBottom: "1px dotted transparent" }}
                       onFocus={(e) => {
-                        e.currentTarget.style.borderBottomColor = "#2B694D";
+                        e.currentTarget.style.borderBottomColor = "#4ADE80";
                       }}
                       onBlur={(e) => {
                         e.currentTarget.style.borderBottomColor = "transparent";
@@ -2340,7 +2340,7 @@ function BudgetSection({
                   {isLocked || hasSubs ? (
                     <div
                       className="text-left text-[13px] font-bold tabular-nums"
-                      style={{ color: isLocked ? "#9a6458" : subOverspend ? "#b91c1c" : "#012d1d" }}
+                      style={{ color: isLocked ? "#9a6458" : subOverspend ? "#F87171" : "#F8FAFC" }}
                     >
                       {fmtILS(a)}
                     </div>
@@ -2351,9 +2351,9 @@ function BudgetSection({
                       onChange={(e) => onUpdate(sectionKey, row.id, "actual", e.target.value)}
                       placeholder="0"
                       className="w-full border-none bg-transparent text-left text-[13px] font-bold tabular-nums focus:outline-none"
-                      style={{ color: "#012d1d", borderBottom: "1px dotted transparent" }}
+                      style={{ color: "#F8FAFC", borderBottom: "1px dotted transparent" }}
                       onFocus={(e) => {
-                        e.currentTarget.style.borderBottomColor = "#2B694D";
+                        e.currentTarget.style.borderBottomColor = "#4ADE80";
                       }}
                       onBlur={(e) => {
                         e.currentTarget.style.borderBottomColor = "transparent";
@@ -2363,7 +2363,7 @@ function BudgetSection({
                   {/* Gap */}
                   <div
                     className="text-left text-[12px] font-extrabold tabular-nums"
-                    style={{ color: isLocked ? "#5a7a6a" : gapPositive ? "#1B4332" : "#b91c1c" }}
+                    style={{ color: isLocked ? "#94A3B8" : gapPositive ? "#A8E040" : "#F87171" }}
                   >
                     {isLocked ? "₪0" : gapStr}
                   </div>
@@ -2377,11 +2377,11 @@ function BudgetSection({
                       disabled={isLocked}
                       className="w-full border-none bg-transparent text-right text-[11px] focus:outline-none"
                       style={{
-                        color: "#5a7a6a",
+                        color: "#94A3B8",
                         borderBottom: "1px dotted transparent",
                       }}
                       onFocus={(e) => {
-                        e.currentTarget.style.borderBottomColor = "#2B694D";
+                        e.currentTarget.style.borderBottomColor = "#4ADE80";
                       }}
                       onBlur={(e) => {
                         e.currentTarget.style.borderBottomColor = "transparent";
@@ -2409,7 +2409,7 @@ function BudgetSection({
                           onDelete(sectionKey, row.id);
                         }}
                         className="shrink-0 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
-                        style={{ color: "#5a7a6a" }}
+                        style={{ color: "#94A3B8" }}
                         title="מחק"
                       >
                         <span className="material-symbols-outlined text-[14px] transition-colors hover:text-red-600">
@@ -2424,7 +2424,7 @@ function BudgetSection({
                 {hasSubs && isExpanded && (
                   <div
                     className="mb-2 mr-6 overflow-hidden rounded-xl"
-                    style={{ background: "#f8faf5", border: "1px solid #eef2e8" }}
+                    style={{ background: "#f8faf5", border: "1px solid #1F2A3F" }}
                   >
                     {row.subItems!.map((sub) => {
                       const sb = Number(sub.budget) || 0;
@@ -2441,7 +2441,7 @@ function BudgetSection({
                           style={{
                             gridTemplateColumns:
                               "minmax(110px,auto) 70px 70px 70px minmax(80px,1fr)",
-                            borderBottom: "1px solid #eef2e8",
+                            borderBottom: "1px solid #1F2A3F",
                             columnGap: "10px",
                           }}
                         >
@@ -2455,11 +2455,11 @@ function BudgetSection({
                             placeholder="פריט"
                             className="w-full border-none bg-transparent text-[12px] font-semibold focus:outline-none"
                             style={{
-                              color: subOver ? "#b91c1c" : "#5a7a6a",
+                              color: subOver ? "#F87171" : "#94A3B8",
                               borderBottom: "1px dotted transparent",
                             }}
                             onFocus={(e) => {
-                              e.currentTarget.style.borderBottomColor = "#2B694D";
+                              e.currentTarget.style.borderBottomColor = "#4ADE80";
                             }}
                             onBlur={(e) => {
                               e.currentTarget.style.borderBottomColor = "transparent";
@@ -2474,9 +2474,9 @@ function BudgetSection({
                             }
                             placeholder="0"
                             className="w-full border-none bg-transparent text-left text-[12px] font-bold tabular-nums focus:outline-none"
-                            style={{ color: "#012d1d", borderBottom: "1px dotted transparent" }}
+                            style={{ color: "#F8FAFC", borderBottom: "1px dotted transparent" }}
                             onFocus={(e) => {
-                              e.currentTarget.style.borderBottomColor = "#2B694D";
+                              e.currentTarget.style.borderBottomColor = "#4ADE80";
                             }}
                             onBlur={(e) => {
                               e.currentTarget.style.borderBottomColor = "transparent";
@@ -2492,11 +2492,11 @@ function BudgetSection({
                             placeholder="0"
                             className="w-full border-none bg-transparent text-left text-[12px] font-bold tabular-nums focus:outline-none"
                             style={{
-                              color: subOver ? "#b91c1c" : "#012d1d",
+                              color: subOver ? "#F87171" : "#F8FAFC",
                               borderBottom: "1px dotted transparent",
                             }}
                             onFocus={(e) => {
-                              e.currentTarget.style.borderBottomColor = "#2B694D";
+                              e.currentTarget.style.borderBottomColor = "#4ADE80";
                             }}
                             onBlur={(e) => {
                               e.currentTarget.style.borderBottomColor = "transparent";
@@ -2505,7 +2505,7 @@ function BudgetSection({
                           {/* Sub gap */}
                           <div
                             className="text-left text-[11px] font-extrabold tabular-nums"
-                            style={{ color: sgPositive ? "#1B4332" : "#b91c1c" }}
+                            style={{ color: sgPositive ? "#A8E040" : "#F87171" }}
                           >
                             {sgStr}
                           </div>
@@ -2520,11 +2520,11 @@ function BudgetSection({
                               placeholder="הערה…"
                               className="w-full border-none bg-transparent text-right text-[12px] focus:outline-none"
                               style={{
-                                color: "#5a7a6a",
+                                color: "#94A3B8",
                                 borderBottom: "1px dotted transparent",
                               }}
                               onFocus={(e) => {
-                                e.currentTarget.style.borderBottomColor = "#2B694D";
+                                e.currentTarget.style.borderBottomColor = "#4ADE80";
                               }}
                               onBlur={(e) => {
                                 e.currentTarget.style.borderBottomColor = "transparent";
@@ -2543,7 +2543,7 @@ function BudgetSection({
                                 onDeleteSub(sectionKey, row.id, sub.id);
                               }}
                               className="shrink-0 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/sub:opacity-100"
-                              style={{ color: "#5a7a6a" }}
+                              style={{ color: "#94A3B8" }}
                               title="מחק פריט"
                             >
                               <span className="material-symbols-outlined text-[13px] transition-colors hover:text-red-600">
@@ -2558,7 +2558,7 @@ function BudgetSection({
                     <button
                       onClick={() => onAddSub(sectionKey, row.id)}
                       className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-bold transition-colors hover:underline"
-                      style={{ color: "#1B4332" }}
+                      style={{ color: "#A8E040" }}
                     >
                       <span className="material-symbols-outlined text-[11px]">add</span>
                       הוסף פריט
@@ -2573,7 +2573,7 @@ function BudgetSection({
           <button
             onClick={() => onAdd(sectionKey)}
             className="inline-flex items-center gap-1 pt-2 text-[11px] font-bold transition-colors hover:underline"
-            style={{ color: "#1B4332" }}
+            style={{ color: "#A8E040" }}
           >
             <span className="material-symbols-outlined text-[12px]">add</span>
             הוסף שורה
@@ -2630,7 +2630,7 @@ function ScopePicker({
       {open && (
         <div
           className="absolute right-0 top-5 z-20 flex flex-col gap-0.5 rounded-lg bg-white p-1 shadow-lg"
-          style={{ border: "1px solid #eef2e8", minWidth: "100px" }}
+          style={{ border: "1px solid #1F2A3F", minWidth: "100px" }}
         >
           {opts.map((opt) => {
             const isActive = (eff ?? undefined) === opt.key || (opt.key === undefined && !eff);
@@ -2641,15 +2641,15 @@ function ScopePicker({
                   onPick(opt.key);
                   setOpen(false);
                 }}
-                className="flex items-center gap-2 rounded px-2 py-1.5 text-right text-[11px] font-bold transition-colors hover:bg-[#f4f7ed]"
-                style={{ color: "#012d1d" }}
+                className="flex items-center gap-2 rounded px-2 py-1.5 text-right text-[11px] font-bold transition-colors hover:bg-[#1A2438]"
+                style={{ color: "#F8FAFC" }}
               >
                 <span
                   className="h-2.5 w-2.5 shrink-0 rounded-full"
                   style={{
                     background: opt.color,
                     border: isActive ? `2px solid ${opt.color}` : `1px solid ${opt.color}80`,
-                    outline: isActive ? "1px solid #012d1d" : "none",
+                    outline: isActive ? "1px solid #F8FAFC" : "none",
                     outlineOffset: "1px",
                   }}
                 />

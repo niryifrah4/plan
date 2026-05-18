@@ -60,10 +60,10 @@ const FUND_TYPE_LABELS: Record<string, string> = {
   bituach: "ביטוח מנהלים",
 };
 const FUND_TYPE_COLORS: Record<string, string> = {
-  pension: "#1B4332",
-  gemel: "#2B694D",
-  hishtalmut: "#1a6b42",
-  bituach: "#125c38",
+  pension: "#A8E040",
+  gemel: "#4ADE80",
+  hishtalmut: "#4ADE80",
+  bituach: "#4ADE80",
 };
 
 const SUBTYPE_LABELS: Record<string, string> = {
@@ -86,9 +86,9 @@ const SUBTYPES_BY_TYPE: Record<string, string[]> = {
 
 /** בנצ'מרק דמי ניהול צבירה */
 function feeBenchmark(fee: number): { color: string; label: string } {
-  if (fee <= 0.3) return { color: "#1B4332", label: "מצוין" };
+  if (fee <= 0.3) return { color: "#A8E040", label: "מצוין" };
   if (fee <= 0.5) return { color: "#f59e0b", label: "סביר" };
-  return { color: "#b91c1c", label: "גבוה" };
+  return { color: "#F87171", label: "גבוה" };
 }
 
 /** בדיקת התאמת מסלול לפי גיל */
@@ -247,9 +247,9 @@ export default function PensionPage() {
       alternative: "אלטרנטיבי",
     };
     const colors: Record<string, string> = {
-      equity: "#1B4332",
-      bonds: "#1a6b42",
-      cash: "#2B694D",
+      equity: "#A8E040",
+      bonds: "#4ADE80",
+      cash: "#4ADE80",
       alternative: "#f59e0b",
     };
     return Object.entries(classes)
@@ -409,9 +409,9 @@ export default function PensionPage() {
           value={`${weightedFee.toFixed(2)}%`}
           icon="percent"
           tone={
-            feeBenchmark(weightedFee).color === "#b91c1c"
+            feeBenchmark(weightedFee).color === "#F87171"
               ? "red"
-              : feeBenchmark(weightedFee).color === "#1B4332"
+              : feeBenchmark(weightedFee).color === "#A8E040"
                 ? "emerald"
                 : "amber"
           }
@@ -612,7 +612,7 @@ export default function PensionPage() {
                     .getElementById("annual-upload")
                     ?.scrollIntoView({ behavior: "smooth", block: "start" });
                 }}
-                className="v-divider rounded-lg border px-4 py-2 text-xs font-bold text-verdant-ink transition-colors hover:bg-[#f4f7ed]"
+                className="v-divider rounded-lg border px-4 py-2 text-xs font-bold text-verdant-ink transition-colors hover:bg-[#1A2438]"
               >
                 העלה דיוור שנתי (PDF)
               </button>
@@ -626,11 +626,11 @@ export default function PensionPage() {
             <div key={type}>
               <div
                 className="flex items-center gap-2 px-5 py-2.5"
-                style={{ background: "#f4f7ed" }}
+                style={{ background: "#1A2438" }}
               >
                 <div
                   className="h-2 w-2 rounded-full"
-                  style={{ background: FUND_TYPE_COLORS[type] || "#1B4332" }}
+                  style={{ background: FUND_TYPE_COLORS[type] || "#A8E040" }}
                 />
                 <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-verdant-muted">
                   {FUND_TYPE_LABELS[type] || type}
@@ -643,7 +643,7 @@ export default function PensionPage() {
                     {/* Collapsed row — clickable to expand. Always visible. */}
                     <button
                       onClick={() => setExpandedFundId(isExpanded ? null : f.id)}
-                      className="flex w-full items-center gap-3 px-5 py-3 text-right transition-colors hover:bg-[#f9faf2]"
+                      className="flex w-full items-center gap-3 px-5 py-3 text-right transition-colors hover:bg-[#F8FAFC]"
                     >
                       <span className="material-symbols-outlined text-[20px] text-verdant-muted">
                         {isExpanded ? "expand_less" : "expand_more"}
@@ -663,7 +663,7 @@ export default function PensionPage() {
 
                     {/* Expanded body — only when accordion open. */}
                     {isExpanded && (
-                      <div className="px-5 pb-4 pt-1 transition-colors hover:bg-[#f9faf2]">
+                      <div className="px-5 pb-4 pt-1 transition-colors hover:bg-[#F8FAFC]">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <div className="flex flex-wrap items-center gap-2">
@@ -755,8 +755,8 @@ export default function PensionPage() {
                               <button
                                 onClick={() => setSimFundId(f.id)}
                                 title="סימולציה — what if על הקופה הזו"
-                                className="flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[11px] font-bold hover:bg-[#eef7f1]"
-                                style={{ color: "#1B4332", borderColor: "#c9e3d4" }}
+                                className="flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[11px] font-bold hover:bg-[#1A2438]"
+                                style={{ color: "#A8E040", borderColor: "#1F2A3F" }}
                               >
                                 <span className="material-symbols-outlined text-[16px]">tune</span>
                                 סימולציה
@@ -767,7 +767,7 @@ export default function PensionPage() {
                                   setEditingFund(f.id);
                                 }}
                                 title="עריכה"
-                                className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-verdant-muted hover:bg-[#f4f7ed]"
+                                className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-verdant-muted hover:bg-[#1A2438]"
                               >
                                 <span className="material-symbols-outlined text-[16px]">edit</span>
                               </button>
@@ -815,7 +815,7 @@ export default function PensionPage() {
                                       <span
                                         className={`h-2 w-2 shrink-0 rounded-sm ${t.registeredFundId ? "" : "ring-1 ring-amber-400"}`}
                                         style={{
-                                          background: t.registeredFundId ? "#1B4332" : "#FCD34D",
+                                          background: t.registeredFundId ? "#A8E040" : "#FCD34D",
                                         }}
                                       />
                                       <span className="truncate text-verdant-ink">{t.name}</span>
@@ -851,7 +851,7 @@ export default function PensionPage() {
         {funds.length > 0 && (
           <div
             className="v-divider flex items-center justify-between border-t-2 px-5 py-3.5"
-            style={{ background: "#f4f7ed" }}
+            style={{ background: "#1A2438" }}
           >
             <div className="text-sm font-extrabold text-verdant-ink">סה״כ</div>
             <div className="flex items-center gap-6">
@@ -928,8 +928,8 @@ export default function PensionPage() {
 
         return (
           <section className="v-card mb-6 overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-4" style={{ background: "#f0fdf4" }}>
-              <span className="material-symbols-outlined text-[18px]" style={{ color: "#1a6b42" }}>
+            <div className="flex items-center gap-2 px-5 py-4" style={{ background: "#1A2438" }}>
+              <span className="material-symbols-outlined text-[18px]" style={{ color: "#4ADE80" }}>
                 school
               </span>
               <div>
@@ -963,7 +963,7 @@ export default function PensionPage() {
                   <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-4">
                     {f.openingDate ? (
                       <>
-                        <div className="rounded-lg p-2.5" style={{ background: "#f4f7ed" }}>
+                        <div className="rounded-lg p-2.5" style={{ background: "#1A2438" }}>
                           <div className="text-[10px] font-bold text-verdant-muted">
                             תאריך פתיחה
                           </div>
@@ -973,7 +973,7 @@ export default function PensionPage() {
                         </div>
                         <div
                           className="rounded-lg p-2.5"
-                          style={{ background: isLiquid ? "#f0fdf4" : "#fefce8" }}
+                          style={{ background: isLiquid ? "#1A2438" : "#fefce8" }}
                         >
                           <div className="text-[10px] font-bold text-verdant-muted">
                             נזילות ({vestingYears} שנים ·{" "}
@@ -982,7 +982,7 @@ export default function PensionPage() {
                           {isLiquid ? (
                             <div
                               className="mt-0.5 text-xs font-extrabold"
-                              style={{ color: "#1B4332" }}
+                              style={{ color: "#A8E040" }}
                             >
                               נזילה ✓
                             </div>
@@ -1014,13 +1014,13 @@ export default function PensionPage() {
                         </div>
                       </div>
                     )}
-                    <div className="rounded-lg p-2.5" style={{ background: "#f4f7ed" }}>
+                    <div className="rounded-lg p-2.5" style={{ background: "#1A2438" }}>
                       <div className="text-[10px] font-bold text-verdant-muted">צפי עוד 5 שנים</div>
                       <div className="tabular mt-0.5 text-xs font-extrabold text-verdant-ink">
                         {fmtILS(projectedIn5)}
                       </div>
                     </div>
-                    <div className="rounded-lg p-2.5" style={{ background: "#f4f7ed" }}>
+                    <div className="rounded-lg p-2.5" style={{ background: "#1A2438" }}>
                       <div className="text-[10px] font-bold text-verdant-muted">
                         צפי עוד 10 שנים
                       </div>
@@ -1059,7 +1059,7 @@ export default function PensionPage() {
 
       {/* ===== 7. Section 45א + 47 — Voluntary contribution benefit ===== */}
       {voluntaryBenefit && (
-        <div className="card-pad mb-6" style={{ borderInlineStart: "4px solid #2B694D" }}>
+        <div className="card-pad mb-6" style={{ borderInlineStart: "4px solid #4ADE80" }}>
           <div className="flex items-start gap-3">
             <span className="material-symbols-outlined flex-shrink-0 text-[22px] text-verdant-emerald">
               savings
@@ -1084,11 +1084,11 @@ export default function PensionPage() {
 
       {/* ===== 8. Study fund above-cap warning ===== */}
       {studyFundWarning && (
-        <div className="card-pad mb-6" style={{ borderInlineStart: "4px solid #b91c1c" }}>
+        <div className="card-pad mb-6" style={{ borderInlineStart: "4px solid #F87171" }}>
           <div className="flex items-start gap-3">
             <span
               className="material-symbols-outlined flex-shrink-0 text-[22px]"
-              style={{ color: "#b91c1c" }}
+              style={{ color: "#F87171" }}
             >
               warning
             </span>
@@ -1164,7 +1164,7 @@ function MiniDonut({
             />
           );
         })}
-        <circle cx={cx} cy={cy} r="28" fill="#f9faf2" />
+        <circle cx={cx} cy={cy} r="28" fill="#F8FAFC" />
       </svg>
       <div className="space-y-1.5">
         {data.map((d, i) => (
@@ -1224,7 +1224,7 @@ function FundForm({
   }
 
   return (
-    <div className="v-divider border-b px-5 py-4" style={{ background: "#f9faf2" }}>
+    <div className="v-divider border-b px-5 py-4" style={{ background: "#F8FAFC" }}>
       {/* Row 1: Registry selection */}
       <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-4">
         <div>
@@ -1236,7 +1236,7 @@ function FundForm({
               setSelectedFundId("");
             }}
             className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#fff" }}
           >
             <option value="">בחר חברה</option>
             {PROVIDERS.map((p) => (
@@ -1253,7 +1253,7 @@ function FundForm({
             onChange={(e) => handleFundSelect(e.target.value)}
             disabled={!provider}
             className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#d8e0d0", background: provider ? "#fff" : "#f4f7ed" }}
+            style={{ borderColor: "#1F2A3F", background: provider ? "#fff" : "#1A2438" }}
           >
             <option value="">בחר מסלול</option>
             {providerFunds.map((f) => (
@@ -1271,7 +1271,7 @@ function FundForm({
               set({ type: e.target.value as PensionFund["type"], subtype: undefined })
             }
             className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#fff" }}
           >
             <option value="pension">פנסיה מקיפה</option>
             <option value="gemel">קופת גמל</option>
@@ -1286,7 +1286,7 @@ function FundForm({
             value={form.owner || "spouse_a"}
             onChange={(e) => set({ owner: e.target.value as PensionFund["owner"] })}
             className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#fff" }}
           >
             {(() => {
               const names = loadSpouseNames();
@@ -1313,7 +1313,7 @@ function FundForm({
                 set({ subtype: (e.target.value || undefined) as PensionFund["subtype"] })
               }
               className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-              style={{ borderColor: "#d8e0d0", background: "#fff" }}
+              style={{ borderColor: "#1F2A3F", background: "#fff" }}
             >
               <option value="">לא צוין</option>
               {SUBTYPES_BY_TYPE[form.type]?.map((st) => (
@@ -1337,7 +1337,7 @@ function FundForm({
                 value={form.conversionFactor || ""}
                 onChange={(e) => set({ conversionFactor: +e.target.value || undefined })}
                 className="tabular w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-                style={{ borderColor: "#d8e0d0", background: "#fff" }}
+                style={{ borderColor: "#1F2A3F", background: "#fff" }}
                 placeholder="לדוג' 120"
               />
             </div>
@@ -1354,7 +1354,7 @@ function FundForm({
                 value={form.guaranteedRate || ""}
                 onChange={(e) => set({ guaranteedRate: +e.target.value || undefined })}
                 className="tabular w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-                style={{ borderColor: "#d8e0d0", background: "#fff" }}
+                style={{ borderColor: "#1F2A3F", background: "#fff" }}
                 placeholder="לדוג' 4.0"
               />
             </div>
@@ -1364,7 +1364,7 @@ function FundForm({
 
       {/* Selected fund summary */}
       {selectedFund && (
-        <div className="mb-3 rounded-lg p-3" style={{ background: "#f4f7ed" }}>
+        <div className="mb-3 rounded-lg p-3" style={{ background: "#1A2438" }}>
           <div className="mb-1 text-[10px] font-bold text-verdant-muted">אלוקציה אוטומטית:</div>
           <div className="grid grid-cols-2 gap-1 text-[11px] font-bold text-verdant-ink md:grid-cols-4">
             <span>מניות: {selectedFund.equityExposure}%</span>
@@ -1386,7 +1386,7 @@ function FundForm({
             value={form.company}
             onChange={(e) => set({ company: e.target.value })}
             className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#fff" }}
             placeholder={provider || "שם החברה"}
           />
         </div>
@@ -1397,7 +1397,7 @@ function FundForm({
             value={form.balance || ""}
             onChange={(e) => set({ balance: +e.target.value })}
             className="tabular w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#fff" }}
             placeholder="₪"
           />
         </div>
@@ -1410,7 +1410,7 @@ function FundForm({
             value={form.monthlyContrib || ""}
             onChange={(e) => set({ monthlyContrib: +e.target.value })}
             className="tabular w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#fff" }}
             placeholder="₪"
           />
         </div>
@@ -1421,7 +1421,7 @@ function FundForm({
             value={form.track}
             onChange={(e) => set({ track: e.target.value })}
             className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#fff" }}
             placeholder="כללי / מניות / אג״ח"
           />
         </div>
@@ -1439,7 +1439,7 @@ function FundForm({
               value={form.openingDate || ""}
               onChange={(e) => set({ openingDate: e.target.value || undefined })}
               className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-              style={{ borderColor: "#d8e0d0", background: "#fff" }}
+              style={{ borderColor: "#1F2A3F", background: "#fff" }}
             />
           </div>
           <div>
@@ -1450,7 +1450,7 @@ function FundForm({
               value={form.isEmployed === false ? "self" : "employed"}
               onChange={(e) => set({ isEmployed: e.target.value === "employed" })}
               className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-              style={{ borderColor: "#d8e0d0", background: "#fff" }}
+              style={{ borderColor: "#1F2A3F", background: "#fff" }}
             >
               <option value="employed">שכיר (נזילות 6 שנים)</option>
               <option value="self">עצמאי (נזילות 3 שנים)</option>
@@ -1471,7 +1471,7 @@ function FundForm({
             value={form.mgmtFeeDeposit || ""}
             onChange={(e) => set({ mgmtFeeDeposit: +e.target.value })}
             className="tabular w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#fff" }}
           />
         </div>
         <div>
@@ -1484,7 +1484,7 @@ function FundForm({
             value={form.mgmtFeeBalance || ""}
             onChange={(e) => set({ mgmtFeeBalance: +e.target.value })}
             className="tabular w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#fff" }}
           />
         </div>
         <div className="md:col-span-2">

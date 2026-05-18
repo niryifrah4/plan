@@ -76,7 +76,7 @@ import { SCOPE_COLORS, effectiveScope, type Scope } from "@/lib/scope-types";
 const TRACK_COLOR: Record<string, string> = {
   on: "#A8E040",
   behind: "#f59e0b",
-  at_risk: "#b91c1c",
+  at_risk: "#F87171",
 };
 const TRACK_LABEL: Record<string, string> = { on: "בדרך", behind: "בפיגור", at_risk: "בסיכון" };
 const GOAL_ICONS: Record<string, string> = {
@@ -978,7 +978,7 @@ export default function DashboardPage() {
       {(() => {
         if (nudges.length === 0) return null;
         const SEV: Record<string, { bg: string; border: string; text: string }> = {
-          critical: { bg: "#fef2f2", border: "#fca5a5", text: "#b91c1c" },
+          critical: { bg: "#fef2f2", border: "#fca5a5", text: "#F87171" },
           warning: { bg: "#fffbeb", border: "#fcd34d", text: "#92400e" },
           info: { bg: "#1A2438", border: "#93c5fd", text: "#1d4ed8" },
           opportunity: { bg: "#1A2438", border: "#86efac", text: "#166534" },
@@ -1057,7 +1057,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <div className="caption mb-1.5">יתרה פנויה</div>
-              <div className="kpi-value" style={{ color: latestGap >= 0 ? "#A8E040" : "#b91c1c" }}>
+              <div className="kpi-value" style={{ color: latestGap >= 0 ? "#A8E040" : "#F87171" }}>
                 {fmtILS(latestGap)}
               </div>
             </div>
@@ -1323,7 +1323,7 @@ export default function DashboardPage() {
                           ? "#A8E040"
                           : lifeCoverage.planScore >= 50
                             ? "#92400E"
-                            : "#7F1D1D",
+                            : "#F87171",
                     }}
                     title="מדד פלאן · 0-100 · גבוה=טוב יותר. משקלל כיסוי יעדים, חיסכון, חוב, וקרן חירום."
                   >
@@ -1333,7 +1333,7 @@ export default function DashboardPage() {
                   {lifeCoverage.missingPiece > 0 && (
                     <span
                       className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-extrabold"
-                      style={{ background: "#FEE2E2", color: "#7F1D1D" }}
+                      style={{ background: "#FEE2E2", color: "#F87171" }}
                       title="ערך נוכחי של יעדים שלא יכוסו לפי המסלול הנוכחי"
                     >
                       <span className="material-symbols-outlined text-[13px]">remove_circle</span>
@@ -1873,7 +1873,7 @@ export default function DashboardPage() {
                       x2={chartW}
                       y1={yTarget}
                       y2={yTarget}
-                      stroke="#b91c1c"
+                      stroke="#F87171"
                       strokeDasharray="6 4"
                       strokeWidth="1.5"
                       opacity="0.7"
@@ -1884,7 +1884,7 @@ export default function DashboardPage() {
                       width="104"
                       height="14"
                       rx="4"
-                      fill="#b91c1c"
+                      fill="#F87171"
                       opacity="0.12"
                     />
                     <text
@@ -2031,7 +2031,7 @@ export default function DashboardPage() {
           <div className="card-mint py-10 text-center">
             <div
               className="icon-lg mx-auto mb-3"
-              style={{ background: "rgba(27,67,50,0.08)", color: "var(--botanical-forest)" }}
+              style={{ background: "rgba(0,0,0,0.35)", color: "var(--botanical-forest)" }}
             >
               <span className="material-symbols-outlined text-[26px]">tips_and_updates</span>
             </div>
@@ -2090,7 +2090,7 @@ export default function DashboardPage() {
                 <div
                   key={bucket.id}
                   className="flex items-center gap-5 rounded-2xl px-5 py-4 transition-all"
-                  style={{ background: "#A8E040", boxShadow: "0 1px 2px rgba(27,67,50,0.06)" }}
+                  style={{ background: "#A8E040", boxShadow: "0 1px 2px rgba(0,0,0,0.30)" }}
                 >
                   <div
                     className="icon-sm"
@@ -2170,7 +2170,7 @@ export default function DashboardPage() {
             {insights.map((ins) => {
               const bar =
                 ins.severity === "critical"
-                  ? "#b91c1c"
+                  ? "#F87171"
                   : ins.severity === "warning"
                     ? "#d97706"
                     : ins.severity === "opportunity"

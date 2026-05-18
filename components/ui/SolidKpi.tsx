@@ -21,23 +21,23 @@
 export type KpiTone = "forest" | "emerald" | "mint" | "sage" | "red" | "amber" | "ink";
 
 const ACCENT_COLOR: Record<KpiTone, string> = {
-  forest: "#1B4332",
-  emerald: "#2B694D",
+  forest: "#A8E040",
+  emerald: "#4ADE80",
   mint: "#7FA68D",
   sage: "#94a3b8",
   red: "#8B2E2E",
   amber: "#B45309",
-  ink: "#012D1D",
+  ink: "#F8FAFC",
 };
 
 const VALUE_COLOR: Record<KpiTone, string> = {
-  forest: "#012D1D",
-  emerald: "#012D1D",
-  mint: "#012D1D",
+  forest: "#F8FAFC",
+  emerald: "#F8FAFC",
+  mint: "#F8FAFC",
   sage: "#1F2937",
   red: "#8B2E2E",
   amber: "#B45309",
-  ink: "#012D1D",
+  ink: "#F8FAFC",
 };
 
 export interface SolidKpiProps {
@@ -59,9 +59,9 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg }: Solid
         className="relative overflow-hidden p-4 transition-all duration-200"
         style={{
           background: bg,
-          color: "#FFFFFF",
+          color: "#131C2E",
           borderRadius: "0.75rem",
-          boxShadow: "0 1px 2px rgba(27, 67, 50, 0.06)",
+          boxShadow: "0 1px 2px rgba(0,0,0,0.30)",
         }}
       >
         <div className="mb-2 flex items-center justify-between">
@@ -82,7 +82,7 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg }: Solid
         </div>
         <div
           className="text-2xl font-extrabold tabular-nums leading-tight"
-          style={{ color: "#FFFFFF", fontFamily: "Manrope, Assistant, system-ui, sans-serif" }}
+          style={{ color: "#131C2E", fontFamily: "Manrope, Assistant, system-ui, sans-serif" }}
         >
           {value}
         </div>
@@ -101,7 +101,7 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg }: Solid
       className="relative overflow-hidden bg-white px-5 py-4 duration-200"
       style={{
         borderRadius: "0.75rem",
-        border: "1px solid #eef2e8",
+        border: "1px solid #1F2A3F",
       }}
     >
       {/* Right-edge accent — single thin stripe carrying the tone (RTL). */}
@@ -118,7 +118,7 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg }: Solid
       <div className="mb-2 flex items-center justify-between">
         <div
           className="text-[10px] font-bold uppercase tracking-[0.18em]"
-          style={{ color: "#5a7a6a" }}
+          style={{ color: "#94A3B8" }}
         >
           {label}
         </div>
@@ -144,7 +144,7 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg }: Solid
       </div>
 
       {sub && (
-        <div className="mt-1 text-[11px] font-medium" style={{ color: "#5a7a6a" }}>
+        <div className="mt-1 text-[11px] font-medium" style={{ color: "#94A3B8" }}>
           {sub}
         </div>
       )}

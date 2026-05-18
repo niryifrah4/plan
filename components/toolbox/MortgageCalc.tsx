@@ -62,33 +62,33 @@ export function MortgageCalc() {
 
         {/* Results */}
         <div className="mb-4 grid grid-cols-3 gap-3">
-          <ResultCard label="תשלום חודשי" value={fmtILS(Math.round(monthly))} color="#1B4332" />
+          <ResultCard label="תשלום חודשי" value={fmtILS(Math.round(monthly))} color="#A8E040" />
           <ResultCard
             label="סה״כ ריבית"
             value={fmtILS(Math.round(totalInterest))}
-            color="#b91c1c"
+            color="#F87171"
           />
-          <ResultCard label="סה״כ תשלום" value={fmtILS(Math.round(totalPaid))} color="#012d1d" />
+          <ResultCard label="סה״כ תשלום" value={fmtILS(Math.round(totalPaid))} color="#F8FAFC" />
         </div>
 
         {/* Interest vs Principal visual */}
         <div className="mb-4">
           <div className="mb-1 text-[9px] font-bold text-verdant-muted">יחס קרן / ריבית</div>
-          <div className="flex h-4 overflow-hidden rounded-full" style={{ background: "#eef2e8" }}>
+          <div className="flex h-4 overflow-hidden rounded-full" style={{ background: "#1F2A3F" }}>
             <div
               className="h-full"
-              style={{ width: `${(principal / totalPaid) * 100}%`, background: "#1B4332" }}
+              style={{ width: `${(principal / totalPaid) * 100}%`, background: "#A8E040" }}
             />
             <div
               className="h-full"
-              style={{ width: `${(totalInterest / totalPaid) * 100}%`, background: "#b91c1c" }}
+              style={{ width: `${(totalInterest / totalPaid) * 100}%`, background: "#F87171" }}
             />
           </div>
           <div className="mt-1 flex justify-between text-[9px] font-bold">
-            <span style={{ color: "#1B4332" }}>
+            <span style={{ color: "#A8E040" }}>
               קרן {Math.round((principal / totalPaid) * 100)}%
             </span>
-            <span style={{ color: "#b91c1c" }}>
+            <span style={{ color: "#F87171" }}>
               ריבית {Math.round((totalInterest / totalPaid) * 100)}%
             </span>
           </div>
@@ -97,7 +97,7 @@ export function MortgageCalc() {
         <button
           onClick={() => setShowSchedule(!showSchedule)}
           className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-[11px] font-bold"
-          style={{ background: "#1B433212", color: "#1B4332" }}
+          style={{ background: "#A8E04012", color: "#A8E040" }}
         >
           <span className="material-symbols-outlined text-[14px]">
             {showSchedule ? "visibility_off" : "visibility"}
@@ -125,10 +125,10 @@ export function MortgageCalc() {
                 <tr key={row.year} className="v-divider border-b">
                   <td className="py-1.5 font-bold text-verdant-ink">{row.year}</td>
                   <td className="tabular py-1.5">{fmtILS(Math.round(row.totalPayment))}</td>
-                  <td className="tabular py-1.5" style={{ color: "#b91c1c" }}>
+                  <td className="tabular py-1.5" style={{ color: "#F87171" }}>
                     {fmtILS(Math.round(row.totalInterest))}
                   </td>
-                  <td className="tabular py-1.5" style={{ color: "#1B4332" }}>
+                  <td className="tabular py-1.5" style={{ color: "#A8E040" }}>
                     {fmtILS(Math.round(row.totalPrincipal))}
                   </td>
                   <td className="tabular py-1.5 font-bold">{fmtILS(Math.round(row.endBalance))}</td>
@@ -162,7 +162,7 @@ function Field({
       </label>
       <div
         className="flex items-center rounded-lg border px-3 py-2"
-        style={{ borderColor: "#d8e0d0", background: "#f9faf2" }}
+        style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
       >
         <input
           type="number"

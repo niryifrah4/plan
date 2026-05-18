@@ -45,11 +45,11 @@ export default function ForgotPasswordPage() {
 
   /* ─── Botanical Wealth palette (matches /login) ─── */
   const C = {
-    primary: "#1B4332",
-    deep: "#012D1D",
-    cream: "#F9FAF2",
-    sage: "#5C6058",
-    inputBg: "#F3F4EC",
+    primary: "#A8E040",
+    deep: "#F8FAFC",
+    cream: "#F8FAFC",
+    sage: "#94A3B8",
+    inputBg: "#1A2438",
     border: "#E5E9DC",
   };
 
@@ -71,9 +71,9 @@ export default function ForgotPasswordPage() {
         className="w-full"
         style={{
           maxWidth: "420px",
-          background: "#FFFFFF",
+          background: "#131C2E",
           borderRadius: "2.25rem",
-          boxShadow: "0 16px 40px rgba(27,67,50,0.08)",
+          boxShadow: "0 16px 40px rgba(0,0,0,0.35)",
           padding: "48px 36px",
         }}
       >
@@ -125,11 +125,11 @@ export default function ForgotPasswordPage() {
           >
             <span
               className="material-symbols-outlined mt-0.5 text-[14px]"
-              style={{ color: "#B91C1C" }}
+              style={{ color: "#F87171" }}
             >
               error
             </span>
-            <span style={{ fontSize: "12px", fontWeight: 600, color: "#991B1B" }}>{error}</span>
+            <span style={{ fontSize: "12px", fontWeight: 600, color: "#FCA5A5" }}>{error}</span>
           </div>
         )}
 

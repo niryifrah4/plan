@@ -39,7 +39,7 @@ export function BituachLeumiCalc() {
             </label>
             <div
               className="flex items-center rounded-lg border px-3 py-2"
-              style={{ borderColor: "#d8e0d0", background: "#f9faf2" }}
+              style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
             >
               <input
                 type="number"
@@ -57,7 +57,7 @@ export function BituachLeumiCalc() {
             </label>
             <div
               className="flex items-center rounded-lg border px-3 py-2"
-              style={{ borderColor: "#d8e0d0", background: "#f9faf2" }}
+              style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
             >
               <input
                 type="number"
@@ -74,7 +74,7 @@ export function BituachLeumiCalc() {
             </label>
             <div
               className="flex items-center rounded-lg border px-3 py-2"
-              style={{ borderColor: "#d8e0d0", background: "#f9faf2" }}
+              style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
             >
               <input
                 type="number"
@@ -96,7 +96,7 @@ export function BituachLeumiCalc() {
           </span>
           תשלומים
         </h4>
-        <div className="space-y-2 rounded-xl p-4" style={{ background: "#f4f7ed" }}>
+        <div className="space-y-2 rounded-xl p-4" style={{ background: "#1A2438" }}>
           <Row label="דמי ביטוח לאומי חודשי" value={fmtILS(bl.monthly)} />
           <Row label="דמי ביטוח לאומי שנתי" value={fmtILS(bl.annual)} />
         </div>
@@ -110,11 +110,11 @@ export function BituachLeumiCalc() {
           </span>
           זכויות (אומדן)
         </h4>
-        <div className="space-y-3 rounded-xl p-4" style={{ background: "#f4f7ed" }}>
+        <div className="space-y-3 rounded-xl p-4" style={{ background: "#1A2438" }}>
           <div className="flex items-start gap-3 rounded-lg p-2" style={{ background: "#fff" }}>
             <span
               className="material-symbols-outlined mt-0.5 text-[18px]"
-              style={{ color: "#1B4332" }}
+              style={{ color: "#A8E040" }}
             >
               elderly
             </span>
@@ -123,7 +123,7 @@ export function BituachLeumiCalc() {
               <div className="mt-0.5 text-[10px] text-verdant-muted">
                 מגיל {retirementAge} · בעוד {yearsToRetirement} שנים
               </div>
-              <div className="tabular mt-1 text-sm font-extrabold" style={{ color: "#1B4332" }}>
+              <div className="tabular mt-1 text-sm font-extrabold" style={{ color: "#A8E040" }}>
                 ~{fmtILS(estimatedMonthly)}/חודש
               </div>
               <div className="text-[9px] text-verdant-muted">כולל תוספת ותק {seniorityBonus}%</div>
@@ -134,14 +134,14 @@ export function BituachLeumiCalc() {
             <div className="flex items-start gap-3 rounded-lg p-2" style={{ background: "#fff" }}>
               <span
                 className="material-symbols-outlined mt-0.5 text-[18px]"
-                style={{ color: "#2B694D" }}
+                style={{ color: "#4ADE80" }}
               >
                 child_care
               </span>
               <div className="flex-1">
                 <div className="text-xs font-extrabold text-verdant-ink">קצבת ילדים</div>
                 <div className="mt-0.5 text-[10px] text-verdant-muted">{childrenUnder18} ילדים</div>
-                <div className="tabular mt-1 text-sm font-extrabold" style={{ color: "#2B694D" }}>
+                <div className="tabular mt-1 text-sm font-extrabold" style={{ color: "#4ADE80" }}>
                   ~{fmtILS(childAllowance)}/חודש
                 </div>
               </div>

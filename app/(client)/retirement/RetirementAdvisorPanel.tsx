@@ -22,10 +22,10 @@ const SEV_COLORS: Record<
   AdvisorInsight["severity"],
   { bg: string; border: string; text: string; icon: string }
 > = {
-  critical: { bg: "#FEE2E2", border: "#8B2E2E", text: "#8B2E2E", icon: "#b91c1c" },
+  critical: { bg: "#FEE2E2", border: "#8B2E2E", text: "#8B2E2E", icon: "#F87171" },
   warning: { bg: "#FEF3C7", border: "#B45309", text: "#92400E", icon: "#d97706" },
-  info: { bg: "#F0F9F4", border: "#2B694D", text: "#1B4332", icon: "#2B694D" },
-  positive: { bg: "#D6EFDC", border: "#1B4332", text: "#014421", icon: "#1B4332" },
+  info: { bg: "#F0F9F4", border: "#4ADE80", text: "#A8E040", icon: "#4ADE80" },
+  positive: { bg: "#A8E040", border: "#A8E040", text: "#014421", icon: "#A8E040" },
 };
 
 export function RetirementAdvisorPanel({
@@ -64,13 +64,13 @@ export function RetirementAdvisorPanel({
       ? "#8B2E2E"
       : report.overallSeverity === "concern"
         ? "#B45309"
-        : "#1B4332";
+        : "#A8E040";
   const headerBg =
     report.overallSeverity === "critical"
       ? "#FEE2E2"
       : report.overallSeverity === "concern"
         ? "#FEF3C7"
-        : "#D6EFDC";
+        : "#A8E040";
   const headerIcon =
     report.overallSeverity === "critical"
       ? "error"

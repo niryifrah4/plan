@@ -294,7 +294,7 @@ export default function LoginPage() {
           >
             <span
               className="material-symbols-outlined mt-0.5 text-[14px]"
-              style={{ color: "#B91C1C" }}
+              style={{ color: "#F87171" }}
             >
               error
             </span>

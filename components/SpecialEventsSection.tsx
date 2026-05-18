@@ -110,7 +110,7 @@ export function SpecialEventsSection() {
               setShowForm(true);
             }}
             className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-all"
-            style={{ background: "#1B4332", color: "#fff" }}
+            style={{ background: "#A8E040", color: "#fff" }}
           >
             <span className="material-symbols-outlined text-[14px]">add</span>
             הוסף אירוע
@@ -122,7 +122,7 @@ export function SpecialEventsSection() {
       {sorted.length === 0 && !showForm && (
         <div
           className="rounded-xl px-4 py-5 text-center"
-          style={{ background: "#F4F7ED", border: "1px dashed #d8e0d0" }}
+          style={{ background: "#1A2438", border: "1px dashed #1F2A3F" }}
         >
           <div className="mb-1 text-[13px] font-bold text-verdant-ink">
             אין עדיין אירועים מיוחדים
@@ -152,12 +152,12 @@ export function SpecialEventsSection() {
             <div
               key={ev.id}
               className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-verdant-bg/60"
-              style={{ background: "#fff", border: "1px solid #e2e8d8" }}
+              style={{ background: "#fff", border: "1px solid #1F2A3F" }}
             >
               <span
                 className="material-symbols-outlined text-[20px]"
                 style={{
-                  color: ev.type === "income" ? "#1B4332" : "#B45309",
+                  color: ev.type === "income" ? "#A8E040" : "#B45309",
                 }}
               >
                 {ev.icon || (ev.type === "income" ? "trending_up" : "trending_down")}
@@ -168,7 +168,7 @@ export function SpecialEventsSection() {
               </div>
               <div
                 className="text-[14px] font-extrabold tabular-nums"
-                style={{ color: ev.type === "income" ? "#1B4332" : "#B45309" }}
+                style={{ color: ev.type === "income" ? "#A8E040" : "#B45309" }}
               >
                 {ev.type === "income" ? "+" : "−"}
                 {fmtILS(ev.amount)}
@@ -238,13 +238,13 @@ function EventForm({ initial, onCancel, onSave }: EventFormProps) {
     <form
       onSubmit={handleSubmit}
       className="rounded-xl p-4"
-      style={{ background: "#F4F7ED", border: "1px solid #d8e0d0" }}
+      style={{ background: "#1A2438", border: "1px solid #1F2A3F" }}
     >
       {/* Type toggle */}
       <div className="mb-3 flex items-center gap-1">
         {(
           [
-            { key: "income", label: "הכנסה", icon: "trending_up", color: "#1B4332" },
+            { key: "income", label: "הכנסה", icon: "trending_up", color: "#A8E040" },
             { key: "expense", label: "הוצאה", icon: "trending_down", color: "#B45309" },
           ] as const
         ).map((t) => {
@@ -257,8 +257,8 @@ function EventForm({ initial, onCancel, onSave }: EventFormProps) {
               className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-all"
               style={{
                 background: active ? t.color : "#fff",
-                color: active ? "#fff" : "#5a7a6a",
-                border: `1px solid ${active ? t.color : "#d8e0d0"}`,
+                color: active ? "#fff" : "#94A3B8",
+                border: `1px solid ${active ? t.color : "#1F2A3F"}`,
               }}
             >
               <span className="material-symbols-outlined text-[14px]">{t.icon}</span>
@@ -278,7 +278,7 @@ function EventForm({ initial, onCancel, onSave }: EventFormProps) {
             onChange={(e) => setLabel(e.target.value)}
             placeholder={type === "income" ? "בונוס שנתי" : "רכישת רכב"}
             className="w-full rounded-lg border px-3 py-2 text-[12px] font-bold outline-none focus:ring-2 focus:ring-verdant-accent/30"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#fff" }}
             autoFocus
           />
         </div>
@@ -291,7 +291,7 @@ function EventForm({ initial, onCancel, onSave }: EventFormProps) {
             value={ym}
             onChange={(e) => setYm(e.target.value)}
             className="w-full rounded-lg border px-3 py-2 text-[12px] font-bold outline-none focus:ring-2 focus:ring-verdant-accent/30"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#fff" }}
             dir="ltr"
           />
         </div>
@@ -307,7 +307,7 @@ function EventForm({ initial, onCancel, onSave }: EventFormProps) {
             onChange={(e) => setAmount(e.target.value)}
             placeholder="25000"
             className="w-full rounded-lg border px-3 py-2 text-[12px] font-bold outline-none focus:ring-2 focus:ring-verdant-accent/30"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#fff" }}
             dir="ltr"
           />
         </div>
@@ -316,7 +316,7 @@ function EventForm({ initial, onCancel, onSave }: EventFormProps) {
       {error && (
         <div
           className="mt-3 rounded-lg px-3 py-2 text-[12px] font-bold"
-          style={{ background: "#FEE2E2", color: "#991B1B" }}
+          style={{ background: "#FEE2E2", color: "#FCA5A5" }}
         >
           {error}
         </div>
@@ -326,7 +326,7 @@ function EventForm({ initial, onCancel, onSave }: EventFormProps) {
         <button
           type="submit"
           className="rounded-full px-5 py-2 text-[12px] font-bold transition-all"
-          style={{ background: "#1B4332", color: "#fff" }}
+          style={{ background: "#A8E040", color: "#fff" }}
         >
           {initial ? "עדכן" : "הוסף"}
         </button>

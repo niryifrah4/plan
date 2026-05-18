@@ -109,13 +109,13 @@ export function AccountsTab() {
     <div className="space-y-6">
       {/* ── KPIs ── */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <KPI icon="account_balance" label="יתרה בנקאית" value={fmtILS(bankTotal)} color="#1B4332" />
+        <KPI icon="account_balance" label="יתרה בנקאית" value={fmtILS(bankTotal)} color="#A8E040" />
         <KPI icon="credit_card" label="חיובי אשראי" value={fmtILS(creditTotal)} color="#f59e0b" />
         <KPI
           icon="savings"
           label="נזילות נטו"
           value={fmtILS(netLiquid)}
-          color={netLiquid >= 0 ? "#1B4332" : "#b91c1c"}
+          color={netLiquid >= 0 ? "#A8E040" : "#F87171"}
         />
         <KPI
           icon="account_balance_wallet"
@@ -143,7 +143,7 @@ export function AccountsTab() {
             </h2>
             <span
               className="rounded-full px-2 py-0.5 text-xs font-bold"
-              style={{ background: "#f4f7ed", color: "var(--verdant-muted)" }}
+              style={{ background: "#1A2438", color: "var(--verdant-muted)" }}
             >
               {data.banks.length}
             </span>
@@ -192,11 +192,11 @@ export function AccountsTab() {
               >
                 <div
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                  style={{ background: "#1B433215" }}
+                  style={{ background: "#A8E04015" }}
                 >
                   <span
                     className="material-symbols-outlined text-[20px]"
-                    style={{ color: "#1B4332" }}
+                    style={{ color: "#A8E040" }}
                   >
                     account_balance
                   </span>
@@ -212,7 +212,7 @@ export function AccountsTab() {
                     {bank.isMain && (
                       <span
                         className="rounded-full px-1.5 py-0.5 text-[9px] font-bold"
-                        style={{ background: "#1B433215", color: "#1B4332" }}
+                        style={{ background: "#A8E04015", color: "#A8E040" }}
                       >
                         ראשי
                       </span>
@@ -231,7 +231,7 @@ export function AccountsTab() {
                           color:
                             bank.balance < 0 && bank.creditLimit! > 0
                               ? Math.abs(bank.balance) / bank.creditLimit! > 0.8
-                                ? "#b91c1c"
+                                ? "#F87171"
                                 : "var(--verdant-muted)"
                               : "var(--verdant-muted)",
                         }}
@@ -261,7 +261,7 @@ export function AccountsTab() {
                 <div className="text-left">
                   <div
                     className="tabular text-base font-extrabold"
-                    style={{ color: bank.balance >= 0 ? "#1B4332" : "#b91c1c" }}
+                    style={{ color: bank.balance >= 0 ? "#A8E040" : "#F87171" }}
                   >
                     {fmtILS(bank.balance)}
                   </div>
@@ -376,7 +376,7 @@ export function AccountsTab() {
                     •••• {card.lastFourDigits} · יום חיוב: {card.billingDay} ·{" "}
                     <span
                       style={{
-                        color: daysLeft <= 3 ? "#b91c1c" : daysLeft <= 7 ? "#b45309" : "var(--verdant-muted)",
+                        color: daysLeft <= 3 ? "#F87171" : daysLeft <= 7 ? "#b45309" : "var(--verdant-muted)",
                         fontWeight: daysLeft <= 7 ? 700 : 500,
                       }}
                     >
@@ -393,7 +393,7 @@ export function AccountsTab() {
                         color:
                           card.creditLimit > 0
                             ? card.currentCharge / card.creditLimit > 0.8
-                              ? "#b91c1c"
+                              ? "#F87171"
                               : "var(--verdant-muted)"
                             : "var(--verdant-muted)",
                       }}
@@ -432,8 +432,8 @@ export function AccountsTab() {
                   title="הוסף עסקה לסל"
                   className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-green-50"
                   style={{
-                    background: quickAddId === card.id ? "#C1ECD4" : "#eef7f1",
-                    color: "#1B4332",
+                    background: quickAddId === card.id ? "#A8E040" : "#1A2438",
+                    color: "#A8E040",
                   }}
                 >
                   <span className="material-symbols-outlined text-[16px]">
@@ -723,9 +723,9 @@ function QuickAddPurchase({
   return (
     <div
       className="flex flex-wrap items-center gap-3 border-b px-5 py-3"
-      style={{ background: "#f9faf2", borderColor: "var(--verdant-border)" }}
+      style={{ background: "#F8FAFC", borderColor: "var(--verdant-border)" }}
     >
-      <span className="text-[12px] font-bold" style={{ color: "#1B4332" }}>
+      <span className="text-[12px] font-bold" style={{ color: "#A8E040" }}>
         הוסף לסל:
       </span>
       <input
@@ -739,7 +739,7 @@ function QuickAddPurchase({
           if (e.key === "Escape") onCancel();
         }}
         className="w-24 rounded-md border bg-white px-2 py-1.5 text-center text-[13px] font-extrabold tabular-nums focus:outline-none"
-        style={{ borderColor: "#d8e0d0" }}
+        style={{ borderColor: "#1F2A3F" }}
         dir="ltr"
       />
       <input
@@ -752,12 +752,12 @@ function QuickAddPurchase({
           if (e.key === "Escape") onCancel();
         }}
         className="min-w-[140px] flex-1 rounded-md border bg-white px-2 py-1.5 text-[12px] focus:outline-none"
-        style={{ borderColor: "#d8e0d0" }}
+        style={{ borderColor: "#1F2A3F" }}
       />
       {parseFloat(amount) > 0 && card.creditLimit > 0 && (
         <span
           className="text-[11px] font-bold"
-          style={{ color: utilPct >= 80 ? "#b91c1c" : "#1B4332" }}
+          style={{ color: utilPct >= 80 ? "#F87171" : "#A8E040" }}
         >
           → {fmtILS(projectedAfter)} ({utilPct}%)
         </span>

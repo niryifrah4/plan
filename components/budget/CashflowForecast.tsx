@@ -55,7 +55,7 @@ export function CashflowForecast() {
         <h3 className="mb-2 text-base font-extrabold text-verdant-ink">מה צפוי לקרות בחשבון</h3>
         <div
           className="rounded-xl px-4 py-5 text-center"
-          style={{ background: "#F4F7ED", border: "1px dashed #d8e0d0" }}
+          style={{ background: "#1A2438", border: "1px dashed #1F2A3F" }}
         >
           <div className="mb-1 text-[13px] font-bold text-verdant-ink">
             עוד אין תחזית להציג
@@ -87,7 +87,7 @@ export function CashflowForecast() {
         {negativeMonths.length > 0 && (
           <span
             className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold"
-            style={{ background: "#FEE2E2", color: "#991B1B" }}
+            style={{ background: "#FEE2E2", color: "#FCA5A5" }}
           >
             <span className="material-symbols-outlined text-[14px]">warning</span>
             {negativeMonths.length} חודשים שליליים
@@ -100,7 +100,7 @@ export function CashflowForecast() {
         {months.map((m) => {
           const heightPct = (Math.abs(m.netCashflow) / max) * 100;
           const color =
-            m.status === "negative" ? "#8B2E2E" : m.status === "tight" ? "#B45309" : "#1B4332";
+            m.status === "negative" ? "#8B2E2E" : m.status === "tight" ? "#B45309" : "#A8E040";
           return (
             <div
               key={m.ym}
@@ -141,13 +141,13 @@ export function CashflowForecast() {
                     ? "#FEE2E2"
                     : m.status === "tight"
                       ? "#FEF3C7"
-                      : "#F4F7ED",
+                      : "#1A2438",
                 color:
                   m.status === "negative"
-                    ? "#991B1B"
+                    ? "#FCA5A5"
                     : m.status === "tight"
                       ? "#92400E"
-                      : "#1B4332",
+                      : "#A8E040",
               }}
             >
               <span className="min-w-[80px] font-extrabold tabular-nums">{m.label}</span>
@@ -186,13 +186,13 @@ export function CashflowForecast() {
         return (
           <div
             className="mt-4 rounded-xl"
-            style={{ background: "#eef7f1", border: "1px solid #c9e3d4" }}
+            style={{ background: "#1A2438", border: "1px solid #1F2A3F" }}
           >
             <div className="flex items-center justify-between px-4 py-2.5">
               <div className="flex items-center gap-2">
                 <span
                   className="material-symbols-outlined text-[18px]"
-                  style={{ color: "#1B4332" }}
+                  style={{ color: "#A8E040" }}
                 >
                   trending_up
                 </span>
@@ -212,7 +212,7 @@ export function CashflowForecast() {
                   </div>
                   <div
                     className="text-[15px] font-extrabold tabular-nums"
-                    style={{ color: "#1B4332" }}
+                    style={{ color: "#A8E040" }}
                   >
                     +{fmtILS(totalMonthlyRelief)}/ח׳
                   </div>
@@ -221,19 +221,19 @@ export function CashflowForecast() {
             </div>
             <div
               className="space-y-1 px-4 pb-3 pt-1"
-              style={{ borderTop: "1px solid #c9e3d4" }}
+              style={{ borderTop: "1px solid #1F2A3F" }}
             >
               {reliefMonths.map((m) => (
                 <div key={m.ym + "_relief"} className="flex items-start gap-3 pt-1.5 text-[12px]">
                   <span
                     className="min-w-[88px] shrink-0 font-extrabold"
-                    style={{ color: "#012D1D" }}
+                    style={{ color: "#F8FAFC" }}
                   >
                     {m.label}
                   </span>
                   <div className="flex-1 space-y-0.5">
                     {m.reliefEvents.map((ev, idx) => (
-                      <div key={idx} style={{ color: "#1B4332" }}>
+                      <div key={idx} style={{ color: "#A8E040" }}>
                         {ev.replace(/^✅\s*/, "")}
                       </div>
                     ))}
@@ -248,7 +248,7 @@ export function CashflowForecast() {
       {/* Adjustable assumption: annual salary growth */}
       <div
         className="mt-3 flex flex-wrap items-center gap-3 rounded-lg px-3 py-2 text-[11px]"
-        style={{ background: "#F4F7ED", border: "1px solid #d8e0d0" }}
+        style={{ background: "#1A2438", border: "1px solid #1F2A3F" }}
       >
         <label className="flex items-center gap-2 font-bold text-verdant-ink">
           צפי גידול שכר שנתי
@@ -260,7 +260,7 @@ export function CashflowForecast() {
             value={growthPct}
             onChange={(e) => updateGrowth(parseInt(e.target.value || "0"))}
             className="w-14 rounded-md border px-2 py-1 text-center font-extrabold tabular-nums"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#fff" }}
             dir="ltr"
           />
           <span>%</span>

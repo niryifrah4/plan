@@ -62,10 +62,10 @@ export function AcquisitionSimulator() {
   const coc = result.cashOnCash * 100;
   const verdict =
     coc > 5 && result.dscr > 1.2
-      ? { label: "כדאי", color: "#1B4332", bg: "#f0fdf4", icon: "thumb_up" }
+      ? { label: "כדאי", color: "#A8E040", bg: "#1A2438", icon: "thumb_up" }
       : coc > 0 && result.dscr >= 1.0
         ? { label: "שווה בדיקה", color: "#f59e0b", bg: "#fffbeb", icon: "help" }
-        : { label: "לא כדאי", color: "#b91c1c", bg: "#fef2f2", icon: "thumb_down" };
+        : { label: "לא כדאי", color: "#F87171", bg: "#fef2f2", icon: "thumb_down" };
 
   const inputCls =
     "w-full px-3 py-2 rounded-lg text-sm border focus:outline-none focus:ring-2 focus:ring-verdant-emerald/30 bg-white text-verdant-ink text-left";
@@ -75,7 +75,7 @@ export function AcquisitionSimulator() {
     <section className="v-card mb-6 overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between px-5 py-4 transition-colors hover:bg-[#f9faf2]"
+        className="flex w-full items-center justify-between px-5 py-4 transition-colors hover:bg-[#F8FAFC]"
       >
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-[18px] text-verdant-emerald">
@@ -98,15 +98,15 @@ export function AcquisitionSimulator() {
             <span className="text-[11px] font-bold text-verdant-muted">סוג נכס:</span>
             <div
               className="inline-flex overflow-hidden rounded-lg border"
-              style={{ borderColor: "#eef2e8" }}
+              style={{ borderColor: "#1F2A3F" }}
             >
               <button
                 type="button"
                 onClick={() => setPropertyKind("primary")}
                 className="px-3 py-1.5 text-[11px] font-bold transition-colors"
                 style={{
-                  background: propertyKind === "primary" ? "#1B4332" : "#ffffff",
-                  color: propertyKind === "primary" ? "#F9FAF2" : "#012d1d",
+                  background: propertyKind === "primary" ? "#A8E040" : "#131C2E",
+                  color: propertyKind === "primary" ? "#F8FAFC" : "#F8FAFC",
                 }}
               >
                 דירה יחידה
@@ -116,8 +116,8 @@ export function AcquisitionSimulator() {
                 onClick={() => setPropertyKind("investor")}
                 className="px-3 py-1.5 text-[11px] font-bold transition-colors"
                 style={{
-                  background: propertyKind === "investor" ? "#1B4332" : "#ffffff",
-                  color: propertyKind === "investor" ? "#F9FAF2" : "#012d1d",
+                  background: propertyKind === "investor" ? "#A8E040" : "#131C2E",
+                  color: propertyKind === "investor" ? "#F8FAFC" : "#F8FAFC",
                 }}
               >
                 נכס להשקעה
@@ -197,7 +197,7 @@ export function AcquisitionSimulator() {
             </div>
             <div>
               <label className={labelCls}>מס רכישה</label>
-              <div className="tabular text-sm font-extrabold" style={{ color: "#b91c1c" }}>
+              <div className="tabular text-sm font-extrabold" style={{ color: "#F87171" }}>
                 {fmtILS(Math.round(result.purchaseTax))}
               </div>
             </div>
@@ -231,21 +231,21 @@ export function AcquisitionSimulator() {
             <MetricCard
               label="Cash-on-Cash"
               value={`${coc.toFixed(1)}%`}
-              color={coc > 5 ? "#1B4332" : coc > 0 ? "#f59e0b" : "#b91c1c"}
+              color={coc > 5 ? "#A8E040" : coc > 0 ? "#f59e0b" : "#F87171"}
             />
             <MetricCard label="Net Yield" value={`${(result.netYield * 100).toFixed(1)}%`} />
-            <MetricCard label="IRR" value={`${(result.irr * 100).toFixed(1)}%`} color="#1B4332" />
+            <MetricCard label="IRR" value={`${(result.irr * 100).toFixed(1)}%`} color="#A8E040" />
             <MetricCard label="מכפיל הון" value={`${result.equityMultiple.toFixed(2)}x`} />
             <MetricCard
               label="תזרים חודשי"
               value={fmtILS(Math.round(result.monthlyCashflow))}
-              color={result.monthlyCashflow >= 0 ? "#1B4332" : "#b91c1c"}
+              color={result.monthlyCashflow >= 0 ? "#A8E040" : "#F87171"}
             />
             <MetricCard label="החזר משכנתא" value={fmtILS(Math.round(result.monthlyPMT))} />
             <MetricCard
               label="DSCR"
               value={result.dscr.toFixed(2)}
-              color={result.dscr >= 1.2 ? "#1B4332" : result.dscr >= 1.0 ? "#f59e0b" : "#b91c1c"}
+              color={result.dscr >= 1.2 ? "#A8E040" : result.dscr >= 1.0 ? "#f59e0b" : "#F87171"}
             />
           </div>
         </div>
@@ -258,10 +258,10 @@ function MetricCard({ label, value, color }: { label: string; value: string; col
   return (
     <div
       className="rounded-lg p-3 text-center"
-      style={{ background: "#f9faf2", border: "1px solid #eef2e8" }}
+      style={{ background: "#F8FAFC", border: "1px solid #1F2A3F" }}
     >
       <div className="mb-0.5 text-[9px] font-bold text-verdant-muted">{label}</div>
-      <div className="tabular text-sm font-extrabold" style={{ color: color ?? "#012d1d" }}>
+      <div className="tabular text-sm font-extrabold" style={{ color: color ?? "#F8FAFC" }}>
         {value}
       </div>
     </div>

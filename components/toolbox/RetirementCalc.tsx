@@ -131,7 +131,7 @@ export function RetirementCalc() {
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
           <div>
             <label className={labelCls}>שנות ותק</label>
-            <div className={wrapCls} style={{ borderColor: "#d8e0d0", background: "#f9faf2" }}>
+            <div className={wrapCls} style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}>
               <input
                 type="number"
                 value={yearsOfService}
@@ -143,7 +143,7 @@ export function RetirementCalc() {
           </div>
           <div>
             <label className={labelCls}>שכר אחרון (חודשי)</label>
-            <div className={wrapCls} style={{ borderColor: "#d8e0d0", background: "#f9faf2" }}>
+            <div className={wrapCls} style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}>
               <input
                 type="number"
                 value={salary}
@@ -156,7 +156,7 @@ export function RetirementCalc() {
           </div>
           <div>
             <label className={labelCls}>מענק פרישה כולל</label>
-            <div className={wrapCls} style={{ borderColor: "#d8e0d0", background: "#f9faf2" }}>
+            <div className={wrapCls} style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}>
               <input
                 type="number"
                 value={totalGrant}
@@ -169,7 +169,7 @@ export function RetirementCalc() {
           </div>
           <div>
             <label className={labelCls}>קצבה צפויה (חודשית)</label>
-            <div className={wrapCls} style={{ borderColor: "#d8e0d0", background: "#f9faf2" }}>
+            <div className={wrapCls} style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}>
               <input
                 type="number"
                 value={monthlyPension}
@@ -182,7 +182,7 @@ export function RetirementCalc() {
           </div>
           <div>
             <label className={labelCls}>גיל בפרישה</label>
-            <div className={wrapCls} style={{ borderColor: "#d8e0d0", background: "#f9faf2" }}>
+            <div className={wrapCls} style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}>
               <input
                 type="number"
                 value={retireAge}
@@ -194,7 +194,7 @@ export function RetirementCalc() {
           </div>
           <div>
             <label className={labelCls}>שנת פרישה</label>
-            <div className={wrapCls} style={{ borderColor: "#d8e0d0", background: "#f9faf2" }}>
+            <div className={wrapCls} style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}>
               <input
                 type="number"
                 value={retireYear}
@@ -214,19 +214,19 @@ export function RetirementCalc() {
           <h3 className="text-sm font-extrabold text-verdant-ink">פטור על מענק פרישה</h3>
         </div>
 
-        <div className="space-y-3 rounded-xl p-4" style={{ background: "#f4f7ed" }}>
+        <div className="space-y-3 rounded-xl p-4" style={{ background: "#1A2438" }}>
           <Row label="תקרת פטור לשנת ותק" value={fmtILS(grantCalc.exemptionPerYear)} />
           <Row
             label={`פטור כולל (${yearsOfService} שנות ותק)`}
             value={fmtILS(grantCalc.totalExemption)}
-            color="#1B4332"
+            color="#A8E040"
           />
           <Row label="מענק פרישה" value={fmtILS(totalGrant)} />
-          <div className="border-t pt-2" style={{ borderColor: "#d8e0d0" }}>
+          <div className="border-t pt-2" style={{ borderColor: "#1F2A3F" }}>
             <Row
               label="מענק חייב במס"
               value={fmtILS(grantCalc.taxableGrant)}
-              color={grantCalc.taxableGrant > 0 ? "#b91c1c" : "#1B4332"}
+              color={grantCalc.taxableGrant > 0 ? "#F87171" : "#A8E040"}
               bold
             />
           </div>
@@ -241,12 +241,12 @@ export function RetirementCalc() {
       <div
         className="rounded-2xl p-5 md:p-6"
         style={{
-          background: "linear-gradient(135deg,#012d1d 0%,#064e32 50%,#1B4332 100%)",
+          background: "linear-gradient(135deg,#F8FAFC 0%,#064e32 50%,#A8E040 100%)",
           color: "#fff",
         }}
       >
         <div className="mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px]" style={{ color: "#2B694D" }}>
+          <span className="material-symbols-outlined text-[18px]" style={{ color: "#4ADE80" }}>
             calculate
           </span>
           <h3 className="text-sm font-extrabold text-white">פריסת מס (קדימה)</h3>
@@ -274,7 +274,7 @@ export function RetirementCalc() {
             </div>
             <div className="flex justify-between text-[11px]">
               <span className="font-bold opacity-80">מס עם פריסה</span>
-              <span className="tabular font-extrabold" style={{ color: "#2B694D" }}>
+              <span className="tabular font-extrabold" style={{ color: "#4ADE80" }}>
                 {fmtILS(spreadCalc.taxWithSpread)}
               </span>
             </div>
@@ -283,7 +283,7 @@ export function RetirementCalc() {
           <div className="mt-3 border-t pt-3" style={{ borderColor: "rgba(255,255,255,0.15)" }}>
             <div className="flex justify-between text-sm">
               <span className="font-extrabold">חיסכון מפריסה</span>
-              <span className="tabular text-lg font-extrabold" style={{ color: "#2B694D" }}>
+              <span className="tabular text-lg font-extrabold" style={{ color: "#4ADE80" }}>
                 {fmtILS(spreadCalc.taxSaving)}
               </span>
             </div>
@@ -336,7 +336,7 @@ export function RetirementCalc() {
               </tr>
               <tr className="v-divider border-b">
                 <td className="py-2.5 font-bold text-verdant-muted">פקטור 1.35</td>
-                <td className="py-2.5 text-center font-bold" style={{ color: "#1B4332" }}>
+                <td className="py-2.5 text-center font-bold" style={{ color: "#A8E040" }}>
                   לא (יתרון!)
                 </td>
                 <td className="py-2.5 text-center">כן</td>
@@ -348,7 +348,7 @@ export function RetirementCalc() {
               </tr>
               <tr>
                 <td className="py-2.5 font-bold text-verdant-muted">מומלץ ב:</td>
-                <td className="py-2.5 text-center font-bold" style={{ color: "#1B4332" }}>
+                <td className="py-2.5 text-center font-bold" style={{ color: "#A8E040" }}>
                   רוב המקרים
                 </td>
                 <td className="py-2.5 text-center text-verdant-muted">ותק קצר + שכר נמוך</td>

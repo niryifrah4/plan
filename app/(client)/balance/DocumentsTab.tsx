@@ -36,20 +36,20 @@ const CAT_OPTIONS = [
 ];
 
 const CAT_COLORS: Record<string, string> = {
-  food: "#2B694D",
-  housing: "#1B4332",
+  food: "#4ADE80",
+  housing: "#A8E040",
   transport: "#3b82f6",
   utilities: "#f59e0b",
   health: "#ef4444",
-  education: "#2B694D",
+  education: "#4ADE80",
   insurance: "#06b6d4",
   leisure: "#ec4899",
   shopping: "#f97316",
-  salary: "#2B694D",
-  pension: "#1a6b42",
+  salary: "#4ADE80",
+  pension: "#4ADE80",
   transfers: "#64748b",
   cash: "#78716c",
-  subscriptions: "#2B694D",
+  subscriptions: "#4ADE80",
   refunds: "#059669",
   other: "#94a3b8",
   fees: "#dc2626",
@@ -601,7 +601,7 @@ export function DocumentsTab() {
           <div
             onClick={() => inputRef.current?.click()}
             className="card-pad cursor-pointer text-center transition-all duration-200"
-            style={{ borderTop: "3px solid #2B694D" }}
+            style={{ borderTop: "3px solid #4ADE80" }}
           >
             <div
               className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full"
@@ -654,13 +654,13 @@ export function DocumentsTab() {
           <a
             href="/pension"
             className="card-pad block text-center transition-all duration-200"
-            style={{ borderTop: "3px solid #2B694D" }}
+            style={{ borderTop: "3px solid #4ADE80" }}
           >
             <div
               className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full"
               style={{ background: "rgba(139,92,246,0.08)" }}
             >
-              <span className="material-symbols-outlined text-[28px]" style={{ color: "#2B694D" }}>
+              <span className="material-symbols-outlined text-[28px]" style={{ color: "#4ADE80" }}>
                 elderly
               </span>
             </div>
@@ -671,7 +671,7 @@ export function DocumentsTab() {
             </p>
             <div
               className="mt-3 flex items-center justify-center gap-2 text-[10px] font-bold"
-              style={{ color: "#2B694D" }}
+              style={{ color: "#4ADE80" }}
             >
               <span className="material-symbols-outlined text-[14px]">arrow_back</span>
               עבור לעמוד פנסיה
@@ -693,7 +693,7 @@ export function DocumentsTab() {
           className="cursor-pointer rounded-2xl transition-all duration-300"
           style={{
             minHeight: 280,
-            border: dragOver ? "2px dashed #2B694D" : "2px dashed #d8e0d0",
+            border: dragOver ? "2px dashed #4ADE80" : "2px dashed #1F2A3F",
             background: dragOver ? "rgba(16,185,129,0.04)" : "#fff",
             boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
           }}
@@ -755,11 +755,11 @@ export function DocumentsTab() {
                 </button>
                 <div className="caption mt-3 flex items-center gap-3">
                   <span>PDF</span>
-                  <span style={{ color: "#d8e0d0" }}>·</span>
+                  <span style={{ color: "#1F2A3F" }}>·</span>
                   <span>XLSX</span>
-                  <span style={{ color: "#d8e0d0" }}>·</span>
+                  <span style={{ color: "#1F2A3F" }}>·</span>
                   <span>CSV</span>
-                  <span style={{ color: "#d8e0d0" }}>|</span>
+                  <span style={{ color: "#1F2A3F" }}>|</span>
                   <span>עד 10MB לקובץ</span>
                 </div>
               </>
@@ -773,10 +773,10 @@ export function DocumentsTab() {
           className="mt-4 flex items-center gap-3 rounded-2xl p-4"
           style={{ background: "#fef2f2", border: "1px solid #fecaca" }}
         >
-          <span className="material-symbols-outlined text-[20px]" style={{ color: "#b91c1c" }}>
+          <span className="material-symbols-outlined text-[20px]" style={{ color: "#F87171" }}>
             error
           </span>
-          <span className="text-sm font-bold" style={{ color: "#b91c1c" }}>
+          <span className="text-sm font-bold" style={{ color: "#F87171" }}>
             {error}
           </span>
           <button
@@ -834,7 +834,7 @@ export function DocumentsTab() {
                 <button
                   onClick={() => appendInputRef.current?.click()}
                   className="flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-extrabold transition-colors hover:opacity-90"
-                  style={{ background: "#1B4332", color: "#fff" }}
+                  style={{ background: "#A8E040", color: "#fff" }}
                   title="הוסף קובץ לסקירה הזאת — יתמזג עם דה-דופ"
                 >
                   <span className="material-symbols-outlined text-[14px]">add</span>קובץ
@@ -870,19 +870,19 @@ export function DocumentsTab() {
                     ? `✓ ${mapped.length} מופו`
                     : `${toReview.length} לבדיקה · ${mapped.length} מופו`
                 }
-                color={allMapped ? "#1B4332" : "#B45309"}
+                color={allMapped ? "#A8E040" : "#B45309"}
               />
               <MiniKPI
                 label="חיובים נטו"
                 value={(netCharges >= 0 ? "-" : "+") + fmtILS(netCharges)}
-                color={netCharges >= 0 ? "#8B2E2E" : "#1B4332"}
+                color={netCharges >= 0 ? "#8B2E2E" : "#A8E040"}
               />
             </div>
             {/* Progress bar */}
-            <div className="h-1.5 overflow-hidden rounded-full" style={{ background: "#eef7f1" }}>
+            <div className="h-1.5 overflow-hidden rounded-full" style={{ background: "#1A2438" }}>
               <div
                 className="h-full transition-all"
-                style={{ width: `${reviewPct}%`, background: allMapped ? "#1B4332" : "#B45309" }}
+                style={{ width: `${reviewPct}%`, background: allMapped ? "#A8E040" : "#B45309" }}
               />
             </div>
           </div>
@@ -893,7 +893,7 @@ export function DocumentsTab() {
             (doc.reconciliation && doc.reconciliation.severity !== "skipped")) && (
             <div
               className="flex flex-wrap items-start gap-2 rounded-xl px-4 py-2 text-[11px] font-bold"
-              style={{ background: "#f9faf2", color: "#5a6b52" }}
+              style={{ background: "#F8FAFC", color: "#5a6b52" }}
             >
               {duplicatesRemoved > 0 && (
                 <span className="flex items-center gap-1">
@@ -903,13 +903,13 @@ export function DocumentsTab() {
               )}
               {doc.reconciliation && doc.reconciliation.severity !== "skipped" && (
                 <span className="flex items-center gap-1">
-                  <span style={{ color: "#d8e0d0" }}>·</span>
+                  <span style={{ color: "#1F2A3F" }}>·</span>
                   <span
                     className="material-symbols-outlined text-[13px]"
                     style={{
                       color:
                         doc.reconciliation.severity === "clean"
-                          ? "#1B4332"
+                          ? "#A8E040"
                           : doc.reconciliation.severity === "minor"
                             ? "#B45309"
                             : "#8B2E2E",
@@ -922,7 +922,7 @@ export function DocumentsTab() {
               )}
               {doc.warnings.map((w, i) => (
                 <span key={i} className="flex items-center gap-1">
-                  <span style={{ color: "#d8e0d0" }}>·</span>
+                  <span style={{ color: "#1F2A3F" }}>·</span>
                   <span
                     className="material-symbols-outlined text-[13px]"
                     style={{ color: "#B45309" }}
@@ -947,7 +947,7 @@ export function DocumentsTab() {
             >
               <div
                 className="flex items-center justify-between border-b px-5 py-3"
-                style={{ borderColor: "#f4f7ed" }}
+                style={{ borderColor: "#1A2438" }}
               >
                 <div className="flex items-center gap-2">
                   <span
@@ -976,7 +976,7 @@ export function DocumentsTab() {
                         <tr
                           key={t._idx}
                           className="group border-b transition-colors hover:bg-verdant-bg/30"
-                          style={{ borderColor: "#f4f7ed" }}
+                          style={{ borderColor: "#1A2438" }}
                         >
                           <td
                             className="tabular w-20 px-5 py-2 text-xs font-bold text-verdant-ink"
@@ -1010,7 +1010,7 @@ export function DocumentsTab() {
                               style={{
                                 borderColor: "#fcd9a8",
                                 background: "#fffbeb",
-                                color: "#1B4332",
+                                color: "#A8E040",
                               }}
                             >
                               {CAT_OPTIONS.map((c) => (
@@ -1029,9 +1029,9 @@ export function DocumentsTab() {
                                 style={
                                   isBiz
                                     ? {
-                                        borderColor: "#1B4332",
-                                        background: "#eef7f1",
-                                        color: "#1B4332",
+                                        borderColor: "#A8E040",
+                                        background: "#1A2438",
+                                        color: "#A8E040",
                                       }
                                     : {
                                         borderColor: "#e5e7eb",
@@ -1046,7 +1046,7 @@ export function DocumentsTab() {
                           )}
                           <td
                             className="tabular w-24 px-3 py-2 text-left text-xs font-extrabold"
-                            style={{ color: t.amount > 0 ? "#8B2E2E" : "#1B4332" }}
+                            style={{ color: t.amount > 0 ? "#8B2E2E" : "#A8E040" }}
                           >
                             {t.amount > 0 ? "-" : "+"}
                             {fmtILS(t.amount)}
@@ -1081,17 +1081,17 @@ export function DocumentsTab() {
               style={{
                 background: "#fff",
                 boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-                borderRight: "3px solid #1B4332",
+                borderRight: "3px solid #A8E040",
               }}
             >
               <div
                 className="flex items-center justify-between border-b px-5 py-3"
-                style={{ borderColor: "#f4f7ed" }}
+                style={{ borderColor: "#1A2438" }}
               >
                 <div className="flex items-center gap-2">
                   <span
                     className="material-symbols-outlined text-[18px]"
-                    style={{ color: "#1B4332" }}
+                    style={{ color: "#A8E040" }}
                   >
                     check_circle
                   </span>
@@ -1104,7 +1104,7 @@ export function DocumentsTab() {
                 </div>
                 <span className="text-[10px] font-bold text-verdant-muted">מקובץ לפי קטגוריה</span>
               </div>
-              <div className="divide-y" style={{ borderColor: "#f4f7ed" }}>
+              <div className="divide-y" style={{ borderColor: "#1A2438" }}>
                 {Object.entries(mappedGroups)
                   .sort((a, b) => {
                     const totalA = a[1].reduce((s, t) => s + Math.abs(t.amount), 0);
@@ -1124,7 +1124,7 @@ export function DocumentsTab() {
                           <div className="flex items-center gap-3">
                             <div
                               className="h-2 w-2 rounded-full"
-                              style={{ background: "#1B4332" }}
+                              style={{ background: "#A8E040" }}
                             />
                             <span
                               className="text-sm font-extrabold text-verdant-ink"
@@ -1134,7 +1134,7 @@ export function DocumentsTab() {
                             </span>
                             <span
                               className="rounded-full px-2 py-0.5 text-[10px] font-bold"
-                              style={{ background: "#eef7f1", color: "#1B4332" }}
+                              style={{ background: "#1A2438", color: "#A8E040" }}
                             >
                               {txs.length}
                             </span>
@@ -1152,7 +1152,7 @@ export function DocumentsTab() {
                           </div>
                         </button>
                         {isExpanded && (
-                          <div className="border-t" style={{ borderColor: "#f4f7ed" }}>
+                          <div className="border-t" style={{ borderColor: "#1A2438" }}>
                             <table className="w-full text-sm">
                               <tbody>
                                 {txs.map((t) => {
@@ -1161,7 +1161,7 @@ export function DocumentsTab() {
                                     <tr
                                       key={t._idx}
                                       className="group border-b transition-colors hover:bg-verdant-bg/20"
-                                      style={{ borderColor: "#f9faf2" }}
+                                      style={{ borderColor: "#F8FAFC" }}
                                     >
                                       <td
                                         className="tabular w-20 px-5 py-2 text-xs font-bold text-verdant-ink"
@@ -1180,9 +1180,9 @@ export function DocumentsTab() {
                                           }
                                           className="w-full cursor-pointer rounded-lg border px-2 py-1.5 text-[11px] font-bold outline-none transition-all focus:ring-2 focus:ring-verdant-accent/30"
                                           style={{
-                                            borderColor: "#d8e0d0",
+                                            borderColor: "#1F2A3F",
                                             background: "#fff",
-                                            color: "#1B4332",
+                                            color: "#A8E040",
                                           }}
                                         >
                                           {CAT_OPTIONS.map((c) => (
@@ -1205,9 +1205,9 @@ export function DocumentsTab() {
                                             style={
                                               isBizM
                                                 ? {
-                                                    borderColor: "#1B4332",
-                                                    background: "#eef7f1",
-                                                    color: "#1B4332",
+                                                    borderColor: "#A8E040",
+                                                    background: "#1A2438",
+                                                    color: "#A8E040",
                                                   }
                                                 : {
                                                     borderColor: "#e5e7eb",
@@ -1222,7 +1222,7 @@ export function DocumentsTab() {
                                       )}
                                       <td
                                         className="tabular w-24 px-3 py-2 text-left text-xs font-extrabold"
-                                        style={{ color: t.amount > 0 ? "#8B2E2E" : "#1B4332" }}
+                                        style={{ color: t.amount > 0 ? "#8B2E2E" : "#A8E040" }}
                                       >
                                         {t.amount > 0 ? "-" : "+"}
                                         {fmtILS(t.amount)}
@@ -1269,7 +1269,7 @@ export function DocumentsTab() {
                 } catch {}
               }}
               className="flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-bold text-verdant-muted transition-colors hover:text-verdant-ink"
-              style={{ background: "#f4f7ed" }}
+              style={{ background: "#1A2438" }}
             >
               <span className="material-symbols-outlined text-[16px]">close</span>בטל
             </button>
@@ -1281,7 +1281,7 @@ export function DocumentsTab() {
                 >
                   <span
                     className="material-symbols-outlined text-[13px]"
-                    style={{ color: "#1B4332" }}
+                    style={{ color: "#A8E040" }}
                   >
                     auto_fix_high
                   </span>
@@ -1291,7 +1291,7 @@ export function DocumentsTab() {
               <button
                 onClick={handleTransfer}
                 className="flex items-center gap-2 rounded-xl px-8 py-3 text-sm font-extrabold text-white transition-all hover:scale-[0.98]"
-                style={{ background: "#1B4332", fontFamily: "Assistant" }}
+                style={{ background: "#A8E040", fontFamily: "Assistant" }}
               >
                 <span className="material-symbols-outlined text-[18px]">
                   {allMapped ? "verified" : "save"}
@@ -1327,12 +1327,12 @@ export function DocumentsTab() {
             {effectiveTx.length - crossDupsSkipped} תנועות נוספו בהצלחה
           </p>
           {duplicatesRemoved > 0 && (
-            <p className="mb-1 text-xs font-bold" style={{ color: "#1B4332" }}>
+            <p className="mb-1 text-xs font-bold" style={{ color: "#A8E040" }}>
               {duplicatesRemoved} כפילויות בתוך הקובץ הוסרו
             </p>
           )}
           {crossDupsSkipped > 0 && (
-            <p className="mb-1 text-xs font-bold" style={{ color: "#1B4332" }}>
+            <p className="mb-1 text-xs font-bold" style={{ color: "#A8E040" }}>
               <span className="material-symbols-outlined ml-0.5 align-middle text-[12px]">
                 link
               </span>
@@ -1365,7 +1365,7 @@ export function DocumentsTab() {
             <a
               href="/balance"
               className="flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-bold text-verdant-muted transition-colors hover:text-verdant-ink"
-              style={{ background: "#f4f7ed" }}
+              style={{ background: "#1A2438" }}
             >
               <span className="material-symbols-outlined text-[16px]">arrow_back</span>עבור לתזרים
             </a>
@@ -1397,15 +1397,15 @@ export function DocumentsTab() {
             <div
               className="mb-4 mt-6 rounded-2xl p-5"
               style={{
-                background: "linear-gradient(135deg,#eef7f1 0%,#f9faf2 100%)",
-                border: "1px solid #d8e0d0",
+                background: "linear-gradient(135deg,#1A2438 0%,#F8FAFC 100%)",
+                border: "1px solid #1F2A3F",
               }}
             >
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span
                     className="material-symbols-outlined text-[18px]"
-                    style={{ color: "#1B4332" }}
+                    style={{ color: "#A8E040" }}
                   >
                     fact_check
                   </span>
@@ -1445,7 +1445,7 @@ export function DocumentsTab() {
                   </div>
                   <div
                     className="tabular text-lg font-extrabold"
-                    style={{ color: pct >= 95 ? "#2B694D" : pct >= 80 ? "#B45309" : "#8B2E2E" }}
+                    style={{ color: pct >= 95 ? "#4ADE80" : pct >= 80 ? "#B45309" : "#8B2E2E" }}
                   >
                     {pct}%
                   </div>
@@ -1456,7 +1456,7 @@ export function DocumentsTab() {
                   </div>
                   <div
                     className="tabular text-lg font-extrabold"
-                    style={{ color: totalUnmapped > 0 ? "#8B2E2E" : "#2B694D" }}
+                    style={{ color: totalUnmapped > 0 ? "#8B2E2E" : "#4ADE80" }}
                   >
                     {totalUnmapped.toLocaleString("he-IL")}
                     {filesWithGaps > 0 && (
@@ -1473,7 +1473,7 @@ export function DocumentsTab() {
                   className="h-full"
                   style={{
                     width: `${pct}%`,
-                    background: pct >= 95 ? "#2B694D" : pct >= 80 ? "#B45309" : "#8B2E2E",
+                    background: pct >= 95 ? "#4ADE80" : pct >= 80 ? "#B45309" : "#8B2E2E",
                     transition: "width 0.3s",
                   }}
                 />
@@ -1504,7 +1504,7 @@ export function DocumentsTab() {
         >
           <div
             className="flex items-center justify-between px-5 py-3"
-            style={{ background: "linear-gradient(135deg,#012d1d 0%,#1B4332 100%)" }}
+            style={{ background: "linear-gradient(135deg,#F8FAFC 0%,#A8E040 100%)" }}
           >
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-[18px] text-white">history</span>
@@ -1516,7 +1516,7 @@ export function DocumentsTab() {
               היסטוריית העלאות · רשומות אחרונות למעלה
             </span>
           </div>
-          <div className="divide-y" style={{ borderColor: "#eef7f1" }}>
+          <div className="divide-y" style={{ borderColor: "#1A2438" }}>
             {docHistory.map((h) => {
               const bankIcon = BANK_ICONS[h.bankHint] || BANK_ICONS["לא זוהה"];
               const dt = new Date(h.uploadedAt);
@@ -1539,14 +1539,14 @@ export function DocumentsTab() {
               const statusColor = !hasStats
                 ? "#94a3b8"
                 : unmap === 0
-                  ? "#2B694D"
+                  ? "#4ADE80"
                   : unmap <= 5
                     ? "#B45309"
                     : "#8B2E2E";
               const statusBg = !hasStats
                 ? "#f1f5f9"
                 : unmap === 0
-                  ? "#d6efdc"
+                  ? "#A8E040"
                   : unmap <= 5
                     ? "#fef3c7"
                     : "#fee2e2";
@@ -1593,13 +1593,13 @@ export function DocumentsTab() {
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] font-bold text-verdant-muted">
                       <span>{h.bankHint}</span>
-                      <span style={{ color: "#d8e0d0" }}>·</span>
+                      <span style={{ color: "#1F2A3F" }}>·</span>
                       <span>
                         {dateStr} {timeStr}
                       </span>
                       {periodStr && (
                         <>
-                          <span style={{ color: "#d8e0d0" }}>·</span>
+                          <span style={{ color: "#1F2A3F" }}>·</span>
                           <span className="flex items-center gap-0.5">
                             <span className="material-symbols-outlined text-[11px]">
                               calendar_month
@@ -1610,10 +1610,10 @@ export function DocumentsTab() {
                       )}
                       {typeof h.crossDupsSkipped === "number" && h.crossDupsSkipped > 0 && (
                         <>
-                          <span style={{ color: "#d8e0d0" }}>·</span>
+                          <span style={{ color: "#1F2A3F" }}>·</span>
                           <span
                             className="flex items-center gap-0.5"
-                            style={{ color: "#1B4332" }}
+                            style={{ color: "#A8E040" }}
                             title="כפילויות מול העלאות קודמות — עו״ש ↔ אשראי"
                           >
                             <span className="material-symbols-outlined text-[11px]">link</span>
@@ -1630,13 +1630,13 @@ export function DocumentsTab() {
                     </div>
                     <div className="text-right">
                       <div className="text-[9px] text-verdant-muted">חיובים</div>
-                      <div className="font-extrabold" style={{ color: "#b91c1c" }}>
+                      <div className="font-extrabold" style={{ color: "#F87171" }}>
                         {fmtILS(h.chargesSum)}
                       </div>
                     </div>
                     <div className="text-right">
                       <div className="text-[9px] text-verdant-muted">זיכויים</div>
-                      <div className="font-extrabold" style={{ color: "#2B694D" }}>
+                      <div className="font-extrabold" style={{ color: "#4ADE80" }}>
                         {fmtILS(h.creditsSum)}
                       </div>
                     </div>
@@ -1648,7 +1648,7 @@ export function DocumentsTab() {
                   >
                     <span
                       className="material-symbols-outlined text-[14px]"
-                      style={{ color: "#b91c1c" }}
+                      style={{ color: "#F87171" }}
                     >
                       delete_outline
                     </span>
@@ -1659,7 +1659,7 @@ export function DocumentsTab() {
           </div>
           <div
             className="px-5 py-2.5 text-[10px] font-bold text-verdant-muted"
-            style={{ background: "#f9faf2" }}
+            style={{ background: "#F8FAFC" }}
           >
             <span className="material-symbols-outlined ml-1 align-middle text-[11px]">info</span>
             הסרה מההיסטוריה לא מוחקת את התנועות עצמן מהתזרים
@@ -1690,7 +1690,7 @@ export function DocumentsTab() {
                 <span
                   key={b}
                   className="rounded-lg px-2.5 py-1 text-[11px] font-bold"
-                  style={{ background: "#eef7f1", color: "#1B4332" }}
+                  style={{ background: "#1A2438", color: "#A8E040" }}
                 >
                   {b}
                 </span>
@@ -1717,7 +1717,7 @@ export function DocumentsTab() {
                 <span
                   key={c}
                   className="rounded-lg px-2.5 py-1 text-[11px] font-bold"
-                  style={{ background: "#eef7f1", color: "#1B4332" }}
+                  style={{ background: "#1A2438", color: "#A8E040" }}
                 >
                   {c}
                 </span>
@@ -1733,13 +1733,13 @@ export function DocumentsTab() {
 /* ── Mini KPI ── */
 function MiniKPI({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
-    <div className="rounded-xl p-3" style={{ background: "#f9faf2" }}>
+    <div className="rounded-xl p-3" style={{ background: "#F8FAFC" }}>
       <div className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
         {label}
       </div>
       <div
         className="text-sm font-extrabold"
-        style={{ color: color || "#012d1d", fontFamily: "Assistant" }}
+        style={{ color: color || "#F8FAFC", fontFamily: "Assistant" }}
       >
         {value}
       </div>

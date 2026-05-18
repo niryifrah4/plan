@@ -138,7 +138,7 @@ export function GoalLinker({
               value={link.goalId}
               onChange={(e) => handleSelectChange(link.goalId, e.target.value, link.pct)}
               className={selectCls}
-              style={{ borderColor: "#d8e0d0", background: "#f0fdf4" }}
+              style={{ borderColor: "#1F2A3F", background: "#1A2438" }}
             >
               {bucket && <option value={link.goalId}>{bucket.name}</option>}
               {buckets
@@ -157,7 +157,7 @@ export function GoalLinker({
                 value={link.pct}
                 onChange={(e) => handlePctChange(link.goalId, Number(e.target.value))}
                 className={pctInputCls}
-                style={{ borderColor: "#d8e0d0", background: "#f0fdf4" }}
+                style={{ borderColor: "#1F2A3F", background: "#1A2438" }}
               />
               <span className="text-[9px] font-bold text-verdant-muted">%</span>
             </div>
@@ -181,7 +181,7 @@ export function GoalLinker({
               if (e.target.value) handleSelectChange("", e.target.value, 100);
             }}
             className={selectCls}
-            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#fff" }}
           >
             <option value="">ללא שיוך</option>
             {availableBuckets.map((b) => (
@@ -205,7 +205,7 @@ export function GoalLinker({
 
       {/* Warning when over-allocated */}
       {overAllocated && (
-        <div className="text-[9px] font-bold" style={{ color: "#b91c1c" }}>
+        <div className="text-[9px] font-bold" style={{ color: "#F87171" }}>
           ⚠ שיוך {totalPct}% — חריגה
         </div>
       )}

@@ -45,14 +45,14 @@ export function SaleSimulator({ property, allProperties, onClose }: Props) {
 
   const taxColor =
     result.taxStatus === "exempt"
-      ? "#1B4332"
+      ? "#A8E040"
       : result.taxStatus === "exempt_partial"
         ? "#B45309"
         : result.taxStatus === "overlap"
           ? "#B45309"
           : result.taxStatus === "taxable"
             ? "#8B2E2E"
-            : "#5a7a6a";
+            : "#94A3B8";
 
   return (
     <div
@@ -124,13 +124,13 @@ export function SaleSimulator({ property, allProperties, onClose }: Props) {
         </div>
 
         {/* Results */}
-        <div className="v-divider space-y-3 border-t px-6 py-5" style={{ background: "#F9FAF2" }}>
+        <div className="v-divider space-y-3 border-t px-6 py-5" style={{ background: "#F8FAFC" }}>
           {/* The big number */}
           <div
             className="rounded-2xl py-4 text-center"
             style={{
-              background: "linear-gradient(135deg, #1B4332 0%, #012D1D 100%)",
-              color: "#F9FAF2",
+              background: "linear-gradient(135deg, #A8E040 0%, #F8FAFC 100%)",
+              color: "#F8FAFC",
             }}
           >
             <div
@@ -156,12 +156,12 @@ export function SaleSimulator({ property, allProperties, onClose }: Props) {
           </div>
 
           {/* Breakdown */}
-          <div className="rounded-xl bg-white p-4" style={{ border: "1px solid #eef2e8" }}>
+          <div className="rounded-xl bg-white p-4" style={{ border: "1px solid #1F2A3F" }}>
             <Row label="מחיר מכירה צפוי" value={result.projectedSalePrice} />
             <Row label="עמלות מכירה" value={-result.sellingFees} negative />
             <Row label="יתרת משכנתא לתשלום" value={-result.mortgageBalanceAtSale} negative />
             <Row label={result.taxLabel} value={-result.estimatedTax} negative color={taxColor} />
-            <hr className="my-2" style={{ borderColor: "#eef2e8" }} />
+            <hr className="my-2" style={{ borderColor: "#1F2A3F" }} />
             <Row label="נטו ביד" value={result.netCashProceeds} bold />
           </div>
 
@@ -177,7 +177,7 @@ export function SaleSimulator({ property, allProperties, onClose }: Props) {
           <button
             onClick={onClose}
             className="rounded-lg px-4 py-2 text-[13px] font-bold"
-            style={{ background: "#1B4332", color: "#fff" }}
+            style={{ background: "#A8E040", color: "#fff" }}
           >
             סגור
           </button>
@@ -219,7 +219,7 @@ function SliderField({
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="h-1.5 w-full accent-[#1B4332]"
+        className="h-1.5 w-full accent-[#A8E040]"
       />
     </div>
   );
@@ -238,7 +238,7 @@ function Row({
   bold?: boolean;
   color?: string;
 }) {
-  const textColor = color || (bold ? "#012D1D" : negative ? "#5a7a6a" : "#1B4332");
+  const textColor = color || (bold ? "#F8FAFC" : negative ? "#94A3B8" : "#A8E040");
   return (
     <div className="flex items-center justify-between py-1.5">
       <span className="text-[12px]" style={{ color: textColor, fontWeight: bold ? 800 : 500 }}>

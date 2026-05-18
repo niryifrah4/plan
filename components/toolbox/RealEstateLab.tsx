@@ -37,7 +37,7 @@ export function RealEstateLab() {
       <div className="mb-8 flex items-center gap-3">
         <div
           className="flex h-11 w-11 items-center justify-center rounded-xl"
-          style={{ background: "linear-gradient(135deg,#012d1d,#1B4332)" }}
+          style={{ background: "linear-gradient(135deg,#F8FAFC,#A8E040)" }}
         >
           <span className="material-symbols-outlined text-[24px] text-white">home_work</span>
         </div>
@@ -59,15 +59,15 @@ export function RealEstateLab() {
               onClick={() => setActiveTab(tab.id)}
               className="rounded-xl p-4 text-right transition-all duration-200"
               style={{
-                background: isActive ? "linear-gradient(135deg,#012d1d,#1B4332)" : "#fff",
-                border: `1.5px solid ${isActive ? "#1B4332" : "#d8e0d0"}`,
-                color: isActive ? "#fff" : "#012d1d",
+                background: isActive ? "linear-gradient(135deg,#F8FAFC,#A8E040)" : "#fff",
+                border: `1.5px solid ${isActive ? "#A8E040" : "#1F2A3F"}`,
+                color: isActive ? "#fff" : "#F8FAFC",
               }}
             >
               <div className="mb-1.5 flex items-center gap-2">
                 <span
                   className="material-symbols-outlined text-[20px]"
-                  style={{ color: isActive ? "#2B694D" : "#1B4332" }}
+                  style={{ color: isActive ? "#4ADE80" : "#A8E040" }}
                 >
                   {tab.icon}
                 </span>

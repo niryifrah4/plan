@@ -506,7 +506,7 @@ export function AnnualReportUpload() {
                   <span className="font-extrabold text-verdant-ink">{p.company}</span>
                 </div>
                 <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-verdant-muted">
-                  <span className="font-bold" style={{ color: "#1B4332" }}>
+                  <span className="font-bold" style={{ color: "#A8E040" }}>
                     {PRODUCT_TYPE_LABELS[p.productType] || `סוג ${p.productType}`}
                   </span>
                   {p.employer && <span>מעסיק: {p.employer}</span>}
@@ -584,7 +584,7 @@ export function AnnualReportUpload() {
                   <span className="font-extrabold text-verdant-ink">{p.company}</span>
                 </div>
                 <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-verdant-muted">
-                  <span className="font-bold" style={{ color: "#1B4332" }}>
+                  <span className="font-bold" style={{ color: "#A8E040" }}>
                     {p.productType}
                   </span>
                   <span
@@ -602,7 +602,7 @@ export function AnnualReportUpload() {
                   </div>
                 )}
                 {p.liquidityDate && (
-                  <div className="mt-1 text-[10px] font-bold" style={{ color: "#1B4332" }}>
+                  <div className="mt-1 text-[10px] font-bold" style={{ color: "#A8E040" }}>
                     נזילות: {p.liquidityDate}
                   </div>
                 )}

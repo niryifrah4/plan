@@ -158,42 +158,42 @@ export function InvestmentPropertyCalc() {
           label="הון עצמי דרוש (כולל מיסים)"
           value={fmtILS(Math.round(results.effectiveEquityNeeded))}
           icon="account_balance_wallet"
-          color="#012d1d"
+          color="#F8FAFC"
           highlight
         />
         <ResultCard
           label="משכנתא מקסימלית (50%)"
           value={fmtILS(Math.round(results.effectiveMortgage))}
           icon="account_balance"
-          color="#1B4332"
+          color="#A8E040"
         />
         <ResultCard
           label="פער תזרימי חודשי"
           value={fmtILS(Math.round(results.monthlyCashflow))}
           icon={results.monthlyCashflow >= 0 ? "trending_up" : "trending_down"}
-          color={results.monthlyCashflow >= 0 ? "#1B4332" : "#b91c1c"}
+          color={results.monthlyCashflow >= 0 ? "#A8E040" : "#F87171"}
         />
       </div>
 
       {/* Purchase Tax Breakdown */}
       <div
         className="rounded-xl p-6"
-        style={{ background: "#f9faf2", border: "1px solid #d8e0d0" }}
+        style={{ background: "#F8FAFC", border: "1px solid #1F2A3F" }}
       >
         <div className="caption mb-4">מס רכישה — מדרגות דירה שנייה 2026</div>
         <div className="mb-4 grid grid-cols-3 gap-4">
           <div
             className="rounded-lg p-3 text-center"
-            style={{ background: "#fff", border: "1px solid #eef2e8" }}
+            style={{ background: "#fff", border: "1px solid #1F2A3F" }}
           >
             <div className="mb-0.5 text-[9px] font-bold text-verdant-muted">מס רכישה</div>
-            <div className="tabular text-lg font-extrabold" style={{ color: "#b91c1c" }}>
+            <div className="tabular text-lg font-extrabold" style={{ color: "#F87171" }}>
               {fmtILS(Math.round(results.purchaseTax))}
             </div>
           </div>
           <div
             className="rounded-lg p-3 text-center"
-            style={{ background: "#fff", border: "1px solid #eef2e8" }}
+            style={{ background: "#fff", border: "1px solid #1F2A3F" }}
           >
             <div className="mb-0.5 text-[9px] font-bold text-verdant-muted">שכ״ט עו״ד</div>
             <div className="tabular text-lg font-extrabold text-verdant-ink">
@@ -202,7 +202,7 @@ export function InvestmentPropertyCalc() {
           </div>
           <div
             className="rounded-lg p-3 text-center"
-            style={{ background: "#fff", border: "1px solid #eef2e8" }}
+            style={{ background: "#fff", border: "1px solid #1F2A3F" }}
           >
             <div className="mb-0.5 text-[9px] font-bold text-verdant-muted">סה״כ עלויות נלוות</div>
             <div className="tabular text-lg font-extrabold text-verdant-ink">
@@ -218,7 +218,7 @@ export function InvestmentPropertyCalc() {
       {/* Yield Analysis */}
       <div
         className="space-y-5 rounded-xl p-6"
-        style={{ background: "#fff", border: "1px solid #d8e0d0" }}
+        style={{ background: "#fff", border: "1px solid #1F2A3F" }}
       >
         <div className="caption">ניתוח תשואה</div>
 
@@ -237,16 +237,16 @@ export function InvestmentPropertyCalc() {
         </div>
 
         {/* Gross vs Net bar */}
-        <div className="border-t pt-4" style={{ borderColor: "#eef2e8" }}>
+        <div className="border-t pt-4" style={{ borderColor: "#1F2A3F" }}>
           <div className="mb-3 flex items-center gap-4">
             <div className="flex items-center gap-1.5">
-              <span className="h-3 w-3 rounded-sm" style={{ background: "#1B4332" }} />
+              <span className="h-3 w-3 rounded-sm" style={{ background: "#A8E040" }} />
               <span className="text-[10px] font-bold text-verdant-muted">
                 גולמית {results.grossYield.toFixed(1)}%
               </span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="h-3 w-3 rounded-sm" style={{ background: "#012d1d" }} />
+              <span className="h-3 w-3 rounded-sm" style={{ background: "#F8FAFC" }} />
               <span className="text-[10px] font-bold text-verdant-muted">
                 נקייה {results.netYield.toFixed(1)}%
               </span>
@@ -258,24 +258,24 @@ export function InvestmentPropertyCalc() {
               </span>
             </div>
           </div>
-          <div className="flex h-4 overflow-hidden rounded-full" style={{ background: "#eef2e8" }}>
+          <div className="flex h-4 overflow-hidden rounded-full" style={{ background: "#1F2A3F" }}>
             <div
               className="h-full transition-all duration-500"
-              style={{ width: `${Math.min(100, results.grossYield * 10)}%`, background: "#1B4332" }}
+              style={{ width: `${Math.min(100, results.grossYield * 10)}%`, background: "#A8E040" }}
             />
           </div>
           <div
             className="mt-1 flex h-4 overflow-hidden rounded-full"
-            style={{ background: "#eef2e8" }}
+            style={{ background: "#1F2A3F" }}
           >
             <div
               className="h-full transition-all duration-500"
-              style={{ width: `${Math.min(100, results.netYield * 10)}%`, background: "#012d1d" }}
+              style={{ width: `${Math.min(100, results.netYield * 10)}%`, background: "#F8FAFC" }}
             />
           </div>
           <div
             className="mt-1 flex h-4 overflow-hidden rounded-full"
-            style={{ background: "#eef2e8" }}
+            style={{ background: "#1F2A3F" }}
           >
             <div
               className="h-full transition-all duration-500"
@@ -291,27 +291,27 @@ export function InvestmentPropertyCalc() {
       {/* Cashflow Details */}
       <div
         className="space-y-4 rounded-xl p-6"
-        style={{ background: "#f9faf2", border: "1px solid #d8e0d0" }}
+        style={{ background: "#F8FAFC", border: "1px solid #1F2A3F" }}
       >
         <div className="caption">תזרים חודשי</div>
         <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-          <DetailRow label="שכירות חודשית" value={`+${fmtILS(monthlyRent)}`} color="#1B4332" />
+          <DetailRow label="שכירות חודשית" value={`+${fmtILS(monthlyRent)}`} color="#A8E040" />
           <DetailRow
             label="החזר משכנתא"
             value={`-${fmtILS(Math.round(results.monthlyPayment))}`}
-            color="#b91c1c"
+            color="#F87171"
           />
-          <DetailRow label="הוצאות שוטפות" value={`-${fmtILS(monthlyExpenses)}`} color="#b91c1c" />
+          <DetailRow label="הוצאות שוטפות" value={`-${fmtILS(monthlyExpenses)}`} color="#F87171" />
           <DetailRow label="סה״כ ריבית לתקופה" value={fmtILS(Math.round(results.totalInterest))} />
         </div>
         <div
           className="flex items-center justify-between border-t pt-4"
-          style={{ borderColor: "#d8e0d0" }}
+          style={{ borderColor: "#1F2A3F" }}
         >
           <span className="text-[12px] font-extrabold text-verdant-ink">פער תזרימי נטו</span>
           <span
             className="tabular text-lg font-extrabold"
-            style={{ color: results.monthlyCashflow >= 0 ? "#1B4332" : "#b91c1c" }}
+            style={{ color: results.monthlyCashflow >= 0 ? "#A8E040" : "#F87171" }}
           >
             {fmtILS(Math.round(results.monthlyCashflow))}/חודש
           </span>
@@ -319,7 +319,7 @@ export function InvestmentPropertyCalc() {
         {results.monthlyCashflow < 0 && (
           <div
             className="flex items-center gap-2 rounded-lg p-3 text-[11px] font-bold"
-            style={{ background: "#fef2f2", color: "#b91c1c" }}
+            style={{ background: "#fef2f2", color: "#F87171" }}
           >
             <span className="material-symbols-outlined text-[16px]">warning</span>
             ההשקעה דורשת מימון נוסף של {fmtILS(Math.abs(Math.round(results.monthlyCashflow)))}/חודש
@@ -359,7 +359,7 @@ function InputField({
       <div className="mb-1.5 text-[10px] font-bold text-verdant-muted">{label}</div>
       <div
         className="flex items-center gap-2 rounded-xl border px-4 py-2.5"
-        style={{ borderColor: "#d8e0d0", background: "#fff" }}
+        style={{ borderColor: "#1F2A3F", background: "#fff" }}
       >
         <input
           type="number"
@@ -392,7 +392,7 @@ function ResultCard({
       className="rounded-xl p-5 text-center"
       style={{
         background: highlight ? `linear-gradient(135deg, ${color}08, ${color}04)` : "#fff",
-        border: `1px solid ${highlight ? color + "30" : "#eef2e8"}`,
+        border: `1px solid ${highlight ? color + "30" : "#1F2A3F"}`,
       }}
     >
       <span className="material-symbols-outlined mb-2 text-[24px]" style={{ color }}>
@@ -417,11 +417,11 @@ function YieldCard({
   value: number;
   description: string;
 }) {
-  const color = value >= 4 ? "#1B4332" : value >= 2.5 ? "#f59e0b" : "#b91c1c";
+  const color = value >= 4 ? "#A8E040" : value >= 2.5 ? "#f59e0b" : "#F87171";
   return (
     <div
       className="rounded-lg p-4 text-center"
-      style={{ background: "#f9faf2", border: "1px solid #eef2e8" }}
+      style={{ background: "#F8FAFC", border: "1px solid #1F2A3F" }}
     >
       <div className="mb-1 text-[9px] font-bold text-verdant-muted">{label}</div>
       <div className="tabular text-2xl font-extrabold" style={{ color }}>
@@ -436,7 +436,7 @@ function DetailRow({ label, value, color }: { label: string; value: string; colo
   return (
     <div className="flex items-center justify-between">
       <span className="text-[11px] font-bold text-verdant-muted">{label}</span>
-      <span className="tabular text-[12px] font-extrabold" style={{ color: color || "#012d1d" }}>
+      <span className="tabular text-[12px] font-extrabold" style={{ color: color || "#F8FAFC" }}>
         {value}
       </span>
     </div>

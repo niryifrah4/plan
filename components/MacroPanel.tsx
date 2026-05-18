@@ -71,11 +71,11 @@ export function MacroPanel() {
       <button
         onClick={() => setExpanded(true)}
         className="mb-4 flex w-full items-center justify-between gap-4 rounded-xl bg-white px-4 py-2.5 text-right transition-shadow"
-        style={{ border: "1px solid #eef2e8" }}
+        style={{ border: "1px solid #1F2A3F" }}
         title="לחץ להרחבה ועריכה"
       >
         <span className="flex items-center gap-2 text-[11px] font-bold text-verdant-muted">
-          <span className="material-symbols-outlined text-[16px]" style={{ color: "#1B4332" }}>
+          <span className="material-symbols-outlined text-[16px]" style={{ color: "#A8E040" }}>
             trending_up
           </span>
           מאקרו
@@ -101,15 +101,15 @@ export function MacroPanel() {
   return (
     <div
       className="mb-6 rounded-organic bg-white p-5 shadow-soft md:p-6"
-      style={{ border: "1px solid #eef2e8" }}
+      style={{ border: "1px solid #1F2A3F" }}
     >
       {/* Header */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px]" style={{ color: "#1B4332" }}>
+          <span className="material-symbols-outlined text-[18px]" style={{ color: "#A8E040" }}>
             trending_up
           </span>
-          <h3 className="text-base font-extrabold" style={{ color: "#012d1d" }}>
+          <h3 className="text-base font-extrabold" style={{ color: "#F8FAFC" }}>
             נתוני מאקרו — ישראל
           </h3>
           <button
@@ -130,7 +130,7 @@ export function MacroPanel() {
               onBlur={() => setShowSource(false)}
               className="cursor-default select-none text-[14px] leading-none"
               aria-label="מקור הנתונים"
-              style={{ color: "#5a7a6a" }}
+              style={{ color: "#94A3B8" }}
             >
               ℹ️
             </button>
@@ -138,7 +138,7 @@ export function MacroPanel() {
               <div
                 className="absolute right-0 top-6 z-10 whitespace-nowrap rounded-lg px-3 py-2 text-[11px] font-semibold shadow-md"
                 style={{
-                  background: "#012d1d",
+                  background: "#F8FAFC",
                   color: "#e8f5ee",
                   minWidth: "140px",
                 }}
@@ -150,7 +150,7 @@ export function MacroPanel() {
         </div>
 
         {values.macroUpdatedAt && (
-          <div className="text-[11px] font-semibold" style={{ color: "#5a7a6a" }}>
+          <div className="text-[11px] font-semibold" style={{ color: "#94A3B8" }}>
             עודכן: {fmtHebrewDate(values.macroUpdatedAt)}
           </div>
         )}
@@ -192,13 +192,13 @@ function StatField({ label, value, hint }: { label: string; value: string; hint:
       className="rounded-xl px-4 py-3 text-right"
       style={{ background: "#f4f9f4", border: "1px solid #e4ede6" }}
     >
-      <div className="mb-1 text-[11px] font-extrabold" style={{ color: "#012d1d" }}>
+      <div className="mb-1 text-[11px] font-extrabold" style={{ color: "#F8FAFC" }}>
         {label}
       </div>
-      <div className="text-[22px] font-black tabular-nums" style={{ color: "#1B4332" }}>
+      <div className="text-[22px] font-black tabular-nums" style={{ color: "#A8E040" }}>
         {value}
       </div>
-      <div className="mt-1 text-[10px] font-semibold" style={{ color: "#5a7a6a" }}>
+      <div className="mt-1 text-[10px] font-semibold" style={{ color: "#94A3B8" }}>
         {hint}
       </div>
     </div>

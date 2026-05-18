@@ -37,13 +37,13 @@ const KIND_LABELS: Record<string, string> = {
   fund: "קרן",
 };
 const KIND_COLORS: Record<string, string> = {
-  stock: "#1B4332",
-  etf: "#2B694D",
+  stock: "#A8E040",
+  etf: "#4ADE80",
   crypto: "#f59e0b",
-  rsu: "#2B694D",
+  rsu: "#4ADE80",
   option: "#3b82f6",
   bond: "#06b6d4",
-  fund: "#1a6b42",
+  fund: "#4ADE80",
 };
 
 type SortField = "symbol" | "market_value_ils" | "unrealized_pnl_ils" | "unrealized_pnl_pct";
@@ -376,9 +376,9 @@ export default function InvestmentsPage() {
             )
           : null;
         const perfBg =
-          perf?.severity === "good" ? "#f0fdf4" : perf?.severity === "bad" ? "#fef2f2" : "#f9faf2";
+          perf?.severity === "good" ? "#1A2438" : perf?.severity === "bad" ? "#fef2f2" : "#F8FAFC";
         const perfColor =
-          perf?.severity === "good" ? "#1B4332" : perf?.severity === "bad" ? "#b91c1c" : "#012d1d";
+          perf?.severity === "good" ? "#A8E040" : perf?.severity === "bad" ? "#F87171" : "#F8FAFC";
         return (
           <section
             className="mb-5 flex items-center gap-4 rounded-2xl p-5"
@@ -514,8 +514,8 @@ export default function InvestmentsPage() {
               onClick={() => setSelectedBenchmark(selectedBenchmark === b.id ? null : b.id)}
               className="rounded-xl border-2 p-4 text-right transition-all"
               style={{
-                borderColor: selectedBenchmark === b.id ? "#1B4332" : "#e5e7d8",
-                background: selectedBenchmark === b.id ? "#f0fdf4" : "#fff",
+                borderColor: selectedBenchmark === b.id ? "#A8E040" : "#e5e7d8",
+                background: selectedBenchmark === b.id ? "#1A2438" : "#fff",
               }}
             >
               <div className="mb-2 flex items-center justify-between">
@@ -533,7 +533,7 @@ export default function InvestmentsPage() {
                 </span>
               </div>
               <p className="mb-2 text-[11px] text-verdant-muted">{b.description}</p>
-              <div className="text-xs font-bold" style={{ color: "#1B4332" }}>
+              <div className="text-xs font-bold" style={{ color: "#A8E040" }}>
                 תשואה צפויה: {(b.expectedReturn * 100).toFixed(1)}%
               </div>
             </button>
@@ -541,7 +541,7 @@ export default function InvestmentsPage() {
         </div>
 
         {activeBenchmark && assumptions && (
-          <div className="rounded-xl p-4" style={{ background: "#f4f7ed" }}>
+          <div className="rounded-xl p-4" style={{ background: "#1A2438" }}>
             <div className="mb-3 flex items-center justify-between">
               <span className="text-xs font-extrabold text-verdant-ink">
                 {activeBenchmark.name} — סימולציה ל-10 שנים
@@ -581,7 +581,7 @@ export default function InvestmentsPage() {
                 <div className="text-[10px] font-bold text-verdant-muted">
                   {activeBenchmark.name} (10 שנים)
                 </div>
-                <div className="tabular text-sm font-extrabold" style={{ color: "#1B4332" }}>
+                <div className="tabular text-sm font-extrabold" style={{ color: "#A8E040" }}>
                   {fmtILS(
                     futureValue(
                       totalMarket,
@@ -594,7 +594,7 @@ export default function InvestmentsPage() {
               </div>
               <div>
                 <div className="text-[10px] font-bold text-verdant-muted">הפרש</div>
-                <div className="tabular text-sm font-extrabold" style={{ color: "#1B4332" }}>
+                <div className="tabular text-sm font-extrabold" style={{ color: "#A8E040" }}>
                   {fmtILS(
                     futureValue(
                       totalMarket,
@@ -646,14 +646,14 @@ export default function InvestmentsPage() {
                 <div
                   key={s.id}
                   className="flex items-center justify-between rounded-lg p-3"
-                  style={{ background: "#f9faf2" }}
+                  style={{ background: "#F8FAFC" }}
                 >
                   <div className="flex items-center gap-3">
                     <span
                       className="rounded px-2 py-0.5 text-[10px] font-bold"
                       style={{
-                        background: (KIND_COLORS[s.kind] || "#1B4332") + "15",
-                        color: KIND_COLORS[s.kind] || "#1B4332",
+                        background: (KIND_COLORS[s.kind] || "#A8E040") + "15",
+                        color: KIND_COLORS[s.kind] || "#A8E040",
                       }}
                     >
                       {KIND_LABELS[s.kind] || s.kind}
@@ -668,13 +668,13 @@ export default function InvestmentsPage() {
                   <div className="text-left">
                     <div
                       className="tabular text-sm font-extrabold"
-                      style={{ color: isPast ? "#1B4332" : "#012d1d" }}
+                      style={{ color: isPast ? "#A8E040" : "#F8FAFC" }}
                     >
                       {vestDate.toLocaleDateString("he-IL")}
                     </div>
                     <div
                       className="text-[11px] font-bold"
-                      style={{ color: isPast ? "#1B4332" : "#f59e0b" }}
+                      style={{ color: isPast ? "#A8E040" : "#f59e0b" }}
                     >
                       {isPast ? "הבשיל" : `${daysLeft} ימים`}
                     </div>
@@ -685,7 +685,7 @@ export default function InvestmentsPage() {
                     </div>
                     <div
                       className="tabular text-[11px] font-bold"
-                      style={{ color: s.unrealized_pnl_ils >= 0 ? "#1B4332" : "#b91c1c" }}
+                      style={{ color: s.unrealized_pnl_ils >= 0 ? "#A8E040" : "#F87171" }}
                     >
                       {s.unrealized_pnl_ils >= 0 ? "+" : ""}
                       {fmtILS(s.unrealized_pnl_ils)}
@@ -714,7 +714,7 @@ export default function InvestmentsPage() {
                 value={filterKind}
                 onChange={(e) => setFilterKind(e.target.value)}
                 className="cursor-pointer rounded-lg border px-2 py-1.5 text-[11px] font-bold outline-none"
-                style={{ borderColor: "#d8e0d0", background: "#f9faf2" }}
+                style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
               >
                 <option value="all">הכל</option>
                 {Object.entries(KIND_LABELS).map(([k, v]) => (
@@ -727,7 +727,7 @@ export default function InvestmentsPage() {
             <button
               onClick={() => setShowImport(true)}
               className="flex items-center gap-1.5 rounded-full border px-4 py-2 text-[11px] font-bold"
-              style={{ borderColor: "#E8E9E1", color: "#1B4332", background: "#F3F4EC" }}
+              style={{ borderColor: "#1F2A3F", color: "#A8E040", background: "#1A2438" }}
             >
               <span className="material-symbols-outlined text-[14px]">upload_file</span>טען מאקסל
             </button>
@@ -741,7 +741,7 @@ export default function InvestmentsPage() {
         </div>
 
         {/* Ticker Search Bar */}
-        <div className="v-divider border-b px-5 py-3" style={{ background: "#f9faf2" }}>
+        <div className="v-divider border-b px-5 py-3" style={{ background: "#F8FAFC" }}>
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-[16px] text-verdant-emerald">
               search
@@ -761,7 +761,7 @@ export default function InvestmentsPage() {
               onClick={() => lookupTicker(tickerSearch)}
               disabled={tickerLoading || !tickerSearch.trim()}
               className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-[10px] font-bold disabled:opacity-40"
-              style={{ background: "#1B433212", color: "#1B4332" }}
+              style={{ background: "#A8E04012", color: "#A8E040" }}
             >
               {tickerLoading ? (
                 <span className="material-symbols-outlined animate-spin text-[14px]">
@@ -775,12 +775,12 @@ export default function InvestmentsPage() {
             {tickerResult && (
               <div
                 className="flex items-center gap-2 rounded-lg px-3 py-1.5"
-                style={{ background: "#f0fdf4", border: "1px solid #bbf7d0" }}
+                style={{ background: "#1A2438", border: "1px solid #bbf7d0" }}
               >
                 <span className="text-[11px] font-extrabold text-verdant-ink">
                   {tickerResult.name}
                 </span>
-                <span className="tabular text-[11px] font-extrabold" style={{ color: "#1B4332" }}>
+                <span className="tabular text-[11px] font-extrabold" style={{ color: "#A8E040" }}>
                   ${tickerResult.price.toFixed(2)}
                 </span>
               </div>
@@ -790,7 +790,7 @@ export default function InvestmentsPage() {
 
         {/* Add Security Form */}
         {showAddForm && (
-          <div className="v-divider border-b px-5 py-4" style={{ background: "#f9faf2" }}>
+          <div className="v-divider border-b px-5 py-4" style={{ background: "#F8FAFC" }}>
             <AddSecurityForm
               onSave={addSecurity}
               onCancel={() => setShowAddForm(false)}
@@ -804,7 +804,7 @@ export default function InvestmentsPage() {
             <thead>
               <tr
                 className="text-[10px] font-bold uppercase tracking-[0.12em] text-verdant-muted"
-                style={{ background: "#f4f7ed" }}
+                style={{ background: "#1A2438" }}
               >
                 <th className="px-3 py-2 text-right">סוג</th>
                 <th
@@ -859,7 +859,7 @@ export default function InvestmentsPage() {
             </thead>
             <tbody>
               {securities.map((s) => {
-                const color = s.unrealized_pnl_ils >= 0 ? "#1B4332" : "#b91c1c";
+                const color = s.unrealized_pnl_ils >= 0 ? "#A8E040" : "#F87171";
                 const isEditing = editingId === s.id;
                 return isEditing ? (
                   <tr key={s.id} className="v-divider border-b">
@@ -874,14 +874,14 @@ export default function InvestmentsPage() {
                 ) : (
                   <tr
                     key={s.id}
-                    className="v-divider border-b transition-colors hover:bg-[#f9faf2]"
+                    className="v-divider border-b transition-colors hover:bg-[#F8FAFC]"
                   >
                     <td className="px-3 py-2.5">
                       <span
                         className="rounded px-2 py-0.5 text-[10px] font-bold"
                         style={{
-                          background: (KIND_COLORS[s.kind] || "#1B4332") + "15",
-                          color: KIND_COLORS[s.kind] || "#1B4332",
+                          background: (KIND_COLORS[s.kind] || "#A8E040") + "15",
+                          color: KIND_COLORS[s.kind] || "#A8E040",
                         }}
                       >
                         {KIND_LABELS[s.kind] ?? s.kind}
@@ -947,7 +947,7 @@ export default function InvestmentsPage() {
                           onClick={() => setEditingId(s.id)}
                           title="ערוך"
                           className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-verdant-bg"
-                          style={{ background: "#f4f7ed" }}
+                          style={{ background: "#1A2438" }}
                         >
                           <span className="material-symbols-outlined text-[14px] text-verdant-muted">
                             edit
@@ -961,7 +961,7 @@ export default function InvestmentsPage() {
                         >
                           <span
                             className="material-symbols-outlined text-[14px]"
-                            style={{ color: "#b91c1c" }}
+                            style={{ color: "#F87171" }}
                           >
                             delete_outline
                           </span>
@@ -981,7 +981,7 @@ export default function InvestmentsPage() {
         <div className="flex items-start gap-4">
           <div
             className="icon-sm flex-shrink-0"
-            style={{ background: "rgba(193,236,212,0.18)", color: "#C1ECD4" }}
+            style={{ background: "rgba(193,236,212,0.18)", color: "#A8E040" }}
           >
             <span className="material-symbols-outlined text-[20px]">receipt_long</span>
           </div>
@@ -1033,7 +1033,7 @@ function InlineEditRow({
   return (
     <div
       className="space-y-3 rounded-xl p-5"
-      style={{ background: "#f9faf2", border: "1px solid #d8e0d0" }}
+      style={{ background: "#F8FAFC", border: "1px solid #1F2A3F" }}
     >
       <div className="mb-2 text-[11px] font-extrabold text-verdant-ink">
         עריכת פוזיציה — {security.symbol}
@@ -1045,7 +1045,7 @@ function InlineEditRow({
             value={kind}
             onChange={(e) => setKind(e.target.value)}
             className="w-full rounded-lg border px-3 py-2 text-[11px] font-bold outline-none"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#fff" }}
           >
             {Object.entries(KIND_LABELS).map(([k, v]) => (
               <option key={k} value={k}>
@@ -1062,7 +1062,7 @@ function InlineEditRow({
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
             className="w-full rounded-lg border px-3 py-2 text-[11px] font-bold outline-none"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#fff" }}
           >
             <option value="USD">USD</option>
             <option value="ILS">ILS</option>
@@ -1092,7 +1092,7 @@ function InlineEditRow({
           </>
         )}
       </div>
-      <div className="flex items-center gap-3 border-t pt-3" style={{ borderColor: "#d8e0d0" }}>
+      <div className="flex items-center gap-3 border-t pt-3" style={{ borderColor: "#1F2A3F" }}>
         <button
           onClick={() =>
             onSave({
@@ -1162,7 +1162,7 @@ function AddSecurityForm({
             value={kind}
             onChange={(e) => setKind(e.target.value)}
             className="w-full rounded-lg border px-3 py-2 text-[11px] font-bold outline-none"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#fff" }}
           >
             {Object.entries(KIND_LABELS).map(([k, v]) => (
               <option key={k} value={k}>
@@ -1179,7 +1179,7 @@ function AddSecurityForm({
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
             className="w-full rounded-lg border px-3 py-2 text-[11px] font-bold outline-none"
-            style={{ borderColor: "#d8e0d0", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#fff" }}
           >
             <option value="USD">USD</option>
             <option value="ILS">ILS</option>
@@ -1222,7 +1222,7 @@ function AddSecurityForm({
           </>
         )}
       </div>
-      <div className="flex items-center gap-3 border-t pt-3" style={{ borderColor: "#d8e0d0" }}>
+      <div className="flex items-center gap-3 border-t pt-3" style={{ borderColor: "#1F2A3F" }}>
         <button
           disabled={!symbol || !quantity}
           onClick={() =>
@@ -1273,7 +1273,7 @@ function SmallField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="w-full rounded-lg border px-3 py-2 text-[11px] font-bold outline-none focus:ring-2 focus:ring-verdant-accent/30"
-        style={{ borderColor: "#d8e0d0", background: "#fff" }}
+        style={{ borderColor: "#1F2A3F", background: "#fff" }}
         dir="ltr"
       />
     </div>

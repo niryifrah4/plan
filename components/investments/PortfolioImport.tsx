@@ -101,17 +101,17 @@ export function PortfolioImport({ onImport, onClose }: Props) {
     >
       <div
         className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl"
-        style={{ border: "1px solid #E8E9E1" }}
+        style={{ border: "1px solid #1F2A3F" }}
       >
         {/* Header */}
         <div
           className="flex items-center justify-between border-b px-6 py-4"
-          style={{ borderColor: "#E8E9E1", background: "#F9FAF2" }}
+          style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
         >
           <div className="flex items-center gap-3">
             <div
               className="flex h-10 w-10 items-center justify-center rounded-2xl"
-              style={{ background: "#1B4332" }}
+              style={{ background: "#A8E040" }}
             >
               <span className="material-symbols-outlined text-[20px] text-white">upload_file</span>
             </div>
@@ -137,8 +137,8 @@ export function PortfolioImport({ onImport, onClose }: Props) {
           {!result && !loading && (
             <div className="flex flex-col items-center justify-center py-12">
               <div
-                className="flex w-full max-w-md cursor-pointer flex-col items-center gap-4 rounded-2xl border-2 border-dashed p-10 transition hover:border-[#1B4332]"
-                style={{ borderColor: "#E8E9E1", background: "#F9FAF2" }}
+                className="flex w-full max-w-md cursor-pointer flex-col items-center gap-4 rounded-2xl border-2 border-dashed p-10 transition hover:border-[#A8E040]"
+                style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
                 onClick={() => fileRef.current?.click()}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
@@ -149,7 +149,7 @@ export function PortfolioImport({ onImport, onClose }: Props) {
               >
                 <span
                   className="material-symbols-outlined text-[48px]"
-                  style={{ color: "#1B4332" }}
+                  style={{ color: "#A8E040" }}
                 >
                   cloud_upload
                 </span>
@@ -192,7 +192,7 @@ export function PortfolioImport({ onImport, onClose }: Props) {
             <div className="flex flex-col items-center justify-center gap-3 py-16">
               <span
                 className="material-symbols-outlined animate-spin text-[40px]"
-                style={{ color: "#1B4332" }}
+                style={{ color: "#A8E040" }}
               >
                 progress_activity
               </span>
@@ -224,9 +224,9 @@ export function PortfolioImport({ onImport, onClose }: Props) {
               )}
 
               {/* Table */}
-              <div className="overflow-hidden rounded-xl border" style={{ borderColor: "#E8E9E1" }}>
+              <div className="overflow-hidden rounded-xl border" style={{ borderColor: "#1F2A3F" }}>
                 <table className="w-full text-[12px]">
-                  <thead style={{ background: "#F3F4EC" }}>
+                  <thead style={{ background: "#1A2438" }}>
                     <tr className="text-[10px] uppercase tracking-[0.1em] text-verdant-muted">
                       <th className="px-3 py-2 text-right">
                         <input
@@ -245,7 +245,7 @@ export function PortfolioImport({ onImport, onClose }: Props) {
                   </thead>
                   <tbody>
                     {result.rows.map((r, i) => (
-                      <tr key={i} className="border-t" style={{ borderColor: "#E8E9E1" }}>
+                      <tr key={i} className="border-t" style={{ borderColor: "#1F2A3F" }}>
                         <td className="px-3 py-2">
                           <input
                             type="checkbox"
@@ -280,7 +280,7 @@ export function PortfolioImport({ onImport, onClose }: Props) {
               {result.rows.length > 0 && (
                 <div
                   className="flex items-center gap-4 rounded-xl p-4"
-                  style={{ background: "#F9FAF2", border: "1px solid #E8E9E1" }}
+                  style={{ background: "#F8FAFC", border: "1px solid #1F2A3F" }}
                 >
                   <div className="text-[12px] font-extrabold text-verdant-ink">מצב איחוד:</div>
                   <label className="flex cursor-pointer items-center gap-2 text-[12px]">
@@ -309,7 +309,7 @@ export function PortfolioImport({ onImport, onClose }: Props) {
         {result && result.rows.length > 0 && (
           <div
             className="flex items-center justify-between border-t px-6 py-4"
-            style={{ borderColor: "#E8E9E1", background: "#F9FAF2" }}
+            style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
           >
             <div className="text-[12px] text-verdant-muted">
               נבחרו <span className="font-extrabold text-verdant-ink">{selected.size}</span> החזקות
@@ -320,7 +320,7 @@ export function PortfolioImport({ onImport, onClose }: Props) {
               <button
                 onClick={onClose}
                 className="rounded-full border px-4 py-2 text-[12px] font-bold"
-                style={{ borderColor: "#E8E9E1", color: "#414844" }}
+                style={{ borderColor: "#1F2A3F", color: "#F8FAFC" }}
               >
                 ביטול
               </button>
@@ -328,7 +328,7 @@ export function PortfolioImport({ onImport, onClose }: Props) {
                 onClick={confirmImport}
                 disabled={selected.size === 0}
                 className="rounded-full px-5 py-2 text-[12px] font-extrabold text-white disabled:opacity-40"
-                style={{ background: "#1B4332" }}
+                style={{ background: "#A8E040" }}
               >
                 {mode === "replace" ? "החלף תיק" : "הוסף לתיק"}
               </button>
@@ -342,7 +342,7 @@ export function PortfolioImport({ onImport, onClose }: Props) {
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl p-3" style={{ background: "#F3F4EC", border: "1px solid #E8E9E1" }}>
+    <div className="rounded-xl p-3" style={{ background: "#1A2438", border: "1px solid #1F2A3F" }}>
       <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
         {label}
       </div>

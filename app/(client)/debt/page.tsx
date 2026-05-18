@@ -389,18 +389,18 @@ export default function DebtPage() {
   return (
     <div className="mx-auto max-w-5xl py-4 md:py-8">
       {/* ═══ Header ═══ */}
-      <header className="mb-6 border-b pb-5" style={{ borderColor: "#e2e8d8" }}>
+      <header className="mb-6 border-b pb-5" style={{ borderColor: "#1F2A3F" }}>
         <div className="mb-1 flex flex-wrap items-end justify-between gap-3">
           <div>
             <div
               className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.18em]"
-              style={{ color: "#5a7a6a" }}
+              style={{ color: "#94A3B8" }}
             >
               ניהול חובות
             </div>
             <h1
               className="text-[22px] font-extrabold leading-tight tracking-tight"
-              style={{ color: "#012d1d" }}
+              style={{ color: "#F8FAFC" }}
             >
               הלוואות ותשלומים
             </h1>
@@ -409,7 +409,7 @@ export default function DebtPage() {
             <span
               className="inline-flex items-center gap-1 text-[11px] font-bold"
               style={{
-                color: saveStatus === "saving" ? "#5a7a6a" : "#2B694D",
+                color: saveStatus === "saving" ? "#94A3B8" : "#4ADE80",
               }}
             >
               <span
@@ -482,30 +482,30 @@ export default function DebtPage() {
         <button
           onClick={() => setExpandedMortgage(!expandedMortgage)}
           className="flex w-full items-center gap-3 px-5 py-5 text-right md:px-7"
-          style={{ background: expandedMortgage ? "#F3F4EC" : "#fff" }}
+          style={{ background: expandedMortgage ? "#1A2438" : "#fff" }}
         >
           <span
             className="flex h-9 w-9 flex-shrink-0 items-center justify-center"
             style={{ background: "#f0f4ec", borderRadius: "0.75rem" }}
           >
-            <span className="material-symbols-outlined text-[18px]" style={{ color: "#1B4332" }}>
+            <span className="material-symbols-outlined text-[18px]" style={{ color: "#A8E040" }}>
               home
             </span>
           </span>
           <div className="flex-1">
-            <h2 className="text-base font-extrabold" style={{ color: "#012d1d" }}>
+            <h2 className="text-base font-extrabold" style={{ color: "#F8FAFC" }}>
               משכנתאות
             </h2>
-            <div className="text-[11px] font-semibold" style={{ color: "#5a7a6a" }}>
+            <div className="text-[11px] font-semibold" style={{ color: "#94A3B8" }}>
               {mortgageTotals.count} מסלולים · החזר חודשי{" "}
-              <span style={{ color: "#1B4332", fontFamily: "Assistant" }}>
+              <span style={{ color: "#A8E040", fontFamily: "Assistant" }}>
                 {fmtILS(mortgageTotals.monthlyTotal)}
               </span>
               {mortgageTotals.balanceTotal > 0 && (
                 <>
                   {" "}
                   · יתרה{" "}
-                  <span style={{ color: "#1B4332", fontFamily: "Assistant" }}>
+                  <span style={{ color: "#A8E040", fontFamily: "Assistant" }}>
                     {fmtILS(mortgageTotals.balanceTotal)}
                   </span>
                 </>
@@ -524,7 +524,7 @@ export default function DebtPage() {
           <span
             className="material-symbols-outlined text-[20px] transition-transform"
             style={{
-              color: "#5a7a6a",
+              color: "#94A3B8",
               transform: expandedMortgage ? "rotate(0deg)" : "rotate(-90deg)",
             }}
           >
@@ -538,9 +538,9 @@ export default function DebtPage() {
             <div className="mb-6 flex flex-wrap items-center gap-3">
               <div
                 className="flex items-center gap-2 rounded-full px-4 py-2.5"
-                style={{ background: "#F9FAF2", border: "1px solid #E8E9E1" }}
+                style={{ background: "#F8FAFC", border: "1px solid #1F2A3F" }}
               >
-                <span className="text-[11px] font-bold" style={{ color: "#5C6058" }}>
+                <span className="text-[11px] font-bold" style={{ color: "#94A3B8" }}>
                   בנק
                 </span>
                 <input
@@ -549,14 +549,14 @@ export default function DebtPage() {
                   onChange={(e) => updateMortgageField("bank", e.target.value)}
                   placeholder="שם הבנק"
                   className="w-32 border-none bg-transparent text-[13px] font-bold focus:outline-none"
-                  style={{ color: "#012d1d" }}
+                  style={{ color: "#F8FAFC" }}
                 />
               </div>
               <div
                 className="flex items-center gap-2 rounded-full px-4 py-2.5"
-                style={{ background: "#F9FAF2", border: "1px solid #E8E9E1" }}
+                style={{ background: "#F8FAFC", border: "1px solid #1F2A3F" }}
               >
-                <span className="text-[11px] font-bold" style={{ color: "#5C6058" }}>
+                <span className="text-[11px] font-bold" style={{ color: "#94A3B8" }}>
                   שווי נכס
                 </span>
                 <input
@@ -565,13 +565,13 @@ export default function DebtPage() {
                   onChange={(e) => updateMortgageField("propertyValue", e.target.value)}
                   placeholder="0"
                   className="w-24 border-none bg-transparent text-[13px] font-bold tabular-nums focus:outline-none"
-                  style={{ color: "#012d1d", fontFamily: "Assistant" }}
+                  style={{ color: "#F8FAFC", fontFamily: "Assistant" }}
                 />
               </div>
               {mortgage.propertyValue > 0 && mortgageTotals.balanceTotal > 0 && (
                 <div
                   className="rounded-full px-3 py-2 text-[11px] font-extrabold"
-                  style={{ background: "#F3F4EC", color: "#1B4332" }}
+                  style={{ background: "#1A2438", color: "#A8E040" }}
                 >
                   LTV {((mortgageTotals.balanceTotal / mortgage.propertyValue) * 100).toFixed(0)}%
                 </div>
@@ -582,25 +582,25 @@ export default function DebtPage() {
             {mortgageTotals.originalTotal > 0 && (
               <div className="mb-4">
                 <div className="mb-1 flex items-center justify-between">
-                  <span className="text-[10px] font-bold" style={{ color: "#1B4332" }}>
+                  <span className="text-[10px] font-bold" style={{ color: "#A8E040" }}>
                     התקדמות כללית
                   </span>
                   <span
                     className="text-[11px] font-extrabold tabular-nums"
-                    style={{ color: "#1B4332", fontFamily: "Assistant" }}
+                    style={{ color: "#A8E040", fontFamily: "Assistant" }}
                   >
                     {(mortgageTotals.progress * 100).toFixed(1)}% שולם
                   </span>
                 </div>
                 <div
                   className="h-2.5 overflow-hidden rounded-full"
-                  style={{ background: "#F3F4EC" }}
+                  style={{ background: "#1A2438" }}
                 >
                   <div
                     className="h-full rounded-full transition-all"
                     style={{
                       width: `${mortgageTotals.progress * 100}%`,
-                      background: "linear-gradient(90deg, #2B694D, #1B4332)",
+                      background: "linear-gradient(90deg, #4ADE80, #A8E040)",
                     }}
                   />
                 </div>
@@ -620,19 +620,19 @@ export default function DebtPage() {
               <div className="mb-4 flex flex-wrap items-center gap-3">
                 <div
                   className="rounded-lg px-2.5 py-1 text-[11px] font-bold"
-                  style={{ background: "#F3F4EC", color: "#1B4332" }}
+                  style={{ background: "#1A2438", color: "#A8E040" }}
                 >
                   החזר חודשי: {fmtILS(mortgageTotals.monthlyTotal)}
                 </div>
                 <div
                   className="rounded-lg px-2.5 py-1 text-[11px] font-bold"
-                  style={{ background: "#F3F4EC", color: "#1B4332" }}
+                  style={{ background: "#1A2438", color: "#A8E040" }}
                 >
                   ריבית משוקללת: {mortgageTotals.avgInterest.toFixed(2)}%
                 </div>
                 <div
                   className="rounded-lg px-2.5 py-1 text-[11px] font-bold"
-                  style={{ background: "#F3F4EC", color: "#1B4332" }}
+                  style={{ background: "#1A2438", color: "#A8E040" }}
                 >
                   יתרה: {fmtILS(mortgageTotals.balanceTotal)}
                 </div>
@@ -644,8 +644,8 @@ export default function DebtPage() {
               className="mb-1 grid items-center pb-1 text-[11px] font-extrabold uppercase tracking-[0.08em]"
               style={{
                 gridTemplateColumns: "minmax(80px,1fr) 56px 56px 68px 68px 64px 52px 24px",
-                color: "#1B4332",
-                borderBottom: "1px solid #F3F4EC",
+                color: "#A8E040",
+                borderBottom: "1px solid #1A2438",
                 columnGap: "4px",
               }}
             >
@@ -677,7 +677,7 @@ export default function DebtPage() {
                     className="group grid items-center py-2"
                     style={{
                       gridTemplateColumns: "minmax(80px,1fr) 56px 56px 68px 68px 64px 52px 24px",
-                      borderBottom: "1px solid #F3F4EC",
+                      borderBottom: "1px solid #1A2438",
                       columnGap: "4px",
                     }}
                   >
@@ -688,9 +688,9 @@ export default function DebtPage() {
                       onChange={(e) => updateMortgageTrack(track.id, "name", e.target.value)}
                       placeholder="פריים / קל״צ..."
                       className="w-full border-none bg-transparent text-[12px] font-semibold focus:outline-none"
-                      style={{ color: "#012d1d", borderBottom: "1px dotted transparent" }}
+                      style={{ color: "#F8FAFC", borderBottom: "1px dotted transparent" }}
                       onFocus={(e) => {
-                        e.currentTarget.style.borderBottomColor = "#2B694D";
+                        e.currentTarget.style.borderBottomColor = "#4ADE80";
                       }}
                       onBlur={(e) => {
                         e.currentTarget.style.borderBottomColor = "transparent";
@@ -719,7 +719,7 @@ export default function DebtPage() {
                         readOnly={typeof track.margin === "number"}
                         placeholder="0"
                         className="w-full border-none bg-transparent text-left text-[12px] font-bold tabular-nums focus:outline-none"
-                        style={{ color: "#1B4332", fontFamily: "Assistant" }}
+                        style={{ color: "#A8E040", fontFamily: "Assistant" }}
                       />
                       <span className="text-[10px]" style={{ color: "#9ca3af" }}>
                         %
@@ -730,7 +730,7 @@ export default function DebtPage() {
                       value={track.indexation}
                       onChange={(e) => updateMortgageTrack(track.id, "indexation", e.target.value)}
                       className="cursor-pointer border-none bg-transparent text-[10px] font-bold focus:outline-none"
-                      style={{ color: "#5a7a6a" }}
+                      style={{ color: "#94A3B8" }}
                     >
                       <option value="לא צמוד">לא צמוד</option>
                       <option value="מדד">מדד</option>
@@ -746,7 +746,7 @@ export default function DebtPage() {
                       }
                       placeholder="0"
                       className="w-full border-none bg-transparent text-left text-[11px] font-bold tabular-nums focus:outline-none"
-                      style={{ color: "#012d1d", fontFamily: "Assistant" }}
+                      style={{ color: "#F8FAFC", fontFamily: "Assistant" }}
                     />
                     {/* Remaining balance */}
                     <input
@@ -757,7 +757,7 @@ export default function DebtPage() {
                       }
                       placeholder="0"
                       className="w-full border-none bg-transparent text-left text-[11px] font-bold tabular-nums focus:outline-none"
-                      style={{ color: "#1B4332", fontFamily: "Assistant" }}
+                      style={{ color: "#A8E040", fontFamily: "Assistant" }}
                     />
                     {/* Monthly payment */}
                     <input
@@ -768,7 +768,7 @@ export default function DebtPage() {
                       }
                       placeholder="0"
                       className="w-full border-none bg-transparent text-left text-[11px] font-bold tabular-nums focus:outline-none"
-                      style={{ color: "#1B4332", fontFamily: "Assistant" }}
+                      style={{ color: "#A8E040", fontFamily: "Assistant" }}
                     />
                     {/* End date */}
                     <input
@@ -776,13 +776,13 @@ export default function DebtPage() {
                       value={track.endDate}
                       onChange={(e) => updateMortgageTrack(track.id, "endDate", e.target.value)}
                       className="w-full border-none bg-transparent text-[10px] font-semibold focus:outline-none"
-                      style={{ color: "#5a7a6a" }}
+                      style={{ color: "#94A3B8" }}
                     />
                     {/* Refi simulator + Delete */}
                     <button
                       onClick={() => setRefiTrackId(track.id)}
                       className="opacity-100 transition-opacity"
-                      style={{ color: "#1B4332" }}
+                      style={{ color: "#A8E040" }}
                       title="סימולציית מיחזור / פירעון מואץ"
                     >
                       <span className="material-symbols-outlined text-[16px] transition-colors hover:text-verdant-emerald">
@@ -792,7 +792,7 @@ export default function DebtPage() {
                     <button
                       onClick={() => deleteMortgageTrack(track.id)}
                       className="opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
-                      style={{ color: "#5a7a6a" }}
+                      style={{ color: "#94A3B8" }}
                       title="מחק מסלול"
                     >
                       <span className="material-symbols-outlined text-[14px] transition-colors hover:text-red-600">
@@ -805,11 +805,11 @@ export default function DebtPage() {
                     <div className="flex items-center gap-2 pb-1 pr-1">
                       <div
                         className="h-1 flex-1 overflow-hidden rounded-full"
-                        style={{ background: "#F3F4EC" }}
+                        style={{ background: "#1A2438" }}
                       >
                         <div
                           className="h-full rounded-full"
-                          style={{ width: `${trackProgress * 100}%`, background: "#2B694D" }}
+                          style={{ width: `${trackProgress * 100}%`, background: "#4ADE80" }}
                         />
                       </div>
                       <span
@@ -865,17 +865,17 @@ export default function DebtPage() {
             </span>
           </span>
           <div className="flex-1">
-            <h2 className="text-base font-extrabold" style={{ color: "#012d1d" }}>
+            <h2 className="text-base font-extrabold" style={{ color: "#F8FAFC" }}>
               הלוואות
             </h2>
-            <div className="text-[11px] font-semibold" style={{ color: "#5a7a6a" }}>
+            <div className="text-[11px] font-semibold" style={{ color: "#94A3B8" }}>
               {loanTotals.count} הלוואות · החזר חודשי {fmtILS(loanTotals.monthlyTotal)}
             </div>
           </div>
           <span
             className="material-symbols-outlined text-[20px] transition-transform"
             style={{
-              color: "#5a7a6a",
+              color: "#94A3B8",
               transform: expandedLoans ? "rotate(0deg)" : "rotate(-90deg)",
             }}
           >
@@ -885,15 +885,15 @@ export default function DebtPage() {
 
         {expandedLoans && data.loans.length === 0 && (
           <div className="px-5 pb-7 pt-2 text-center md:px-7">
-            <span className="material-symbols-outlined text-[40px]" style={{ color: "#5a7a6a" }}>
+            <span className="material-symbols-outlined text-[40px]" style={{ color: "#94A3B8" }}>
               check_circle
             </span>
-            <h3 className="mt-2 text-sm font-extrabold" style={{ color: "#012d1d" }}>
+            <h3 className="mt-2 text-sm font-extrabold" style={{ color: "#F8FAFC" }}>
               אין הלוואות צרכניות
             </h3>
             <p
               className="mx-auto mb-3 mt-1 max-w-xs text-[11px] leading-relaxed"
-              style={{ color: "#5a7a6a" }}
+              style={{ color: "#94A3B8" }}
             >
               נקי מהלוואות צרכניות זה מצוין. אם יש משכנתא — היא כבר למעלה. אם הלוואה חדשה תצטרף, כאן
               המקום להוסיף.
@@ -912,8 +912,8 @@ export default function DebtPage() {
               style={{
                 gridTemplateColumns:
                   "minmax(90px,1fr) 95px 70px 85px 60px 90px 90px 28px",
-                color: "#5a7a6a",
-                borderBottom: "1px solid #eef2e8",
+                color: "#94A3B8",
+                borderBottom: "1px solid #1F2A3F",
                 columnGap: "6px",
               }}
             >
@@ -941,7 +941,7 @@ export default function DebtPage() {
                   style={{
                     gridTemplateColumns:
                       "minmax(90px,1fr) 95px 70px 85px 60px 90px 90px 28px",
-                    borderBottom: "1px solid #eef2e8",
+                    borderBottom: "1px solid #1F2A3F",
                     columnGap: "6px",
                   }}
                 >
@@ -952,9 +952,9 @@ export default function DebtPage() {
                     onChange={(e) => updateLoan(loan.id, "lender", e.target.value)}
                     placeholder="שם המלווה"
                     className="w-full border-none bg-transparent text-[13px] font-semibold focus:outline-none"
-                    style={{ color: "#012d1d", borderBottom: "1px dotted transparent" }}
+                    style={{ color: "#F8FAFC", borderBottom: "1px dotted transparent" }}
                     onFocus={(e) => {
-                      e.currentTarget.style.borderBottomColor = "#2B694D";
+                      e.currentTarget.style.borderBottomColor = "#4ADE80";
                     }}
                     onBlur={(e) => {
                       e.currentTarget.style.borderBottomColor = "transparent";
@@ -966,7 +966,7 @@ export default function DebtPage() {
                     value={loan.startDate}
                     onChange={(e) => updateLoan(loan.id, "startDate", e.target.value)}
                     className="w-full border-none bg-transparent text-[12px] font-semibold focus:outline-none"
-                    style={{ color: "#012d1d" }}
+                    style={{ color: "#F8FAFC" }}
                   />
                   {/* Total payments */}
                   <input
@@ -975,9 +975,9 @@ export default function DebtPage() {
                     onChange={(e) => updateLoan(loan.id, "totalPayments", e.target.value)}
                     placeholder="0"
                     className="w-full border-none bg-transparent text-left text-[13px] font-bold tabular-nums focus:outline-none"
-                    style={{ color: "#012d1d", borderBottom: "1px dotted transparent" }}
+                    style={{ color: "#F8FAFC", borderBottom: "1px dotted transparent" }}
                     onFocus={(e) => {
-                      e.currentTarget.style.borderBottomColor = "#2B694D";
+                      e.currentTarget.style.borderBottomColor = "#4ADE80";
                     }}
                     onBlur={(e) => {
                       e.currentTarget.style.borderBottomColor = "transparent";
@@ -992,7 +992,7 @@ export default function DebtPage() {
                     className="w-full border-none bg-transparent text-left text-[13px] font-bold tabular-nums focus:outline-none"
                     style={{ color: "#8B2E2E", borderBottom: "1px dotted transparent" }}
                     onFocus={(e) => {
-                      e.currentTarget.style.borderBottomColor = "#2B694D";
+                      e.currentTarget.style.borderBottomColor = "#4ADE80";
                     }}
                     onBlur={(e) => {
                       e.currentTarget.style.borderBottomColor = "transparent";
@@ -1025,11 +1025,11 @@ export default function DebtPage() {
                     }
                     className="w-full border-none bg-transparent text-left text-[12px] font-semibold tabular-nums focus:outline-none"
                     style={{
-                      color: loan.interestRate === undefined ? "#9ca3af" : "#012d1d",
+                      color: loan.interestRate === undefined ? "#9ca3af" : "#F8FAFC",
                       borderBottom: "1px dotted transparent",
                     }}
                     onFocus={(e) => {
-                      e.currentTarget.style.borderBottomColor = "#2B694D";
+                      e.currentTarget.style.borderBottomColor = "#4ADE80";
                     }}
                     onBlur={(e) => {
                       e.currentTarget.style.borderBottomColor = "transparent";
@@ -1039,20 +1039,20 @@ export default function DebtPage() {
                   <div className="flex flex-col gap-0.5">
                     <div
                       className="text-[11px] font-bold tabular-nums"
-                      style={{ color: "#012d1d" }}
+                      style={{ color: "#F8FAFC" }}
                     >
                       {loan.startDate ? `${elapsed} מתוך ${loan.totalPayments}` : "—"}
                     </div>
                     {loan.totalPayments > 0 && (
                       <div
                         className="h-1.5 w-full overflow-hidden rounded-full"
-                        style={{ background: "#eef2e8" }}
+                        style={{ background: "#1F2A3F" }}
                       >
                         <div
                           className="h-full rounded-full transition-all"
                           style={{
                             width: `${progress * 100}%`,
-                            background: progress >= 1 ? "#2B694D" : "#B45309",
+                            background: progress >= 1 ? "#4ADE80" : "#B45309",
                           }}
                         />
                       </div>
@@ -1061,7 +1061,7 @@ export default function DebtPage() {
                   {/* Remaining balance */}
                   <div
                     className="text-left text-[13px] font-extrabold tabular-nums"
-                    style={{ color: balance > 0 ? "#8B2E2E" : "#2B694D" }}
+                    style={{ color: balance > 0 ? "#8B2E2E" : "#4ADE80" }}
                   >
                     {loan.startDate ? fmtILS(balance) : "—"}
                   </div>
@@ -1069,7 +1069,7 @@ export default function DebtPage() {
                   <button
                     onClick={() => deleteLoan(loan.id)}
                     className="opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
-                    style={{ color: "#5a7a6a" }}
+                    style={{ color: "#94A3B8" }}
                     title="מחק"
                   >
                     <span className="material-symbols-outlined text-[14px] transition-colors hover:text-red-600">
@@ -1109,17 +1109,17 @@ export default function DebtPage() {
             </span>
           </span>
           <div className="flex-1">
-            <h2 className="text-base font-extrabold" style={{ color: "#012d1d" }}>
+            <h2 className="text-base font-extrabold" style={{ color: "#F8FAFC" }}>
               עסקאות תשלומים
             </h2>
-            <div className="text-[11px] font-semibold" style={{ color: "#5a7a6a" }}>
+            <div className="text-[11px] font-semibold" style={{ color: "#94A3B8" }}>
               {installmentTotals.count} עסקאות · חיוב חודשי {fmtILS(installmentTotals.monthlyTotal)}
             </div>
           </div>
           <span
             className="material-symbols-outlined text-[20px] transition-transform"
             style={{
-              color: "#5a7a6a",
+              color: "#94A3B8",
               transform: expandedInstallments ? "rotate(0deg)" : "rotate(-90deg)",
             }}
           >
@@ -1141,7 +1141,7 @@ export default function DebtPage() {
                     <button
                       onClick={() => setExpandedSources((prev) => ({ ...prev, [source]: !isOpen }))}
                       className="flex w-full items-center gap-2 py-2 text-right"
-                      style={{ borderBottom: "1px solid #eef2e8" }}
+                      style={{ borderBottom: "1px solid #1F2A3F" }}
                     >
                       <span
                         className="material-symbols-outlined text-[14px]"
@@ -1149,7 +1149,7 @@ export default function DebtPage() {
                       >
                         credit_card
                       </span>
-                      <span className="flex-1 text-[13px] font-bold" style={{ color: "#012d1d" }}>
+                      <span className="flex-1 text-[13px] font-bold" style={{ color: "#F8FAFC" }}>
                         {source}
                       </span>
                       <span
@@ -1161,7 +1161,7 @@ export default function DebtPage() {
                       <span
                         className="material-symbols-outlined text-[16px] transition-transform"
                         style={{
-                          color: "#5a7a6a",
+                          color: "#94A3B8",
                           transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)",
                         }}
                       >
@@ -1176,8 +1176,8 @@ export default function DebtPage() {
                           className="mb-1 grid items-center pb-1 text-[11px] font-extrabold uppercase tracking-[0.08em]"
                           style={{
                             gridTemplateColumns: "minmax(100px,1fr) 100px 90px 80px 28px",
-                            color: "#5a7a6a",
-                            borderBottom: "1px solid #eef2e8",
+                            color: "#94A3B8",
+                            borderBottom: "1px solid #1F2A3F",
                             columnGap: "6px",
                           }}
                         >
@@ -1194,7 +1194,7 @@ export default function DebtPage() {
                             className="group grid items-center py-1.5"
                             style={{
                               gridTemplateColumns: "minmax(100px,1fr) 100px 90px 80px 28px",
-                              borderBottom: "1px solid #eef2e8",
+                              borderBottom: "1px solid #1F2A3F",
                               columnGap: "6px",
                             }}
                           >
@@ -1207,9 +1207,9 @@ export default function DebtPage() {
                               }
                               placeholder="שם בית עסק"
                               className="w-full border-none bg-transparent text-[12px] font-semibold focus:outline-none"
-                              style={{ color: "#012d1d", borderBottom: "1px dotted transparent" }}
+                              style={{ color: "#F8FAFC", borderBottom: "1px dotted transparent" }}
                               onFocus={(e) => {
-                                e.currentTarget.style.borderBottomColor = "#2B694D";
+                                e.currentTarget.style.borderBottomColor = "#4ADE80";
                               }}
                               onBlur={(e) => {
                                 e.currentTarget.style.borderBottomColor = "transparent";
@@ -1222,9 +1222,9 @@ export default function DebtPage() {
                               onChange={(e) => updateInstallment(inst.id, "source", e.target.value)}
                               placeholder="כרטיס / בנק"
                               className="w-full border-none bg-transparent text-[12px] font-semibold focus:outline-none"
-                              style={{ color: "#5a7a6a", borderBottom: "1px dotted transparent" }}
+                              style={{ color: "#94A3B8", borderBottom: "1px dotted transparent" }}
                               onFocus={(e) => {
-                                e.currentTarget.style.borderBottomColor = "#2B694D";
+                                e.currentTarget.style.borderBottomColor = "#4ADE80";
                               }}
                               onBlur={(e) => {
                                 e.currentTarget.style.borderBottomColor = "transparent";
@@ -1239,9 +1239,9 @@ export default function DebtPage() {
                                   updateInstallment(inst.id, "currentPayment", e.target.value)
                                 }
                                 className="w-8 border-none bg-transparent text-left text-[12px] font-bold tabular-nums focus:outline-none"
-                                style={{ color: "#012d1d" }}
+                                style={{ color: "#F8FAFC" }}
                               />
-                              <span className="text-[11px]" style={{ color: "#5a7a6a" }}>
+                              <span className="text-[11px]" style={{ color: "#94A3B8" }}>
                                 /
                               </span>
                               <input
@@ -1251,7 +1251,7 @@ export default function DebtPage() {
                                   updateInstallment(inst.id, "totalPayments", e.target.value)
                                 }
                                 className="w-8 border-none bg-transparent text-left text-[12px] font-bold tabular-nums focus:outline-none"
-                                style={{ color: "#012d1d" }}
+                                style={{ color: "#F8FAFC" }}
                               />
                             </div>
                             {/* Monthly amount */}
@@ -1265,7 +1265,7 @@ export default function DebtPage() {
                               className="w-full border-none bg-transparent text-left text-[12px] font-bold tabular-nums focus:outline-none"
                               style={{ color: "#4A7C59", borderBottom: "1px dotted transparent" }}
                               onFocus={(e) => {
-                                e.currentTarget.style.borderBottomColor = "#2B694D";
+                                e.currentTarget.style.borderBottomColor = "#4ADE80";
                               }}
                               onBlur={(e) => {
                                 e.currentTarget.style.borderBottomColor = "transparent";
@@ -1275,7 +1275,7 @@ export default function DebtPage() {
                             <button
                               onClick={() => deleteInstallment(inst.id)}
                               className="opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
-                              style={{ color: "#5a7a6a" }}
+                              style={{ color: "#94A3B8" }}
                               title="מחק"
                             >
                               <span className="material-symbols-outlined text-[14px] transition-colors hover:text-red-600">
@@ -1292,11 +1292,11 @@ export default function DebtPage() {
             ) : (
               <div
                 className="rounded-xl px-4 py-6 text-center"
-                style={{ background: "#F4F7ED", border: "1px dashed #d8e0d0" }}
+                style={{ background: "#1A2438", border: "1px dashed #1F2A3F" }}
               >
                 <span
                   className="material-symbols-outlined mb-1 inline-block"
-                  style={{ fontSize: 28, color: "#5a7a6a" }}
+                  style={{ fontSize: 28, color: "#94A3B8" }}
                 >
                   shopping_cart
                 </span>
@@ -1356,7 +1356,7 @@ function KpiBox({
     <div
       className="relative flex flex-col gap-1 overflow-hidden rounded-xl p-3 transition-all duration-300"
       style={{
-        background: `linear-gradient(180deg, ${color}0a 0%, #ffffff 55%)`,
+        background: `linear-gradient(180deg, ${color}0a 0%, #131C2E 55%)`,
         border: `1px solid ${color}22`,
       }}
     >
@@ -1366,7 +1366,7 @@ function KpiBox({
       />
       <div
         className="text-[10px] font-bold uppercase tracking-[0.1em]"
-        style={{ color: "#5a7a6a" }}
+        style={{ color: "#94A3B8" }}
       >
         {label}
       </div>
@@ -1376,7 +1376,7 @@ function KpiBox({
       >
         {value}
       </div>
-      <div className="text-[11px] font-semibold" style={{ color: "#5a7a6a" }}>
+      <div className="text-[11px] font-semibold" style={{ color: "#94A3B8" }}>
         {sub}
       </div>
     </div>

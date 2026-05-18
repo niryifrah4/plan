@@ -83,24 +83,24 @@ export function FreedomCalc() {
       <div
         className="relative overflow-hidden rounded-2xl p-6"
         style={{
-          background: "linear-gradient(135deg,#012d1d 0%,#064e32 50%,#1B4332 100%)",
+          background: "linear-gradient(135deg,#F8FAFC 0%,#064e32 50%,#A8E040 100%)",
           color: "#fff",
         }}
       >
         <div
           className="absolute inset-0 opacity-[0.04]"
           style={{
-            backgroundImage: "radial-gradient(circle at 20% 80%, #2B694D 0%, transparent 50%)",
+            backgroundImage: "radial-gradient(circle at 20% 80%, #4ADE80 0%, transparent 50%)",
           }}
         />
         <div className="relative">
           <div className="mb-2 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[22px]" style={{ color: "#2B694D" }}>
+            <span className="material-symbols-outlined text-[22px]" style={{ color: "#4ADE80" }}>
               workspace_premium
             </span>
             <span
               className="text-[10px] font-bold uppercase tracking-[0.25em]"
-              style={{ color: "#2B694D" }}
+              style={{ color: "#4ADE80" }}
             >
               חוק ה-300 הדינמי
             </span>
@@ -158,7 +158,7 @@ export function FreedomCalc() {
             >
               <div
                 className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${pct}%`, background: "linear-gradient(90deg,#2B694D,#2B694D)" }}
+                style={{ width: `${pct}%`, background: "linear-gradient(90deg,#4ADE80,#4ADE80)" }}
               />
             </div>
             <div className="mt-1.5 flex justify-between text-[10px] opacity-60">
@@ -218,7 +218,7 @@ export function FreedomCalc() {
               })
               .join(" ")}
             fill="none"
-            stroke="#1B4332"
+            stroke="#A8E040"
             strokeWidth="2.5"
             strokeLinecap="round"
           />
@@ -231,8 +231,8 @@ export function FreedomCalc() {
             })()}
           <defs>
             <linearGradient id="freedomGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#1B4332" />
-              <stop offset="100%" stopColor="#1B4332" stopOpacity="0" />
+              <stop offset="0%" stopColor="#A8E040" />
+              <stop offset="100%" stopColor="#A8E040" stopOpacity="0" />
             </linearGradient>
           </defs>
         </svg>
@@ -277,7 +277,7 @@ export function FreedomCalc() {
             <div className="text-[10px] font-bold text-verdant-muted">שנים לחופש</div>
           </div>
           <div>
-            <div className="tabular text-2xl font-extrabold" style={{ color: "#1B4332" }}>
+            <div className="tabular text-2xl font-extrabold" style={{ color: "#A8E040" }}>
               {simulation.age}
             </div>
             <div className="text-[10px] font-bold text-verdant-muted">גיל חופש כלכלי</div>
@@ -312,7 +312,7 @@ function Field({
       </label>
       <div
         className="flex items-center gap-1 rounded-lg border px-3 py-2"
-        style={{ borderColor: "#d8e0d0", background: "#f9faf2" }}
+        style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
       >
         <input
           type="number"

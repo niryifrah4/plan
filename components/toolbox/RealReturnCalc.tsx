@@ -52,11 +52,11 @@ export function RealReturnCalc() {
         </div>
 
         {/* Visual comparison */}
-        <div className="rounded-xl p-4" style={{ background: "#f4f7ed" }}>
+        <div className="rounded-xl p-4" style={{ background: "#1A2438" }}>
           <div className="mb-4 grid grid-cols-3 gap-4 text-center">
             <div>
               <div className="mb-1 text-[10px] font-bold text-verdant-muted">תשואה נומינלית</div>
-              <div className="tabular text-lg font-extrabold" style={{ color: "#012d1d" }}>
+              <div className="tabular text-lg font-extrabold" style={{ color: "#F8FAFC" }}>
                 {fmtPct(nominalReturn)}
               </div>
             </div>
@@ -64,7 +64,7 @@ export function RealReturnCalc() {
               <div className="mb-1 text-[10px] font-bold text-verdant-muted">תשואה ריאלית נטו</div>
               <div
                 className="tabular text-lg font-extrabold"
-                style={{ color: realRate > 0 ? "#1B4332" : "#b91c1c" }}
+                style={{ color: realRate > 0 ? "#A8E040" : "#F87171" }}
               >
                 {fmtPct(realRate * 100, 2)}
               </div>
@@ -85,20 +85,20 @@ export function RealReturnCalc() {
               label={`נומינלי (${years} שנים)`}
               value={nominalFV}
               max={nominalFV}
-              color="#012d1d"
+              color="#F8FAFC"
             />
             <Bar
               label={`ריאלי נטו (${years} שנים)`}
               value={realFV}
               max={nominalFV}
-              color="#1B4332"
+              color="#A8E040"
             />
           </div>
 
-          <div className="mt-4 border-t pt-3" style={{ borderColor: "#d8e0d0" }}>
+          <div className="mt-4 border-t pt-3" style={{ borderColor: "#1F2A3F" }}>
             <div className="flex justify-between text-xs">
               <span className="text-verdant-muted">הפרש — כוח הקנייה שנאכל</span>
-              <span className="tabular font-extrabold" style={{ color: "#b91c1c" }}>
+              <span className="tabular font-extrabold" style={{ color: "#F87171" }}>
                 {fmtILS(nominalFV - realFV)}
               </span>
             </div>
@@ -127,7 +127,7 @@ function Field({
       </label>
       <div
         className="flex items-center rounded-lg border px-3 py-2"
-        style={{ borderColor: "#d8e0d0", background: "#f9faf2" }}
+        style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
       >
         <input
           type="number"
@@ -162,7 +162,7 @@ function Bar({
           {fmtILS(value)}
         </span>
       </div>
-      <div className="h-2 w-full rounded-full" style={{ background: "#eef2e8" }}>
+      <div className="h-2 w-full rounded-full" style={{ background: "#1F2A3F" }}>
         <div
           className="h-full rounded-full transition-all"
           style={{ width: `${pct}%`, background: color }}

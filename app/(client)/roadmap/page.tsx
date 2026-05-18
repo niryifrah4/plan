@@ -14,7 +14,7 @@ import { buildFamilyRoadmap, type RoadmapEvent, type FamilyRoadmap } from "@/lib
 
 const CATEGORY_COLOR: Record<RoadmapEvent["category"], string> = {
   kid: "#7C2D12",
-  goal: "#1B4332",
+  goal: "#A8E040",
   debt: "#0F766E",
   retirement: "#B45309",
   milestone: "#6B21A8",
@@ -53,7 +53,7 @@ export default function RoadmapPage() {
 
       {/* Net worth start vs end */}
       <section className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-        <div className="rounded-xl bg-white p-4" style={{ border: "1px solid #eef2e8" }}>
+        <div className="rounded-xl bg-white p-4" style={{ border: "1px solid #1F2A3F" }}>
           <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
             היום
           </div>
@@ -63,7 +63,7 @@ export default function RoadmapPage() {
           <div className="mt-0.5 text-[11px] text-verdant-muted">הון נטו נוכחי</div>
         </div>
         {retirementYear && (
-          <div className="rounded-xl bg-white p-4" style={{ border: "1px solid #eef2e8" }}>
+          <div className="rounded-xl bg-white p-4" style={{ border: "1px solid #1F2A3F" }}>
             <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
               בפרישה
             </div>
@@ -78,8 +78,8 @@ export default function RoadmapPage() {
         <div
           className="rounded-xl p-4"
           style={{
-            background: "linear-gradient(135deg, #1B4332 0%, #012D1D 100%)",
-            color: "#F9FAF2",
+            background: "linear-gradient(135deg, #A8E040 0%, #F8FAFC 100%)",
+            color: "#F8FAFC",
           }}
         >
           <div
@@ -126,7 +126,7 @@ export default function RoadmapPage() {
                   className="w-full rounded-t transition-all"
                   style={{
                     height: `${Math.max(heightPct, 2)}%`,
-                    background: isRetirement ? "#B45309" : "#1B4332",
+                    background: isRetirement ? "#B45309" : "#A8E040",
                     opacity: 0.6 + (idx / netWorthSeries.length) * 0.4,
                   }}
                 />
@@ -169,7 +169,7 @@ export default function RoadmapPage() {
                 <div
                   key={i}
                   className="flex items-center gap-3 rounded-xl p-3"
-                  style={{ background: "#F9FAF2" }}
+                  style={{ background: "#F8FAFC" }}
                 >
                   <div
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
@@ -192,7 +192,7 @@ export default function RoadmapPage() {
                     <div className="text-left">
                       <div
                         className="text-[13px] font-extrabold tabular-nums"
-                        style={{ color: e.amount < 0 ? "#1B4332" : "#8B2E2E" }}
+                        style={{ color: e.amount < 0 ? "#A8E040" : "#8B2E2E" }}
                       >
                         {e.amount < 0 ? "+" : "−"}
                         {fmtILS(Math.abs(e.amount))}

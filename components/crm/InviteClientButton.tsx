@@ -107,7 +107,7 @@ export function InviteClientButton() {
         type="button"
         onClick={() => setOpen(true)}
         className="inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-[12px] font-bold transition-all hover:-translate-y-0.5"
-        style={{ background: "#1B4332", color: "#F9FAF2" }}
+        style={{ background: "#A8E040", color: "#F8FAFC" }}
       >
         <span className="material-symbols-outlined text-[16px]">person_add</span>
         לקוח חדש
@@ -124,14 +124,14 @@ export function InviteClientButton() {
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-md"
             style={{
-              background: "#FFFFFF",
+              background: "#131C2E",
               borderRadius: "1.5rem",
               padding: "28px",
-              boxShadow: "0 16px 40px rgba(27,67,50,0.18)",
+              boxShadow: "0 16px 40px rgba(168,224,64,0.22)",
             }}
           >
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-extrabold" style={{ color: "#012D1D" }}>
+              <h3 className="text-lg font-extrabold" style={{ color: "#F8FAFC" }}>
                 הזמן לקוח חדש
               </h3>
               <button
@@ -147,7 +147,7 @@ export function InviteClientButton() {
             {phase !== "ready" ? (
               <form onSubmit={submit} className="space-y-3">
                 <label className="block">
-                  <span className="mb-1 block text-[12px] font-bold" style={{ color: "#1B4332" }}>
+                  <span className="mb-1 block text-[12px] font-bold" style={{ color: "#A8E040" }}>
                     אימייל הלקוח
                   </span>
                   <input
@@ -158,11 +158,11 @@ export function InviteClientButton() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="client@example.com"
                     className="h-11 w-full rounded-xl px-3 text-sm"
-                    style={{ background: "#F3F4EC", border: "none", outline: "none" }}
+                    style={{ background: "#1A2438", border: "none", outline: "none" }}
                   />
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-[12px] font-bold" style={{ color: "#1B4332" }}>
+                  <span className="mb-1 block text-[12px] font-bold" style={{ color: "#A8E040" }}>
                     שם המשפחה
                   </span>
                   <input
@@ -171,11 +171,11 @@ export function InviteClientButton() {
                     onChange={(e) => setFamilyName(e.target.value)}
                     placeholder="כהן"
                     className="h-11 w-full rounded-xl px-3 text-sm"
-                    style={{ background: "#F3F4EC", border: "none", outline: "none" }}
+                    style={{ background: "#1A2438", border: "none", outline: "none" }}
                   />
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-[12px] font-bold" style={{ color: "#1B4332" }}>
+                  <span className="mb-1 block text-[12px] font-bold" style={{ color: "#A8E040" }}>
                     שם מלא (אופציונלי)
                   </span>
                   <input
@@ -184,11 +184,11 @@ export function InviteClientButton() {
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="דני כהן"
                     className="h-11 w-full rounded-xl px-3 text-sm"
-                    style={{ background: "#F3F4EC", border: "none", outline: "none" }}
+                    style={{ background: "#1A2438", border: "none", outline: "none" }}
                   />
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
+                  <span className="mb-1 block text-[11px] font-bold" style={{ color: "#94A3B8" }}>
                     סיסמה ראשונית (הלקוח יוכל לשנות אחרי כניסה ראשונה)
                   </span>
                   <input
@@ -198,13 +198,13 @@ export function InviteClientButton() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="1234"
                     className="h-11 w-full rounded-xl px-3 font-mono text-sm"
-                    style={{ background: "#F3F4EC", border: "none", outline: "none" }}
+                    style={{ background: "#1A2438", border: "none", outline: "none" }}
                   />
                 </label>
                 {phase === "error" && (
                   <div
                     className="whitespace-pre-wrap rounded-xl px-3 py-2 text-[12px] font-bold"
-                    style={{ background: "#FEF2F2", color: "#991B1B" }}
+                    style={{ background: "#FEF2F2", color: "#FCA5A5" }}
                   >
                     {errorMsg}
                   </div>
@@ -213,7 +213,7 @@ export function InviteClientButton() {
                   type="submit"
                   disabled={phase === "creating"}
                   className="h-11 w-full rounded-xl text-sm font-bold transition-all disabled:opacity-50"
-                  style={{ background: "#1B4332", color: "#F9FAF2" }}
+                  style={{ background: "#A8E040", color: "#F8FAFC" }}
                 >
                   {phase === "creating" ? "שולח הזמנה..." : "שלח הזמנה ללקוח"}
                 </button>
@@ -223,12 +223,12 @@ export function InviteClientButton() {
                 {passwordCreated ? (
                   <div
                     className="space-y-2 rounded-xl px-3 py-3"
-                    style={{ background: "#ECF7EF", color: "#012D1D" }}
+                    style={{ background: "#ECF7EF", color: "#F8FAFC" }}
                   >
                     <div className="flex items-start gap-2">
                       <span
                         className="material-symbols-outlined text-[18px]"
-                        style={{ color: "#1B4332" }}
+                        style={{ color: "#A8E040" }}
                       >
                         person_add
                       </span>
@@ -246,7 +246,7 @@ export function InviteClientButton() {
                         password: <strong>{password}</strong>
                       </div>
                     </div>
-                    <div className="text-[11px] font-medium" style={{ color: "#1B4332" }}>
+                    <div className="text-[11px] font-medium" style={{ color: "#A8E040" }}>
                       העתק והעבר ללקוח (WhatsApp / SMS). הוא נכנס ב-
                       {typeof window !== "undefined" ? window.location.origin : ""}/login
                     </div>
@@ -254,11 +254,11 @@ export function InviteClientButton() {
                 ) : emailSent ? (
                   <div
                     className="flex items-start gap-2 rounded-xl px-3 py-2"
-                    style={{ background: "#ECF7EF", color: "#012D1D" }}
+                    style={{ background: "#ECF7EF", color: "#F8FAFC" }}
                   >
                     <span
                       className="material-symbols-outlined text-[18px]"
-                      style={{ color: "#1B4332" }}
+                      style={{ color: "#A8E040" }}
                     >
                       mark_email_read
                     </span>
@@ -289,7 +289,7 @@ export function InviteClientButton() {
                   <div
                     dir="ltr"
                     className="break-all rounded-xl px-3 py-2 font-mono text-[11px]"
-                    style={{ background: "#F3F4EC", color: "#012D1D" }}
+                    style={{ background: "#1A2438", color: "#F8FAFC" }}
                   >
                     {inviteUrl}
                   </div>
@@ -299,7 +299,7 @@ export function InviteClientButton() {
                     type="button"
                     onClick={copyLink}
                     className="h-11 flex-1 rounded-xl text-sm font-bold transition-all"
-                    style={{ background: "#1B4332", color: "#F9FAF2" }}
+                    style={{ background: "#A8E040", color: "#F8FAFC" }}
                   >
                     {copied ? "הועתק ✓" : "העתק קישור"}
                   </button>
@@ -307,7 +307,7 @@ export function InviteClientButton() {
                     type="button"
                     onClick={reset}
                     className="h-11 rounded-xl px-4 text-sm font-bold"
-                    style={{ background: "#F3F4EC", color: "#1B4332" }}
+                    style={{ background: "#1A2438", color: "#A8E040" }}
                   >
                     הזמנה נוספת
                   </button>

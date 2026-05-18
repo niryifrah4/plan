@@ -57,9 +57,9 @@ function heLabelForMonth(ym: string): string {
 }
 
 const KIND_META: Record<DepositTargetKind, { label: string; icon: string; color: string }> = {
-  pension: { label: "פנסיה", icon: "elderly", color: "#1B4332" },
-  hishtalmut: { label: "השתלמות", icon: "school", color: "#2B694D" },
-  gemel: { label: "גמל", icon: "savings", color: "#0a7a4a" },
+  pension: { label: "פנסיה", icon: "elderly", color: "#A8E040" },
+  hishtalmut: { label: "השתלמות", icon: "school", color: "#4ADE80" },
+  gemel: { label: "גמל", icon: "savings", color: "#A8E040" },
   securities: { label: "השקעות", icon: "candlestick_chart", color: "#B45309" },
   savings: { label: "חיסכון", icon: "account_balance", color: "#0284c7" },
 };
@@ -185,11 +185,11 @@ export default function DepositsPage() {
             <div className="caption">{heLabelForMonth(month)}</div>
             <div className="mt-1 flex items-baseline gap-2">
               <span className="kpi-value">{fmtILS(summary.confirmedTotal)}</span>
-              <span className="text-[12px] font-bold" style={{ color: "#5a7a6a" }}>
+              <span className="text-[12px] font-bold" style={{ color: "#94A3B8" }}>
                 מתוך {fmtILS(summary.total)}
               </span>
             </div>
-            <div className="mt-1 text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
+            <div className="mt-1 text-[11px] font-bold" style={{ color: "#94A3B8" }}>
               אושרו {summary.confirmedCount} מתוך {summary.plannedCount} הפקדות
             </div>
           </div>
@@ -199,7 +199,7 @@ export default function DepositsPage() {
             }}
             disabled={summary.confirmedCount === summary.plannedCount}
             className="rounded-lg px-4 py-2 text-[12px] font-extrabold transition-all disabled:opacity-40"
-            style={{ background: "#1B4332", color: "#fff" }}
+            style={{ background: "#A8E040", color: "#fff" }}
           >
             <span className="material-symbols-outlined ml-1 align-middle text-[14px]">
               done_all
@@ -208,19 +208,19 @@ export default function DepositsPage() {
           </button>
         </div>
 
-        <div className="mb-5 h-2 w-full rounded-full" style={{ background: "#eef2e8" }}>
+        <div className="mb-5 h-2 w-full rounded-full" style={{ background: "#1F2A3F" }}>
           <div
             className="h-full rounded-full transition-all duration-700"
             style={{
               width: `${summary.plannedCount > 0 ? (summary.confirmedCount / summary.plannedCount) * 100 : 0}%`,
-              background: "linear-gradient(90deg, #1B4332, #2B694D)",
+              background: "linear-gradient(90deg, #A8E040, #4ADE80)",
             }}
           />
         </div>
 
         {/* Entries list */}
         {summary.entries.length === 0 ? (
-          <div className="py-6 text-center text-[13px] font-bold" style={{ color: "#5a7a6a" }}>
+          <div className="py-6 text-center text-[13px] font-bold" style={{ color: "#94A3B8" }}>
             עוד לא הוגדרו הפקדות — הוסף תוכנית ראשונה למטה
           </div>
         ) : (
@@ -233,7 +233,7 @@ export default function DepositsPage() {
                   className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all"
                   style={{
                     background: entry.confirmed ? "#f3f8ef" : "#fff",
-                    border: `1px solid ${entry.confirmed ? "#C1ECD4" : "#eef2e8"}`,
+                    border: `1px solid ${entry.confirmed ? "#A8E040" : "#1F2A3F"}`,
                   }}
                 >
                   <button
@@ -242,8 +242,8 @@ export default function DepositsPage() {
                     }
                     className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-all"
                     style={{
-                      background: entry.confirmed ? "#1B4332" : "transparent",
-                      border: entry.confirmed ? "1px solid #1B4332" : "1px solid #d8e0d0",
+                      background: entry.confirmed ? "#A8E040" : "transparent",
+                      border: entry.confirmed ? "1px solid #A8E040" : "1px solid #1F2A3F",
                     }}
                   >
                     {entry.confirmed && (
@@ -263,11 +263,11 @@ export default function DepositsPage() {
                   <div className="min-w-0 flex-1">
                     <div
                       className="truncate text-[14px] font-extrabold"
-                      style={{ color: "#012d1d" }}
+                      style={{ color: "#F8FAFC" }}
                     >
                       {entry.target.label}
                     </div>
-                    <div className="text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
+                    <div className="text-[11px] font-bold" style={{ color: "#94A3B8" }}>
                       {meta.label}
                     </div>
                   </div>
@@ -279,12 +279,12 @@ export default function DepositsPage() {
                     className="tabular w-28 rounded-lg px-2 py-1.5 text-left text-[13px] font-extrabold"
                     style={{
                       background: entry.confirmed ? "transparent" : "#f8faf6",
-                      border: `1px solid ${entry.confirmed ? "transparent" : "#eef2e8"}`,
-                      color: entry.confirmed ? "#1B4332" : "#012d1d",
+                      border: `1px solid ${entry.confirmed ? "transparent" : "#1F2A3F"}`,
+                      color: entry.confirmed ? "#A8E040" : "#F8FAFC",
                     }}
                     placeholder="0"
                   />
-                  <span className="text-[12px] font-bold" style={{ color: "#5a7a6a" }}>
+                  <span className="text-[12px] font-bold" style={{ color: "#94A3B8" }}>
                     ₪
                   </span>
                 </div>
@@ -299,7 +299,7 @@ export default function DepositsPage() {
         <div className="mb-4 flex items-center justify-between">
           <div>
             <div className="caption">תוכנית הפקדות חודשית</div>
-            <h3 className="mt-0.5 text-lg font-extrabold" style={{ color: "#012d1d" }}>
+            <h3 className="mt-0.5 text-lg font-extrabold" style={{ color: "#F8FAFC" }}>
               מה אמור להיכנס כל חודש
             </h3>
           </div>
@@ -307,8 +307,8 @@ export default function DepositsPage() {
             onClick={() => setShowAdd(!showAdd)}
             className="rounded-lg px-3 py-2 text-[12px] font-extrabold transition-all"
             style={{
-              background: showAdd ? "#eef2e8" : "#1B4332",
-              color: showAdd ? "#012d1d" : "#fff",
+              background: showAdd ? "#1F2A3F" : "#A8E040",
+              color: showAdd ? "#F8FAFC" : "#fff",
             }}
           >
             <span className="material-symbols-outlined ml-1 align-middle text-[14px]">
@@ -321,11 +321,11 @@ export default function DepositsPage() {
         {showAdd && (
           <div
             className="mb-4 rounded-xl p-4"
-            style={{ background: "#f8faf6", border: "1px dashed #d8e0d0" }}
+            style={{ background: "#f8faf6", border: "1px dashed #1F2A3F" }}
           >
             <div className="mb-3 grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1 block text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
+                <label className="mb-1 block text-[11px] font-bold" style={{ color: "#94A3B8" }}>
                   סוג
                 </label>
                 <select
@@ -335,7 +335,7 @@ export default function DepositsPage() {
                     setNewRefId("");
                   }}
                   className="w-full rounded-lg px-3 py-2 text-[13px] font-bold"
-                  style={{ border: "1px solid #eef2e8", background: "#fff" }}
+                  style={{ border: "1px solid #1F2A3F", background: "#fff" }}
                 >
                   <option value="pension">פנסיה</option>
                   <option value="hishtalmut">השתלמות</option>
@@ -350,7 +350,7 @@ export default function DepositsPage() {
                   <div>
                     <label
                       className="mb-1 block text-[11px] font-bold"
-                      style={{ color: "#5a7a6a" }}
+                      style={{ color: "#94A3B8" }}
                     >
                       קופה
                     </label>
@@ -358,7 +358,7 @@ export default function DepositsPage() {
                       value={newRefId}
                       onChange={(e) => setNewRefId(e.target.value)}
                       className="w-full rounded-lg px-3 py-2 text-[13px] font-bold"
-                      style={{ border: "1px solid #eef2e8", background: "#fff" }}
+                      style={{ border: "1px solid #1F2A3F", background: "#fff" }}
                     >
                       <option value="">— בחר קופה —</option>
                       {pensionFunds.map((f) => (
@@ -378,7 +378,7 @@ export default function DepositsPage() {
                     : ""
                 }
               >
-                <label className="mb-1 block text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
+                <label className="mb-1 block text-[11px] font-bold" style={{ color: "#94A3B8" }}>
                   שם תצוגה
                 </label>
                 <input
@@ -386,12 +386,12 @@ export default function DepositsPage() {
                   onChange={(e) => setNewLabel(e.target.value)}
                   placeholder="למשל: פנסיה מנורה / תיק השקעות"
                   className="w-full rounded-lg px-3 py-2 text-[13px] font-bold"
-                  style={{ border: "1px solid #eef2e8", background: "#fff" }}
+                  style={{ border: "1px solid #1F2A3F", background: "#fff" }}
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
+                <label className="mb-1 block text-[11px] font-bold" style={{ color: "#94A3B8" }}>
                   סכום חודשי (₪)
                 </label>
                 <input
@@ -400,14 +400,14 @@ export default function DepositsPage() {
                   onChange={(e) => setNewAmount(e.target.value)}
                   placeholder="2100"
                   className="tabular w-full rounded-lg px-3 py-2 text-[13px] font-extrabold"
-                  style={{ border: "1px solid #eef2e8", background: "#fff" }}
+                  style={{ border: "1px solid #1F2A3F", background: "#fff" }}
                 />
               </div>
             </div>
             <button
               onClick={handleAddPlan}
               className="rounded-lg px-4 py-2 text-[12px] font-extrabold"
-              style={{ background: "#1B4332", color: "#fff" }}
+              style={{ background: "#A8E040", color: "#fff" }}
             >
               שמור תוכנית
             </button>
@@ -415,7 +415,7 @@ export default function DepositsPage() {
         )}
 
         {plans.length === 0 ? (
-          <div className="py-6 text-center text-[13px] font-bold" style={{ color: "#5a7a6a" }}>
+          <div className="py-6 text-center text-[13px] font-bold" style={{ color: "#94A3B8" }}>
             עוד לא הוגדרו תוכניות הפקדה
           </div>
         ) : (
@@ -426,7 +426,7 @@ export default function DepositsPage() {
                 <div
                   key={plan.id}
                   className="flex items-center gap-3 rounded-xl px-3 py-2.5"
-                  style={{ border: "1px solid #eef2e8" }}
+                  style={{ border: "1px solid #1F2A3F" }}
                 >
                   <div
                     className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
@@ -438,11 +438,11 @@ export default function DepositsPage() {
                   <div className="min-w-0 flex-1">
                     <div
                       className="truncate text-[14px] font-extrabold"
-                      style={{ color: "#012d1d" }}
+                      style={{ color: "#F8FAFC" }}
                     >
                       {plan.target.label}
                     </div>
-                    <div className="text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
+                    <div className="text-[11px] font-bold" style={{ color: "#94A3B8" }}>
                       {meta.label} · {plan.active ? "פעיל" : "מושהה"}
                     </div>
                   </div>
@@ -457,16 +457,16 @@ export default function DepositsPage() {
                       }
                     }}
                     className="tabular w-28 rounded-lg px-2 py-1.5 text-left text-[13px] font-extrabold"
-                    style={{ background: "#f8faf6", border: "1px solid #eef2e8" }}
+                    style={{ background: "#f8faf6", border: "1px solid #1F2A3F" }}
                   />
-                  <span className="text-[12px] font-bold" style={{ color: "#5a7a6a" }}>
+                  <span className="text-[12px] font-bold" style={{ color: "#94A3B8" }}>
                     ₪
                   </span>
 
                   <button
                     onClick={() => updatePlan(plan.id, { active: !plan.active })}
                     className="rounded-lg p-1.5"
-                    style={{ color: plan.active ? "#1B4332" : "#8aab99" }}
+                    style={{ color: plan.active ? "#A8E040" : "#94A3B8" }}
                     title={plan.active ? "השהה" : "הפעל"}
                   >
                     <span className="material-symbols-outlined text-[18px]">
@@ -479,7 +479,7 @@ export default function DepositsPage() {
                       if (confirm(`למחוק את "${plan.target.label}"?`)) deletePlan(plan.id);
                     }}
                     className="rounded-lg p-1.5"
-                    style={{ color: "#b91c1c" }}
+                    style={{ color: "#F87171" }}
                     title="מחק"
                   >
                     <span className="material-symbols-outlined text-[18px]">delete</span>
@@ -495,7 +495,7 @@ export default function DepositsPage() {
       {Object.keys(historyByMonth).length > 0 && (
         <section className="card-pad">
           <div className="caption mb-1">היסטוריה</div>
-          <h3 className="mb-4 text-lg font-extrabold" style={{ color: "#012d1d" }}>
+          <h3 className="mb-4 text-lg font-extrabold" style={{ color: "#F8FAFC" }}>
             חודשים קודמים
           </h3>
 
@@ -504,19 +504,19 @@ export default function DepositsPage() {
               const confirmed = entries.filter((e) => e.confirmed);
               const total = confirmed.reduce((s, e) => s + e.amount, 0);
               return (
-                <div key={m} className="border-b pb-3" style={{ borderColor: "#eef2e8" }}>
+                <div key={m} className="border-b pb-3" style={{ borderColor: "#1F2A3F" }}>
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-[13px] font-extrabold" style={{ color: "#012d1d" }}>
+                    <span className="text-[13px] font-extrabold" style={{ color: "#F8FAFC" }}>
                       {heLabelForMonth(m)}
                     </span>
                     <span
                       className="tabular text-[13px] font-extrabold"
-                      style={{ color: "#1B4332" }}
+                      style={{ color: "#A8E040" }}
                     >
                       {fmtILS(total)}
                     </span>
                   </div>
-                  <div className="text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
+                  <div className="text-[11px] font-bold" style={{ color: "#94A3B8" }}>
                     {confirmed.length}/{entries.length} הפקדות אושרו
                   </div>
                 </div>

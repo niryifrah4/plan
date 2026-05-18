@@ -119,7 +119,7 @@ export function DiscoverTab() {
         <PeriodSelector value={windowSize} onChange={setWindowSize} />
         <section
           className="rounded-2xl p-6 text-center"
-          style={{ background: "#F4F7ED", border: "1px dashed #d8e0d0" }}
+          style={{ background: "#1A2438", border: "1px dashed #1F2A3F" }}
         >
           <div className="text-base font-extrabold text-verdant-ink">
             אין עדיין נתוני תנועות לניתוח
@@ -194,7 +194,7 @@ export function DiscoverTab() {
       {toast && (
         <div
           className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg px-4 py-2.5 text-[12px] font-bold shadow-lg"
-          style={{ background: "#012d1d", color: "#ffffff" }}
+          style={{ background: "#F8FAFC", color: "#131C2E" }}
         >
           {toast}
         </div>
@@ -231,7 +231,7 @@ function PeriodSelector({
       <div className="flex items-center gap-2">
         <div
           className="inline-flex rounded-full p-0.5"
-          style={{ background: "#F4F7ED", border: "1px solid #d8e0d0" }}
+          style={{ background: "#1A2438", border: "1px solid #1F2A3F" }}
         >
           {([3, 6, 12] as const).map((n) => {
             const active = value === n;
@@ -241,8 +241,8 @@ function PeriodSelector({
                 onClick={() => onChange(n)}
                 className="rounded-full px-3.5 py-1.5 text-[11px] font-bold transition-colors"
                 style={{
-                  background: active ? "#1B4332" : "transparent",
-                  color: active ? "#fff" : "#5a7a6a",
+                  background: active ? "#A8E040" : "transparent",
+                  color: active ? "#fff" : "#94A3B8",
                 }}
               >
                 {n} חודשים
@@ -255,9 +255,9 @@ function PeriodSelector({
             onClick={onBuildBudget}
             className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12px] font-extrabold transition-all hover:opacity-90"
             style={{
-              background: "#1B4332",
-              color: "#F9FAF2",
-              border: "1px solid #012D1D",
+              background: "#A8E040",
+              color: "#F8FAFC",
+              border: "1px solid #F8FAFC",
             }}
             title="הפוך את הממוצעים לתקציב בסיס לחודש הנוכחי"
           >
@@ -347,12 +347,12 @@ function BuildBudgetModal({
     >
       <div
         className="max-h-[88vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-white"
-        style={{ border: "1px solid #e8e9e1" }}
+        style={{ border: "1px solid #1F2A3F" }}
         onClick={(e) => e.stopPropagation()}
         dir="rtl"
       >
         {/* Header */}
-        <div className="border-b px-5 py-4" style={{ borderColor: "#eef2e8" }}>
+        <div className="border-b px-5 py-4" style={{ borderColor: "#1F2A3F" }}>
           <div className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-verdant-muted">
             Discover → Plan
           </div>
@@ -369,20 +369,20 @@ function BuildBudgetModal({
         {/* Live totals strip */}
         <div
           className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"
-          style={{ background: "#F4F7ED", borderBottom: "1px solid #eef2e8" }}
+          style={{ background: "#1A2438", borderBottom: "1px solid #1F2A3F" }}
         >
           <div className="flex gap-5">
             <Stat label="ממוצע נוכחי" value={fmtILS(Math.round(baselineTotal))} />
             <Stat
               label="תקציב מוצע"
               value={fmtILS(Math.round(proposedTotal))}
-              color={proposedTotal <= baselineTotal ? "#1B4332" : "#991B1B"}
+              color={proposedTotal <= baselineTotal ? "#A8E040" : "#FCA5A5"}
             />
             {savedDelta !== 0 && (
               <Stat
                 label="חיסכון חודשי"
                 value={`${savedDelta > 0 ? "+" : ""}${fmtILS(Math.round(savedDelta))}`}
-                color={savedDelta > 0 ? "#1B4332" : "#991B1B"}
+                color={savedDelta > 0 ? "#A8E040" : "#FCA5A5"}
                 hint={`${fmtILS(Math.round(savedDelta * 12))} בשנה`}
               />
             )}
@@ -406,7 +406,7 @@ function BuildBudgetModal({
                   <li
                     key={cat.key}
                     className="rounded-xl p-3"
-                    style={{ background: "#fff", border: "1px solid #eef2e8" }}
+                    style={{ background: "#fff", border: "1px solid #1F2A3F" }}
                   >
                     <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
                       <div className="font-extrabold text-verdant-ink text-[13px]">
@@ -439,9 +439,9 @@ function BuildBudgetModal({
                             onClick={() => setChoice(cat.key, key)}
                             className="rounded-full px-3 py-1 text-[11px] font-bold transition-colors"
                             style={{
-                              background: active ? "#1B4332" : "#F4F7ED",
-                              color: active ? "#fff" : "#5a7a6a",
-                              border: `1px solid ${active ? "#012D1D" : "#d8e0d0"}`,
+                              background: active ? "#A8E040" : "#1A2438",
+                              color: active ? "#fff" : "#94A3B8",
+                              border: `1px solid ${active ? "#F8FAFC" : "#1F2A3F"}`,
                             }}
                           >
                             {label}
@@ -463,7 +463,7 @@ function BuildBudgetModal({
                           }
                           placeholder="₪"
                           className="w-24 rounded-md border bg-white px-2 py-1 text-center text-[12px] font-extrabold tabular-nums"
-                          style={{ borderColor: "#d8e0d0" }}
+                          style={{ borderColor: "#1F2A3F" }}
                           dir="ltr"
                           autoFocus
                         />
@@ -473,7 +473,7 @@ function BuildBudgetModal({
                         <span
                           className="tabular-nums"
                           style={{
-                            color: target < cat.average ? "#1B4332" : "#012D1D",
+                            color: target < cat.average ? "#A8E040" : "#F8FAFC",
                           }}
                         >
                           {fmtILS(target)}
@@ -490,7 +490,7 @@ function BuildBudgetModal({
         {/* Footer */}
         <div
           className="flex items-center justify-end gap-2 px-5 py-3"
-          style={{ borderTop: "1px solid #eef2e8" }}
+          style={{ borderTop: "1px solid #1F2A3F" }}
         >
           <button
             onClick={onClose}
@@ -503,9 +503,9 @@ function BuildBudgetModal({
             disabled={candidates.length === 0}
             className="inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-[12px] font-extrabold transition-all disabled:opacity-40"
             style={{
-              background: "#1B4332",
-              color: "#F9FAF2",
-              border: "1px solid #012D1D",
+              background: "#A8E040",
+              color: "#F8FAFC",
+              border: "1px solid #F8FAFC",
             }}
           >
             <span className="material-symbols-outlined text-[16px]">check</span>
@@ -533,7 +533,7 @@ function Stat({
       <div className="text-[10px] font-bold text-verdant-muted">{label}</div>
       <div
         className="text-[16px] font-extrabold tabular-nums leading-tight"
-        style={{ color: color || "#012D1D" }}
+        style={{ color: color || "#F8FAFC" }}
       >
         {value}
       </div>
@@ -556,12 +556,12 @@ function KpiStrip({ summary }: { summary: DiscoverSummary }) {
           : "שלילי";
   const savingsColor =
     summary.avgSavingsRate >= 0.2
-      ? "#1B4332"
+      ? "#A8E040"
       : summary.avgSavingsRate >= 0.1
         ? "#92400E"
         : summary.avgSavingsRate >= 0
           ? "#B45309"
-          : "#991B1B";
+          : "#FCA5A5";
 
   return (
     <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -569,20 +569,20 @@ function KpiStrip({ summary }: { summary: DiscoverSummary }) {
         label="ממוצע הוצאות חודשי"
         value={fmtILS(summary.avgMonthlyExpenses)}
         hint={`לאורך ${summary.monthsCovered} חודשים`}
-        color="#012D1D"
+        color="#F8FAFC"
       />
       <KpiCard
         label="הצפי השנתי"
         value={fmtILS(summary.annualProjectedExpenses)}
         hint="ממוצע × 12"
-        color="#1B4332"
+        color="#A8E040"
         highlight
       />
       <KpiCard
         label="הכנסות חודשיות בממוצע"
         value={fmtILS(summary.avgMonthlyIncome)}
         hint={summary.avgMonthlyIncome > 0 ? "נטו" : "אין נתון"}
-        color="#1B4332"
+        color="#A8E040"
       />
       <KpiCard
         label="שיעור חיסכון"
@@ -611,8 +611,8 @@ function KpiCard({
     <div
       className="rounded-2xl p-4"
       style={{
-        background: highlight ? "#eef7f1" : "#fff",
-        border: `1px solid ${highlight ? "#c9e3d4" : "#e8e9e1"}`,
+        background: highlight ? "#1A2438" : "#fff",
+        border: `1px solid ${highlight ? "#1F2A3F" : "#1F2A3F"}`,
       }}
     >
       <div className="mb-1 text-[11px] font-bold text-verdant-muted">{label}</div>
@@ -633,7 +633,7 @@ function SpendingSnapshot({ summary }: { summary: DiscoverSummary }) {
     return (
       <section
         className="rounded-2xl px-4 py-5 text-center text-[12px]"
-        style={{ background: "#F4F7ED", border: "1px dashed #d8e0d0", color: "#5a7a6a" }}
+        style={{ background: "#1A2438", border: "1px dashed #1F2A3F", color: "#94A3B8" }}
       >
         אין הוצאות מסווגות בחלון הזמן הזה.
       </section>
@@ -643,7 +643,7 @@ function SpendingSnapshot({ summary }: { summary: DiscoverSummary }) {
   return (
     <section
       className="rounded-2xl"
-      style={{ background: "#fff", border: "1px solid #e8e9e1" }}
+      style={{ background: "#fff", border: "1px solid #1F2A3F" }}
     >
       <div className="px-5 pt-5 pb-3">
         <div className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-verdant-muted">
@@ -652,10 +652,10 @@ function SpendingSnapshot({ summary }: { summary: DiscoverSummary }) {
         <h3 className="text-base font-extrabold text-verdant-ink">לאן הלך הכסף — לפי קטגוריה</h3>
       </div>
 
-      <div className="overflow-x-auto" style={{ borderTop: "1px solid #eef2e8" }}>
+      <div className="overflow-x-auto" style={{ borderTop: "1px solid #1F2A3F" }}>
         <table className="w-full text-[12px]">
           <thead>
-            <tr style={{ background: "#F4F7ED", color: "#5a7a6a" }}>
+            <tr style={{ background: "#1A2438", color: "#94A3B8" }}>
               <th className="px-3 py-2 text-right font-extrabold uppercase tracking-[0.06em]">
                 קטגוריה
               </th>
@@ -682,17 +682,17 @@ function SpendingSnapshot({ summary }: { summary: DiscoverSummary }) {
                 row.lastDelta > 0
                   ? "#B45309"
                   : row.lastDelta < 0
-                    ? "#1B4332"
-                    : "#5a7a6a";
+                    ? "#A8E040"
+                    : "#94A3B8";
               return (
-                <tr key={row.key} style={{ borderTop: "1px solid #eef2e8" }}>
+                <tr key={row.key} style={{ borderTop: "1px solid #1F2A3F" }}>
                   <td className="px-3 py-2 font-bold text-verdant-ink">
                     <span className="inline-flex items-center gap-1.5">
                       {row.label}
                       {row.installmentTxCount > 0 && (
                         <span
                           className="rounded-full px-1.5 py-0.5 text-[9px] font-extrabold"
-                          style={{ background: "#eff6ff", color: "#1d4ed8" }}
+                          style={{ background: "#1A2438", color: "#1d4ed8" }}
                           title={`כולל ${row.installmentTxCount} תשלומים זוהו`}
                         >
                           תשלומים×{row.installmentTxCount}
@@ -713,7 +713,7 @@ function SpendingSnapshot({ summary }: { summary: DiscoverSummary }) {
                     <td
                       key={m.ym}
                       className="px-3 py-2 text-left tabular-nums"
-                      style={{ color: "#012D1D" }}
+                      style={{ color: "#F8FAFC" }}
                     >
                       {fmtILS(row.byMonth[m.ym] || 0)}
                     </td>
@@ -734,7 +734,7 @@ function SpendingSnapshot({ summary }: { summary: DiscoverSummary }) {
             })}
           </tbody>
           <tfoot>
-            <tr style={{ background: "#F4F7ED", borderTop: "2px solid #d8e0d0" }}>
+            <tr style={{ background: "#1A2438", borderTop: "2px solid #1F2A3F" }}>
               <td className="px-3 py-2.5 font-extrabold text-verdant-ink">סה״כ הוצאות</td>
               {months.map((m) => (
                 <td
@@ -746,19 +746,19 @@ function SpendingSnapshot({ summary }: { summary: DiscoverSummary }) {
               ))}
               <td
                 className="px-3 py-2.5 text-left font-extrabold tabular-nums"
-                style={{ color: "#012D1D" }}
+                style={{ color: "#F8FAFC" }}
               >
                 {fmtILS(summary.avgMonthlyExpenses)}
               </td>
               <td />
             </tr>
-            <tr style={{ background: "#eef7f1", borderTop: "1px solid #c9e3d4" }}>
+            <tr style={{ background: "#1A2438", borderTop: "1px solid #1F2A3F" }}>
               <td className="px-3 py-2.5 font-bold text-verdant-muted">נטו לחודש</td>
               {months.map((m) => (
                 <td
                   key={m.ym}
                   className="px-3 py-2.5 text-left font-extrabold tabular-nums"
-                  style={{ color: m.net >= 0 ? "#1B4332" : "#991B1B" }}
+                  style={{ color: m.net >= 0 ? "#A8E040" : "#FCA5A5" }}
                 >
                   {m.net >= 0 ? "+" : ""}
                   {fmtILS(m.net)}
@@ -766,7 +766,7 @@ function SpendingSnapshot({ summary }: { summary: DiscoverSummary }) {
               ))}
               <td
                 className="px-3 py-2.5 text-left font-extrabold tabular-nums"
-                style={{ color: summary.avgMonthlyNet >= 0 ? "#1B4332" : "#991B1B" }}
+                style={{ color: summary.avgMonthlyNet >= 0 ? "#A8E040" : "#FCA5A5" }}
               >
                 {summary.avgMonthlyNet >= 0 ? "+" : ""}
                 {fmtILS(summary.avgMonthlyNet)}
@@ -800,13 +800,13 @@ function LearningBanner({
   return (
     <section
       className="rounded-2xl p-4"
-      style={{ background: "#F4F7ED", border: "1px solid #d8e0d0" }}
+      style={{ background: "#1A2438", border: "1px solid #1F2A3F" }}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <span
             className="material-symbols-outlined text-[22px]"
-            style={{ color: "#1B4332" }}
+            style={{ color: "#A8E040" }}
           >
             psychology
           </span>
@@ -862,7 +862,7 @@ function SubscriptionsRadar({
   return (
     <section
       className="rounded-2xl"
-      style={{ background: "#fff", border: "1px solid #e8e9e1" }}
+      style={{ background: "#fff", border: "1px solid #1F2A3F" }}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 pt-5 pb-3">
         <div>
@@ -876,7 +876,7 @@ function SubscriptionsRadar({
         <div className="text-left">
           <div
             className="text-[18px] font-extrabold tabular-nums leading-tight"
-            style={{ color: "#1B4332" }}
+            style={{ color: "#A8E040" }}
           >
             {fmtILS(totalMonthly)}/ח׳
           </div>
@@ -897,7 +897,7 @@ function SubscriptionsRadar({
         </div>
       )}
 
-      <div style={{ borderTop: "1px solid #eef2e8" }}>
+      <div style={{ borderTop: "1px solid #1F2A3F" }}>
         {subscriptions.map((sub) => {
           const key = subKey(sub);
           const isFlagged = flagged.has(key);
@@ -906,7 +906,7 @@ function SubscriptionsRadar({
               key={key}
               className="flex flex-wrap items-center gap-3 px-5 py-2.5"
               style={{
-                borderTop: "1px solid #eef2e8",
+                borderTop: "1px solid #1F2A3F",
                 background: isFlagged ? "#fffbea" : "#fff",
               }}
             >
@@ -922,7 +922,7 @@ function SubscriptionsRadar({
               <div className="text-left">
                 <div
                   className="text-[14px] font-extrabold tabular-nums"
-                  style={{ color: "#1B4332" }}
+                  style={{ color: "#A8E040" }}
                 >
                   {fmtILS(sub.amount)}
                 </div>
@@ -934,9 +934,9 @@ function SubscriptionsRadar({
                 onClick={() => onToggleFlag(key)}
                 className="rounded-full px-3 py-1 text-[11px] font-bold transition-colors"
                 style={{
-                  background: isFlagged ? "#fde68a" : "#F4F7ED",
-                  color: isFlagged ? "#78350F" : "#5a7a6a",
-                  border: `1px solid ${isFlagged ? "#f59e0b" : "#d8e0d0"}`,
+                  background: isFlagged ? "#fde68a" : "#1A2438",
+                  color: isFlagged ? "#78350F" : "#94A3B8",
+                  border: `1px solid ${isFlagged ? "#f59e0b" : "#1F2A3F"}`,
                 }}
                 title={isFlagged ? "הסר סימון" : "סמן לדיון עם הלקוח"}
               >

@@ -32,7 +32,7 @@ export function MiniStat({ label, value, sub, color }: MiniStatProps) {
       </div>
       <div
         className="tabular mt-1 text-[15px] font-extrabold"
-        style={{ color: color ?? "#012D1D" }}
+        style={{ color: color ?? "#F8FAFC" }}
       >
         {value}
       </div>

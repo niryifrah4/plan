@@ -63,8 +63,8 @@ export default function EquityPage() {
       <section
         className="mb-5 overflow-hidden rounded-3xl"
         style={{
-          background: "linear-gradient(135deg, #1B4332 0%, #012D1D 100%)",
-          color: "#F9FAF2",
+          background: "linear-gradient(135deg, #A8E040 0%, #F8FAFC 100%)",
+          color: "#F8FAFC",
           padding: "28px 32px",
         }}
       >
@@ -76,7 +76,7 @@ export default function EquityPage() {
         </div>
         <div
           className="text-center text-[56px] font-extrabold tabular-nums leading-none"
-          style={{ color: "#F9FAF2", fontFamily: "Manrope, Assistant, system-ui, sans-serif" }}
+          style={{ color: "#F8FAFC", fontFamily: "Manrope, Assistant, system-ui, sans-serif" }}
         >
           {grants.length > 0 ? fmtILS(summary.totalNetAfterTaxIls) : "—"}
         </div>
@@ -116,13 +116,13 @@ export default function EquityPage() {
 
       {/* ═══ Add button ═══ */}
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-[17px] font-extrabold" style={{ color: "#012d1d" }}>
+        <h2 className="text-[17px] font-extrabold" style={{ color: "#F8FAFC" }}>
           הקצאות ({grants.length})
         </h2>
         <button
           onClick={() => setEditing(makeNewGrant())}
           className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-extrabold transition-all"
-          style={{ background: "#1B4332", color: "#fff" }}
+          style={{ background: "#A8E040", color: "#fff" }}
         >
           <span className="material-symbols-outlined text-[16px]">add</span>
           הוסף הקצאה
@@ -138,10 +138,10 @@ export default function EquityPage() {
           <span className="material-symbols-outlined text-[40px]" style={{ color: "#9fb3a4" }}>
             inventory
           </span>
-          <div className="mt-2 text-[14px] font-bold" style={{ color: "#012d1d" }}>
+          <div className="mt-2 text-[14px] font-bold" style={{ color: "#F8FAFC" }}>
             אין הקצאות מניות
           </div>
-          <div className="mt-1 text-[12px]" style={{ color: "#5a7a6a" }}>
+          <div className="mt-1 text-[12px]" style={{ color: "#94A3B8" }}>
             עובדים בהייטק? עקוב כאן אחרי RSU/ESPP עם מס 102.
           </div>
         </div>
@@ -196,12 +196,12 @@ function KpiCard({
   value: string;
   tone: "emerald" | "muted";
 }) {
-  const color = tone === "emerald" ? "#1B4332" : "#5a7a6a";
+  const color = tone === "emerald" ? "#A8E040" : "#94A3B8";
   return (
-    <div className="rounded-2xl bg-white p-4" style={{ border: "1px solid #e2e8d8" }}>
+    <div className="rounded-2xl bg-white p-4" style={{ border: "1px solid #1F2A3F" }}>
       <div
         className="text-[11px] font-bold uppercase tracking-[0.12em]"
-        style={{ color: "#5a7a6a" }}
+        style={{ color: "#94A3B8" }}
       >
         {label}
       </div>
@@ -226,41 +226,41 @@ function GrantCard({
 }) {
   const v = computeVested(grant);
   return (
-    <div className="rounded-2xl bg-white p-5" style={{ border: "1px solid #e2e8d8" }}>
+    <div className="rounded-2xl bg-white p-5" style={{ border: "1px solid #1F2A3F" }}>
       <div className="mb-3 flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[15px] font-extrabold" style={{ color: "#012d1d" }}>
+            <span className="text-[15px] font-extrabold" style={{ color: "#F8FAFC" }}>
               {grant.company || "ללא שם"}
             </span>
             {grant.ticker && (
               <span
                 className="rounded-md px-2 py-0.5 text-[10px] font-extrabold"
-                style={{ background: "#f0f4ec", color: "#1B4332" }}
+                style={{ background: "#f0f4ec", color: "#A8E040" }}
               >
                 {grant.ticker}
               </span>
             )}
             <span
               className="rounded-md px-2 py-0.5 text-[10px] font-bold"
-              style={{ background: "#1B4332", color: "#fff" }}
+              style={{ background: "#A8E040", color: "#fff" }}
             >
               {TYPE_LABELS[grant.type]}
             </span>
           </div>
-          <div className="mt-0.5 text-[11px]" style={{ color: "#5a7a6a" }}>
+          <div className="mt-0.5 text-[11px]" style={{ color: "#94A3B8" }}>
             {grant.totalShares.toLocaleString()} מניות · vesting מ-{grant.vestStart} ·{" "}
             {grant.vestMonths} חודשים
           </div>
         </div>
         <div className="flex gap-1">
           <button onClick={onEdit} className="rounded-lg p-1.5 hover:bg-[#f0f4ec]" title="ערוך">
-            <span className="material-symbols-outlined text-[16px]" style={{ color: "#5a7a6a" }}>
+            <span className="material-symbols-outlined text-[16px]" style={{ color: "#94A3B8" }}>
               edit
             </span>
           </button>
           <button onClick={onDelete} className="rounded-lg p-1.5 hover:bg-[#fef2f2]" title="מחק">
-            <span className="material-symbols-outlined text-[16px]" style={{ color: "#b91c1c" }}>
+            <span className="material-symbols-outlined text-[16px]" style={{ color: "#F87171" }}>
               delete
             </span>
           </button>
@@ -271,7 +271,7 @@ function GrantCard({
       <div className="mb-3">
         <div
           className="mb-1 flex items-center justify-between text-[11px] font-bold"
-          style={{ color: "#5a7a6a" }}
+          style={{ color: "#94A3B8" }}
         >
           <span>התקדמות הבשלה</span>
           <span className="tabular-nums">
@@ -279,19 +279,19 @@ function GrantCard({
             {grant.totalShares.toLocaleString()})
           </span>
         </div>
-        <div className="h-1.5 overflow-hidden rounded-full" style={{ background: "#eef2e8" }}>
+        <div className="h-1.5 overflow-hidden rounded-full" style={{ background: "#1F2A3F" }}>
           <div
             className="h-full rounded-full"
-            style={{ width: `${v.vestedPct * 100}%`, background: "#2B694D" }}
+            style={{ width: `${v.vestedPct * 100}%`, background: "#4ADE80" }}
           />
         </div>
       </div>
 
       {/* Numbers */}
       <div className="grid grid-cols-3 gap-3">
-        <StatBox label="הבשיל" value={fmtILS(v.vestedValueIls)} color="#1B4332" />
+        <StatBox label="הבשיל" value={fmtILS(v.vestedValueIls)} color="#A8E040" />
         <StatBox label="מס §102 (25%)" value={fmtILS(v.taxIls)} color="#b45309" />
-        <StatBox label="נטו אם נמכר היום" value={fmtILS(v.netAfterTaxIls)} color="#012d1d" bold />
+        <StatBox label="נטו אם נמכר היום" value={fmtILS(v.netAfterTaxIls)} color="#F8FAFC" bold />
       </div>
     </div>
   );
@@ -352,7 +352,7 @@ function GrantEditor({
         className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="mb-4 text-[17px] font-extrabold" style={{ color: "#012d1d" }}>
+        <h3 className="mb-4 text-[17px] font-extrabold" style={{ color: "#F8FAFC" }}>
           {grant.company ? "עריכת הקצאה" : "הקצאה חדשה"}
         </h3>
 
@@ -441,14 +441,14 @@ function GrantEditor({
           <button
             onClick={onCancel}
             className="rounded-full px-4 py-2 text-[13px] font-bold"
-            style={{ background: "#f0f4ec", color: "#5a7a6a" }}
+            style={{ background: "#f0f4ec", color: "#94A3B8" }}
           >
             ביטול
           </button>
           <button
             onClick={() => onSave(draft)}
             className="rounded-full px-4 py-2 text-[13px] font-extrabold"
-            style={{ background: "#1B4332", color: "#fff" }}
+            style={{ background: "#A8E040", color: "#fff" }}
           >
             שמור
           </button>
@@ -471,7 +471,7 @@ function TextField({
 }) {
   return (
     <label className="block">
-      <div className="mb-1 text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
+      <div className="mb-1 text-[11px] font-bold" style={{ color: "#94A3B8" }}>
         {label}
       </div>
       <input
@@ -479,7 +479,7 @@ function TextField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full rounded-xl border bg-[#fafbf7] px-3 py-2 text-[13px] font-bold outline-none"
-        style={{ borderColor: "#e2e8d8", color: "#012d1d" }}
+        style={{ borderColor: "#1F2A3F", color: "#F8FAFC" }}
       />
     </label>
   );
@@ -498,7 +498,7 @@ function NumberField({
 }) {
   return (
     <label className="block">
-      <div className="mb-1 text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
+      <div className="mb-1 text-[11px] font-bold" style={{ color: "#94A3B8" }}>
         {label}
       </div>
       <input
@@ -508,7 +508,7 @@ function NumberField({
         step={step}
         onChange={(e) => onChange(Number(e.target.value) || 0)}
         className="w-full rounded-xl border bg-[#fafbf7] px-3 py-2 text-left text-[13px] font-bold tabular-nums outline-none"
-        style={{ borderColor: "#e2e8d8", color: "#012d1d" }}
+        style={{ borderColor: "#1F2A3F", color: "#F8FAFC" }}
       />
     </label>
   );
@@ -527,14 +527,14 @@ function SelectField({
 }) {
   return (
     <label className="block">
-      <div className="mb-1 text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
+      <div className="mb-1 text-[11px] font-bold" style={{ color: "#94A3B8" }}>
         {label}
       </div>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full rounded-xl border bg-[#fafbf7] px-3 py-2 text-[13px] font-bold outline-none"
-        style={{ borderColor: "#e2e8d8", color: "#012d1d" }}
+        style={{ borderColor: "#1F2A3F", color: "#F8FAFC" }}
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>

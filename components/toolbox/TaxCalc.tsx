@@ -47,7 +47,7 @@ export function TaxCalc() {
             </label>
             <div
               className="flex items-center rounded-lg border px-3 py-2"
-              style={{ borderColor: "#d8e0d0", background: "#f9faf2" }}
+              style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
             >
               <input
                 type="number"
@@ -65,7 +65,7 @@ export function TaxCalc() {
             </label>
             <div
               className="flex items-center rounded-lg border px-3 py-2"
-              style={{ borderColor: "#d8e0d0", background: "#f9faf2" }}
+              style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
             >
               <input
                 type="number"
@@ -85,7 +85,7 @@ export function TaxCalc() {
               value={incomeType}
               onChange={(e) => setIncomeType(e.target.value as IncomeType)}
               className="w-full rounded-lg border px-3 py-2 text-sm font-bold outline-none"
-              style={{ borderColor: "#d8e0d0", background: "#f9faf2" }}
+              style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
             >
               <option value="employment">יגיעה אישית (שכיר/עצמאי)</option>
               <option value="passive">שלא מיגיעה (השקעות, שכ&quot;ד)</option>
@@ -94,15 +94,15 @@ export function TaxCalc() {
         </div>
 
         {/* Tax breakdown */}
-        <div className="space-y-3 rounded-xl p-4" style={{ background: "#f4f7ed" }}>
+        <div className="space-y-3 rounded-xl p-4" style={{ background: "#1A2438" }}>
           <Row label="הכנסה שנתית" value={fmtILS(annualIncome)} />
-          <Row label="מס הכנסה לפני זיכוי" value={fmtILS(incomeTax.tax / 12)} color="#b91c1c" />
+          <Row label="מס הכנסה לפני זיכוי" value={fmtILS(incomeTax.tax / 12)} color="#F87171" />
           <Row
             label={`זיכוי נקודות (${creditPoints})`}
             value={`-${fmtILS(monthlyCredit)}`}
-            color="#1B4332"
+            color="#A8E040"
           />
-          <Row label="מס הכנסה חודשי" value={fmtILS(monthlyIncomeTax)} color="#b91c1c" />
+          <Row label="מס הכנסה חודשי" value={fmtILS(monthlyIncomeTax)} color="#F87171" />
           <Row
             label="שיעור מס אפקטיבי"
             value={fmtPct(annualIncome > 0 ? ((monthlyIncomeTax * 12) / annualIncome) * 100 : 0)}
@@ -110,13 +110,13 @@ export function TaxCalc() {
           <Row
             label="מדרגת מס שולי"
             value={fmtPct(incomeTax.marginalBracket * 100)}
-            color="#b91c1c"
+            color="#F87171"
           />
-          <div className="border-t pt-2" style={{ borderColor: "#d8e0d0" }}>
-            <Row label="ביטוח לאומי חודשי" value={fmtILS(bituachLeumi.monthly)} color="#b91c1c" />
+          <div className="border-t pt-2" style={{ borderColor: "#1F2A3F" }}>
+            <Row label="ביטוח לאומי חודשי" value={fmtILS(bituachLeumi.monthly)} color="#F87171" />
           </div>
-          <div className="border-t pt-2" style={{ borderColor: "#d8e0d0" }}>
-            <Row label="נטו חודשי (אומדן)" value={fmtILS(netMonthly)} bold color="#1B4332" />
+          <div className="border-t pt-2" style={{ borderColor: "#1F2A3F" }}>
+            <Row label="נטו חודשי (אומדן)" value={fmtILS(netMonthly)} bold color="#A8E040" />
           </div>
         </div>
       </div>
@@ -135,7 +135,7 @@ export function TaxCalc() {
             </label>
             <div
               className="flex items-center rounded-lg border px-3 py-2"
-              style={{ borderColor: "#d8e0d0", background: "#f9faf2" }}
+              style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
             >
               <input
                 type="number"
@@ -153,7 +153,7 @@ export function TaxCalc() {
             </label>
             <div
               className="flex items-center rounded-lg border px-3 py-2"
-              style={{ borderColor: "#d8e0d0", background: "#f9faf2" }}
+              style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
             >
               <input
                 type="number"
@@ -167,10 +167,10 @@ export function TaxCalc() {
           </div>
         </div>
 
-        <div className="space-y-3 rounded-xl p-4" style={{ background: "#f4f7ed" }}>
+        <div className="space-y-3 rounded-xl p-4" style={{ background: "#1A2438" }}>
           <Row label="רווח הון נומינלי" value={fmtILS(cgt.gain)} />
-          <Row label="מס רווח הון (25%)" value={fmtILS(cgt.tax)} color="#b91c1c" />
-          <Row label="נטו לאחר מס" value={fmtILS(cgt.netAfterTax)} bold color="#1B4332" />
+          <Row label="מס רווח הון (25%)" value={fmtILS(cgt.tax)} color="#F87171" />
+          <Row label="נטו לאחר מס" value={fmtILS(cgt.netAfterTax)} bold color="#A8E040" />
         </div>
       </div>
     </div>
@@ -193,7 +193,7 @@ function Row({
       <span className="text-xs text-verdant-muted">{label}</span>
       <span
         className={`tabular text-xs ${bold ? "font-extrabold" : "font-bold"}`}
-        style={{ color: color || "#012d1d" }}
+        style={{ color: color || "#F8FAFC" }}
       >
         {value}
       </span>

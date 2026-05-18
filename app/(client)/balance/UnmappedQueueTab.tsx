@@ -224,9 +224,9 @@ export function UnmappedQueueTab() {
       >
         <div
           className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full"
-          style={{ background: "#eef7f1" }}
+          style={{ background: "#1A2438" }}
         >
-          <span className="material-symbols-outlined text-[28px]" style={{ color: "#1B4332" }}>
+          <span className="material-symbols-outlined text-[28px]" style={{ color: "#A8E040" }}>
             folder_open
           </span>
         </div>
@@ -256,15 +256,15 @@ export function UnmappedQueueTab() {
       <div
         className="mx-auto max-w-5xl rounded-2xl p-10 text-center"
         style={{
-          background: "linear-gradient(135deg,#f0fdf4 0%,#ecfdf5 100%)",
-          border: "1.5px solid #1B433230",
+          background: "linear-gradient(135deg,#1A2438 0%,#ecfdf5 100%)",
+          border: "1.5px solid #A8E04030",
         }}
       >
         <div
           className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full"
-          style={{ background: "#1B433215" }}
+          style={{ background: "#A8E04015" }}
         >
-          <span className="material-symbols-outlined text-[28px]" style={{ color: "#1B4332" }}>
+          <span className="material-symbols-outlined text-[28px]" style={{ color: "#A8E040" }}>
             task_alt
           </span>
         </div>
@@ -290,13 +290,13 @@ export function UnmappedQueueTab() {
       <div
         className="rounded-2xl p-5"
         style={{
-          background: "linear-gradient(135deg,#eef7f1 0%,#f9faf2 100%)",
-          border: "1px solid #d8e0d0",
+          background: "linear-gradient(135deg,#1A2438 0%,#F8FAFC 100%)",
+          border: "1px solid #1F2A3F",
         }}
       >
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[20px]" style={{ color: "#1B4332" }}>
+            <span className="material-symbols-outlined text-[20px]" style={{ color: "#A8E040" }}>
               inbox
             </span>
             <h3
@@ -314,22 +314,22 @@ export function UnmappedQueueTab() {
           <StatCard
             label="קבוצות לטיפול"
             value={stats.groupCount.toLocaleString("he-IL")}
-            color="#1B4332"
+            color="#A8E040"
           />
           <StatCard
             label="תנועות לא ממופות"
             value={stats.unmappedTxCount.toLocaleString("he-IL")}
-            color={stats.unmappedTxCount > 0 ? "#8B2E2E" : "#1B4332"}
+            color={stats.unmappedTxCount > 0 ? "#8B2E2E" : "#A8E040"}
           />
           <StatCard
             label="תנועות לבדיקה"
             value={stats.lowConfTxCount.toLocaleString("he-IL")}
-            color={stats.lowConfTxCount > 0 ? "#B45309" : "#1B4332"}
+            color={stats.lowConfTxCount > 0 ? "#B45309" : "#A8E040"}
           />
-          <StatCard label="סכום לטיפול" value={fmtILS(stats.totalAmount)} color="#012d1d" />
+          <StatCard label="סכום לטיפול" value={fmtILS(stats.totalAmount)} color="#F8FAFC" />
         </div>
         <div className="mt-3 flex items-center gap-1.5 text-[11px] font-bold text-verdant-muted">
-          <span className="material-symbols-outlined text-[14px]" style={{ color: "#1B4332" }}>
+          <span className="material-symbols-outlined text-[14px]" style={{ color: "#A8E040" }}>
             auto_fix_high
           </span>
           <span>בחירה כאן מלמדת את הפענוח — העלאות עתידיות של אותו בית-עסק ימופו אוטומטית.</span>
@@ -438,7 +438,7 @@ function QueueSection({
           {groups.length} קבוצות · {groups.reduce((s, g) => s + g.count, 0)} תנועות
         </span>
       </div>
-      <div className="divide-y" style={{ borderColor: "#eef7f1" }}>
+      <div className="divide-y" style={{ borderColor: "#1A2438" }}>
         {groups.map((g) => (
           <QueueRow
             key={g.key}
@@ -473,7 +473,7 @@ function QueueRow({
   return (
     <div
       className="transition-all"
-      style={{ background: isRecentlyMapped ? "#f0fdf4" : undefined }}
+      style={{ background: isRecentlyMapped ? "#1A2438" : undefined }}
     >
       <div className="flex items-center gap-3 px-5 py-3">
         <button
@@ -500,13 +500,13 @@ function QueueRow({
               </span>
               {group.avgConfidence != null && (
                 <>
-                  <span style={{ color: "#d8e0d0" }}>·</span>
+                  <span style={{ color: "#1F2A3F" }}>·</span>
                   <span>ביטחון {Math.round(group.avgConfidence * 100)}%</span>
                 </>
               )}
               {group.sourceFiles.length > 0 && (
                 <>
-                  <span style={{ color: "#d8e0d0" }}>·</span>
+                  <span style={{ color: "#1F2A3F" }}>·</span>
                   <span className="flex items-center gap-0.5" title={group.sourceFiles.join("\n")}>
                     <span className="material-symbols-outlined text-[11px]">attach_file</span>
                     {group.sourceFiles.length === 1
@@ -525,7 +525,7 @@ function QueueRow({
             e.target.value = "";
           }}
           className="min-w-[140px] cursor-pointer rounded-lg border px-3 py-2 text-[11px] font-bold outline-none transition-all focus:ring-2 focus:ring-verdant-accent/30"
-          style={{ borderColor: "#d8e0d0", background: "#fff", color: "#1B4332" }}
+          style={{ borderColor: "#1F2A3F", background: "#fff", color: "#A8E040" }}
         >
           <option value="" disabled>
             מפה ל…
@@ -542,7 +542,7 @@ function QueueRow({
         <div className="px-5 pb-3">
           <div
             className="overflow-hidden rounded-xl"
-            style={{ background: "#fafbf5", border: "1px solid #eef7f1" }}
+            style={{ background: "#fafbf5", border: "1px solid #1A2438" }}
           >
             <table className="w-full text-xs">
               <tbody>
@@ -550,7 +550,7 @@ function QueueRow({
                   const t = transactions[i];
                   if (!t) return null;
                   return (
-                    <tr key={i} className="border-b" style={{ borderColor: "#eef7f1" }}>
+                    <tr key={i} className="border-b" style={{ borderColor: "#1A2438" }}>
                       <td className="tabular w-20 px-3 py-1.5 text-verdant-muted" dir="ltr">
                         {t.date}
                       </td>
@@ -559,7 +559,7 @@ function QueueRow({
                       </td>
                       <td
                         className="tabular w-24 px-3 py-1.5 text-left font-extrabold"
-                        style={{ color: t.amount > 0 ? "#b91c1c" : "#2B694D" }}
+                        style={{ color: t.amount > 0 ? "#F87171" : "#4ADE80" }}
                       >
                         {t.amount > 0 ? "-" : "+"}
                         {fmtILS(t.amount)}
