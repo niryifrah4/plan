@@ -2,53 +2,77 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Botanical Wealth — Manrope (headings) + Inter (body). Hebrew falls through to Assistant. */
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap");
+/* Eclipse design (2026-05-19) — Rubik covers Hebrew + Latin in one
+   family with strong display weights. Inter stays in the fallback chain
+   for tabular-nums compatibility. */
+@import url("https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800;900&family=Heebo:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap");
 
 :root {
-  /* ─── Botanical Wealth — Single Source of Truth ─── */
-  --botanical-forest: #1b4332;
-  --botanical-secondary: #2b694d;
-  --botanical-deep: #012d1d;
-  --botanical-cream: #edf0e2;
-  --botanical-surface: #ffffff;
-  --botanical-line: #e8e9e1;
-  --botanical-ink: #414844;
-  --botanical-sage: #5c6058;
-  --botanical-light-sage: #f3f4ec;
-  --botanical-accent: #c1ecd4;
+  /* ─── Eclipse — Dark / Lime tokens (single source of truth) ─── */
+  --eclipse-bg: #0a1929;
+  --eclipse-surface: #131c2e;
+  --eclipse-surface-2: #1a2438;
+  --eclipse-surface-elev: #1f2a3f;
+  --eclipse-border: #1f2a3f;
+  --eclipse-border-strong: #2a3754;
+  --eclipse-ink: #f8fafc;
+  --eclipse-muted: #94a3b8;
+  --eclipse-subtle: #64748b;
+  --eclipse-lime: #a8e040;
+  --eclipse-lime-soft: #cdf075;
+  --eclipse-lime-deep: #7bb930;
+  --eclipse-success: #4ade80;
+  --eclipse-warning: #fbbf24;
+  --eclipse-danger: #f87171;
+  --eclipse-info: #60a5fa;
+  --eclipse-glow: 0 0 0 1px rgba(168, 224, 64, 0.25),
+    0 8px 24px rgba(168, 224, 64, 0.12);
 
-  /* Extended green scale — use for tonal variety */
-  --botanical-mint-bg: #d6efdc; /* gardener-tip card bg */
-  --botanical-mint-soft: #eaf5eb; /* subtle mint tint */
-  --botanical-emerald: #38876c; /* mid tone — growing/positive */
-  --botanical-moss: #4a7c59; /* softer forest */
-  --botanical-sage-tint: #e7efdd; /* warm sage wash */
+  /* ─── Botanical legacy aliases — REMAPPED to Eclipse so existing
+        components inherit the new look without a refactor. Every
+        `var(--botanical-*)` reference in components now resolves to
+        the dark/lime equivalent. ─── */
+  --botanical-forest: var(--eclipse-lime); /* primary CTA → lime */
+  --botanical-secondary: var(--eclipse-success);
+  --botanical-deep: var(--eclipse-ink);
+  --botanical-cream: var(--eclipse-bg);
+  --botanical-surface: var(--eclipse-surface);
+  --botanical-line: var(--eclipse-border);
+  --botanical-ink: var(--eclipse-ink);
+  --botanical-sage: var(--eclipse-muted);
+  --botanical-light-sage: var(--eclipse-surface-2);
+  --botanical-accent: var(--eclipse-lime);
 
-  /* Legacy aliases — map old verdant-* to botanical values */
-  --verdant-bg: var(--botanical-cream);
-  --verdant-ink: var(--botanical-deep);
-  --verdant-muted: var(--botanical-sage);
-  --verdant-accent: var(--botanical-forest);
-  --verdant-emerald: var(--botanical-secondary);
-  --verdant-line: var(--botanical-line);
-  --verdant-red: #b91c1c;
-  --verdant-amber: #f59e0b;
+  /* Extended scale */
+  --botanical-mint-bg: rgba(74, 222, 128, 0.12);
+  --botanical-mint-soft: rgba(74, 222, 128, 0.06);
+  --botanical-emerald: var(--eclipse-success);
+  --botanical-moss: var(--eclipse-lime-deep);
+  --botanical-sage-tint: rgba(168, 224, 64, 0.06);
+
+  /* Verdant legacy aliases — same remap */
+  --verdant-bg: var(--eclipse-bg);
+  --verdant-ink: var(--eclipse-ink);
+  --verdant-muted: var(--eclipse-muted);
+  --verdant-accent: var(--eclipse-lime);
+  --verdant-emerald: var(--eclipse-lime);
+  --verdant-line: var(--eclipse-border);
+  --verdant-red: var(--eclipse-danger);
+  --verdant-amber: var(--eclipse-warning);
 }
 
 html,
 body {
-  background-color: var(--botanical-cream);
-  color: var(--botanical-ink);
-  /* Inter for body (Latin), Assistant fallback for Hebrew */
-  font-family: "Inter", "Assistant", system-ui, sans-serif;
+  background-color: var(--eclipse-bg);
+  color: var(--eclipse-ink);
+  font-family: "Rubik", "Inter", "Assistant", system-ui, sans-serif;
   font-feature-settings:
     "tnum" 1,
     "cv11" 1;
   -webkit-font-smoothing: antialiased;
+  color-scheme: dark;
 }
 
-/* Headings use Manrope (Botanical spec) */
 h1,
 h2,
 h3,
@@ -57,54 +81,61 @@ h5,
 h6,
 .heading-botanical,
 .font-manrope {
-  font-family: "Manrope", "Assistant", system-ui, sans-serif;
+  font-family: "Rubik", "Heebo", "Assistant", system-ui, sans-serif;
+  font-weight: 700;
   letter-spacing: -0.01em;
+  color: var(--eclipse-ink);
 }
 
-/* Global content zoom — tiny bump to make text more comfortable
-   without rewriting every text-[Npx] class across the app. */
+/* Global content zoom — preserved from Botanical for comfort. */
 body {
   zoom: 1.06;
 }
 
-/* Uniform card primitive — Botanical Wealth spec */
+/* ───────────────────────────────────────────────────────────────────
+   Components — all rebuilt against Eclipse tokens.
+   The class names match the previous Botanical primitives so JSX
+   that uses them inherits the new look.
+   ─────────────────────────────────────────────────────────────────── */
 @layer components {
   .v-card {
-    /* Surface card: white fill, 1rem radius, sage-line border, gentle shadow */
-    @apply border bg-white shadow-sm;
-    border-color: var(--botanical-line);
+    @apply border;
+    background: var(--eclipse-surface);
+    border-color: var(--eclipse-border);
     border-radius: 1rem;
   }
   .v-card-pad {
     @apply v-card p-5 md:p-6;
   }
   .v-divider {
-    border-color: var(--botanical-line);
+    border-color: var(--eclipse-border);
   }
   .eq-row {
     @apply grid gap-5;
-    grid-auto-rows: 1fr; /* equal-height grid rows */
+    grid-auto-rows: 1fr;
   }
   .tabular {
     font-variant-numeric: tabular-nums;
   }
-  /* Form inputs — Botanical spec */
+
+  /* ─── Form inputs ─── */
   .inp {
-    @apply w-full border bg-white px-3 py-2 text-sm outline-none transition-all;
-    border-color: var(--botanical-line);
-    color: var(--botanical-deep);
+    @apply w-full border px-3 py-2 text-sm outline-none transition-all;
+    background: var(--eclipse-surface);
+    border-color: var(--eclipse-border);
+    color: var(--eclipse-ink);
     border-radius: 0.75rem;
   }
   .inp::placeholder {
-    color: var(--botanical-sage);
+    color: var(--eclipse-subtle);
   }
   .inp:focus {
-    border-color: var(--botanical-forest);
-    box-shadow: 0 0 0 3px rgba(27, 67, 50, 0.15);
+    border-color: var(--eclipse-lime);
+    box-shadow: 0 0 0 3px rgba(168, 224, 64, 0.2);
   }
   select.inp {
     @apply appearance-none;
-    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22%235a7a6a%22%20d%3D%22M7%2010l5%205%205-5z%22%2F%3E%3C%2Fsvg%3E");
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M7%2010l5%205%205-5z%22%2F%3E%3C%2Fsvg%3E");
     background-size: 12px;
     background-position: right 0.75rem center;
     background-repeat: no-repeat;
@@ -115,81 +146,77 @@ body {
     min-height: 80px;
   }
 
-  /* ───────────────────────────────────────────────────────────
-     Botanical Wealth — rollout primitives
-     Use these everywhere to keep the system cohesive.
-     ─────────────────────────────────────────────────────────── */
-
-  /* Primary CTA — pill with forest fill + cream text */
+  /* ─── Primary CTA ─── */
   .btn-botanical {
     @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 font-bold transition-all duration-150 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50;
-    background: var(--botanical-forest);
-    color: var(--botanical-cream);
+    background: var(--eclipse-lime);
+    color: var(--eclipse-bg);
   }
   .btn-botanical:hover:not(:disabled) {
-    box-shadow: 0 20px 50px rgba(27, 67, 50, 0.08);
+    background: var(--eclipse-lime-soft);
+    box-shadow: var(--eclipse-glow);
   }
 
-  /* Secondary outline pill */
   .btn-botanical-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-full border bg-white px-6 py-3 font-semibold transition-all duration-150 active:scale-95;
-    color: var(--botanical-deep);
-    border-color: var(--botanical-light-sage);
+    @apply inline-flex items-center justify-center gap-2 rounded-full border px-6 py-3 font-semibold transition-all duration-150 active:scale-95;
+    background: var(--eclipse-surface);
+    color: var(--eclipse-ink);
+    border-color: var(--eclipse-border);
   }
   .btn-botanical-ghost:hover {
-    background: var(--botanical-light-sage);
+    background: var(--eclipse-surface-2);
+    border-color: var(--eclipse-border-strong);
   }
 
-  /* Hero card — the big 48px-rounded surface */
+  /* ─── Hero / large cards ─── */
   .card-botanical {
-    @apply bg-white p-8 md:p-10;
-    border-radius: 3rem;
-    box-shadow: 0 20px 50px rgba(27, 67, 50, 0.08);
-  }
-
-  /* Subtle card — smaller rounding (24px), same shadow */
-  .card-botanical-sm {
-    @apply bg-white p-6;
+    background: var(--eclipse-surface);
+    border: 1px solid var(--eclipse-border);
     border-radius: 1.5rem;
-    box-shadow: 0 20px 50px rgba(27, 67, 50, 0.08);
+    padding: 2rem;
+  }
+  @media (min-width: 768px) {
+    .card-botanical {
+      padding: 2.5rem;
+    }
   }
 
-  /* Input in botanical flavor — soft sage fill, pill-ish */
+  .card-botanical-sm {
+    background: var(--eclipse-surface);
+    border: 1px solid var(--eclipse-border);
+    border-radius: 1rem;
+    padding: 1.5rem;
+  }
+
   .input-botanical {
-    @apply w-full border-none px-5 py-3 text-[15px] outline-none transition-all;
-    background: var(--botanical-light-sage);
-    color: var(--botanical-deep);
+    @apply w-full border px-5 py-3 text-[15px] outline-none transition-all;
+    background: var(--eclipse-surface-2);
+    border-color: var(--eclipse-border);
+    color: var(--eclipse-ink);
     border-radius: 0.75rem;
   }
   .input-botanical::placeholder {
-    color: rgba(92, 96, 88, 0.7);
+    color: var(--eclipse-subtle);
   }
   .input-botanical:focus {
-    box-shadow: 0 0 0 3px rgba(27, 67, 50, 0.3);
+    border-color: var(--eclipse-lime);
+    box-shadow: 0 0 0 3px rgba(168, 224, 64, 0.2);
   }
 
-  /* Section label — small uppercase tracking */
   .label-botanical {
     @apply text-[11px] font-semibold uppercase tracking-[0.18em];
-    color: var(--botanical-sage);
+    color: var(--eclipse-muted);
   }
 
-  /* Heading style */
   .heading-botanical {
     @apply font-bold tracking-tight;
-    color: var(--botanical-deep);
+    color: var(--eclipse-ink);
   }
 
-  /* ═══════════════════════════════════════════════════════════════
-     CANONICAL DESIGN TOKENS — Phase A (Tokens Lock)
-     Use THESE everywhere going forward. Legacy tokens above stay
-     for backwards-compat but are deprecated.
-     ═══════════════════════════════════════════════════════════════ */
-
-  /* ─── Buttons (4 variants × 2 sizes) ─── */
+  /* ─── Canonical buttons (4 variants × 2 sizes) ─── */
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-full font-bold transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40;
-    font-family: "Inter", "Assistant", system-ui, sans-serif;
+    font-family: "Rubik", "Inter", "Assistant", system-ui, sans-serif;
   }
   .btn-md {
     @apply px-5 py-2.5 text-[13px];
@@ -199,53 +226,49 @@ body {
   }
 
   .btn-primary {
-    background: var(--botanical-forest);
-    color: #ffffff;
+    background: var(--eclipse-lime);
+    color: var(--eclipse-bg);
   }
   .btn-primary:hover:not(:disabled) {
-    background: var(--botanical-deep);
-    box-shadow: 0 4px 12px rgba(27, 67, 50, 0.18);
+    background: var(--eclipse-lime-soft);
+    box-shadow: var(--eclipse-glow);
   }
 
   .btn-secondary {
-    background: #ffffff;
-    color: var(--botanical-forest);
-    border: 1px solid var(--botanical-line);
+    background: var(--eclipse-surface);
+    color: var(--eclipse-ink);
+    border: 1px solid var(--eclipse-border);
   }
   .btn-secondary:hover:not(:disabled) {
-    background: var(--botanical-light-sage);
-    border-color: var(--botanical-forest);
+    background: var(--eclipse-surface-2);
+    border-color: var(--eclipse-lime);
   }
 
   .btn-ghost {
     background: transparent;
-    color: var(--botanical-ink);
+    color: var(--eclipse-muted);
   }
   .btn-ghost:hover:not(:disabled) {
-    background: var(--botanical-light-sage);
-    color: var(--botanical-forest);
+    background: var(--eclipse-surface-2);
+    color: var(--eclipse-ink);
   }
 
   .btn-danger {
-    background: #ffffff;
-    color: #b91c1c;
-    border: 1px solid rgba(185, 28, 28, 0.2);
+    background: rgba(248, 113, 113, 0.08);
+    color: var(--eclipse-danger);
+    border: 1px solid rgba(248, 113, 113, 0.25);
   }
   .btn-danger:hover:not(:disabled) {
-    background: #fef2f2;
-    border-color: #b91c1c;
+    background: rgba(248, 113, 113, 0.15);
+    border-color: var(--eclipse-danger);
   }
 
-  /* ─── Card (one true card) ───
-     2026-05-05 visual-cleanup: lighter border + dropped the shadow for a
-     calmer, less "card-stacked" feel. The original 0 1px 2px shadow added
-     up across many cards on /dashboard and /budget and made the page feel
-     heavy. Subtle border alone gives enough containment. */
+  /* ─── Card primitives ─── */
   .card {
-    @apply border bg-white;
-    border-color: #f0f4ec;
+    @apply border;
+    background: var(--eclipse-surface);
+    border-color: var(--eclipse-border);
     border-radius: 1rem;
-    box-shadow: none;
   }
   .card-pad {
     @apply card p-5;
@@ -254,110 +277,112 @@ body {
     @apply card p-6 md:p-8;
   }
 
-  /* ─── Forest card — hero / dark zones ─── */
+  /* Hero / forest card — the deeper, lime-accented surface */
   .card-forest {
-    background: var(--botanical-deep);
-    color: #f9faf2;
-    border-radius: 1.5rem;
+    background: linear-gradient(
+      135deg,
+      var(--eclipse-surface-2) 0%,
+      var(--eclipse-surface) 100%
+    );
+    color: var(--eclipse-ink);
+    border-radius: 1.25rem;
     padding: 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--eclipse-border);
   }
   .card-forest .caption {
-    color: rgba(249, 250, 242, 0.55);
+    color: var(--eclipse-muted);
   }
   .card-forest .kpi-value {
-    color: #ffffff;
+    color: var(--eclipse-ink);
   }
   .card-forest .pill-inner {
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.04);
     border-radius: 1rem;
     padding: 0.875rem 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--eclipse-border);
   }
 
-  /* ─── Mint card — tips / insights / "gardener's tip" ─── */
+  /* Mint card (insight / tip) */
   .card-mint {
-    background: var(--botanical-mint-bg);
-    color: var(--botanical-deep);
-    border-radius: 1.5rem;
+    background: rgba(168, 224, 64, 0.08);
+    color: var(--eclipse-ink);
+    border-radius: 1.25rem;
     padding: 1.5rem;
-    border: 1px solid rgba(27, 67, 50, 0.06);
+    border: 1px solid rgba(168, 224, 64, 0.25);
   }
   .card-mint .kpi-value {
-    color: var(--botanical-deep);
+    color: var(--eclipse-ink);
   }
 
-  /* ─── Subtle tint cards — section backgrounds ─── */
   .card-tint-mint {
     @apply card;
-    background: var(--botanical-mint-soft);
-    border-color: rgba(27, 67, 50, 0.06);
+    background: rgba(74, 222, 128, 0.04);
+    border-color: rgba(74, 222, 128, 0.15);
   }
   .card-tint-sage {
     @apply card;
-    background: var(--botanical-sage-tint);
-    border-color: rgba(27, 67, 50, 0.06);
+    background: rgba(168, 224, 64, 0.04);
+    border-color: rgba(168, 224, 64, 0.15);
   }
   .card-tint-cream {
     @apply card;
-    background: var(--botanical-cream);
-    border-color: var(--botanical-line);
+    background: var(--eclipse-surface-2);
+    border-color: var(--eclipse-border);
   }
 
-  /* ─── Status pills (variety of greens) ─── */
+  /* ─── Status pills ─── */
   .pill {
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-bold;
     font-size: 11px;
     line-height: 14px;
   }
   .pill-mint {
-    background: var(--botanical-accent);
-    color: var(--botanical-deep);
+    background: rgba(74, 222, 128, 0.14);
+    color: var(--eclipse-success);
   }
   .pill-emerald {
-    background: var(--botanical-emerald);
-    color: #ffffff;
+    background: rgba(74, 222, 128, 0.22);
+    color: var(--eclipse-success);
   }
   .pill-forest {
-    background: var(--botanical-forest);
-    color: #ffffff;
+    background: var(--eclipse-lime);
+    color: var(--eclipse-bg);
   }
   .pill-sage {
-    background: var(--botanical-sage-tint);
-    color: var(--botanical-forest);
+    background: rgba(168, 224, 64, 0.12);
+    color: var(--eclipse-lime-soft);
   }
   .pill-danger {
-    background: #fee2e2;
-    color: #b91c1c;
+    background: rgba(248, 113, 113, 0.14);
+    color: var(--eclipse-danger);
   }
   .pill-amber {
-    background: #fef3c7;
-    color: #92400e;
+    background: rgba(251, 191, 36, 0.14);
+    color: var(--eclipse-warning);
   }
 
-  /* ─── Icon containers (2 sizes) ─── */
+  /* ─── Icon containers ─── */
   .icon-sm {
     @apply flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl;
   }
   .icon-lg {
     @apply flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl;
   }
-  /* Variants */
   .icon-forest {
-    background: var(--botanical-forest);
-    color: #ffffff;
+    background: var(--eclipse-lime);
+    color: var(--eclipse-bg);
   }
   .icon-soft {
-    background: var(--botanical-light-sage);
-    color: var(--botanical-forest);
+    background: var(--eclipse-surface-2);
+    color: var(--eclipse-lime);
   }
   .icon-outline {
-    background: #ffffff;
-    border: 1px solid var(--botanical-line);
-    color: var(--botanical-forest);
+    background: var(--eclipse-surface);
+    border: 1px solid var(--eclipse-border);
+    color: var(--eclipse-lime);
   }
 
-  /* ─── Typography scale (5 sizes, locked) ─── */
+  /* ─── Typography scale ─── */
   .t-xs {
     font-size: 11px;
     line-height: 16px;
@@ -379,16 +404,15 @@ body {
     line-height: 26px;
   }
 
-  /* Section label (standard UPPERCASE caption) */
   .caption {
     @apply font-bold uppercase;
     font-size: 11px;
     line-height: 14px;
     letter-spacing: 0.14em;
-    color: var(--botanical-sage);
+    color: var(--eclipse-muted);
   }
 
-  /* ─── KPI tile (the one true KPI) ─── */
+  /* ─── KPI tile ─── */
   .kpi {
     @apply card flex flex-col gap-1 p-5;
   }
@@ -396,47 +420,42 @@ body {
     @apply caption;
   }
   .kpi-value {
-    font-family: "Manrope", "Assistant", system-ui, sans-serif;
+    font-family: "Rubik", "Heebo", "Assistant", system-ui, sans-serif;
     font-size: 22px;
     line-height: 28px;
     font-weight: 800;
     letter-spacing: -0.01em;
-    color: var(--botanical-deep);
+    color: var(--eclipse-ink);
     font-variant-numeric: tabular-nums;
   }
   .kpi-hint {
     font-size: 12px;
     line-height: 16px;
-    color: var(--botanical-sage);
+    color: var(--eclipse-muted);
   }
 
   /* ─── Page shell ─── */
   .page-title {
-    font-family: "Manrope", "Assistant", system-ui, sans-serif;
+    font-family: "Rubik", "Heebo", "Assistant", system-ui, sans-serif;
     font-size: 24px;
     line-height: 30px;
     font-weight: 800;
     letter-spacing: -0.02em;
-    color: var(--botanical-deep);
+    color: var(--eclipse-ink);
   }
   .page-subtitle {
     font-size: 13px;
     line-height: 18px;
-    color: var(--botanical-sage);
+    color: var(--eclipse-muted);
   }
 }
 
-/* Smooth global transitions */
 * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ────────────────────────────────────────────────────────────
-   Global font-size accessibility — bump tiny text up slightly.
-   Nir complained that text-[9px]/[10px]/[11px] were too small.
-   These override the arbitrary Tailwind values everywhere.
-   ──────────────────────────────────────────────────────────── */
+/* Global text-size accessibility — tiny text bumped to readable. */
 .text-\[9px\] {
   font-size: 11px !important;
   line-height: 14px !important;
@@ -451,11 +470,10 @@ body {
 }
 
 ::selection {
-  background: rgba(10, 122, 74, 0.15);
-  color: var(--verdant-ink);
+  background: rgba(168, 224, 64, 0.25);
+  color: var(--eclipse-ink);
 }
 
-/* Toast animation */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -478,18 +496,18 @@ body {
   }
 }
 
-/* Scrollbar polish */
+/* Scrollbar polish — dark surface */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--verdant-line);
-  border-radius: 3px;
+  background: var(--eclipse-border-strong);
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--verdant-muted);
+  background: var(--eclipse-muted);
 }

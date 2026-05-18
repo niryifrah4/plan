@@ -133,8 +133,8 @@ export function Sidebar({
             height: "46px",
             paddingInline: indent ? "14px" : "12px",
             paddingInlineStart: indent ? "28px" : "12px",
-            background: active ? "#1B4332" : "transparent",
-            color: active ? "#FFFFFF" : "#5a7a6a",
+            background: active ? "rgba(168, 224, 64, 0.12)" : "transparent",
+            color: active ? "#A8E040" : "#94A3B8",
           }}
           onMouseEnter={(e) => {
             if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.04)";
@@ -143,7 +143,7 @@ export function Sidebar({
             if (!active) e.currentTarget.style.background = "transparent";
           }}
         >
-          {/* Active right-side bar (RTL: right edge) */}
+          {/* Active right-side bar (RTL: right edge) — Eclipse lime */}
           {active && (
             <span
               aria-hidden
@@ -154,14 +154,14 @@ export function Sidebar({
                 bottom: 10,
                 width: 3,
                 borderRadius: 3,
-                background: "#C1ECD4",
+                background: "#A8E040",
               }}
             />
           )}
           <span
             className="material-symbols-outlined text-[20px]"
             style={{
-              color: active ? "#C1ECD4" : "#5a7a6a",
+              color: active ? "#A8E040" : "#94A3B8",
               fontVariationSettings: active ? "'FILL' 1, 'wght' 500" : "'FILL' 0, 'wght' 400",
             }}
           >
@@ -171,7 +171,7 @@ export function Sidebar({
             className="flex-1 text-right text-[14px]"
             style={{
               fontWeight: active ? 700 : 500,
-              color: active ? "#FFFFFF" : "#5a7a6a",
+              color: active ? "#F8FAFC" : "#94A3B8",
             }}
           >
             {item.label}
@@ -180,8 +180,8 @@ export function Sidebar({
             <span
               className="rounded-full px-2 py-0.5 text-[10px] font-bold"
               style={{
-                background: active ? "#C1ECD4" : "rgba(168,197,177,0.15)",
-                color: active ? "#FFFFFF" : "#5a7a6a",
+                background: active ? "#A8E040" : "rgba(168, 224, 64, 0.12)",
+                color: active ? "#0A1929" : "#A8E040",
               }}
             >
               {item.badge}
@@ -201,7 +201,7 @@ export function Sidebar({
         <div
           key={group.id}
           className="mt-3 pt-3"
-          style={{ borderTop: "1px solid #f0f4ec" }}
+          style={{ borderTop: "1px solid #1F2A3F" }}
         >
           <ul className="space-y-1">{group.items.map((it) => renderItem(it, false))}</ul>
         </div>
@@ -214,7 +214,7 @@ export function Sidebar({
         <div key={group.id} className="mt-5">
           <div
             className="mb-2 px-3 text-right text-[11px] font-bold uppercase tracking-[0.18em]"
-            style={{ color: "#5a7a6a" }}
+            style={{ color: "#64748B" }}
           >
             {group.label}
           </div>
@@ -232,7 +232,7 @@ export function Sidebar({
           onClick={() => toggleGroup(group.id)}
           className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 transition-all"
           style={{
-            color: hasActiveChild ? "#012D1D" : "#5a7a6a",
+            color: hasActiveChild ? "#F8FAFC" : "#94A3B8",
             background: "transparent",
           }}
           onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
@@ -242,7 +242,7 @@ export function Sidebar({
           <span
             className="material-symbols-outlined text-[18px] transition-transform"
             style={{
-              color: "#5a7a6a",
+              color: "#64748B",
               transform: open ? "rotate(0deg)" : "rotate(90deg)",
             }}
           >
@@ -251,14 +251,14 @@ export function Sidebar({
           <span className="flex flex-1 items-center justify-end gap-2">
             <span
               className="text-right text-[12px] font-bold uppercase tracking-[0.14em]"
-              style={{ color: hasActiveChild ? "#012D1D" : "#5a7a6a" }}
+              style={{ color: hasActiveChild ? "#F8FAFC" : "#64748B" }}
             >
               {group.label}
             </span>
             {group.icon && (
               <span
                 className="material-symbols-outlined text-[18px]"
-                style={{ color: hasActiveChild ? "#1B4332" : "#5a7a6a" }}
+                style={{ color: hasActiveChild ? "#A8E040" : "#64748B" }}
               >
                 {group.icon}
               </span>
@@ -284,9 +284,9 @@ export function Sidebar({
     <aside
       className="fixed inset-y-0 right-0 z-40 flex w-[280px] flex-col"
       style={{
-        background: "#FFFFFF",
-        borderLeft: "1px solid #f0f4ec",
-        color: "#5a7a6a",
+        background: "#0F1A2E",
+        borderLeft: "1px solid #1F2A3F",
+        color: "#94A3B8",
       }}
     >
       {/* Brand */}
@@ -294,21 +294,24 @@ export function Sidebar({
         <div className="flex items-center justify-start gap-3">
           <div className="text-right">
             <div
-              className="text-[20px] font-extrabold leading-tight tracking-tight"
-              style={{ color: "#012D1D", fontFamily: "Manrope, Assistant, system-ui, sans-serif" }}
+              className="text-[22px] font-extrabold leading-tight tracking-tight"
+              style={{ color: "#F8FAFC", fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif" }}
             >
               פלאן
             </div>
-            <div className="mt-0.5 text-[11px] font-bold" style={{ color: "#5a7a6a" }}>
+            <div className="mt-0.5 text-[11px] font-bold" style={{ color: "#64748B" }}>
               מערכת לתכנון פיננסי
             </div>
           </div>
           <div
             className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl"
-            style={{ background: "rgba(193,236,212,0.12)" }}
+            style={{
+              background: "rgba(168, 224, 64, 0.12)",
+              border: "1px solid rgba(168, 224, 64, 0.25)",
+            }}
           >
-            <span className="material-symbols-outlined text-[22px]" style={{ color: "#C1ECD4" }}>
-              potted_plant
+            <span className="material-symbols-outlined text-[22px]" style={{ color: "#A8E040" }}>
+              eco
             </span>
           </div>
         </div>
@@ -319,20 +322,20 @@ export function Sidebar({
         <div
           className="rounded-2xl px-4 py-3"
           style={{
-            background: "#f4f7ed",
-            border: "1px solid #e2e8d8",
+            background: "#1A2438",
+            border: "1px solid #1F2A3F",
           }}
         >
           <div
             className="text-right text-[10px] font-bold uppercase tracking-[0.18em]"
-            style={{ color: "#5a7a6a" }}
+            style={{ color: "#64748B" }}
           >
             תיק פעיל
           </div>
-          <div className="mt-1 text-right text-[15px] font-extrabold" style={{ color: "#012D1D" }}>
+          <div className="mt-1 text-right text-[15px] font-extrabold" style={{ color: "#F8FAFC" }}>
             {familyName}
           </div>
-          <div className="mt-0.5 text-right text-[11px]" style={{ color: "#5a7a6a" }}>
+          <div className="mt-0.5 text-right text-[11px]" style={{ color: "#94A3B8" }}>
             {membersCount} בני משפחה
           </div>
         </div>
@@ -349,19 +352,19 @@ export function Sidebar({
       </nav>
 
       {/* Footer */}
-      <div className="px-6 py-4" style={{ borderTop: "1px solid #f0f4ec" }}>
+      <div className="px-6 py-4" style={{ borderTop: "1px solid #1F2A3F" }}>
         <div className="flex items-center gap-3">
           <div
             className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-[14px] font-extrabold"
-            style={{ background: "#C1ECD4", color: "#012D1D" }}
+            style={{ background: "#A8E040", color: "#0A1929" }}
           >
             {advisorName.charAt(0)}
           </div>
           <div className="min-w-0 flex-1 text-right">
-            <div className="truncate text-[14px] font-bold" style={{ color: "#012D1D" }}>
+            <div className="truncate text-[14px] font-bold" style={{ color: "#F8FAFC" }}>
               {advisorName}
             </div>
-            <div className="text-[11px]" style={{ color: "#5a7a6a" }}>
+            <div className="text-[11px]" style={{ color: "#94A3B8" }}>
               מתכנן אחראי
             </div>
           </div>
@@ -373,16 +376,16 @@ export function Sidebar({
             style={{
               background:
                 saveStatus === "saving"
-                  ? "rgba(92,96,88,0.08)"
+                  ? "rgba(148,163,184,0.10)"
                   : saveStatus === "saved"
-                    ? "rgba(27,67,50,0.08)"
-                    : "rgba(185,28,28,0.08)",
+                    ? "rgba(168,224,64,0.12)"
+                    : "rgba(248,113,113,0.12)",
               color:
                 saveStatus === "saving"
-                  ? "#5C6058"
+                  ? "#94A3B8"
                   : saveStatus === "saved"
-                    ? "#1B4332"
-                    : "#b91c1c",
+                    ? "#A8E040"
+                    : "#F87171",
             }}
           >
             <span
@@ -404,10 +407,10 @@ export function Sidebar({
           onClick={handleReset}
           className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-[13px] font-bold transition-all"
           style={{
-            background: resetStage === "confirm" ? "#b91c1c" : "rgba(239,68,68,0.12)",
-            color: resetStage === "confirm" ? "#F9FAF2" : "#FCA5A5",
+            background: resetStage === "confirm" ? "#F87171" : "rgba(248,113,113,0.10)",
+            color: resetStage === "confirm" ? "#0A1929" : "#F87171",
             border:
-              resetStage === "confirm" ? "1px solid #b91c1c" : "1px solid rgba(239,68,68,0.25)",
+              resetStage === "confirm" ? "1px solid #F87171" : "1px solid rgba(248,113,113,0.25)",
           }}
           title="מוחק את כל הנתונים של הלקוח ומחזיר את כל הערכים לאפס"
         >
@@ -423,12 +426,12 @@ export function Sidebar({
             onClick={() => router.push("/crm")}
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-[13px] font-bold transition-all"
             style={{
-              background: "#f4f7ed",
-              color: "#012D1D",
-              border: "1px solid #e2e8d8",
+              background: "#1A2438",
+              color: "#F8FAFC",
+              border: "1px solid #1F2A3F",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.10)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#1F2A3F")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "#1A2438")}
           >
             <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
             חזרה ל-CRM
@@ -438,14 +441,14 @@ export function Sidebar({
         <button
           onClick={onExit ?? (() => router.push("/login"))}
           className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-[13px] font-bold transition-all"
-          style={{ background: "transparent", color: "#5a7a6a" }}
+          style={{ background: "transparent", color: "#94A3B8" }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(239,68,68,0.12)";
-            e.currentTarget.style.color = "#FCA5A5";
+            e.currentTarget.style.background = "rgba(248,113,113,0.10)";
+            e.currentTarget.style.color = "#F87171";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "#5a7a6a";
+            e.currentTarget.style.color = "#94A3B8";
           }}
         >
           <span className="material-symbols-outlined text-[16px]">logout</span>

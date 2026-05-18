@@ -5,53 +5,77 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        // Botanical Wealth font stack — Manrope for headings (Latin), Inter for body (Latin).
-        // Assistant fallback for Hebrew (both have strong Hebrew alternatives).
-        sans: ["Inter", "Assistant", "system-ui", "sans-serif"],
-        manrope: ["Manrope", "Assistant", "system-ui", "sans-serif"],
-        heading: ["Manrope", "Assistant", "system-ui", "sans-serif"],
-        body: ["Inter", "Assistant", "system-ui", "sans-serif"],
+        // ─── Eclipse design (2026-05-19) — Rubik does Hebrew + Latin in one
+        //     family. Inter remains in the fallback chain because we have
+        //     hundreds of tabular-nums usages that already work with it.
+        sans: ["Rubik", "Inter", "Assistant", "system-ui", "sans-serif"],
+        display: ["Rubik", "Heebo", "Assistant", "system-ui", "sans-serif"],
+        manrope: ["Rubik", "Manrope", "Assistant", "system-ui", "sans-serif"],
+        heading: ["Rubik", "Heebo", "Assistant", "system-ui", "sans-serif"],
+        body: ["Rubik", "Inter", "Assistant", "system-ui", "sans-serif"],
       },
       colors: {
-        // ─── Botanical Wealth — Single Source of Truth ───
-        botanical: {
-          forest: "#1B4332", // Primary — headings, CTA, brand
-          secondary: "#2B694D", // Secondary — growth charts, positive indicators
-          deep: "#012D1D", // Deepest — max contrast text
-          cream: "#F9FAF2", // Background — all screens
-          surface: "#FFFFFF", // Cards / elevated surfaces
-          line: "#E8E9E1", // Borders, dividers
-          ink: "#414844", // Sidebar text, body text
-          sage: "#5C6058", // Secondary text, muted labels
-          "light-sage": "#F3F4EC", // Active background (sidebar, chips)
-          accent: "#C1ECD4", // Pale mint highlight
+        // ─── Eclipse — Dark / Lime design system (2026-05-19) ───
+        eclipse: {
+          bg: "#0A1929", // page background — deep navy
+          surface: "#131C2E", // cards, raised panels
+          "surface-2": "#1A2438", // hover / elevated surface
+          border: "#1F2A3F", // subtle dividers
+          "border-strong": "#2A3754",
+          ink: "#F8FAFC", // primary text
+          muted: "#94A3B8", // secondary text
+          subtle: "#64748B", // tertiary text
+          // Brand accent — Eclipse lime
+          lime: "#A8E040",
+          "lime-soft": "#CDF075",
+          "lime-deep": "#7BB930",
+          // Functional semantics on dark
+          success: "#4ADE80",
+          warning: "#FBBF24",
+          danger: "#F87171",
+          info: "#60A5FA",
         },
-        // ─── Legacy verdant palette — mapped to botanical tokens ───
-        // Kept as CSS-friendly aliases so existing classes don't break.
+        // ─── Botanical legacy aliases — REMAPPED to Eclipse so existing
+        //     JSX continues to compile while inheriting the new palette.
+        botanical: {
+          forest: "#A8E040", // primary CTA → lime
+          secondary: "#4ADE80", // positive → mint
+          deep: "#F8FAFC", // primary text on dark
+          cream: "#0A1929", // background
+          surface: "#131C2E",
+          line: "#1F2A3F",
+          ink: "#F8FAFC",
+          sage: "#94A3B8",
+          "light-sage": "#1A2438",
+          accent: "#A8E040",
+        },
         verdant: {
-          bg: "#F9FAF2", // = botanical.cream
-          ink: "#012D1D", // = botanical.deep
-          muted: "#5C6058", // = botanical.sage
-          accent: "#1B4332", // = botanical.forest (was #0a7a4a)
-          emerald: "#2B694D", // = botanical.secondary (was #10b981)
-          line: "#E8E9E1", // = botanical.line (was #d8e0d0)
-          red: "#b91c1c",
-          amber: "#f59e0b",
+          bg: "#0A1929",
+          ink: "#F8FAFC",
+          muted: "#94A3B8",
+          accent: "#A8E040",
+          emerald: "#A8E040",
+          line: "#1F2A3F",
+          red: "#F87171",
+          amber: "#FBBF24",
         },
       },
       borderRadius: {
-        card: "1rem", // 16px — standard card radius (Botanical spec)
-        btn: "2rem", // 32px — pill buttons
-        organic: "3rem", // 48px — hero cards
-        input: "0.75rem", // 12px — form inputs
+        card: "1rem", // 16px
+        btn: "2rem", // 32px
+        organic: "1.25rem", // 20px — Eclipse is less round than Botanical
+        input: "0.75rem", // 12px
       },
       boxShadow: {
-        // Botanical shadow system — subtle greens
-        sm: "0 1px 2px rgba(27, 67, 50, 0.04)",
-        card: "0 1px 3px rgba(27, 67, 50, 0.04), 0 4px 16px rgba(27, 67, 50, 0.06)",
-        "card-hover": "0 2px 8px rgba(27, 67, 50, 0.08), 0 12px 32px rgba(27, 67, 50, 0.10)",
-        soft: "0 20px 50px rgba(27, 67, 50, 0.08)",
-        sidebar: "1px 0 0 rgba(27, 67, 50, 0.04)",
+        // Eclipse shadows are dark-on-dark + an optional lime ambient glow.
+        sm: "0 1px 2px rgba(0, 0, 0, 0.3)",
+        card: "0 1px 3px rgba(0, 0, 0, 0.25), 0 4px 14px rgba(0, 0, 0, 0.35)",
+        "card-hover":
+          "0 2px 8px rgba(0, 0, 0, 0.35), 0 12px 30px rgba(0, 0, 0, 0.45)",
+        soft: "0 20px 50px rgba(0, 0, 0, 0.5)",
+        sidebar: "1px 0 0 rgba(255, 255, 255, 0.04)",
+        glow:
+          "0 0 0 1px rgba(168, 224, 64, 0.25), 0 8px 24px rgba(168, 224, 64, 0.12)",
       },
     },
   },
