@@ -120,15 +120,15 @@ export default function LoginPage() {
     });
   };
 
-  /* ─── Botanical Wealth palette ─── */
+  /* ─── Eclipse Dark / Lime palette (2026-05-19) ─── */
   const C = {
-    primary: "#1B4332", // Primary Green
-    deep: "#012D1D", // Deep Forest
-    cream: "#F9FAF2", // Soft Cream
-    sage: "#5C6058", // Sage Gray
-    inputBg: "#F3F4EC", // light input bg
-    border: "#E5E9DC", // subtle border
-    accent: "#1B4332", // emerald accent
+    primary: "#A8E040", // Lime CTA
+    deep: "#F8FAFC", // Primary text on dark
+    cream: "#0A1929", // Page background — deep navy
+    sage: "#94A3B8", // Muted text
+    inputBg: "#1A2438", // Surface-2 — input field
+    border: "#1F2A3F", // Subtle border
+    accent: "#A8E040", // Lime accent
   };
 
   return (
@@ -150,9 +150,11 @@ export default function LoginPage() {
         className="w-full"
         style={{
           maxWidth: "420px",
-          background: "#FFFFFF",
+          background: "#131C2E",
           borderRadius: "2.25rem", // 36px
-          boxShadow: "0 16px 40px rgba(27,67,50,0.08)",
+          boxShadow:
+            "0 16px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(168, 224, 64, 0.08)",
+          border: "1px solid #1F2A3F",
           padding: "48px 36px",
         }}
       >
@@ -215,15 +217,15 @@ export default function LoginPage() {
             className="flex items-center gap-2 px-3 py-2"
             style={{
               marginTop: "20px",
-              background: "#FEF7E6",
-              border: "1px solid #F5E6B8",
+              background: "rgba(251, 191, 36, 0.10)",
+              border: "1px solid rgba(251, 191, 36, 0.25)",
               borderRadius: "12px",
             }}
           >
-            <span className="material-symbols-outlined text-[16px]" style={{ color: "#A16207" }}>
+            <span className="material-symbols-outlined text-[16px]" style={{ color: "#FBBF24" }}>
               info
             </span>
-            <span style={{ fontSize: "12px", fontWeight: 600, color: "#78350F" }}>
+            <span style={{ fontSize: "12px", fontWeight: 600, color: "#FBBF24" }}>
               מצב דמו — ללא חיבור לשרת
             </span>
           </div>
@@ -252,9 +254,9 @@ export default function LoginPage() {
               fontSize: "13px",
               fontWeight: 600,
               borderRadius: "11px",
-              background: mode === "login" ? "#FFFFFF" : "transparent",
-              color: mode === "login" ? C.deep : C.sage,
-              boxShadow: mode === "login" ? "0 1px 3px rgba(27,67,50,0.08)" : "none",
+              background: mode === "login" ? "#A8E040" : "transparent",
+              color: mode === "login" ? "#0A1929" : C.sage,
+              boxShadow: mode === "login" ? "0 4px 14px rgba(168, 224, 64, 0.25)" : "none",
             }}
           >
             התחברות
@@ -270,9 +272,9 @@ export default function LoginPage() {
               fontSize: "13px",
               fontWeight: 600,
               borderRadius: "11px",
-              background: mode === "signup" ? "#FFFFFF" : "transparent",
-              color: mode === "signup" ? C.deep : C.sage,
-              boxShadow: mode === "signup" ? "0 1px 3px rgba(27,67,50,0.08)" : "none",
+              background: mode === "signup" ? "#A8E040" : "transparent",
+              color: mode === "signup" ? "#0A1929" : C.sage,
+              boxShadow: mode === "signup" ? "0 4px 14px rgba(168, 224, 64, 0.25)" : "none",
             }}
           >
             הרשמה
@@ -285,8 +287,8 @@ export default function LoginPage() {
             className="flex items-start gap-2 px-3 py-2"
             style={{
               marginTop: "12px",
-              background: "#FEF2F2",
-              border: "1px solid #FECACA",
+              background: "rgba(248, 113, 113, 0.10)",
+              border: "1px solid rgba(248, 113, 113, 0.30)",
               borderRadius: "12px",
             }}
           >
@@ -296,7 +298,7 @@ export default function LoginPage() {
             >
               error
             </span>
-            <span style={{ fontSize: "12px", fontWeight: 600, color: "#991B1B" }}>{error}</span>
+            <span style={{ fontSize: "12px", fontWeight: 600, color: "#FCA5A5" }}>{error}</span>
           </div>
         )}
 
@@ -415,7 +417,7 @@ export default function LoginPage() {
                 height: "48px",
                 borderRadius: "9999px",
                 border: `1.5px solid ${C.border}`,
-                background: "#FFFFFF",
+                background: "#131C2E",
                 color: C.deep,
                 fontSize: "13px",
                 fontWeight: 600,
