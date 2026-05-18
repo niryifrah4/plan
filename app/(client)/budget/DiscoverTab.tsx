@@ -24,6 +24,14 @@ import { loadParsedTransactions } from "@/lib/budget-import";
 import { detectRecurring, type RecurringGroup } from "@/lib/doc-parser/recurring";
 import { getOverrides } from "@/lib/doc-parser/categorizer";
 import { scopedKey } from "@/lib/client-scope";
+import { CATEGORY_TO_BUDGET } from "@/lib/category-to-budget-map";
+import {
+  applyDiscoverToCurrentMonth,
+  choiceToAmount,
+  type DiscoverChoice,
+  type DiscoverChoiceMap,
+} from "@/lib/discover-to-budget";
+import type { CategoryRow } from "@/lib/discover-aggregator";
 
 const SUBS_FLAGGED_KEY = "verdant:subs_flagged_for_review";
 
@@ -86,6 +94,9 @@ export function DiscoverTab() {
     };
   }, [windowSize]);
 
+  const [showBuildModal, setShowBuildModal] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
   const toggleFlag = (key: string) => {
     setFlagged((prev) => {
       const next = new Set(prev);
@@ -128,7 +139,12 @@ export function DiscoverTab() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      <PeriodSelector value={windowSize} onChange={setWindowSize} />
+      <PeriodSelector
+        value={windowSize}
+        onChange={setWindowSize}
+        onBuildBudget={() => setShowBuildModal(true)}
+        canBuild={summary.categories.length > 0}
+      />
 
       <KpiStrip summary={summary} />
 
@@ -159,6 +175,30 @@ export function DiscoverTab() {
       )}
 
       {summary.anomalies.length > 0 && <AnomalySection anomalies={summary.anomalies} />}
+
+      {showBuildModal && (
+        <BuildBudgetModal
+          summary={summary}
+          windowSize={windowSize}
+          onClose={() => setShowBuildModal(false)}
+          onApplied={(result) => {
+            setShowBuildModal(false);
+            setToast(
+              `תקציב עודכן · ${result.updated} שורות הוחלפו, ${result.created} נוספו`
+            );
+            setTimeout(() => setToast(null), 3500);
+          }}
+        />
+      )}
+
+      {toast && (
+        <div
+          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg px-4 py-2.5 text-[12px] font-bold shadow-lg"
+          style={{ background: "#012d1d", color: "#ffffff" }}
+        >
+          {toast}
+        </div>
+      )}
     </div>
   );
 }
@@ -170,9 +210,13 @@ export function DiscoverTab() {
 function PeriodSelector({
   value,
   onChange,
+  onBuildBudget,
+  canBuild = false,
 }: {
   value: WindowSize;
   onChange: (v: WindowSize) => void;
+  onBuildBudget?: () => void;
+  canBuild?: boolean;
 }) {
   return (
     <div className="flex items-center justify-between flex-wrap gap-2">
@@ -184,27 +228,318 @@ function PeriodSelector({
           מה קרה ב-{value} החודשים האחרונים
         </h3>
       </div>
-      <div
-        className="inline-flex rounded-full p-0.5"
-        style={{ background: "#F4F7ED", border: "1px solid #d8e0d0" }}
-      >
-        {([3, 6, 12] as const).map((n) => {
-          const active = value === n;
-          return (
-            <button
-              key={n}
-              onClick={() => onChange(n)}
-              className="rounded-full px-3.5 py-1.5 text-[11px] font-bold transition-colors"
-              style={{
-                background: active ? "#1B4332" : "transparent",
-                color: active ? "#fff" : "#5a7a6a",
-              }}
-            >
-              {n} חודשים
-            </button>
-          );
-        })}
+      <div className="flex items-center gap-2">
+        <div
+          className="inline-flex rounded-full p-0.5"
+          style={{ background: "#F4F7ED", border: "1px solid #d8e0d0" }}
+        >
+          {([3, 6, 12] as const).map((n) => {
+            const active = value === n;
+            return (
+              <button
+                key={n}
+                onClick={() => onChange(n)}
+                className="rounded-full px-3.5 py-1.5 text-[11px] font-bold transition-colors"
+                style={{
+                  background: active ? "#1B4332" : "transparent",
+                  color: active ? "#fff" : "#5a7a6a",
+                }}
+              >
+                {n} חודשים
+              </button>
+            );
+          })}
+        </div>
+        {canBuild && onBuildBudget && (
+          <button
+            onClick={onBuildBudget}
+            className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12px] font-extrabold transition-all hover:opacity-90"
+            style={{
+              background: "#1B4332",
+              color: "#F9FAF2",
+              border: "1px solid #012D1D",
+            }}
+            title="הפוך את הממוצעים לתקציב בסיס לחודש הנוכחי"
+          >
+            <span className="material-symbols-outlined text-[16px]">post_add</span>
+            צור תקציב מהנתונים
+          </button>
+        )}
       </div>
+    </div>
+  );
+}
+
+/* ───────────────────────────────────────────────────────────────────── */
+/* BuildBudgetModal — Discover → Plan bridge per finance-agent           */
+/* "average → starting point with choice", not "average → budget".       */
+/* ───────────────────────────────────────────────────────────────────── */
+
+function BuildBudgetModal({
+  summary,
+  windowSize,
+  onClose,
+  onApplied,
+}: {
+  summary: DiscoverSummary;
+  windowSize: WindowSize;
+  onClose: () => void;
+  onApplied: (r: { updated: number; created: number; skipped: number }) => void;
+}) {
+  // Only categories with a known budget-row mapping AND a non-trivial average
+  // qualify. Everything else (anomaly noise, unmapped tail) gets a "skip"
+  // default the user can override by editing the row in /budget directly.
+  const candidates = useMemo<CategoryRow[]>(
+    () =>
+      summary.categories.filter(
+        (c) => CATEGORY_TO_BUDGET[c.key] && c.average >= 50
+      ),
+    [summary]
+  );
+
+  const [choices, setChoices] = useState<DiscoverChoiceMap>(() => {
+    const init: DiscoverChoiceMap = {};
+    for (const c of candidates) init[c.key] = { choice: "keep" };
+    return init;
+  });
+
+  const setChoice = (key: string, choice: DiscoverChoice, customAmount?: number) => {
+    setChoices((prev) => ({ ...prev, [key]: { choice, customAmount } }));
+  };
+
+  // Live total of the new budget (excluding salary/income) — gives the user
+  // an immediate sense of "what's my proposed monthly spending"
+  const proposedTotal = useMemo(() => {
+    let s = 0;
+    for (const cat of candidates) {
+      const map = CATEGORY_TO_BUDGET[cat.key];
+      if (!map || map.section === "income") continue;
+      const ch = choices[cat.key];
+      if (!ch) continue;
+      s += choiceToAmount(cat.average, ch.choice, ch.customAmount);
+    }
+    return s;
+  }, [candidates, choices]);
+
+  // Original baseline (avg) for comparison
+  const baselineTotal = useMemo(
+    () =>
+      candidates.reduce((s, c) => {
+        const map = CATEGORY_TO_BUDGET[c.key];
+        if (!map || map.section === "income") return s;
+        return s + c.average;
+      }, 0),
+    [candidates]
+  );
+
+  const savedDelta = baselineTotal - proposedTotal;
+
+  const apply = () => {
+    const result = applyDiscoverToCurrentMonth(candidates, choices);
+    onApplied(result);
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(1, 45, 29, 0.45)" }}
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[88vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-white"
+        style={{ border: "1px solid #e8e9e1" }}
+        onClick={(e) => e.stopPropagation()}
+        dir="rtl"
+      >
+        {/* Header */}
+        <div className="border-b px-5 py-4" style={{ borderColor: "#eef2e8" }}>
+          <div className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-verdant-muted">
+            Discover → Plan
+          </div>
+          <h2 className="text-lg font-extrabold text-verdant-ink">
+            צור תקציב בסיס מהנתונים
+          </h2>
+          <p className="mt-1 text-[12px] leading-relaxed text-verdant-muted">
+            על בסיס ממוצע {windowSize} חודשים אחרונים — בחר לכל קטגוריה אם
+            להשאיר את הממוצע, להקטין ב-15% / 30%, או לקבוע סכום משלך. שורות
+            הכנסה ושורות נעולות לא משתנות.
+          </p>
+        </div>
+
+        {/* Live totals strip */}
+        <div
+          className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"
+          style={{ background: "#F4F7ED", borderBottom: "1px solid #eef2e8" }}
+        >
+          <div className="flex gap-5">
+            <Stat label="ממוצע נוכחי" value={fmtILS(Math.round(baselineTotal))} />
+            <Stat
+              label="תקציב מוצע"
+              value={fmtILS(Math.round(proposedTotal))}
+              color={proposedTotal <= baselineTotal ? "#1B4332" : "#991B1B"}
+            />
+            {savedDelta !== 0 && (
+              <Stat
+                label="חיסכון חודשי"
+                value={`${savedDelta > 0 ? "+" : ""}${fmtILS(Math.round(savedDelta))}`}
+                color={savedDelta > 0 ? "#1B4332" : "#991B1B"}
+                hint={`${fmtILS(Math.round(savedDelta * 12))} בשנה`}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Category list */}
+        <div className="max-h-[55vh] overflow-y-auto px-5 py-4">
+          {candidates.length === 0 ? (
+            <div className="py-6 text-center text-[13px] text-verdant-muted">
+              אין מספיק נתונים מסווגים בחלון הזמן הזה כדי לבנות תקציב בסיס.
+              <br />
+              העלה קבצי בנק / אשראי נוספים ונסה שוב.
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {candidates.map((cat) => {
+                const ch = choices[cat.key] || { choice: "keep" as const };
+                const target = choiceToAmount(cat.average, ch.choice, ch.customAmount);
+                return (
+                  <li
+                    key={cat.key}
+                    className="rounded-xl p-3"
+                    style={{ background: "#fff", border: "1px solid #eef2e8" }}
+                  >
+                    <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                      <div className="font-extrabold text-verdant-ink text-[13px]">
+                        {cat.label}
+                      </div>
+                      <div className="text-[11px] font-bold text-verdant-muted">
+                        ממוצע: <span className="tabular-nums">{fmtILS(cat.average)}</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {(
+                        [
+                          ["keep", "השאר", 1.0],
+                          ["reduce15", "−15%", 0.85],
+                          ["reduce30", "−30%", 0.7],
+                          ["custom", "סכום אחר", -1],
+                          ["skip", "דלג", 0],
+                        ] as const
+                      ).map(([key, label, mult]) => {
+                        const active = ch.choice === key;
+                        const preview =
+                          key === "custom"
+                            ? ""
+                            : key === "skip"
+                              ? ""
+                              : ` (${fmtILS(Math.round(cat.average * (mult as number) / 50) * 50)})`;
+                        return (
+                          <button
+                            key={key}
+                            onClick={() => setChoice(cat.key, key)}
+                            className="rounded-full px-3 py-1 text-[11px] font-bold transition-colors"
+                            style={{
+                              background: active ? "#1B4332" : "#F4F7ED",
+                              color: active ? "#fff" : "#5a7a6a",
+                              border: `1px solid ${active ? "#012D1D" : "#d8e0d0"}`,
+                            }}
+                          >
+                            {label}
+                            <span className="text-[10px] opacity-80">{preview}</span>
+                          </button>
+                        );
+                      })}
+                      {ch.choice === "custom" && (
+                        <input
+                          type="number"
+                          min={0}
+                          value={ch.customAmount ?? ""}
+                          onChange={(e) =>
+                            setChoice(
+                              cat.key,
+                              "custom",
+                              parseFloat(e.target.value) || 0
+                            )
+                          }
+                          placeholder="₪"
+                          className="w-24 rounded-md border bg-white px-2 py-1 text-center text-[12px] font-extrabold tabular-nums"
+                          style={{ borderColor: "#d8e0d0" }}
+                          dir="ltr"
+                          autoFocus
+                        />
+                      )}
+                      <div className="ms-auto text-[11px] font-bold text-verdant-muted">
+                        יעד:{" "}
+                        <span
+                          className="tabular-nums"
+                          style={{
+                            color: target < cat.average ? "#1B4332" : "#012D1D",
+                          }}
+                        >
+                          {fmtILS(target)}
+                        </span>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div
+          className="flex items-center justify-end gap-2 px-5 py-3"
+          style={{ borderTop: "1px solid #eef2e8" }}
+        >
+          <button
+            onClick={onClose}
+            className="rounded-full px-4 py-2 text-[12px] font-bold text-verdant-muted transition-colors hover:bg-verdant-bg"
+          >
+            ביטול
+          </button>
+          <button
+            onClick={apply}
+            disabled={candidates.length === 0}
+            className="inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-[12px] font-extrabold transition-all disabled:opacity-40"
+            style={{
+              background: "#1B4332",
+              color: "#F9FAF2",
+              border: "1px solid #012D1D",
+            }}
+          >
+            <span className="material-symbols-outlined text-[16px]">check</span>
+            החל על תקציב החודש
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  color,
+  hint,
+}: {
+  label: string;
+  value: string;
+  color?: string;
+  hint?: string;
+}) {
+  return (
+    <div>
+      <div className="text-[10px] font-bold text-verdant-muted">{label}</div>
+      <div
+        className="text-[16px] font-extrabold tabular-nums leading-tight"
+        style={{ color: color || "#012D1D" }}
+      >
+        {value}
+      </div>
+      {hint && (
+        <div className="text-[10px] font-semibold text-verdant-muted">{hint}</div>
+      )}
     </div>
   );
 }
