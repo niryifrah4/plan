@@ -118,8 +118,8 @@ export default function ForgotPasswordPage() {
             className="flex items-start gap-2 px-3 py-2"
             style={{
               marginTop: "20px",
-              background: "#FEF2F2",
-              border: "1px solid #FECACA",
+              background: "rgba(248,113,113,0.08)",
+              border: "1px solid rgba(248,113,113,0.20)",
               borderRadius: "12px",
             }}
           >

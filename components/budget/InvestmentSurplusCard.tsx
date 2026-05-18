@@ -96,8 +96,8 @@ export function InvestmentSurplusCard({ currentIncome, currentExpenses }: Props)
     <section
       className="mb-6 rounded-2xl p-5"
       style={{
-        background: positive ? "#1A2438" : "#fffbea",
-        border: `1px solid ${positive ? "#1F2A3F" : "#fde68a"}`,
+        background: positive ? "#1A2438" : "rgba(251,191,36,0.08)",
+        border: `1px solid ${positive ? "#1F2A3F" : "rgba(251,191,36,0.30)"}`,
       }}
     >
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
@@ -146,7 +146,7 @@ export function InvestmentSurplusCard({ currentIncome, currentExpenses }: Props)
         {forecast.length > 0 && (
           <div
             className="border-r pr-4"
-            style={{ borderColor: positive ? "#1F2A3F" : "#fde68a" }}
+            style={{ borderColor: positive ? "#1F2A3F" : "rgba(251,191,36,0.30)" }}
           >
             <div className="mb-1 text-[11px] font-bold text-verdant-muted">
               ממוצע 12 חודשים קדימה
@@ -174,7 +174,7 @@ export function InvestmentSurplusCard({ currentIncome, currentExpenses }: Props)
         {forecast.length > 0 && summary.peakSurplus > summary.currentSurplus && (
           <div
             className="border-r pr-4"
-            style={{ borderColor: positive ? "#1F2A3F" : "#fde68a" }}
+            style={{ borderColor: positive ? "#1F2A3F" : "rgba(251,191,36,0.30)" }}
           >
             <div className="mb-1 text-[11px] font-bold text-verdant-muted">חודש השיא</div>
             <div
@@ -193,7 +193,7 @@ export function InvestmentSurplusCard({ currentIncome, currentExpenses }: Props)
           className="mt-4 rounded-xl px-3 py-2 text-[12px] leading-relaxed"
           style={{
             background: "#131C2E",
-            border: `1px solid ${positive ? "#1F2A3F" : "#fde68a"}`,
+            border: `1px solid ${positive ? "#1F2A3F" : "rgba(251,191,36,0.30)"}`,
             color: "#F8FAFC",
           }}
         >

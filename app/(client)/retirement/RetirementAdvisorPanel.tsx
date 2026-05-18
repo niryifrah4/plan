@@ -22,8 +22,8 @@ const SEV_COLORS: Record<
   AdvisorInsight["severity"],
   { bg: string; border: string; text: string; icon: string }
 > = {
-  critical: { bg: "#FEE2E2", border: "#8B2E2E", text: "#8B2E2E", icon: "#F87171" },
-  warning: { bg: "#FEF3C7", border: "#B45309", text: "#92400E", icon: "#d97706" },
+  critical: { bg: "rgba(248,113,113,0.12)", border: "#8B2E2E", text: "#8B2E2E", icon: "#F87171" },
+  warning: { bg: "rgba(251,191,36,0.12)", border: "#B45309", text: "#92400E", icon: "#d97706" },
   info: { bg: "#F0F9F4", border: "#4ADE80", text: "#A8E040", icon: "#4ADE80" },
   positive: { bg: "#A8E040", border: "#A8E040", text: "#014421", icon: "#A8E040" },
 };
@@ -67,9 +67,9 @@ export function RetirementAdvisorPanel({
         : "#A8E040";
   const headerBg =
     report.overallSeverity === "critical"
-      ? "#FEE2E2"
+      ? "rgba(248,113,113,0.12)"
       : report.overallSeverity === "concern"
-        ? "#FEF3C7"
+        ? "rgba(251,191,36,0.12)"
         : "#A8E040";
   const headerIcon =
     report.overallSeverity === "critical"
@@ -86,7 +86,7 @@ export function RetirementAdvisorPanel({
       >
         <div
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-          style={{ background: headerColor, color: "#fff" }}
+          style={{ background: headerColor, color: "#131C2E" }}
         >
           <span className="material-symbols-outlined">{headerIcon}</span>
         </div>
@@ -158,7 +158,7 @@ export function RetirementAdvisorPanel({
                     <button
                       onClick={() => handleApply(ins.action!)}
                       className="mt-3 rounded-lg px-3 py-1.5 text-[11px] font-extrabold transition-shadow"
-                      style={{ background: c.border, color: "#fff" }}
+                      style={{ background: c.border, color: "#131C2E" }}
                     >
                       {ins.action.label} ←
                     </button>

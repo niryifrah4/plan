@@ -395,7 +395,7 @@ function RecommendationCard({ rec, color }: { rec: BucketRecommendation; color: 
 
   const bgMap: Record<string, string> = {
     free_up: "#ecfdf5",
-    increase: "#fffbeb",
+    increase: "rgba(251,191,36,0.08)",
     extend_date: "#1A2438",
     reach_now: "#ecfdf5",
   };
@@ -689,7 +689,7 @@ export default function GoalsPage() {
       {buckets.length > 0 && needsCheckIn && (
         <section
           className="mb-6 flex items-center justify-between gap-4 rounded-2xl p-5"
-          style={{ background: "#fffbea", border: "1px solid #fde68a" }}
+          style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.30)" }}
         >
           <div className="flex items-center gap-4">
             <div
@@ -812,7 +812,7 @@ export default function GoalsPage() {
                 pulse();
               }}
               className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors hover:bg-amber-100"
-              style={{ background: "#fef3c7", color: "#92400e", border: "1px solid #fcd34d" }}
+              style={{ background: "rgba(251,191,36,0.12)", color: "#92400e", border: "1px solid #FBBF24" }}
               title="קופות שהמערכת יצרה משאלון הילדים / קרן חירום / יעדים שכתבת בשאלון"
             >
               <span className="material-symbols-outlined text-[14px]">cleaning_services</span>
@@ -832,7 +832,7 @@ export default function GoalsPage() {
                 pulse();
               }}
               className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors hover:bg-red-100"
-              style={{ background: "#fef2f2", color: "#991b1b", border: "1px solid #fca5a5" }}
+              style={{ background: "rgba(248,113,113,0.08)", color: "#991b1b", border: "1px solid #fca5a5" }}
             >
               <span className="material-symbols-outlined text-[14px]">delete_sweep</span>
               מחק את הכל
@@ -971,7 +971,7 @@ export default function GoalsPage() {
                       onClick={() => deleteBucket(bucket.id)}
                       title="מחק יעד"
                       className="flex h-9 w-9 items-center justify-center rounded-full transition-all hover:bg-red-100"
-                      style={{ background: "#FEF2F2", color: "#F87171" }}
+                      style={{ background: "rgba(248,113,113,0.08)", color: "#F87171" }}
                     >
                       <span className="material-symbols-outlined text-[18px]">delete_outline</span>
                     </button>
@@ -1366,7 +1366,7 @@ function BucketEditForm({
             className="rounded-lg px-3 py-1.5 text-[10px] font-bold transition-all"
             style={{
               background: priority === p ? PRIORITY_COLORS[p].text : "#1F2A3F",
-              color: priority === p ? "#fff" : PRIORITY_COLORS[p].text,
+              color: priority === p ? "#131C2E" : PRIORITY_COLORS[p].text,
             }}
           >
             {PRIORITY_LABELS[p]}
@@ -1574,7 +1574,7 @@ function BucketAddForm({
             className="rounded-lg px-3 py-1.5 text-[10px] font-bold transition-all"
             style={{
               background: priority === p ? PRIORITY_COLORS[p].text : "#1F2A3F",
-              color: priority === p ? "#fff" : PRIORITY_COLORS[p].text,
+              color: priority === p ? "#131C2E" : PRIORITY_COLORS[p].text,
             }}
           >
             {PRIORITY_LABELS[p]}
@@ -1597,11 +1597,11 @@ function BucketAddForm({
               type="button"
               onClick={() => setScope(opt.key)}
               className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[10px] font-bold transition-all"
-              style={{ background: active ? color : "#1F2A3F", color: active ? "#fff" : color }}
+              style={{ background: active ? color : "#1F2A3F", color: active ? "#131C2E" : color }}
             >
               <span
                 className="inline-block h-1.5 w-1.5 rounded-full"
-                style={{ background: active ? "#fff" : color }}
+                style={{ background: active ? "#131C2E" : color }}
               />
               {opt.label}
             </button>

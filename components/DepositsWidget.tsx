@@ -102,7 +102,7 @@ export function DepositsWidget() {
         </div>
         <div
           className="rounded-xl px-4 py-5 text-center"
-          style={{ background: "#f6faf2", border: "1px dashed #1F2A3F" }}
+          style={{ background: "#1A2438", border: "1px dashed #1F2A3F" }}
         >
           <div className="mb-1 text-[13px] font-bold" style={{ color: "#F8FAFC" }}>
             עוד לא הוגדרו הפקדות חודשיות

@@ -938,7 +938,7 @@ export default function DashboardPage() {
       {!depositsBannerDismissed && depositsPending.count > 0 && (
         <div
           className="mb-4 flex items-center gap-3 rounded-2xl px-4 py-3"
-          style={{ background: "#FEF3C7", border: "1px solid #FCD34D" }}
+          style={{ background: "rgba(251,191,36,0.12)", border: "1px solid #FBBF24" }}
         >
           <span className="material-symbols-outlined text-[22px]" style={{ color: "#92400E" }}>
             fact_check
@@ -954,7 +954,7 @@ export default function DashboardPage() {
           <Link
             href="/deposits"
             className="rounded-lg px-3 py-1.5 text-[12px] font-bold"
-            style={{ background: "#92400E", color: "#fff" }}
+            style={{ background: "#92400E", color: "#131C2E" }}
           >
             לעבור →
           </Link>
@@ -978,8 +978,8 @@ export default function DashboardPage() {
       {(() => {
         if (nudges.length === 0) return null;
         const SEV: Record<string, { bg: string; border: string; text: string }> = {
-          critical: { bg: "#fef2f2", border: "#fca5a5", text: "#F87171" },
-          warning: { bg: "#fffbeb", border: "#fcd34d", text: "#92400e" },
+          critical: { bg: "rgba(248,113,113,0.08)", border: "#fca5a5", text: "#F87171" },
+          warning: { bg: "rgba(251,191,36,0.08)", border: "#FBBF24", text: "#92400e" },
           info: { bg: "#1A2438", border: "#93c5fd", text: "#1d4ed8" },
           opportunity: { bg: "#1A2438", border: "#86efac", text: "#166534" },
         };
@@ -1223,7 +1223,7 @@ export default function DashboardPage() {
                 {totalAssets > 0 && (() => {
                   const lev = Math.round((totalLiabilities / totalAssets) * 100);
                   const levColor =
-                    lev > 60 ? "#fca5a5" : lev > 40 ? "#FCD34D" : "#A8E040";
+                    lev > 60 ? "#fca5a5" : lev > 40 ? "#FBBF24" : "#A8E040";
                   const levLabel =
                     lev === 0
                       ? "ללא חובות"
@@ -1301,7 +1301,7 @@ export default function DashboardPage() {
                 {fireResult.fireAge === null && fireResult.monthlyExpenses > 0 && (
                   <div
                     className="mt-2 inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-extrabold"
-                    style={{ background: "#FEF3C7", color: "#92400E" }}
+                    style={{ background: "rgba(251,191,36,0.12)", color: "#92400E" }}
                   >
                     <span className="material-symbols-outlined text-[14px]">explore_off</span>
                     FIRE · חסרים {fmtILS(Math.round(fireResult.gapToFireCapital))} הון להון עצמאי
@@ -1316,8 +1316,8 @@ export default function DashboardPage() {
                         lifeCoverage.planScore >= 75
                           ? "#A8E040"
                           : lifeCoverage.planScore >= 50
-                            ? "#FEF3C7"
-                            : "#FEE2E2",
+                            ? "rgba(251,191,36,0.12)"
+                            : "rgba(248,113,113,0.12)",
                       color:
                         lifeCoverage.planScore >= 75
                           ? "#A8E040"
@@ -1333,7 +1333,7 @@ export default function DashboardPage() {
                   {lifeCoverage.missingPiece > 0 && (
                     <span
                       className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-extrabold"
-                      style={{ background: "#FEE2E2", color: "#F87171" }}
+                      style={{ background: "rgba(248,113,113,0.12)", color: "#F87171" }}
                       title="ערך נוכחי של יעדים שלא יכוסו לפי המסלול הנוכחי"
                     >
                       <span className="material-symbols-outlined text-[13px]">remove_circle</span>
@@ -1343,7 +1343,7 @@ export default function DashboardPage() {
                   {lifeCoverage.surplusPiece > 0 && (
                     <span
                       className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-extrabold"
-                      style={{ background: "#FEF7E6", color: "#78350F" }}
+                      style={{ background: "#1A2438", color: "#78350F" }}
                       title="כסף בעו״ש מעל קרן חירום של 6 חודשים — כסף שלא עובד"
                     >
                       <span className="material-symbols-outlined text-[13px]">savings</span>
@@ -1931,7 +1931,7 @@ export default function DashboardPage() {
               const shortfall = gap > 0;
               const sev = shortfall ? (gap / targetRetireIncome > 0.3 ? "critical" : "warn") : "ok";
               const color = sev === "critical" ? "#8B2E2E" : sev === "warn" ? "#B45309" : "#A8E040";
-              const bg = sev === "critical" ? "#FEE2E2" : sev === "warn" ? "#FEF3C7" : "#A8E040";
+              const bg = sev === "critical" ? "rgba(248,113,113,0.12)" : sev === "warn" ? "rgba(251,191,36,0.12)" : "#A8E040";
               return (
                 <div className="mt-4 grid grid-cols-4 gap-3">
                   <div
@@ -1985,7 +1985,7 @@ export default function DashboardPage() {
                       className="flex items-center justify-between rounded-xl px-4 py-3 transition-all"
                       style={{
                         background: "linear-gradient(135deg,#F8FAFC,#A8E040)",
-                        color: "#fff",
+                        color: "#131C2E",
                       }}
                     >
                       <span className="flex items-center gap-2 text-[12px] font-extrabold">

@@ -69,7 +69,7 @@ export function GoalContextStrip({ domain, title }: Props) {
       className="relative mb-6 overflow-hidden rounded-2xl p-5"
       style={{
         background: "linear-gradient(135deg,#F8FAFC 0%,#064e32 100%)",
-        color: "#fff",
+        color: "#131C2E",
       }}
     >
       <div

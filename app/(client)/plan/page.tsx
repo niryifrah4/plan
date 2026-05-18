@@ -357,7 +357,7 @@ function StatCard({
     <div
       className="flex items-center justify-between rounded-2xl px-5 py-4"
       style={{
-        background: highlight ? "#fffbeb" : "#fff",
+        background: highlight ? "rgba(251,191,36,0.08)" : "#131C2E",
         border: `1px solid ${highlight ? "#f59e0b33" : "#1F2A3F"}`,
       }}
     >

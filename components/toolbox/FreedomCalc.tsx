@@ -84,7 +84,7 @@ export function FreedomCalc() {
         className="relative overflow-hidden rounded-2xl p-6"
         style={{
           background: "linear-gradient(135deg,#F8FAFC 0%,#064e32 50%,#A8E040 100%)",
-          color: "#fff",
+          color: "#131C2E",
         }}
       >
         <div
@@ -227,7 +227,7 @@ export function FreedomCalc() {
             (() => {
               const x = (simulation.years / Math.max(simulation.trajectory.length - 1, 1)) * chartW;
               const y = chartH - (dynamic.freedomNumber / maxVal) * (chartH - 4);
-              return <circle cx={x} cy={y} r="5" fill="#f59e0b" stroke="#fff" strokeWidth="2" />;
+              return <circle cx={x} cy={y} r="5" fill="#f59e0b" stroke="#131C2E" strokeWidth="2" />;
             })()}
           <defs>
             <linearGradient id="freedomGrad" x1="0" y1="0" x2="0" y2="1">

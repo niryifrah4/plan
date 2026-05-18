@@ -381,7 +381,7 @@ export default function OnboardingPage() {
                     className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-extrabold transition-all"
                     style={{
                       background: done ? "#4ADE80" : active ? "#F8FAFC" : "#1F2A3F",
-                      color: done || active ? "#fff" : "#94A3B8",
+                      color: done || active ? "#131C2E" : "#94A3B8",
                     }}
                   >
                     {done ? (
@@ -825,7 +825,7 @@ export default function OnboardingPage() {
                   <li
                     key={i}
                     className="flex items-center gap-2 px-3 py-2"
-                    style={{ background: i % 2 ? "#fbfcf6" : "#fff" }}
+                    style={{ background: i % 2 ? "#1A2438" : "#131C2E" }}
                   >
                     <input
                       className="inp flex-1"
@@ -864,7 +864,7 @@ export default function OnboardingPage() {
                 ))}
                 <li
                   className="flex items-center justify-between border-t-2 px-3 py-2"
-                  style={{ background: "#f4f8f0", borderColor: "#1F2A3F" }}
+                  style={{ background: "#1A2438", borderColor: "#1F2A3F" }}
                 >
                   <span className="text-[12px] font-bold text-verdant-ink">
                     סה&quot;כ הכנסות חודשיות
@@ -1161,7 +1161,7 @@ export default function OnboardingPage() {
                 }
                 onRemove={(i) => setLiabilities((p) => p.filter((_, j) => j !== i))}
                 footer={
-                  <tr className="v-divider border-t" style={{ background: "#fef2f2" }}>
+                  <tr className="v-divider border-t" style={{ background: "rgba(248,113,113,0.08)" }}>
                     <td colSpan={2} className="px-3 py-2 text-xs font-bold text-verdant-ink">
                       סה&quot;כ התחייבויות
                     </td>
@@ -1209,7 +1209,7 @@ export default function OnboardingPage() {
                           value=""
                           placeholder="מלוח סילוקין"
                           title='במשכנתא יש בד"כ כמה מסלולים עם ריביות שונות. הריבית המדויקת תיטען מלוח הסילוקין שתעלה בדף "נדל״ן" — לכל נכס בנפרד.'
-                          style={{ background: "#f4f5ed", color: "#7a8a7e", cursor: "help" }}
+                          style={{ background: "#1A2438", color: "#94A3B8", cursor: "help" }}
                         />
                       ) : (
                         <input

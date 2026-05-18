@@ -94,7 +94,7 @@ export default function DocumentsPage() {
             {t.key === "queue" && queueCount > 0 && (
               <span
                 className="rounded-full px-1.5 py-0.5 text-[10px] font-extrabold"
-                style={{ background: "#B45309", color: "#fff", minWidth: 18, textAlign: "center" }}
+                style={{ background: "#B45309", color: "#131C2E", minWidth: 18, textAlign: "center" }}
               >
                 {queueCount > 99 ? "99+" : queueCount}
               </span>

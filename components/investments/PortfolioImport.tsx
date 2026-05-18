@@ -165,7 +165,7 @@ export function PortfolioImport({ onImport, onClose }: Props) {
               {error && (
                 <div
                   className="mt-4 rounded-xl px-4 py-2 text-[12px] font-bold"
-                  style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca" }}
+                  style={{ background: "rgba(248,113,113,0.08)", color: "#dc2626", border: "1px solid rgba(248,113,113,0.20)" }}
                 >
                   {error}
                 </div>
@@ -212,7 +212,7 @@ export function PortfolioImport({ onImport, onClose }: Props) {
               {result.warnings.length > 0 && (
                 <div
                   className="rounded-xl px-4 py-3 text-[11px]"
-                  style={{ background: "#fefce8", color: "#854d0e", border: "1px solid #fde68a" }}
+                  style={{ background: "rgba(251,191,36,0.08)", color: "#854d0e", border: "1px solid rgba(251,191,36,0.30)" }}
                 >
                   <div className="mb-1 font-extrabold">התראות:</div>
                   <ul className="list-inside list-disc space-y-0.5">

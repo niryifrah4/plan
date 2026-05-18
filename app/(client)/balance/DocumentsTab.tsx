@@ -694,7 +694,7 @@ export function DocumentsTab() {
           style={{
             minHeight: 280,
             border: dragOver ? "2px dashed #4ADE80" : "2px dashed #1F2A3F",
-            background: dragOver ? "rgba(16,185,129,0.04)" : "#fff",
+            background: dragOver ? "rgba(16,185,129,0.04)" : "#131C2E",
             boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
           }}
         >
@@ -771,7 +771,7 @@ export function DocumentsTab() {
       {error && (
         <div
           className="mt-4 flex items-center gap-3 rounded-2xl p-4"
-          style={{ background: "#fef2f2", border: "1px solid #fecaca" }}
+          style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.20)" }}
         >
           <span className="material-symbols-outlined text-[20px]" style={{ color: "#F87171" }}>
             error
@@ -834,7 +834,7 @@ export function DocumentsTab() {
                 <button
                   onClick={() => appendInputRef.current?.click()}
                   className="flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-extrabold transition-colors hover:opacity-90"
-                  style={{ background: "#A8E040", color: "#fff" }}
+                  style={{ background: "#A8E040", color: "#131C2E" }}
                   title="הוסף קובץ לסקירה הזאת — יתמזג עם דה-דופ"
                 >
                   <span className="material-symbols-outlined text-[14px]">add</span>קובץ
@@ -1009,7 +1009,7 @@ export function DocumentsTab() {
                               className="w-full cursor-pointer rounded-lg border px-2 py-1.5 text-[11px] font-bold outline-none transition-all focus:ring-2"
                               style={{
                                 borderColor: "#fcd9a8",
-                                background: "#fffbeb",
+                                background: "rgba(251,191,36,0.08)",
                                 color: "#A8E040",
                               }}
                             >
@@ -1544,12 +1544,12 @@ export function DocumentsTab() {
                     ? "#B45309"
                     : "#8B2E2E";
               const statusBg = !hasStats
-                ? "#f1f5f9"
+                ? "#1A2438"
                 : unmap === 0
                   ? "#A8E040"
                   : unmap <= 5
-                    ? "#fef3c7"
-                    : "#fee2e2";
+                    ? "rgba(251,191,36,0.12)"
+                    : "rgba(248,113,113,0.12)";
               const statusLabel = !hasStats
                 ? "—"
                 : unmap === 0

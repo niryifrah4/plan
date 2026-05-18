@@ -298,7 +298,7 @@ export function AccountsTab() {
             </h2>
             <span
               className="rounded-full px-2 py-0.5 text-xs font-bold"
-              style={{ background: "#fef3c7", color: "#92400e" }}
+              style={{ background: "rgba(251,191,36,0.12)", color: "#92400e" }}
             >
               {data.creditCards.length}
             </span>
@@ -538,7 +538,7 @@ function BankForm({
   return (
     <div
       className="border-b px-5 py-4"
-      style={{ background: "#fafbfc", borderColor: "var(--verdant-border)" }}
+      style={{ background: "#1A2438", borderColor: "var(--verdant-border)" }}
     >
       <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-3">
         <div>
@@ -804,7 +804,7 @@ function CardForm({
   return (
     <div
       className="border-b px-5 py-4"
-      style={{ background: "#fafbfc", borderColor: "var(--verdant-border)" }}
+      style={{ background: "#1A2438", borderColor: "var(--verdant-border)" }}
     >
       <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-3">
         <div>

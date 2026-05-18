@@ -62,8 +62,8 @@ export function AnnualReviewPanel() {
         <div
           className="mb-3 rounded-xl p-4"
           style={{
-            background: verdict.totalSurplus > 0 ? "#1A2438" : "#fffbeb",
-            border: `1px solid ${verdict.totalSurplus > 0 ? "#86efac" : "#fcd34d"}`,
+            background: verdict.totalSurplus > 0 ? "#1A2438" : "rgba(251,191,36,0.08)",
+            border: `1px solid ${verdict.totalSurplus > 0 ? "#86efac" : "#FBBF24"}`,
           }}
         >
           <div
@@ -95,7 +95,7 @@ export function AnnualReviewPanel() {
           {/* Compare grid */}
           <div
             className="mt-3 grid grid-cols-3 gap-3 border-t pt-3"
-            style={{ borderColor: verdict.totalSurplus > 0 ? "#86efac" : "#fcd34d" }}
+            style={{ borderColor: verdict.totalSurplus > 0 ? "#86efac" : "#FBBF24" }}
           >
             <CompareCell
               label="הון נטו"
@@ -281,7 +281,7 @@ function AnnualReviewForm({ onClose }: { onClose: () => void }) {
           <button
             onClick={submit}
             className="rounded-lg px-4 py-2 text-[12px] font-bold"
-            style={{ background: "#A8E040", color: "#fff" }}
+            style={{ background: "#A8E040", color: "#131C2E" }}
           >
             שמור
           </button>

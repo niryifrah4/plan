@@ -151,7 +151,7 @@ export function DiscoverTab() {
       {summary.txCount < 30 && (
         <div
           className="rounded-xl px-4 py-2.5 text-[12px]"
-          style={{ background: "#fffbea", border: "1px solid #fde68a", color: "#92400E" }}
+          style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.30)", color: "#92400E" }}
         >
           <span className="font-extrabold">⚠ דאטה דק:</span> רק {summary.txCount} תנועות
           ב-{summary.monthsCovered} חודשים. הממוצע עלול להיות לא מייצג. שווה להעלות
@@ -242,7 +242,7 @@ function PeriodSelector({
                 className="rounded-full px-3.5 py-1.5 text-[11px] font-bold transition-colors"
                 style={{
                   background: active ? "#A8E040" : "transparent",
-                  color: active ? "#fff" : "#94A3B8",
+                  color: active ? "#131C2E" : "#94A3B8",
                 }}
               >
                 {n} חודשים
@@ -440,7 +440,7 @@ function BuildBudgetModal({
                             className="rounded-full px-3 py-1 text-[11px] font-bold transition-colors"
                             style={{
                               background: active ? "#A8E040" : "#1A2438",
-                              color: active ? "#fff" : "#94A3B8",
+                              color: active ? "#131C2E" : "#94A3B8",
                               border: `1px solid ${active ? "#F8FAFC" : "#1F2A3F"}`,
                             }}
                           >
@@ -611,7 +611,7 @@ function KpiCard({
     <div
       className="rounded-2xl p-4"
       style={{
-        background: highlight ? "#1A2438" : "#fff",
+        background: highlight ? "#1A2438" : "#131C2E",
         border: `1px solid ${highlight ? "#1F2A3F" : "#1F2A3F"}`,
       }}
     >
@@ -831,9 +831,9 @@ function LearningBanner({
             href="/files"
             className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12px] font-bold transition-colors"
             style={{
-              background: "#fffbea",
+              background: "rgba(251,191,36,0.08)",
               color: "#92400E",
-              border: "1px solid #fde68a",
+              border: "1px solid rgba(251,191,36,0.30)",
             }}
           >
             <span className="material-symbols-outlined text-[14px]">label</span>
@@ -889,7 +889,7 @@ function SubscriptionsRadar({
       {flagged.size > 0 && (
         <div
           className="mx-5 mb-3 rounded-lg px-3 py-2 text-[12px]"
-          style={{ background: "#fffbea", border: "1px solid #fde68a", color: "#92400E" }}
+          style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.30)", color: "#92400E" }}
         >
           סומנו לדיון: <strong>{flagged.size}</strong> מנויים בעלות{" "}
           <strong className="tabular-nums">{fmtILS(flaggedTotal)}/ח׳</strong>
@@ -907,7 +907,7 @@ function SubscriptionsRadar({
               className="flex flex-wrap items-center gap-3 px-5 py-2.5"
               style={{
                 borderTop: "1px solid #1F2A3F",
-                background: isFlagged ? "#fffbea" : "#fff",
+                background: isFlagged ? "rgba(251,191,36,0.08)" : "#131C2E",
               }}
             >
               <div className="min-w-0 flex-1">
@@ -934,7 +934,7 @@ function SubscriptionsRadar({
                 onClick={() => onToggleFlag(key)}
                 className="rounded-full px-3 py-1 text-[11px] font-bold transition-colors"
                 style={{
-                  background: isFlagged ? "#fde68a" : "#1A2438",
+                  background: isFlagged ? "rgba(251,191,36,0.30)" : "#1A2438",
                   color: isFlagged ? "#78350F" : "#94A3B8",
                   border: `1px solid ${isFlagged ? "#f59e0b" : "#1F2A3F"}`,
                 }}
@@ -973,7 +973,7 @@ function AnomalySection({
           <div
             key={a.ym}
             className="rounded-xl p-3"
-            style={{ background: "#fffbea", border: "1px solid #fde68a" }}
+            style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.30)" }}
           >
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <div className="font-extrabold text-[13px]" style={{ color: "#78350f" }}>

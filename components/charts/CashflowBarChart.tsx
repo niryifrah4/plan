@@ -118,7 +118,7 @@ export function CashflowBarChart({ data, height = 420 }: Props) {
       {data.some((d) => isLowSafetyMargin(d.gap)) && (
         <div
           className="mt-2 rounded-lg px-3 py-2 text-[11px] font-bold"
-          style={{ background: "#fef3c7", color: "#92400e" }}
+          style={{ background: "rgba(251,191,36,0.12)", color: "#92400e" }}
         >
           ⚠ חודש אחד או יותר במרווח ביטחון נמוך — אזור לא בטוח לתכנון תקציב
         </div>

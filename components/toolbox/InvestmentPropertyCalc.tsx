@@ -138,7 +138,7 @@ export function InvestmentPropertyCalc() {
       {results.overLTV && (
         <div
           className="flex items-start gap-3 rounded-xl p-4"
-          style={{ background: "#fffbeb", border: "1px solid #fcd34d" }}
+          style={{ background: "rgba(251,191,36,0.08)", border: "1px solid #FBBF24" }}
         >
           <span
             className="material-symbols-outlined mt-0.5 text-[20px]"
@@ -319,7 +319,7 @@ export function InvestmentPropertyCalc() {
         {results.monthlyCashflow < 0 && (
           <div
             className="flex items-center gap-2 rounded-lg p-3 text-[11px] font-bold"
-            style={{ background: "#fef2f2", color: "#F87171" }}
+            style={{ background: "rgba(248,113,113,0.08)", color: "#F87171" }}
           >
             <span className="material-symbols-outlined text-[16px]">warning</span>
             ההשקעה דורשת מימון נוסף של {fmtILS(Math.abs(Math.round(results.monthlyCashflow)))}/חודש
@@ -391,7 +391,7 @@ function ResultCard({
     <div
       className="rounded-xl p-5 text-center"
       style={{
-        background: highlight ? `linear-gradient(135deg, ${color}08, ${color}04)` : "#fff",
+        background: highlight ? `linear-gradient(135deg, ${color}08, ${color}04)` : "#131C2E",
         border: `1px solid ${highlight ? color + "30" : "#1F2A3F"}`,
       }}
     >

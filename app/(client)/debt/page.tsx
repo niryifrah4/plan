@@ -477,16 +477,16 @@ export default function DebtPage() {
           off-palette purple tint with a clean botanical border. */}
       <section
         className="mb-5 overflow-hidden rounded-2xl bg-[#131C2E]"
-        style={{ border: "1px solid #f0f4ec", boxShadow: "none" }}
+        style={{ border: "1px solid #1A2438", boxShadow: "none" }}
       >
         <button
           onClick={() => setExpandedMortgage(!expandedMortgage)}
           className="flex w-full items-center gap-3 px-5 py-5 text-right md:px-7"
-          style={{ background: expandedMortgage ? "#1A2438" : "#fff" }}
+          style={{ background: expandedMortgage ? "#1A2438" : "#131C2E" }}
         >
           <span
             className="flex h-9 w-9 flex-shrink-0 items-center justify-center"
-            style={{ background: "#f0f4ec", borderRadius: "0.75rem" }}
+            style={{ background: "#1A2438", borderRadius: "0.75rem" }}
           >
             <span className="material-symbols-outlined text-[18px]" style={{ color: "#A8E040" }}>
               home
@@ -849,12 +849,12 @@ export default function DebtPage() {
           2026-05-05 visual-cleanup: lighter border + no shadow. */}
       <section
         className="mb-5 overflow-hidden rounded-2xl bg-[#131C2E]"
-        style={{ border: "1px solid #f0f4ec", boxShadow: "none" }}
+        style={{ border: "1px solid #1A2438", boxShadow: "none" }}
       >
         <button
           onClick={() => setExpandedLoans(!expandedLoans)}
           className="flex w-full items-center gap-3 px-5 py-5 text-right md:px-7"
-          style={{ background: expandedLoans ? "rgba(139,46,46,0.06)" : "#fff" }}
+          style={{ background: expandedLoans ? "rgba(139,46,46,0.06)" : "#131C2E" }}
         >
           <span
             className="flex h-9 w-9 flex-shrink-0 items-center justify-center"
@@ -1093,12 +1093,12 @@ export default function DebtPage() {
           2026-05-05 visual-cleanup: lighter border + no shadow. */}
       <section
         className="mb-5 overflow-hidden rounded-2xl bg-[#131C2E]"
-        style={{ border: "1px solid #f0f4ec", boxShadow: "none" }}
+        style={{ border: "1px solid #1A2438", boxShadow: "none" }}
       >
         <button
           onClick={() => setExpandedInstallments(!expandedInstallments)}
           className="flex w-full items-center gap-3 px-5 py-5 text-right md:px-7"
-          style={{ background: expandedInstallments ? "rgba(74,124,89,0.08)" : "#fff" }}
+          style={{ background: expandedInstallments ? "rgba(74,124,89,0.08)" : "#131C2E" }}
         >
           <span
             className="flex h-9 w-9 flex-shrink-0 items-center justify-center"

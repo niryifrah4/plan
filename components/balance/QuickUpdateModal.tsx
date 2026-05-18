@@ -120,7 +120,7 @@ export function QuickUpdateModal({ onClose, onSaved }: Props) {
             <div
               key={r.key}
               className="flex items-center justify-between rounded-lg p-3"
-              style={{ background: "#fef2f2", border: "1px solid #fecaca" }}
+              style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.20)" }}
             >
               <span className="text-sm font-bold text-verdant-ink">
                 <span className="ml-1">{r.icon}</span>
@@ -143,7 +143,7 @@ export function QuickUpdateModal({ onClose, onSaved }: Props) {
           className="mt-2 rounded-xl p-4 text-center"
           style={{
             background: "linear-gradient(135deg, #A8E040, #4ADE80)",
-            color: "#fff",
+            color: "#131C2E",
           }}
         >
           <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] opacity-80">

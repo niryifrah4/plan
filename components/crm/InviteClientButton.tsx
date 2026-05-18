@@ -204,7 +204,7 @@ export function InviteClientButton() {
                 {phase === "error" && (
                   <div
                     className="whitespace-pre-wrap rounded-xl px-3 py-2 text-[12px] font-bold"
-                    style={{ background: "#FEF2F2", color: "#FCA5A5" }}
+                    style={{ background: "rgba(248,113,113,0.08)", color: "#FCA5A5" }}
                   >
                     {errorMsg}
                   </div>
@@ -271,7 +271,7 @@ export function InviteClientButton() {
                 ) : (
                   <div
                     className="flex items-start gap-2 rounded-xl px-3 py-2"
-                    style={{ background: "#FEF7E6", color: "#78350F" }}
+                    style={{ background: "#1A2438", color: "#78350F" }}
                   >
                     <span
                       className="material-symbols-outlined text-[18px]"

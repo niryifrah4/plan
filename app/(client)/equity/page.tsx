@@ -122,7 +122,7 @@ export default function EquityPage() {
         <button
           onClick={() => setEditing(makeNewGrant())}
           className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-extrabold transition-all"
-          style={{ background: "#A8E040", color: "#fff" }}
+          style={{ background: "#A8E040", color: "#131C2E" }}
         >
           <span className="material-symbols-outlined text-[16px]">add</span>
           הוסף הקצאה
@@ -236,14 +236,14 @@ function GrantCard({
             {grant.ticker && (
               <span
                 className="rounded-md px-2 py-0.5 text-[10px] font-extrabold"
-                style={{ background: "#f0f4ec", color: "#A8E040" }}
+                style={{ background: "#1A2438", color: "#A8E040" }}
               >
                 {grant.ticker}
               </span>
             )}
             <span
               className="rounded-md px-2 py-0.5 text-[10px] font-bold"
-              style={{ background: "#A8E040", color: "#fff" }}
+              style={{ background: "#A8E040", color: "#131C2E" }}
             >
               {TYPE_LABELS[grant.type]}
             </span>
@@ -254,12 +254,12 @@ function GrantCard({
           </div>
         </div>
         <div className="flex gap-1">
-          <button onClick={onEdit} className="rounded-lg p-1.5 hover:bg-[#f0f4ec]" title="ערוך">
+          <button onClick={onEdit} className="rounded-lg p-1.5 hover:bg-[#1A2438]" title="ערוך">
             <span className="material-symbols-outlined text-[16px]" style={{ color: "#94A3B8" }}>
               edit
             </span>
           </button>
-          <button onClick={onDelete} className="rounded-lg p-1.5 hover:bg-[#fef2f2]" title="מחק">
+          <button onClick={onDelete} className="rounded-lg p-1.5 hover:bg-[rgba(248,113,113,0.08)]" title="מחק">
             <span className="material-symbols-outlined text-[16px]" style={{ color: "#F87171" }}>
               delete
             </span>
@@ -441,14 +441,14 @@ function GrantEditor({
           <button
             onClick={onCancel}
             className="rounded-full px-4 py-2 text-[13px] font-bold"
-            style={{ background: "#f0f4ec", color: "#94A3B8" }}
+            style={{ background: "#1A2438", color: "#94A3B8" }}
           >
             ביטול
           </button>
           <button
             onClick={() => onSave(draft)}
             className="rounded-full px-4 py-2 text-[13px] font-extrabold"
-            style={{ background: "#A8E040", color: "#fff" }}
+            style={{ background: "#A8E040", color: "#131C2E" }}
           >
             שמור
           </button>
@@ -478,7 +478,7 @@ function TextField({
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border bg-[#fafbf7] px-3 py-2 text-[13px] font-bold outline-none"
+        className="w-full rounded-xl border bg-[#1A2438] px-3 py-2 text-[13px] font-bold outline-none"
         style={{ borderColor: "#1F2A3F", color: "#F8FAFC" }}
       />
     </label>
@@ -507,7 +507,7 @@ function NumberField({
         value={value || ""}
         step={step}
         onChange={(e) => onChange(Number(e.target.value) || 0)}
-        className="w-full rounded-xl border bg-[#fafbf7] px-3 py-2 text-left text-[13px] font-bold tabular-nums outline-none"
+        className="w-full rounded-xl border bg-[#1A2438] px-3 py-2 text-left text-[13px] font-bold tabular-nums outline-none"
         style={{ borderColor: "#1F2A3F", color: "#F8FAFC" }}
       />
     </label>
@@ -533,7 +533,7 @@ function SelectField({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border bg-[#fafbf7] px-3 py-2 text-[13px] font-bold outline-none"
+        className="w-full rounded-xl border bg-[#1A2438] px-3 py-2 text-[13px] font-bold outline-none"
         style={{ borderColor: "#1F2A3F", color: "#F8FAFC" }}
       >
         {options.map((o) => (

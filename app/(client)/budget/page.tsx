@@ -1627,7 +1627,7 @@ export default function BudgetPage() {
             <div
               className="mb-1 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em]"
               style={{
-                color: balance >= 0 ? "rgba(255,255,255,0.7)" : "#FECACA",
+                color: balance >= 0 ? "rgba(255,255,255,0.7)" : "rgba(248,113,113,0.20)",
               }}
             >
               {balance < 0 && (
@@ -1638,7 +1638,7 @@ export default function BudgetPage() {
             <div
               className="text-[34px] font-extrabold tabular-nums leading-none tracking-tight"
               style={{
-                color: balance >= 0 ? "#F8FAFC" : "#FECACA",
+                color: balance >= 0 ? "#F8FAFC" : "rgba(248,113,113,0.20)",
                 fontFamily: "Manrope, Assistant, system-ui, sans-serif",
               }}
             >
@@ -1666,7 +1666,7 @@ export default function BudgetPage() {
               <div
                 className="mt-0.5 text-[22px] font-extrabold tabular-nums leading-none"
                 style={{
-                  color: dailyAllowance.overPace ? "#fecaca" : "#A8E040",
+                  color: dailyAllowance.overPace ? "rgba(248,113,113,0.20)" : "#A8E040",
                   fontFamily: "Manrope, Assistant, system-ui, sans-serif",
                 }}
               >
@@ -1675,7 +1675,7 @@ export default function BudgetPage() {
               <div className="mt-1 text-[11px]" style={{ color: "rgba(255,255,255,0.7)" }}>
                 {dailyAllowance.daysRemaining} ימים נותרו
                 {dailyAllowance.overPace && (
-                  <span style={{ color: "#fecaca" }}> · חורג</span>
+                  <span style={{ color: "rgba(248,113,113,0.20)" }}> · חורג</span>
                 )}
               </div>
             </div>
@@ -1692,7 +1692,7 @@ export default function BudgetPage() {
       <div className="mb-6 flex justify-center">
         <div
           className="inline-flex rounded-full p-1"
-          style={{ background: "#f0f4ec", border: "1px solid #1F2A3F" }}
+          style={{ background: "#1A2438", border: "1px solid #1F2A3F" }}
         >
           {(
             [
@@ -1710,7 +1710,7 @@ export default function BudgetPage() {
                 className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-bold transition-colors"
                 style={{
                   background: active ? "#A8E040" : "transparent",
-                  color: active ? "#fff" : "#94A3B8",
+                  color: active ? "#131C2E" : "#94A3B8",
                 }}
               >
                 <span className="material-symbols-outlined text-[16px]">{tab.icon}</span>
@@ -1766,7 +1766,7 @@ export default function BudgetPage() {
               <button
                 onClick={openImportPreview}
                 className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors hover:bg-[#e8efe2]"
-                style={{ background: "#f0f4ec", color: "#A8E040" }}
+                style={{ background: "#1A2438", color: "#A8E040" }}
                 title="ייבא תנועות מקובץ בנק/אשראי שהועלה"
               >
                 <span className="material-symbols-outlined text-[14px]">sync_alt</span>
@@ -1777,7 +1777,7 @@ export default function BudgetPage() {
                 className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors"
                 style={{
                   background: showInsights ? "#A8E040" : "transparent",
-                  color: showInsights ? "#fff" : "#94A3B8",
+                  color: showInsights ? "#131C2E" : "#94A3B8",
                 }}
               >
                 <span className="material-symbols-outlined text-[14px]">lightbulb</span>
@@ -1803,14 +1803,14 @@ export default function BudgetPage() {
                       className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-all"
                       style={{
                         background: active ? "#F8FAFC" : "transparent",
-                        color: active ? "#fff" : "#94A3B8",
+                        color: active ? "#131C2E" : "#94A3B8",
                         border: active ? "1px solid #F8FAFC" : "1px solid #1F2A3F",
                       }}
                     >
                       {tab.key === "business" && (
                         <span
                           className="inline-block h-1.5 w-1.5 rounded-full"
-                          style={{ background: active ? "#fff" : SCOPE_COLORS.business }}
+                          style={{ background: active ? "#131C2E" : SCOPE_COLORS.business }}
                         />
                       )}
                       {tab.label}
@@ -1901,7 +1901,7 @@ export default function BudgetPage() {
 
             <div
               className="mb-4 max-h-72 overflow-y-auto rounded-lg p-3"
-              style={{ background: "#f0f4ec", border: "1px solid #1F2A3F" }}
+              style={{ background: "#1A2438", border: "1px solid #1F2A3F" }}
             >
               {importPreview.summary.byRow.length === 0 ? (
                 <div className="text-xs" style={{ color: "#94A3B8" }}>
@@ -1932,7 +1932,7 @@ export default function BudgetPage() {
             {importPreview.summary.unmatched > 0 && (
               <div
                 className="mb-4 rounded-lg p-2.5 text-xs"
-                style={{ background: "#fff7ed", color: "#9a3412", border: "1px solid #fed7aa" }}
+                style={{ background: "rgba(251,191,36,0.10)", color: "#9a3412", border: "1px solid rgba(251,191,36,0.20)" }}
               >
                 <span className="font-bold">שים לב: </span>
                 {importPreview.summary.unmatched} תנועות ללא מיפוי יתווספו כשורות חדשות.
@@ -2099,7 +2099,7 @@ function BudgetSection({
       : sectionKey === "business"
         ? "#94A3B8"
         : "#A8E040";
-  const accentSoft = isIncome ? "#A8E040" : sectionKey === "fixed" ? "#FEF3C7" : "#f0f4ec";
+  const accentSoft = isIncome ? "#A8E040" : sectionKey === "fixed" ? "rgba(251,191,36,0.12)" : "#1A2438";
 
   const toggleExpand = (rowId: string) => {
     setExpanded((prev) => ({ ...prev, [rowId]: !prev[rowId] }));
@@ -2111,12 +2111,12 @@ function BudgetSection({
       // sections breathe between each other. Was mb-3 (cramped) + a darker
       // border that made each section feel like a heavy card.
       className="mb-5 overflow-hidden rounded-2xl bg-[#131C2E]"
-      style={{ border: "1px solid #f0f4ec", boxShadow: "none" }}
+      style={{ border: "1px solid #1A2438", boxShadow: "none" }}
     >
       {/* Clickable section header (disclosure) */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-3 px-5 py-4 transition-colors hover:bg-[#fafbf7]"
+        className="flex w-full items-center gap-3 px-5 py-4 transition-colors hover:bg-[#1A2438]"
         aria-expanded={open}
       >
         {/* Chevron */}
@@ -2424,7 +2424,7 @@ function BudgetSection({
                 {hasSubs && isExpanded && (
                   <div
                     className="mb-2 mr-6 overflow-hidden rounded-xl"
-                    style={{ background: "#f8faf5", border: "1px solid #1F2A3F" }}
+                    style={{ background: "#1A2438", border: "1px solid #1F2A3F" }}
                   >
                     {row.subItems!.map((sub) => {
                       const sb = Number(sub.budget) || 0;

@@ -27,8 +27,8 @@ const STATUS_COLOR = {
 
 const STATUS_BG = {
   safe: "#1A2438",
-  warning: "#fffbeb",
-  over: "#fef2f2",
+  warning: "rgba(251,191,36,0.08)",
+  over: "rgba(248,113,113,0.08)",
 };
 
 export function BudgetVsActual() {

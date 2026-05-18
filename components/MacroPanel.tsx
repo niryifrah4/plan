@@ -190,7 +190,7 @@ function StatField({ label, value, hint }: { label: string; value: string; hint:
   return (
     <div
       className="rounded-xl px-4 py-3 text-right"
-      style={{ background: "#f4f9f4", border: "1px solid #e4ede6" }}
+      style={{ background: "#1A2438", border: "1px solid #e4ede6" }}
     >
       <div className="mb-1 text-[11px] font-extrabold" style={{ color: "#F8FAFC" }}>
         {label}

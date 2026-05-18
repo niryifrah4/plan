@@ -782,7 +782,7 @@ export default function CrmPage() {
                                   className="inline-flex items-center gap-1 whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-bold"
                                   style={{
                                     background: isT ? "rgba(255,255,255,0.12)" : `${m.color}12`,
-                                    color: isT ? "#fff" : m.color,
+                                    color: isT ? "#131C2E" : m.color,
                                   }}
                                 >
                                   <span className="tabular">{m.time}</span>
@@ -1054,7 +1054,7 @@ export default function CrmPage() {
                 <thead>
                   <tr
                     className="v-divider border-b text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted"
-                    style={{ background: "#fafcf6" }}
+                    style={{ background: "#1A2438" }}
                   >
                     <th className="w-[1%] px-5 py-3 text-right" />
                     <th className="px-4 py-3 text-right">שם מלא</th>
@@ -1229,7 +1229,7 @@ export default function CrmPage() {
                 <thead>
                   <tr
                     className="v-divider border-b text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted"
-                    style={{ background: "#fafcf6" }}
+                    style={{ background: "#1A2438" }}
                   >
                     <th className="px-5 py-3 text-right">משפחה / שם</th>
                     <th className="px-4 py-3 text-right">שלב</th>
@@ -1545,7 +1545,7 @@ export default function CrmPage() {
                             className="h-2 w-2 rounded-full"
                             style={{
                               background:
-                                idx === selectedLead.followUps.length - 1 ? "#fff" : "#94A3B8",
+                                idx === selectedLead.followUps.length - 1 ? "#131C2E" : "#94A3B8",
                             }}
                           />
                         </div>

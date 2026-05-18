@@ -87,7 +87,7 @@ export function CashflowForecast() {
         {negativeMonths.length > 0 && (
           <span
             className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold"
-            style={{ background: "#FEE2E2", color: "#FCA5A5" }}
+            style={{ background: "rgba(248,113,113,0.12)", color: "#FCA5A5" }}
           >
             <span className="material-symbols-outlined text-[14px]">warning</span>
             {negativeMonths.length} חודשים שליליים
@@ -138,9 +138,9 @@ export function CashflowForecast() {
               style={{
                 background:
                   m.status === "negative"
-                    ? "#FEE2E2"
+                    ? "rgba(248,113,113,0.12)"
                     : m.status === "tight"
-                      ? "#FEF3C7"
+                      ? "rgba(251,191,36,0.12)"
                       : "#1A2438",
                 color:
                   m.status === "negative"

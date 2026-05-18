@@ -242,7 +242,7 @@ export function RetirementCalc() {
         className="rounded-2xl p-5 md:p-6"
         style={{
           background: "linear-gradient(135deg,#F8FAFC 0%,#064e32 50%,#A8E040 100%)",
-          color: "#fff",
+          color: "#131C2E",
         }}
       >
         <div className="mb-4 flex items-center gap-2">

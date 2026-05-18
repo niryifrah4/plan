@@ -175,7 +175,7 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
                     ? "#1A2438"
                     : disabled
                       ? "#F8FAFC"
-                      : "#fff",
+                      : "#131C2E",
                   border: `1px solid ${
                     isSelected
                       ? "#A8E040"
@@ -193,7 +193,7 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
                       <span
                         className="rounded-full px-2 py-0.5 text-[10px] font-extrabold"
                         style={{
-                          background: opt.kind === "loan" ? "#fef2f2" : "#1A2438",
+                          background: opt.kind === "loan" ? "rgba(248,113,113,0.08)" : "#1A2438",
                           color: opt.kind === "loan" ? "#FCA5A5" : "#1d4ed8",
                         }}
                       >

@@ -278,7 +278,7 @@ export function MonthlyCheckIn({ open, onClose, onDone }: Props) {
                           onClick={() => updateRow(b.id, { choice: opt.key })}
                           className="flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-bold transition-colors"
                           style={{
-                            background: active ? `${opt.color}14` : "#f8faf6",
+                            background: active ? `${opt.color}14` : "#1A2438",
                             color: active ? opt.color : "#6b7a72",
                             border: active ? `1px solid ${opt.color}40` : "1px solid #1F2A3F",
                           }}
@@ -300,7 +300,7 @@ export function MonthlyCheckIn({ open, onClose, onDone }: Props) {
                           value={row.partialAmount}
                           onChange={(e) => updateRow(b.id, { partialAmount: e.target.value })}
                           className="tabular w-full rounded-lg px-3 py-2 pr-7 text-[13px] font-bold text-verdant-ink"
-                          style={{ background: "#f8faf6", border: "1px solid #1F2A3F" }}
+                          style={{ background: "#1A2438", border: "1px solid #1F2A3F" }}
                           placeholder="0"
                         />
                         <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] font-bold text-verdant-muted">
@@ -319,7 +319,7 @@ export function MonthlyCheckIn({ open, onClose, onDone }: Props) {
         {buckets.length > 0 && (
           <div
             className="flex items-center justify-between gap-4 border-t px-8 py-5"
-            style={{ borderColor: "#1F2A3F", background: "#f8faf6" }}
+            style={{ borderColor: "#1F2A3F", background: "#1A2438" }}
           >
             <div>
               <div className="text-[10px] font-bold uppercase tracking-wide text-verdant-muted">

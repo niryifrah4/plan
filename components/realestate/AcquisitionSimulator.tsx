@@ -64,8 +64,8 @@ export function AcquisitionSimulator() {
     coc > 5 && result.dscr > 1.2
       ? { label: "כדאי", color: "#A8E040", bg: "#1A2438", icon: "thumb_up" }
       : coc > 0 && result.dscr >= 1.0
-        ? { label: "שווה בדיקה", color: "#f59e0b", bg: "#fffbeb", icon: "help" }
-        : { label: "לא כדאי", color: "#F87171", bg: "#fef2f2", icon: "thumb_down" };
+        ? { label: "שווה בדיקה", color: "#f59e0b", bg: "rgba(251,191,36,0.08)", icon: "help" }
+        : { label: "לא כדאי", color: "#F87171", bg: "rgba(248,113,113,0.08)", icon: "thumb_down" };
 
   const inputCls =
     "w-full px-3 py-2 rounded-lg text-sm border focus:outline-none focus:ring-2 focus:ring-verdant-emerald/30 bg-[#131C2E] text-verdant-ink text-left";

@@ -482,7 +482,7 @@ export default function PensionPage() {
               {missingPct > 0 && (
                 <div
                   className="mb-6 flex items-start gap-2 rounded-xl px-4 py-2.5 text-[12px]"
-                  style={{ background: "#FEF3C7", border: "1px solid #FCD34D" }}
+                  style={{ background: "rgba(251,191,36,0.12)", border: "1px solid #FBBF24" }}
                 >
                   <span
                     className="material-symbols-outlined text-[18px]"
@@ -524,7 +524,7 @@ export default function PensionPage() {
         {insuranceDuplication && (
           <div
             className="mx-5 mt-3 flex items-center gap-2 rounded-lg p-3 text-xs"
-            style={{ background: "#fef3c7", border: "1px solid #f59e0b" }}
+            style={{ background: "rgba(251,191,36,0.12)", border: "1px solid #f59e0b" }}
           >
             <span className="material-symbols-outlined text-[16px]" style={{ color: "#f59e0b" }}>
               warning
@@ -549,7 +549,7 @@ export default function PensionPage() {
         ) && (
           <div
             className="mx-5 mt-2 flex items-start gap-2 rounded-lg p-3 text-xs"
-            style={{ background: "#fef3c7", border: "1px solid #f59e0b" }}
+            style={{ background: "rgba(251,191,36,0.12)", border: "1px solid #f59e0b" }}
           >
             <span
               className="material-symbols-outlined mt-0.5 text-[16px]"
@@ -704,7 +704,7 @@ export default function PensionPage() {
                                 f.subtype === "pension_vatika") && (
                                 <span
                                   className="rounded-full px-1.5 py-0.5 text-[8px] font-bold"
-                                  style={{ background: "#fef3c7", color: "#92400e" }}
+                                  style={{ background: "rgba(251,191,36,0.12)", color: "#92400e" }}
                                 >
                                   מקדם מובטח{f.conversionFactor ? ` (${f.conversionFactor})` : ""}
                                 </span>
@@ -815,7 +815,7 @@ export default function PensionPage() {
                                       <span
                                         className={`h-2 w-2 shrink-0 rounded-sm ${t.registeredFundId ? "" : "ring-1 ring-amber-400"}`}
                                         style={{
-                                          background: t.registeredFundId ? "#A8E040" : "#FCD34D",
+                                          background: t.registeredFundId ? "#A8E040" : "#FBBF24",
                                         }}
                                       />
                                       <span className="truncate text-verdant-ink">{t.name}</span>
@@ -973,7 +973,7 @@ export default function PensionPage() {
                         </div>
                         <div
                           className="rounded-lg p-2.5"
-                          style={{ background: isLiquid ? "#1A2438" : "#fefce8" }}
+                          style={{ background: isLiquid ? "#1A2438" : "rgba(251,191,36,0.08)" }}
                         >
                           <div className="text-[10px] font-bold text-verdant-muted">
                             נזילות ({vestingYears} שנים ·{" "}
@@ -1003,7 +1003,7 @@ export default function PensionPage() {
                     ) : (
                       <div
                         className="col-span-2 rounded-lg p-2.5"
-                        style={{ background: "#fefce8" }}
+                        style={{ background: "rgba(251,191,36,0.08)" }}
                       >
                         <div
                           className="flex items-center gap-1 text-[11px] font-bold"
@@ -1032,7 +1032,7 @@ export default function PensionPage() {
 
                   <div
                     className="rounded-lg border p-3 text-right"
-                    style={{ background: "#fafdf5", borderColor: "#d1e7c8" }}
+                    style={{ background: "#1A2438", borderColor: "#d1e7c8" }}
                   >
                     {isLiquid ? (
                       <div className="text-[12px] font-bold text-verdant-ink">
@@ -1159,7 +1159,7 @@ function MiniDonut({
               key={i}
               d={`M ${cx} ${cy} L ${cx + r * Math.cos(sr)} ${cy + r * Math.sin(sr)} A ${r} ${r} 0 ${la} 1 ${cx + r * Math.cos(er)} ${cy + r * Math.sin(er)} Z`}
               fill={d.color}
-              stroke="#fff"
+              stroke="#131C2E"
               strokeWidth="2"
             />
           );
@@ -1253,7 +1253,7 @@ function FundForm({
             onChange={(e) => handleFundSelect(e.target.value)}
             disabled={!provider}
             className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#1F2A3F", background: provider ? "#fff" : "#1A2438" }}
+            style={{ borderColor: "#1F2A3F", background: provider ? "#131C2E" : "#1A2438" }}
           >
             <option value="">בחר מסלול</option>
             {providerFunds.map((f) => (

@@ -110,7 +110,7 @@ export function SpecialEventsSection() {
               setShowForm(true);
             }}
             className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-all"
-            style={{ background: "#A8E040", color: "#fff" }}
+            style={{ background: "#A8E040", color: "#131C2E" }}
           >
             <span className="material-symbols-outlined text-[14px]">add</span>
             הוסף אירוע
@@ -256,8 +256,8 @@ function EventForm({ initial, onCancel, onSave }: EventFormProps) {
               onClick={() => setType(t.key)}
               className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-all"
               style={{
-                background: active ? t.color : "#fff",
-                color: active ? "#fff" : "#94A3B8",
+                background: active ? t.color : "#131C2E",
+                color: active ? "#131C2E" : "#94A3B8",
                 border: `1px solid ${active ? t.color : "#1F2A3F"}`,
               }}
             >
@@ -316,7 +316,7 @@ function EventForm({ initial, onCancel, onSave }: EventFormProps) {
       {error && (
         <div
           className="mt-3 rounded-lg px-3 py-2 text-[12px] font-bold"
-          style={{ background: "#FEE2E2", color: "#FCA5A5" }}
+          style={{ background: "rgba(248,113,113,0.12)", color: "#FCA5A5" }}
         >
           {error}
         </div>
@@ -326,7 +326,7 @@ function EventForm({ initial, onCancel, onSave }: EventFormProps) {
         <button
           type="submit"
           className="rounded-full px-5 py-2 text-[12px] font-bold transition-all"
-          style={{ background: "#A8E040", color: "#fff" }}
+          style={{ background: "#A8E040", color: "#131C2E" }}
         >
           {initial ? "עדכן" : "הוסף"}
         </button>

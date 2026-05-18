@@ -25,9 +25,9 @@ const STATUS_CONFIG: Record<
   { label: string; color: string; bg: string; icon: string }
 > = {
   covered: { label: "מכוסה", color: "#4ADE80", bg: "#ecfdf5", icon: "check_circle" },
-  partial: { label: "חלקי", color: "#f59e0b", bg: "#fffbeb", icon: "warning" },
-  missing: { label: "חסר", color: "#ef4444", bg: "#fef2f2", icon: "cancel" },
-  not_relevant: { label: "לא רלוונטי", color: "#94a3b8", bg: "#f8fafc", icon: "do_not_disturb_on" },
+  partial: { label: "חלקי", color: "#f59e0b", bg: "rgba(251,191,36,0.08)", icon: "warning" },
+  missing: { label: "חסר", color: "#ef4444", bg: "rgba(248,113,113,0.08)", icon: "cancel" },
+  not_relevant: { label: "לא רלוונטי", color: "#94a3b8", bg: "#0A1929", icon: "do_not_disturb_on" },
 };
 
 const STATUS_ORDER: CoverageStatus[] = ["covered", "partial", "missing", "not_relevant"];
@@ -331,7 +331,7 @@ function CategoryCard({
                         {ri.provider && (
                           <span
                             className="rounded px-1.5 py-0.5 text-[10px]"
-                            style={{ background: "#f1f5f9", color: "#64748b" }}
+                            style={{ background: "#1A2438", color: "#64748b" }}
                           >
                             {ri.provider}
                           </span>
@@ -381,7 +381,7 @@ function CategoryCard({
                   {isEditing && (
                     <div
                       className="grid grid-cols-2 gap-3 border-b px-6 py-4 md:grid-cols-3"
-                      style={{ background: "#fafbfc", borderColor: "var(--verdant-border)" }}
+                      style={{ background: "#1A2438", borderColor: "var(--verdant-border)" }}
                     >
                       <Field label="ספק / חברה">
                         <input

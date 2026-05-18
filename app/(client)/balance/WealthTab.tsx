@@ -399,7 +399,7 @@ export function WealthTab() {
   );
 
   const severityColors = { warn: "#F87171", good: "#A8E040", info: "#1d4ed8" };
-  const severityBg = { warn: "#fef2f2", good: "#1A2438", info: "#1A2438" };
+  const severityBg = { warn: "rgba(248,113,113,0.08)", good: "#1A2438", info: "#1A2438" };
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -917,7 +917,7 @@ function WealthDonut({ data }: { data: { label: string; pct: number; color: stri
               key={i}
               d={`M ${cx} ${cy} L ${cx + r * Math.cos(sr)} ${cy + r * Math.sin(sr)} A ${r} ${r} 0 ${la} 1 ${cx + r * Math.cos(er)} ${cy + r * Math.sin(er)} Z`}
               fill={d.color}
-              stroke="#fff"
+              stroke="#131C2E"
               strokeWidth="2"
             />
           );

@@ -59,9 +59,9 @@ export function RealEstateLab() {
               onClick={() => setActiveTab(tab.id)}
               className="rounded-xl p-4 text-right transition-all duration-200"
               style={{
-                background: isActive ? "linear-gradient(135deg,#F8FAFC,#A8E040)" : "#fff",
+                background: isActive ? "linear-gradient(135deg,#F8FAFC,#A8E040)" : "#131C2E",
                 border: `1.5px solid ${isActive ? "#A8E040" : "#1F2A3F"}`,
-                color: isActive ? "#fff" : "#F8FAFC",
+                color: isActive ? "#131C2E" : "#F8FAFC",
               }}
             >
               <div className="mb-1.5 flex items-center gap-2">

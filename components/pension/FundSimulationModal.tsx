@@ -143,7 +143,7 @@ export function FundSimulationModal({ fund, onClose }: Props) {
           <button
             onClick={onClose}
             className="rounded-lg px-4 py-2 text-[12px] font-bold"
-            style={{ background: "#A8E040", color: "#fff" }}
+            style={{ background: "#A8E040", color: "#131C2E" }}
           >
             סגור
           </button>

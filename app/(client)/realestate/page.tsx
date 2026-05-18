@@ -324,8 +324,8 @@ function PropertyForm({ initial, onSave, onCancel }: PropertyFormProps) {
               disabled
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2 text-[12px] font-bold"
               style={{
-                background: "#f4f5ed",
-                color: "#7a8a7e",
+                background: "#1A2438",
+                color: "#94A3B8",
                 border: "1px dashed #c9d3c0",
                 cursor: "not-allowed",
               }}
@@ -846,8 +846,8 @@ export default function RealEstatePage() {
                       const tx = propertyTaxStatus(prop, properties);
                       const styleByStatus: Record<typeof tx.status, { bg: string; fg: string }> = {
                         exempt: { bg: "#D1FAE5", fg: "#065F46" },
-                        overlap: { bg: "#FEF3C7", fg: "#92400E" },
-                        taxable: { bg: "#FEE2E2", fg: "#FCA5A5" },
+                        overlap: { bg: "rgba(251,191,36,0.12)", fg: "#92400E" },
+                        taxable: { bg: "rgba(248,113,113,0.12)", fg: "#FCA5A5" },
                         unknown: { bg: "#E5E7EB", fg: "#374151" },
                       };
                       const s = styleByStatus[tx.status];
@@ -1334,7 +1334,7 @@ export default function RealEstatePage() {
               </span>
               <span>נותר: {fmtILS(totalMortgageBalance)}</span>
             </div>
-            <div className="h-2.5 w-full rounded-full" style={{ background: "#fee2e2" }}>
+            <div className="h-2.5 w-full rounded-full" style={{ background: "rgba(248,113,113,0.12)" }}>
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{
@@ -1422,8 +1422,8 @@ export default function RealEstatePage() {
           <div className="space-y-2">
             {recommendations.map((rec) => {
               const sevColors: Record<string, { bg: string; border: string; text: string }> = {
-                critical: { bg: "#fef2f2", border: "#fca5a5", text: "#F87171" },
-                warning: { bg: "#fffbeb", border: "#fcd34d", text: "#92400e" },
+                critical: { bg: "rgba(248,113,113,0.08)", border: "#fca5a5", text: "#F87171" },
+                warning: { bg: "rgba(251,191,36,0.08)", border: "#FBBF24", text: "#92400e" },
                 info: { bg: "#1A2438", border: "#93c5fd", text: "#1d4ed8" },
                 opportunity: { bg: "#1A2438", border: "#86efac", text: "#166534" },
               };

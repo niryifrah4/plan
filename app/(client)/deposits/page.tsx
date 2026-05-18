@@ -199,7 +199,7 @@ export default function DepositsPage() {
             }}
             disabled={summary.confirmedCount === summary.plannedCount}
             className="rounded-lg px-4 py-2 text-[12px] font-extrabold transition-all disabled:opacity-40"
-            style={{ background: "#A8E040", color: "#fff" }}
+            style={{ background: "#A8E040", color: "#131C2E" }}
           >
             <span className="material-symbols-outlined ml-1 align-middle text-[14px]">
               done_all
@@ -232,7 +232,7 @@ export default function DepositsPage() {
                   key={entry.id}
                   className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all"
                   style={{
-                    background: entry.confirmed ? "#f3f8ef" : "#fff",
+                    background: entry.confirmed ? "#f3f8ef" : "#131C2E",
                     border: `1px solid ${entry.confirmed ? "#A8E040" : "#1F2A3F"}`,
                   }}
                 >
@@ -278,7 +278,7 @@ export default function DepositsPage() {
                     onChange={(e) => handleEntryAmountChange(entry, e.target.value)}
                     className="tabular w-28 rounded-lg px-2 py-1.5 text-left text-[13px] font-extrabold"
                     style={{
-                      background: entry.confirmed ? "transparent" : "#f8faf6",
+                      background: entry.confirmed ? "transparent" : "#1A2438",
                       border: `1px solid ${entry.confirmed ? "transparent" : "#1F2A3F"}`,
                       color: entry.confirmed ? "#A8E040" : "#F8FAFC",
                     }}
@@ -308,7 +308,7 @@ export default function DepositsPage() {
             className="rounded-lg px-3 py-2 text-[12px] font-extrabold transition-all"
             style={{
               background: showAdd ? "#1F2A3F" : "#A8E040",
-              color: showAdd ? "#F8FAFC" : "#fff",
+              color: showAdd ? "#F8FAFC" : "#131C2E",
             }}
           >
             <span className="material-symbols-outlined ml-1 align-middle text-[14px]">
@@ -321,7 +321,7 @@ export default function DepositsPage() {
         {showAdd && (
           <div
             className="mb-4 rounded-xl p-4"
-            style={{ background: "#f8faf6", border: "1px dashed #1F2A3F" }}
+            style={{ background: "#1A2438", border: "1px dashed #1F2A3F" }}
           >
             <div className="mb-3 grid grid-cols-2 gap-3">
               <div>
@@ -407,7 +407,7 @@ export default function DepositsPage() {
             <button
               onClick={handleAddPlan}
               className="rounded-lg px-4 py-2 text-[12px] font-extrabold"
-              style={{ background: "#A8E040", color: "#fff" }}
+              style={{ background: "#A8E040", color: "#131C2E" }}
             >
               שמור תוכנית
             </button>
@@ -457,7 +457,7 @@ export default function DepositsPage() {
                       }
                     }}
                     className="tabular w-28 rounded-lg px-2 py-1.5 text-left text-[13px] font-extrabold"
-                    style={{ background: "#f8faf6", border: "1px solid #1F2A3F" }}
+                    style={{ background: "#1A2438", border: "1px solid #1F2A3F" }}
                   />
                   <span className="text-[12px] font-bold" style={{ color: "#94A3B8" }}>
                     ₪

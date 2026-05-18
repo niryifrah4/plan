@@ -376,7 +376,7 @@ export default function InvestmentsPage() {
             )
           : null;
         const perfBg =
-          perf?.severity === "good" ? "#1A2438" : perf?.severity === "bad" ? "#fef2f2" : "#F8FAFC";
+          perf?.severity === "good" ? "#1A2438" : perf?.severity === "bad" ? "rgba(248,113,113,0.08)" : "#F8FAFC";
         const perfColor =
           perf?.severity === "good" ? "#A8E040" : perf?.severity === "bad" ? "#F87171" : "#F8FAFC";
         return (
@@ -486,7 +486,7 @@ export default function InvestmentsPage() {
           return (
             <div
               className="mb-4 flex items-start gap-3 rounded-xl px-4 py-3"
-              style={{ background: "#FEF3C7", border: "1px solid #FCD34D" }}
+              style={{ background: "rgba(251,191,36,0.12)", border: "1px solid #FBBF24" }}
             >
               <span
                 className="material-symbols-outlined mt-0.5 text-[20px]"
@@ -515,7 +515,7 @@ export default function InvestmentsPage() {
               className="rounded-xl border-2 p-4 text-right transition-all"
               style={{
                 borderColor: selectedBenchmark === b.id ? "#A8E040" : "#e5e7d8",
-                background: selectedBenchmark === b.id ? "#1A2438" : "#fff",
+                background: selectedBenchmark === b.id ? "#1A2438" : "#131C2E",
               }}
             >
               <div className="mb-2 flex items-center justify-between">
@@ -524,7 +524,7 @@ export default function InvestmentsPage() {
                   className="rounded-full px-2 py-0.5 text-[10px] font-bold"
                   style={{
                     background:
-                      b.risk === "low" ? "#dcfce7" : b.risk === "medium" ? "#fef3c7" : "#fecaca",
+                      b.risk === "low" ? "#dcfce7" : b.risk === "medium" ? "rgba(251,191,36,0.12)" : "rgba(248,113,113,0.20)",
                     color:
                       b.risk === "low" ? "#166534" : b.risk === "medium" ? "#92400e" : "#991b1b",
                   }}
@@ -957,7 +957,7 @@ export default function InvestmentsPage() {
                           onClick={() => deleteSecurity(s.id)}
                           title="מחק"
                           className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-red-50"
-                          style={{ background: "#fef2f2" }}
+                          style={{ background: "rgba(248,113,113,0.08)" }}
                         >
                           <span
                             className="material-symbols-outlined text-[14px]"

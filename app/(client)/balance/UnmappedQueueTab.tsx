@@ -342,7 +342,7 @@ export function UnmappedQueueTab() {
           title="לא ממופה"
           subtitle="קטגוריה: אחר / העברות — דורש הכרעה"
           color="#8B2E2E"
-          bg="#fef2f2"
+          bg="rgba(248,113,113,0.08)"
           icon="help"
           groups={unmappedGroups}
           expanded={expanded}
@@ -359,7 +359,7 @@ export function UnmappedQueueTab() {
           title="לבדיקה"
           subtitle="המערכת סיווגה — אבל לא בוודאות גבוהה"
           color="#B45309"
-          bg="#fffbeb"
+          bg="rgba(251,191,36,0.08)"
           icon="flaky"
           groups={lowConfGroups}
           expanded={expanded}
@@ -542,7 +542,7 @@ function QueueRow({
         <div className="px-5 pb-3">
           <div
             className="overflow-hidden rounded-xl"
-            style={{ background: "#fafbf5", border: "1px solid #1A2438" }}
+            style={{ background: "#1A2438", border: "1px solid #1A2438" }}
           >
             <table className="w-full text-xs">
               <tbody>

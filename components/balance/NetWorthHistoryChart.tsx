@@ -104,7 +104,7 @@ export function NetWorthHistoryChart({ snapshots }: Props) {
               stroke="#A8E040"
               strokeWidth={2.5}
               fill="url(#nwFill)"
-              dot={{ r: 3, fill: "#A8E040", stroke: "#fff", strokeWidth: 1.5 }}
+              dot={{ r: 3, fill: "#A8E040", stroke: "#131C2E", strokeWidth: 1.5 }}
               activeDot={{ r: 5 }}
             />
           </AreaChart>

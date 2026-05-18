@@ -222,8 +222,8 @@ export function RefinanceSimulator({ track, onClose }: Props) {
             <div
               className="rounded-xl px-4 py-3"
               style={{
-                background: result.refi.termDeltaMonths > 0 ? "#FEF3C7" : "#F0F9F4",
-                border: `1px solid ${result.refi.termDeltaMonths > 0 ? "#FCD34D" : "#86efac"}`,
+                background: result.refi.termDeltaMonths > 0 ? "rgba(251,191,36,0.12)" : "#F0F9F4",
+                border: `1px solid ${result.refi.termDeltaMonths > 0 ? "#FBBF24" : "#86efac"}`,
               }}
             >
               <div className="text-[12px] font-bold text-verdant-ink">
@@ -239,7 +239,7 @@ export function RefinanceSimulator({ track, onClose }: Props) {
           {result.refi.breakEvenMonth === null && refiFee > 0 && (
             <div
               className="rounded-xl px-4 py-3"
-              style={{ background: "#FEE2E2", border: "1px solid #FCA5A5" }}
+              style={{ background: "rgba(248,113,113,0.12)", border: "1px solid #FCA5A5" }}
             >
               <div className="text-[12px] font-bold" style={{ color: "#FCA5A5" }}>
                 אין נקודת איזון — ההחזר החודשי לא יורד
@@ -287,7 +287,7 @@ export function RefinanceSimulator({ track, onClose }: Props) {
           <button
             onClick={onClose}
             className="rounded-lg px-4 py-2 text-[13px] font-bold"
-            style={{ background: "#A8E040", color: "#fff" }}
+            style={{ background: "#A8E040", color: "#131C2E" }}
           >
             סגור
           </button>
@@ -319,7 +319,7 @@ function ScenarioCard({
     <div
       className="rounded-xl p-4"
       style={{
-        background: highlight ? "linear-gradient(135deg, #A8E040 0%, #F8FAFC 100%)" : "#fff",
+        background: highlight ? "linear-gradient(135deg, #A8E040 0%, #F8FAFC 100%)" : "#131C2E",
         color: highlight ? "#F8FAFC" : "#F8FAFC",
         border: highlight ? "none" : "1px solid #1F2A3F",
         opacity: dim ? 0.5 : 1,

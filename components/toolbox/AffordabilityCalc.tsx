@@ -135,7 +135,7 @@ export function AffordabilityCalc() {
       {!results.isAffordable && (
         <div
           className="flex items-start gap-3 rounded-xl p-5"
-          style={{ background: "#fef2f2", border: "1px solid #fecaca" }}
+          style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.20)" }}
         >
           <span
             className="material-symbols-outlined mt-0.5 text-[22px]"
@@ -302,7 +302,7 @@ function ResultCard({
     <div
       className="rounded-xl p-5 text-center"
       style={{
-        background: highlight ? `linear-gradient(135deg, ${color}08, ${color}04)` : "#fff",
+        background: highlight ? `linear-gradient(135deg, ${color}08, ${color}04)` : "#131C2E",
         border: `1px solid ${highlight ? color + "30" : "#1F2A3F"}`,
       }}
     >

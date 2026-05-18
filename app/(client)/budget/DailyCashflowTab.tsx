@@ -197,7 +197,7 @@ export function DailyCashflowTab() {
                   className="rounded-full px-3 py-1 text-[11px] font-bold transition-colors"
                   style={{
                     background: active ? "#A8E040" : "transparent",
-                    color: active ? "#fff" : "#94A3B8",
+                    color: active ? "#131C2E" : "#94A3B8",
                   }}
                 >
                   {n === 1 ? "החודש" : `${n} חודשים`}
@@ -253,8 +253,8 @@ export function DailyCashflowTab() {
           <div
             className="mt-4 flex flex-wrap items-center gap-2 rounded-xl px-4 py-2.5 text-[12px]"
             style={{
-              background: bufferGap > 0 ? "#fffbea" : "#1A2438",
-              border: `1px solid ${bufferGap > 0 ? "#fde68a" : "#1F2A3F"}`,
+              background: bufferGap > 0 ? "rgba(251,191,36,0.08)" : "#1A2438",
+              border: `1px solid ${bufferGap > 0 ? "rgba(251,191,36,0.30)" : "#1F2A3F"}`,
               color: bufferGap > 0 ? "#92400e" : "#A8E040",
             }}
           >
@@ -652,7 +652,7 @@ function TrajectoryChart({
             y={yOf(frameFloor)}
             width={innerW}
             height={Math.max(0, PAD.top + innerH - yOf(frameFloor))}
-            fill="#FEE2E2"
+            fill="rgba(248,113,113,0.12)"
             opacity={0.7}
           />
         )}
@@ -663,7 +663,7 @@ function TrajectoryChart({
             y={yOf(0)}
             width={innerW}
             height={Math.max(0, yOf(frameFloor) - yOf(0))}
-            fill="#FED7AA"
+            fill="rgba(251,191,36,0.20)"
             opacity={0.55}
           />
         )}
@@ -674,7 +674,7 @@ function TrajectoryChart({
             y={yOf(0)}
             width={innerW}
             height={Math.max(0, PAD.top + innerH - yOf(0))}
-            fill="#FEE2E2"
+            fill="rgba(248,113,113,0.12)"
             opacity={0.5}
           />
         )}
@@ -685,7 +685,7 @@ function TrajectoryChart({
             y={yOf(threshold)}
             width={innerW}
             height={Math.max(0, yOf(Math.max(0, yMin)) - yOf(threshold))}
-            fill="#FEF3C7"
+            fill="rgba(251,191,36,0.12)"
             opacity={0.6}
           />
         )}
@@ -724,7 +724,7 @@ function TrajectoryChart({
                 cy={yOf(p.balance)}
                 r={3.5}
                 fill="#A8E040"
-                stroke="#fff"
+                stroke="#131C2E"
                 strokeWidth={1.5}
               />
               <title>

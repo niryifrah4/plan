@@ -408,7 +408,7 @@ function CashflowSection({ data }: { data: ReportData }) {
       {scopeSplit && (
         <div
           className="mt-3 rounded-lg border p-3 text-[11px]"
-          style={{ borderColor: "#1F2A3F", background: "#fafbf7" }}
+          style={{ borderColor: "#1F2A3F", background: "#1A2438" }}
         >
           <div
             className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.1em]"
@@ -510,7 +510,7 @@ function PensionSection({ data }: { data: ReportData }) {
             </thead>
             <tbody>
               {funds.map((f, i) => (
-                <tr key={f.id} style={{ background: i % 2 === 0 ? "#fff" : "#1A2438" }}>
+                <tr key={f.id} style={{ background: i % 2 === 0 ? "#131C2E" : "#1A2438" }}>
                   <td className="p-2 text-verdant-ink">{f.company}</td>
                   <td className="p-2 text-verdant-ink">{typeLabel(f.type)}</td>
                   <td className="p-2 text-verdant-ink">{f.track}</td>
@@ -521,7 +521,7 @@ function PensionSection({ data }: { data: ReportData }) {
                   <td className="p-2 text-left">{fmtILS(f.monthlyContrib)}</td>
                 </tr>
               ))}
-              <tr style={{ background: "#A8E040", color: "#fff" }}>
+              <tr style={{ background: "#A8E040", color: "#131C2E" }}>
                 <td className="p-2 font-bold" colSpan={3}>
                   סה״כ
                 </td>
@@ -586,7 +586,7 @@ function RealEstateSection({ data }: { data: ReportData }) {
           {props.map((p, i) => {
             const equity = (p.currentValue || 0) - (p.mortgageBalance || 0);
             return (
-              <tr key={p.id} style={{ background: i % 2 === 0 ? "#fff" : "#1A2438" }}>
+              <tr key={p.id} style={{ background: i % 2 === 0 ? "#131C2E" : "#1A2438" }}>
                 <td className="p-2 font-bold text-verdant-ink">{p.name}</td>
                 <td className="p-2 text-verdant-ink">{reTypeLabel(p.type)}</td>
                 <td className="p-2 text-left font-bold">{fmtILS(p.currentValue)}</td>
@@ -650,7 +650,7 @@ function SecuritiesSection({ data }: { data: ReportData }) {
         </thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={r.id} style={{ background: i % 2 === 0 ? "#fff" : "#1A2438" }}>
+            <tr key={r.id} style={{ background: i % 2 === 0 ? "#131C2E" : "#1A2438" }}>
               <td className="p-2 font-bold text-verdant-ink">{r.symbol}</td>
               <td className="p-2 text-verdant-ink">{r.kind}</td>
               <td className="p-2 text-left">{r.quantity}</td>
@@ -693,7 +693,7 @@ function DebtSection({ data }: { data: ReportData }) {
             </thead>
             <tbody>
               {m.tracks.map((t, i) => (
-                <tr key={t.id} style={{ background: i % 2 === 0 ? "#fff" : "#1A2438" }}>
+                <tr key={t.id} style={{ background: i % 2 === 0 ? "#131C2E" : "#1A2438" }}>
                   <td className="p-2 text-verdant-ink">{t.name}</td>
                   <td className="p-2 text-verdant-ink">{t.repaymentMethod}</td>
                   <td className="p-2 text-left">{fmtPct(t.interestRate)}</td>
@@ -720,7 +720,7 @@ function DebtSection({ data }: { data: ReportData }) {
             </thead>
             <tbody>
               {s.activeLoans.map((l, i) => (
-                <tr key={l.id} style={{ background: i % 2 === 0 ? "#fff" : "#1A2438" }}>
+                <tr key={l.id} style={{ background: i % 2 === 0 ? "#131C2E" : "#1A2438" }}>
                   <td className="p-2 text-verdant-ink">{l.lender}</td>
                   <td className="p-2 text-left">{l.startDate}</td>
                   <td className="p-2 text-left">{l.totalPayments}</td>
