@@ -20,15 +20,36 @@ import {
   buildDiscoverSummary,
   type DiscoverSummary,
 } from "@/lib/discover-aggregator";
+import { loadParsedTransactions } from "@/lib/budget-import";
+import { detectRecurring, type RecurringGroup } from "@/lib/doc-parser/recurring";
+import { scopedKey } from "@/lib/client-scope";
+
+const SUBS_FLAGGED_KEY = "verdant:subs_flagged_for_review";
 
 type WindowSize = 3 | 6 | 12;
 
 export function DiscoverTab() {
   const [windowSize, setWindowSize] = useState<WindowSize>(6);
   const [summary, setSummary] = useState<DiscoverSummary | null>(null);
+  const [subscriptions, setSubscriptions] = useState<RecurringGroup[]>([]);
+  const [flagged, setFlagged] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const refresh = () => setSummary(buildDiscoverSummary(windowSize));
+    const refresh = () => {
+      setSummary(buildDiscoverSummary(windowSize));
+      // Detect recurring against ALL parsed txs (not just the window) so a
+      // monthly subscription that appears in 4 months of history clusters
+      // even if the user picked 3-month view.
+      const allTxs = loadParsedTransactions();
+      const subs = detectRecurring(allTxs).filter((g) => g.frequency === "monthly");
+      subs.sort((a, b) => b.amount - a.amount);
+      setSubscriptions(subs);
+      // Load flagged list from localStorage
+      try {
+        const raw = localStorage.getItem(scopedKey(SUBS_FLAGGED_KEY));
+        if (raw) setFlagged(new Set(JSON.parse(raw)));
+      } catch {}
+    };
     refresh();
     window.addEventListener("storage", refresh);
     window.addEventListener("verdant:parsed_transactions:updated", refresh);
@@ -37,6 +58,18 @@ export function DiscoverTab() {
       window.removeEventListener("verdant:parsed_transactions:updated", refresh);
     };
   }, [windowSize]);
+
+  const toggleFlag = (key: string) => {
+    setFlagged((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      try {
+        localStorage.setItem(scopedKey(SUBS_FLAGGED_KEY), JSON.stringify(Array.from(next)));
+      } catch {}
+      return next;
+    });
+  };
 
   // Empty-state guard
   if (!summary) {
@@ -84,6 +117,14 @@ export function DiscoverTab() {
       )}
 
       <SpendingSnapshot summary={summary} />
+
+      {subscriptions.length > 0 && (
+        <SubscriptionsRadar
+          subscriptions={subscriptions}
+          flagged={flagged}
+          onToggleFlag={toggleFlag}
+        />
+      )}
 
       {summary.anomalies.length > 0 && <AnomalySection anomalies={summary.anomalies} />}
     </div>
@@ -370,6 +411,115 @@ function SpendingSnapshot({ summary }: { summary: DiscoverSummary }) {
       </div>
     </section>
   );
+}
+
+function SubscriptionsRadar({
+  subscriptions,
+  flagged,
+  onToggleFlag,
+}: {
+  subscriptions: RecurringGroup[];
+  flagged: Set<string>;
+  onToggleFlag: (key: string) => void;
+}) {
+  const totalMonthly = subscriptions.reduce((s, sub) => s + sub.amount, 0);
+  const flaggedTotal = subscriptions
+    .filter((s) => flagged.has(subKey(s)))
+    .reduce((s, sub) => s + sub.amount, 0);
+
+  return (
+    <section
+      className="rounded-2xl"
+      style={{ background: "#fff", border: "1px solid #e8e9e1" }}
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 pt-5 pb-3">
+        <div>
+          <div className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-verdant-muted">
+            Subscriptions Radar
+          </div>
+          <h3 className="text-base font-extrabold text-verdant-ink">
+            מנויים שאתה לא יודע שאתה משלם
+          </h3>
+        </div>
+        <div className="text-left">
+          <div
+            className="text-[18px] font-extrabold tabular-nums leading-tight"
+            style={{ color: "#1B4332" }}
+          >
+            {fmtILS(totalMonthly)}/ח׳
+          </div>
+          <div className="text-[11px] font-bold text-verdant-muted">
+            {subscriptions.length} מנויים · {fmtILS(totalMonthly * 12)} בשנה
+          </div>
+        </div>
+      </div>
+
+      {flagged.size > 0 && (
+        <div
+          className="mx-5 mb-3 rounded-lg px-3 py-2 text-[12px]"
+          style={{ background: "#fffbea", border: "1px solid #fde68a", color: "#92400E" }}
+        >
+          סומנו לדיון: <strong>{flagged.size}</strong> מנויים בעלות{" "}
+          <strong className="tabular-nums">{fmtILS(flaggedTotal)}/ח׳</strong>
+          {" "}({fmtILS(flaggedTotal * 12)} בשנה אם תבטל)
+        </div>
+      )}
+
+      <div style={{ borderTop: "1px solid #eef2e8" }}>
+        {subscriptions.map((sub) => {
+          const key = subKey(sub);
+          const isFlagged = flagged.has(key);
+          return (
+            <div
+              key={key}
+              className="flex flex-wrap items-center gap-3 px-5 py-2.5"
+              style={{
+                borderTop: "1px solid #eef2e8",
+                background: isFlagged ? "#fffbea" : "#fff",
+              }}
+            >
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-extrabold text-verdant-ink text-[13px]">
+                  {sub.description}
+                </div>
+                <div className="mt-0.5 text-[11px] font-bold text-verdant-muted">
+                  {sub.categoryLabel || sub.category || "אחר"} · {sub.matchCount} חודשים
+                  עוקבים · ביום {sub.dayOfMonth} בחודש
+                </div>
+              </div>
+              <div className="text-left">
+                <div
+                  className="text-[14px] font-extrabold tabular-nums"
+                  style={{ color: "#1B4332" }}
+                >
+                  {fmtILS(sub.amount)}
+                </div>
+                <div className="text-[10px] font-semibold text-verdant-muted">
+                  לחודש
+                </div>
+              </div>
+              <button
+                onClick={() => onToggleFlag(key)}
+                className="rounded-full px-3 py-1 text-[11px] font-bold transition-colors"
+                style={{
+                  background: isFlagged ? "#fde68a" : "#F4F7ED",
+                  color: isFlagged ? "#78350F" : "#5a7a6a",
+                  border: `1px solid ${isFlagged ? "#f59e0b" : "#d8e0d0"}`,
+                }}
+                title={isFlagged ? "הסר סימון" : "סמן לדיון עם הלקוח"}
+              >
+                {isFlagged ? "✓ סומן לדיון" : "סמן לדיון"}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function subKey(sub: RecurringGroup): string {
+  return `${sub.description}|${Math.round(sub.amount)}`;
 }
 
 function AnomalySection({
