@@ -22,6 +22,7 @@ import {
 } from "@/lib/discover-aggregator";
 import { loadParsedTransactions } from "@/lib/budget-import";
 import { detectRecurring, type RecurringGroup } from "@/lib/doc-parser/recurring";
+import { getOverrides } from "@/lib/doc-parser/categorizer";
 import { scopedKey } from "@/lib/client-scope";
 
 const SUBS_FLAGGED_KEY = "verdant:subs_flagged_for_review";
@@ -33,6 +34,13 @@ export function DiscoverTab() {
   const [summary, setSummary] = useState<DiscoverSummary | null>(null);
   const [subscriptions, setSubscriptions] = useState<RecurringGroup[]>([]);
   const [flagged, setFlagged] = useState<Set<string>>(new Set());
+  /** Stats for the "learning" banner: how many user corrections the
+   *  classifier has remembered, and how many txs in the current window
+   *  still fell through to "other" / low-confidence. */
+  const [learning, setLearning] = useState<{
+    overrideCount: number;
+    unmappedTxCount: number;
+  }>({ overrideCount: 0, unmappedTxCount: 0 });
 
   useEffect(() => {
     const refresh = () => {
@@ -44,6 +52,25 @@ export function DiscoverTab() {
       const subs = detectRecurring(allTxs).filter((g) => g.frequency === "monthly");
       subs.sort((a, b) => b.amount - a.amount);
       setSubscriptions(subs);
+      // Learning stats — surface that the system IS getting smarter and that
+      // unmapped txs are still pending triage. Window-scoped count keeps the
+      // banner relevant to the current view.
+      const now = new Date();
+      const windowStart = new Date(now.getFullYear(), now.getMonth() - windowSize, 1);
+      const windowTxs = allTxs.filter((t) => {
+        if (!t.date) return false;
+        const d = new Date(t.date);
+        return !isNaN(d.getTime()) && d >= windowStart;
+      });
+      const unmapped = windowTxs.filter(
+        (t) =>
+          t.category === "other" ||
+          (typeof t.confidence === "number" && t.confidence < 0.7)
+      );
+      setLearning({
+        overrideCount: getOverrides().length,
+        unmappedTxCount: unmapped.length,
+      });
       // Load flagged list from localStorage
       try {
         const raw = localStorage.getItem(scopedKey(SUBS_FLAGGED_KEY));
@@ -117,6 +144,11 @@ export function DiscoverTab() {
       )}
 
       <SpendingSnapshot summary={summary} />
+
+      <LearningBanner
+        overrideCount={learning.overrideCount}
+        unmappedTxCount={learning.unmappedTxCount}
+      />
 
       {subscriptions.length > 0 && (
         <SubscriptionsRadar
@@ -408,6 +440,71 @@ function SpendingSnapshot({ summary }: { summary: DiscoverSummary }) {
             </tr>
           </tfoot>
         </table>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * LearningBanner — surfaces "the system is learning" so the user trusts
+ * the categorization, and nudges them to triage the unmapped tail so the
+ * snapshot becomes more accurate over time. Per finance-agent (P3 of the
+ * discover roadmap): merchant memory has higher ROI than AI categorization
+ * because it makes the existing rule-based engine smarter for free.
+ */
+function LearningBanner({
+  overrideCount,
+  unmappedTxCount,
+}: {
+  overrideCount: number;
+  unmappedTxCount: number;
+}) {
+  // Nothing learned yet AND nothing pending → don't add visual noise.
+  if (overrideCount === 0 && unmappedTxCount === 0) return null;
+
+  return (
+    <section
+      className="rounded-2xl p-4"
+      style={{ background: "#F4F7ED", border: "1px solid #d8e0d0" }}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span
+            className="material-symbols-outlined text-[22px]"
+            style={{ color: "#1B4332" }}
+          >
+            psychology
+          </span>
+          <div>
+            <div className="text-[13px] font-extrabold text-verdant-ink">
+              סיווג חכם — המערכת לומדת מהתיקונים שלך
+            </div>
+            <div className="mt-0.5 text-[11px] font-bold text-verdant-muted">
+              {overrideCount > 0 ? (
+                <>
+                  <span className="text-verdant-emerald">{overrideCount}</span>{" "}
+                  סיווגים נלמדו · כל תיקון משפר את הסיווג של עסקאות עתידיות
+                </>
+              ) : (
+                "אין עדיין סיווגים נלמדים"
+              )}
+            </div>
+          </div>
+        </div>
+        {unmappedTxCount > 0 && (
+          <Link
+            href="/files"
+            className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12px] font-bold transition-colors"
+            style={{
+              background: "#fffbea",
+              color: "#92400E",
+              border: "1px solid #fde68a",
+            }}
+          >
+            <span className="material-symbols-outlined text-[14px]">label</span>
+            {unmappedTxCount} עסקאות ממתינות לסיווג →
+          </Link>
+        )}
       </div>
     </section>
   );
