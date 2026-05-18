@@ -97,10 +97,10 @@ export function PortfolioImport({ onImport, onClose }: Props) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(1,45,29,0.45)" }}
+      style={{ background: "rgba(10,25,41,0.70)" }}
     >
       <div
-        className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl"
+        className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-[#131C2E] shadow-xl"
         style={{ border: "1px solid #1F2A3F" }}
       >
         {/* Header */}

@@ -75,13 +75,13 @@ export function QuickUpdateModal({ onClose, onSaved }: Props) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(1, 45, 29, 0.55)" }}
+      style={{ background: "rgba(10,25,41,0.55)" }}
       onClick={onClose}
       dir="rtl"
     >
       <div
         className="v-card max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-organic p-6 shadow-soft"
-        style={{ background: "#fff" }}
+        style={{ background: "#131C2E" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -161,7 +161,7 @@ export function QuickUpdateModal({ onClose, onSaved }: Props) {
             rows={2}
             placeholder="לא חובה — לדוגמה: 'בונוס שנתי', 'תשלום משכנתא מוקדם'..."
             className="w-full rounded-lg border p-2 text-sm"
-            style={{ borderColor: "#1F2A3F", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
           />
         </label>
 

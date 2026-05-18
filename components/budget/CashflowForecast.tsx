@@ -260,7 +260,7 @@ export function CashflowForecast() {
             value={growthPct}
             onChange={(e) => updateGrowth(parseInt(e.target.value || "0"))}
             className="w-14 rounded-md border px-2 py-1 text-center font-extrabold tabular-nums"
-            style={{ borderColor: "#1F2A3F", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
             dir="ltr"
           />
           <span>%</span>

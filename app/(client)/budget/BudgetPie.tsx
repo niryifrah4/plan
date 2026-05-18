@@ -159,7 +159,7 @@ export default function BudgetPie({
 
       {total <= 0 ? (
         <div
-          className="rounded-xl bg-white py-10 text-center"
+          className="rounded-xl bg-[#131C2E] py-10 text-center"
           style={{ border: "1px dashed #1F2A3F" }}
         >
           <span className="material-symbols-outlined text-[36px]" style={{ color: "#94A3B8" }}>
@@ -173,7 +173,7 @@ export default function BudgetPie({
           </div>
         </div>
       ) : (
-        <div className="rounded-xl bg-white p-4" style={{ border: "1px solid #1F2A3F" }}>
+        <div className="rounded-xl bg-[#131C2E] p-4" style={{ border: "1px solid #1F2A3F" }}>
           <div className="flex flex-wrap items-center gap-5 md:flex-nowrap">
             {/* ── Donut SVG ── */}
             <div className="relative shrink-0" style={{ width: 260, height: 260 }}>

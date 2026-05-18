@@ -116,7 +116,7 @@ export function InviteClientButton() {
       {open && (
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center px-4"
-          style={{ background: "rgba(1,45,29,0.45)" }}
+          style={{ background: "rgba(10,25,41,0.70)" }}
           onClick={close}
         >
           <div

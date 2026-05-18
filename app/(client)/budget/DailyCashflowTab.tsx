@@ -166,7 +166,7 @@ export function DailyCashflowTab() {
       {/* ═══════ Hero / summary ═══════ */}
       <section
         className="rounded-2xl p-5"
-        style={{ background: "#fff", border: "1px solid #1F2A3F" }}
+        style={{ background: "#131C2E", border: "1px solid #1F2A3F" }}
       >
         <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -283,7 +283,7 @@ export function DailyCashflowTab() {
               type="number"
               value={data.openingBalance}
               onChange={(e) => update({ openingBalance: parseFloat(e.target.value) || 0 })}
-              className="w-28 rounded-md border bg-white px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
+              className="w-28 rounded-md border bg-[#131C2E] px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
               style={{ borderColor: "#1F2A3F" }}
               dir="ltr"
             />
@@ -296,7 +296,7 @@ export function DailyCashflowTab() {
               type="number"
               value={data.threshold}
               onChange={(e) => update({ threshold: parseFloat(e.target.value) || 0 })}
-              className="w-28 rounded-md border bg-white px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
+              className="w-28 rounded-md border bg-[#131C2E] px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
               style={{ borderColor: "#1F2A3F" }}
               dir="ltr"
             />
@@ -312,7 +312,7 @@ export function DailyCashflowTab() {
               type="number"
               value={data.creditLine || 0}
               onChange={(e) => update({ creditLine: parseFloat(e.target.value) || 0 })}
-              className="w-28 rounded-md border bg-white px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
+              className="w-28 rounded-md border bg-[#131C2E] px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
               style={{ borderColor: "#1F2A3F" }}
               dir="ltr"
             />
@@ -332,7 +332,7 @@ export function DailyCashflowTab() {
               onChange={(e) =>
                 update({ salaryDayOfMonth: parseInt(e.target.value, 10) || 0 })
               }
-              className="w-16 rounded-md border bg-white px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
+              className="w-16 rounded-md border bg-[#131C2E] px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
               style={{ borderColor: "#1F2A3F" }}
               placeholder="—"
               dir="ltr"
@@ -383,7 +383,7 @@ export function DailyCashflowTab() {
       {/* ═══════ Events table ═══════ */}
       <section
         className="rounded-2xl p-5"
-        style={{ background: "#fff", border: "1px solid #1F2A3F" }}
+        style={{ background: "#131C2E", border: "1px solid #1F2A3F" }}
       >
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div>
@@ -434,7 +434,7 @@ export function DailyCashflowTab() {
                   gridTemplateColumns: "60px minmax(120px,1fr) 110px",
                   borderTop: "1px solid #1F2A3F",
                   columnGap: "8px",
-                  background: "#fff",
+                  background: "#131C2E",
                 }}
               >
                 <div className="text-center font-extrabold tabular-nums text-verdant-ink">
@@ -565,7 +565,7 @@ function EventRow({
         max={31}
         value={event.dayOfMonth}
         onChange={(e) => onUpdate({ dayOfMonth: parseInt(e.target.value, 10) || 1 })}
-        className="rounded-md border bg-white py-1 text-center font-extrabold tabular-nums"
+        className="rounded-md border bg-[#131C2E] py-1 text-center font-extrabold tabular-nums"
         style={{ borderColor: "#1F2A3F" }}
         dir="ltr"
       />
@@ -574,7 +574,7 @@ function EventRow({
         value={event.label}
         onChange={(e) => onUpdate({ label: e.target.value })}
         placeholder="לדוגמה: ויזה כאל, משכורת בעל…"
-        className="rounded-md border bg-white px-2 py-1 font-semibold"
+        className="rounded-md border bg-[#131C2E] px-2 py-1 font-semibold"
         style={{ borderColor: "#1F2A3F" }}
       />
       <input
@@ -582,7 +582,7 @@ function EventRow({
         value={event.amount}
         onChange={(e) => onUpdate({ amount: parseFloat(e.target.value) || 0 })}
         placeholder="−1500 = חיוב"
-        className="rounded-md border bg-white py-1 text-left font-extrabold tabular-nums"
+        className="rounded-md border bg-[#131C2E] py-1 text-left font-extrabold tabular-nums"
         style={{
           borderColor: "#1F2A3F",
           color: isIncome ? "#A8E040" : event.amount < 0 ? "#FCA5A5" : "#94A3B8",

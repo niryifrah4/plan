@@ -70,7 +70,7 @@ export function MacroPanel() {
     return (
       <button
         onClick={() => setExpanded(true)}
-        className="mb-4 flex w-full items-center justify-between gap-4 rounded-xl bg-white px-4 py-2.5 text-right transition-shadow"
+        className="mb-4 flex w-full items-center justify-between gap-4 rounded-xl bg-[#131C2E] px-4 py-2.5 text-right transition-shadow"
         style={{ border: "1px solid #1F2A3F" }}
         title="לחץ להרחבה ועריכה"
       >
@@ -100,7 +100,7 @@ export function MacroPanel() {
 
   return (
     <div
-      className="mb-6 rounded-organic bg-white p-5 shadow-soft md:p-6"
+      className="mb-6 rounded-organic bg-[#131C2E] p-5 shadow-soft md:p-6"
       style={{ border: "1px solid #1F2A3F" }}
     >
       {/* Header */}

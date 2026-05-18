@@ -540,7 +540,7 @@ export default function OnboardingPage() {
                     );
                   };
                   return (
-                    <div key={i} className="v-divider rounded-lg border bg-white p-4">
+                    <div key={i} className="v-divider rounded-lg border bg-[#131C2E] p-4">
                       {/* Row 1: basic info */}
                       <div className="mb-3 flex items-center justify-between">
                         <button
@@ -957,7 +957,7 @@ export default function OnboardingPage() {
              * without the user having to add the row by hand. Empty = own /
              * no rent. Updates flow into a locked "שכר דירה" row in /budget. */}
             <div
-              className="mt-4 rounded-xl bg-white p-3"
+              className="mt-4 rounded-xl bg-[#131C2E] p-3"
               style={{ border: "1px solid #e5e9dc" }}
             >
               <div className="mb-2 flex items-center gap-2">
@@ -1553,7 +1553,7 @@ export default function OnboardingPage() {
                           key={v}
                           type="button"
                           onClick={() => onUpdate(i, "priority", v)}
-                          className={`rounded border px-2 py-0.5 text-[10px] font-bold transition-all ${g.priority === v ? (v === "want" ? "border-green-300 bg-green-50 text-green-700" : v === "need" ? "border-amber-300 bg-amber-50 text-amber-700" : "border-blue-300 bg-blue-50 text-blue-700") : "border-verdant-line bg-white text-verdant-muted"}`}
+                          className={`rounded border px-2 py-0.5 text-[10px] font-bold transition-all ${g.priority === v ? (v === "want" ? "border-green-300 bg-green-50 text-green-700" : v === "need" ? "border-amber-300 bg-amber-50 text-amber-700" : "border-blue-300 bg-blue-50 text-blue-700") : "border-verdant-line bg-[#131C2E] text-verdant-muted"}`}
                         >
                           {v === "want" ? "רצון" : v === "need" ? "צורך" : "חלום"}
                         </button>

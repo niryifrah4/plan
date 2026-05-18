@@ -60,7 +60,7 @@ export function CashflowBarChart({ data, height = 420 }: Props) {
           <Tooltip
             formatter={(v: number) => fmtILS(v)}
             contentStyle={{
-              background: "#fff",
+              background: "#131C2E",
               border: "1px solid #1F2A3F",
               borderRadius: 8,
               fontFamily: "Assistant",

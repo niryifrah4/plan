@@ -54,7 +54,7 @@ export function CompoundCalc() {
               type="number"
               value={lump}
               onChange={(e) => setLump(Number(e.target.value))}
-              className="v-divider tabular mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
+              className="v-divider tabular mt-1 w-full rounded-lg border bg-[#131C2E] px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
               dir="ltr"
             />
           </label>
@@ -64,7 +64,7 @@ export function CompoundCalc() {
               type="number"
               value={monthly}
               onChange={(e) => setMonthly(Number(e.target.value))}
-              className="v-divider tabular mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
+              className="v-divider tabular mt-1 w-full rounded-lg border bg-[#131C2E] px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
               dir="ltr"
             />
           </label>
@@ -75,7 +75,7 @@ export function CompoundCalc() {
               step="0.5"
               value={rate}
               onChange={(e) => setRate(Number(e.target.value))}
-              className="v-divider tabular mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
+              className="v-divider tabular mt-1 w-full rounded-lg border bg-[#131C2E] px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
               dir="ltr"
             />
           </label>
@@ -85,7 +85,7 @@ export function CompoundCalc() {
               type="number"
               value={years}
               onChange={(e) => setYears(Number(e.target.value))}
-              className="v-divider tabular mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
+              className="v-divider tabular mt-1 w-full rounded-lg border bg-[#131C2E] px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
               dir="ltr"
             />
           </label>

@@ -1568,7 +1568,7 @@ export default function BudgetPage() {
             </button>
             <div
               className="flex items-center gap-2 rounded-full px-3 py-1.5"
-              style={{ background: "rgba(255,255,255,0.08)" }}
+              style={{ background: "rgba(255,255,255,0.06)" }}
             >
               <select
                 value={month}
@@ -1872,7 +1872,7 @@ export default function BudgetPage() {
       {importPreview && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: "rgba(1, 45, 29, 0.45)" }}
+          style={{ background: "rgba(10,25,41,0.45)" }}
           onClick={cancelImport}
         >
           <div
@@ -1966,7 +1966,7 @@ export default function BudgetPage() {
                         חדשות — יתווספו אוטומטית ל-/debt עם האישור
                       </div>
                       <ul
-                        className="max-h-32 space-y-1 overflow-y-auto rounded-lg bg-white px-2 py-1.5"
+                        className="max-h-32 space-y-1 overflow-y-auto rounded-lg bg-[#131C2E] px-2 py-1.5"
                         style={{ border: "1px solid #1F2A3F" }}
                       >
                         {importPreview.installmentExtraction.detected.map((e, i) => (
@@ -2110,7 +2110,7 @@ function BudgetSection({
       // 2026-05-05 visual-cleanup: lighter border + bigger bottom margin so
       // sections breathe between each other. Was mb-3 (cramped) + a darker
       // border that made each section feel like a heavy card.
-      className="mb-5 overflow-hidden rounded-2xl bg-white"
+      className="mb-5 overflow-hidden rounded-2xl bg-[#131C2E]"
       style={{ border: "1px solid #f0f4ec", boxShadow: "none" }}
     >
       {/* Clickable section header (disclosure) */}
@@ -2629,7 +2629,7 @@ function ScopePicker({
       />
       {open && (
         <div
-          className="absolute right-0 top-5 z-20 flex flex-col gap-0.5 rounded-lg bg-white p-1 shadow-lg"
+          className="absolute right-0 top-5 z-20 flex flex-col gap-0.5 rounded-lg bg-[#131C2E] p-1 shadow-lg"
           style={{ border: "1px solid #1F2A3F", minWidth: "100px" }}
         >
           {opts.map((opt) => {

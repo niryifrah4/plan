@@ -31,7 +31,7 @@ export function MiluimCalc() {
               type="number"
               value={inputs.reserveDays}
               onChange={(e) => set("reserveDays", Number(e.target.value))}
-              className="v-divider tabular mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
+              className="v-divider tabular mt-1 w-full rounded-lg border bg-[#131C2E] px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
               dir="ltr"
             />
           </label>
@@ -41,7 +41,7 @@ export function MiluimCalc() {
               type="number"
               value={inputs.longestStretchDays}
               onChange={(e) => set("longestStretchDays", Number(e.target.value))}
-              className="v-divider tabular mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
+              className="v-divider tabular mt-1 w-full rounded-lg border bg-[#131C2E] px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
               dir="ltr"
             />
           </label>
@@ -51,7 +51,7 @@ export function MiluimCalc() {
               type="number"
               value={inputs.monthlyGross}
               onChange={(e) => set("monthlyGross", Number(e.target.value))}
-              className="v-divider tabular mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
+              className="v-divider tabular mt-1 w-full rounded-lg border bg-[#131C2E] px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
               dir="ltr"
             />
           </label>

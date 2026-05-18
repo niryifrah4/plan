@@ -1236,7 +1236,7 @@ function FundForm({
               setSelectedFundId("");
             }}
             className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#1F2A3F", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
           >
             <option value="">בחר חברה</option>
             {PROVIDERS.map((p) => (
@@ -1271,7 +1271,7 @@ function FundForm({
               set({ type: e.target.value as PensionFund["type"], subtype: undefined })
             }
             className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#1F2A3F", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
           >
             <option value="pension">פנסיה מקיפה</option>
             <option value="gemel">קופת גמל</option>
@@ -1286,7 +1286,7 @@ function FundForm({
             value={form.owner || "spouse_a"}
             onChange={(e) => set({ owner: e.target.value as PensionFund["owner"] })}
             className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#1F2A3F", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
           >
             {(() => {
               const names = loadSpouseNames();
@@ -1313,7 +1313,7 @@ function FundForm({
                 set({ subtype: (e.target.value || undefined) as PensionFund["subtype"] })
               }
               className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-              style={{ borderColor: "#1F2A3F", background: "#fff" }}
+              style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
             >
               <option value="">לא צוין</option>
               {SUBTYPES_BY_TYPE[form.type]?.map((st) => (
@@ -1337,7 +1337,7 @@ function FundForm({
                 value={form.conversionFactor || ""}
                 onChange={(e) => set({ conversionFactor: +e.target.value || undefined })}
                 className="tabular w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-                style={{ borderColor: "#1F2A3F", background: "#fff" }}
+                style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
                 placeholder="לדוג' 120"
               />
             </div>
@@ -1354,7 +1354,7 @@ function FundForm({
                 value={form.guaranteedRate || ""}
                 onChange={(e) => set({ guaranteedRate: +e.target.value || undefined })}
                 className="tabular w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-                style={{ borderColor: "#1F2A3F", background: "#fff" }}
+                style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
                 placeholder="לדוג' 4.0"
               />
             </div>
@@ -1386,7 +1386,7 @@ function FundForm({
             value={form.company}
             onChange={(e) => set({ company: e.target.value })}
             className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#1F2A3F", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
             placeholder={provider || "שם החברה"}
           />
         </div>
@@ -1397,7 +1397,7 @@ function FundForm({
             value={form.balance || ""}
             onChange={(e) => set({ balance: +e.target.value })}
             className="tabular w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#1F2A3F", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
             placeholder="₪"
           />
         </div>
@@ -1410,7 +1410,7 @@ function FundForm({
             value={form.monthlyContrib || ""}
             onChange={(e) => set({ monthlyContrib: +e.target.value })}
             className="tabular w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#1F2A3F", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
             placeholder="₪"
           />
         </div>
@@ -1421,7 +1421,7 @@ function FundForm({
             value={form.track}
             onChange={(e) => set({ track: e.target.value })}
             className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#1F2A3F", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
             placeholder="כללי / מניות / אג״ח"
           />
         </div>
@@ -1439,7 +1439,7 @@ function FundForm({
               value={form.openingDate || ""}
               onChange={(e) => set({ openingDate: e.target.value || undefined })}
               className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-              style={{ borderColor: "#1F2A3F", background: "#fff" }}
+              style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
             />
           </div>
           <div>
@@ -1450,7 +1450,7 @@ function FundForm({
               value={form.isEmployed === false ? "self" : "employed"}
               onChange={(e) => set({ isEmployed: e.target.value === "employed" })}
               className="w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-              style={{ borderColor: "#1F2A3F", background: "#fff" }}
+              style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
             >
               <option value="employed">שכיר (נזילות 6 שנים)</option>
               <option value="self">עצמאי (נזילות 3 שנים)</option>
@@ -1471,7 +1471,7 @@ function FundForm({
             value={form.mgmtFeeDeposit || ""}
             onChange={(e) => set({ mgmtFeeDeposit: +e.target.value })}
             className="tabular w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#1F2A3F", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
           />
         </div>
         <div>
@@ -1484,7 +1484,7 @@ function FundForm({
             value={form.mgmtFeeBalance || ""}
             onChange={(e) => set({ mgmtFeeBalance: +e.target.value })}
             className="tabular w-full rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink"
-            style={{ borderColor: "#1F2A3F", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
           />
         </div>
         <div className="md:col-span-2">

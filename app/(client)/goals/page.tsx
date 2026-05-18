@@ -860,7 +860,7 @@ export default function GoalsPage() {
           <div className="flex items-start gap-5">
             <div
               className="icon-lg shrink-0"
-              style={{ background: "rgba(27,67,50,0.1)", color: "var(--botanical-forest)" }}
+              style={{ background: "rgba(168,224,64,0.1)", color: "var(--botanical-forest)" }}
             >
               <span className="material-symbols-outlined text-[26px]">palette</span>
             </div>
@@ -868,7 +868,7 @@ export default function GoalsPage() {
               <div className="t-lg mb-2 font-extrabold" style={{ color: "var(--botanical-deep)" }}>
                 לא הוגדרו מטרות ויעדים
               </div>
-              <div className="mb-4 text-[13px] leading-6" style={{ color: "rgba(1,45,29,0.75)" }}>
+              <div className="mb-4 text-[13px] leading-6" style={{ color: "rgba(10,25,41,0.75)" }}>
                 כל שקל יודע לאן הוא הולך.
               </div>
               <button onClick={() => setShowAddForm(true)} className="btn btn-primary btn-sm">
@@ -892,7 +892,7 @@ export default function GoalsPage() {
               key={bucket.id}
               className="overflow-hidden rounded-2xl transition-all duration-200"
               style={{
-                background: "#fff",
+                background: "#131C2E",
                 border: "1px solid #1F2A3F",
                 boxShadow: "none",
               }}
@@ -1318,7 +1318,7 @@ function BucketEditForm({
           onChange={(e) => setInitialCash(e.target.value)}
           placeholder="₪0"
           className="w-full rounded-lg border px-3 py-2 text-[11px] font-bold outline-none focus:ring-2 focus:ring-verdant-accent/30"
-          style={{ borderColor: "#1F2A3F", background: "#fff", color: "#0891b2" }}
+          style={{ borderColor: "#1F2A3F", background: "#131C2E", color: "#0891b2" }}
         />
         <div className="mt-1 text-[9px] font-bold" style={{ color: "#94A3B8" }}>
           סכום חד-פעמי שכבר קיים בידיך — יחושב כחלק מהיעד מיידית
@@ -1331,7 +1331,7 @@ function BucketEditForm({
           value={fundingSource}
           onChange={handleInstrumentChange}
           className="w-full rounded-lg border px-3 py-2 text-[11px] font-bold outline-none"
-          style={{ borderColor: "#1F2A3F", background: "#fff" }}
+          style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
         />
         {currentInst && (
           <div className="mt-1.5 text-[9px] font-bold leading-relaxed" style={{ color: "#94A3B8" }}>
@@ -1465,7 +1465,7 @@ function BucketAddForm({
   return (
     <div
       className="space-y-5 rounded-2xl p-6"
-      style={{ background: "#fff", border: "2px solid #A8E04033" }}
+      style={{ background: "#131C2E", border: "2px solid #A8E04033" }}
     >
       <h3 className="text-base font-extrabold text-verdant-ink">קופה חדשה</h3>
 
@@ -1526,7 +1526,7 @@ function BucketAddForm({
           onChange={(e) => setInitialCash(e.target.value)}
           placeholder="₪0"
           className="w-full rounded-lg border px-3 py-2 text-[11px] font-bold outline-none focus:ring-2 focus:ring-verdant-accent/30"
-          style={{ borderColor: "#1F2A3F", background: "#fff", color: "#0891b2" }}
+          style={{ borderColor: "#1F2A3F", background: "#131C2E", color: "#0891b2" }}
         />
         <div className="mt-1 text-[9px] font-bold" style={{ color: "#94A3B8" }}>
           סכום חד-פעמי שכבר קיים בידיך — יחושב כחלק מהיעד מיידית
@@ -1539,7 +1539,7 @@ function BucketAddForm({
           value={fundingSource}
           onChange={handleInstrumentChange}
           className="w-full rounded-lg border px-3 py-2 text-[11px] font-bold outline-none"
-          style={{ borderColor: "#1F2A3F", background: "#fff" }}
+          style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
         />
         {currentInst && (
           <div className="mt-1.5 text-[9px] font-bold leading-relaxed" style={{ color: "#94A3B8" }}>
@@ -1665,7 +1665,7 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="w-full rounded-lg border px-3 py-2 text-[11px] font-bold outline-none focus:ring-2 focus:ring-verdant-accent/30"
-        style={{ borderColor: "#1F2A3F", background: "#fff" }}
+        style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
       />
     </div>
   );

@@ -120,7 +120,7 @@ export function RetirementAdvisorPanel({
                 key={i}
                 className="flex items-start gap-3 rounded-xl p-4"
                 style={{
-                  background: "#fff",
+                  background: "#131C2E",
                   border: `1px solid ${c.border}30`,
                   borderRight: `3px solid ${c.border}`,
                 }}

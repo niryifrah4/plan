@@ -231,7 +231,7 @@ function CategoryCard({
       {/* Header */}
       <button
         onClick={onToggle}
-        className="flex w-full items-center gap-3 p-4 text-right transition-colors hover:bg-gray-50/60"
+        className="flex w-full items-center gap-3 p-4 text-right transition-colors hover:bg-[#1A2438]/60"
       >
         <span className="material-symbols-outlined" style={{ fontSize: 28, color: barColor }}>
           {category.icon}
@@ -296,7 +296,7 @@ function CategoryCard({
               return (
                 <div key={ri.id}>
                   <div
-                    className="flex items-center gap-3 border-b px-4 py-3 transition-colors hover:bg-gray-50/40"
+                    className="flex items-center gap-3 border-b px-4 py-3 transition-colors hover:bg-[#1A2438]/40"
                     style={{ borderColor: "var(--verdant-border)" }}
                   >
                     {/* Status button */}

@@ -53,7 +53,7 @@ export default function RoadmapPage() {
 
       {/* Net worth start vs end */}
       <section className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-        <div className="rounded-xl bg-white p-4" style={{ border: "1px solid #1F2A3F" }}>
+        <div className="rounded-xl bg-[#131C2E] p-4" style={{ border: "1px solid #1F2A3F" }}>
           <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
             היום
           </div>
@@ -63,7 +63,7 @@ export default function RoadmapPage() {
           <div className="mt-0.5 text-[11px] text-verdant-muted">הון נטו נוכחי</div>
         </div>
         {retirementYear && (
-          <div className="rounded-xl bg-white p-4" style={{ border: "1px solid #1F2A3F" }}>
+          <div className="rounded-xl bg-[#131C2E] p-4" style={{ border: "1px solid #1F2A3F" }}>
             <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
               בפרישה
             </div>

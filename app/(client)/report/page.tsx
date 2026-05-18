@@ -143,7 +143,7 @@ export default function ReportPage() {
       <div dir="rtl" className="report-root mx-auto max-w-[210mm]">
         {/* Toolbar — screen only */}
         <div
-          className="no-print mb-6 flex items-center justify-between gap-3 rounded-lg border bg-white p-4"
+          className="no-print mb-6 flex items-center justify-between gap-3 rounded-lg border bg-[#131C2E] p-4"
           style={{ borderColor: "#1F2A3F" }}
         >
           <div className="flex items-center gap-2">
@@ -212,7 +212,7 @@ export default function ReportPage() {
             value={recommendations}
             onChange={(e) => setRecommendations(e.target.value)}
             rows={8}
-            className="report-recs-text w-full rounded-lg border bg-white p-4 text-sm"
+            className="report-recs-text w-full rounded-lg border bg-[#131C2E] p-4 text-sm"
             style={{ borderColor: "#1F2A3F", fontFamily: "inherit", lineHeight: 1.7 }}
             placeholder="הקלד כאן המלצות ושלבי פעולה ללקוח…"
           />
@@ -462,7 +462,7 @@ function Stat({
   valueClass?: string;
 }) {
   return (
-    <div className="rounded-lg border p-3" style={{ borderColor: "#1F2A3F", background: "#fff" }}>
+    <div className="rounded-lg border p-3" style={{ borderColor: "#1F2A3F", background: "#131C2E" }}>
       <div className="caption">{label}</div>
       <div className={`mt-1 text-lg font-extrabold text-verdant-ink ${valueClass}`}>{value}</div>
     </div>

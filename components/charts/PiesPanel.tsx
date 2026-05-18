@@ -139,7 +139,7 @@ function Donut({
                     x={cx}
                     y={cy + (compact ? 12 : 16)}
                     textAnchor="middle"
-                    style={{ fontSize: compact ? 10 : 11, fill: "rgba(1,45,29,0.6)" }}
+                    style={{ fontSize: compact ? 10 : 11, fill: "rgba(10,25,41,0.6)" }}
                   >
                     {pie.centerLabel ?? dominant.label}
                   </text>

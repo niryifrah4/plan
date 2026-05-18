@@ -11,7 +11,7 @@ export default function TermsPage() {
   return (
     <main
       dir="rtl"
-      className="min-h-screen bg-white"
+      className="min-h-screen bg-[#131C2E]"
       style={{ fontFamily: "'Assistant', sans-serif" }}
     >
       <div className="mx-auto max-w-3xl px-6 py-12">

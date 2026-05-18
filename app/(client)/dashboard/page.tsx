@@ -877,11 +877,11 @@ export default function DashboardPage() {
       {showCheckin && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ background: "rgba(1,45,29,0.4)", backdropFilter: "blur(4px)" }}
+          style={{ background: "rgba(10,25,41,0.4)", backdropFilter: "blur(4px)" }}
         >
           <div
             className="mx-4 w-full max-w-md rounded-organic p-8 shadow-soft"
-            style={{ background: "#fff", border: "2px solid #A8E04030" }}
+            style={{ background: "#131C2E", border: "2px solid #A8E04030" }}
           >
             <div className="mb-6 flex items-center gap-3">
               <div
@@ -1155,7 +1155,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3">
               <div
                 className="icon-sm"
-                style={{ background: "rgba(255,255,255,0.08)", color: "#A8E040" }}
+                style={{ background: "rgba(255,255,255,0.06)", color: "#A8E040" }}
               >
                 <span className="material-symbols-outlined text-[20px]">insights</span>
               </div>
@@ -1396,7 +1396,7 @@ export default function DashboardPage() {
             {/* Capital ↔ Income — the "heart of the heart" toggle */}
             <div
               className="flex w-fit gap-1 rounded-lg p-1"
-              style={{ background: "rgba(1,45,29,0.04)" }}
+              style={{ background: "rgba(168,224,64,0.06)" }}
               title="הון מצטבר מול הכנסה חודשית בפרישה"
             >
               {[
@@ -1408,7 +1408,7 @@ export default function DashboardPage() {
                   onClick={() => setViewMode(m.key as "capital" | "income")}
                   className={`rounded-md px-3 py-1.5 text-[11px] font-bold transition-all ${
                     viewMode === m.key
-                      ? "bg-white text-verdant-ink shadow-sm"
+                      ? "bg-[#131C2E] text-verdant-ink shadow-sm"
                       : "text-verdant-muted hover:text-verdant-ink"
                   }`}
                 >
@@ -1418,7 +1418,7 @@ export default function DashboardPage() {
             </div>
             <div
               className="flex w-fit gap-1 rounded-lg p-1"
-              style={{ background: "rgba(1,45,29,0.04)" }}
+              style={{ background: "rgba(168,224,64,0.06)" }}
             >
               {CHART_RANGES.map((r) => (
                 <button
@@ -1426,7 +1426,7 @@ export default function DashboardPage() {
                   onClick={() => setChartRange(r.key)}
                   className={`rounded-md px-3 py-1.5 text-[11px] font-bold transition-all ${
                     chartRange === r.key
-                      ? "bg-white text-verdant-ink shadow-sm"
+                      ? "bg-[#131C2E] text-verdant-ink shadow-sm"
                       : "text-verdant-muted hover:text-verdant-ink"
                   }`}
                 >
@@ -1436,7 +1436,7 @@ export default function DashboardPage() {
             </div>
             <div
               className="flex w-fit gap-1 rounded-lg p-1"
-              style={{ background: "rgba(1,45,29,0.04)" }}
+              style={{ background: "rgba(168,224,64,0.06)" }}
               title="ריאלי = אחרי אינפלציה ומס 25%"
             >
               {[
@@ -1448,7 +1448,7 @@ export default function DashboardPage() {
                   onClick={() => setDisplayMode(m.key as "nominal" | "real")}
                   className={`rounded-md px-3 py-1.5 text-[11px] font-bold transition-all ${
                     displayMode === m.key
-                      ? "bg-white text-verdant-ink shadow-sm"
+                      ? "bg-[#131C2E] text-verdant-ink shadow-sm"
                       : "text-verdant-muted hover:text-verdant-ink"
                   }`}
                 >
@@ -2038,7 +2038,7 @@ export default function DashboardPage() {
             <div className="t-lg font-extrabold" style={{ color: "var(--botanical-deep)" }}>
               כל שקל חייב לדעת לאן הוא הולך
             </div>
-            <div className="t-sm mt-2 font-bold" style={{ color: "rgba(1,45,29,0.7)" }}>
+            <div className="t-sm mt-2 font-bold" style={{ color: "rgba(10,25,41,0.7)" }}>
               צור מטרה ראשונה והתחל לעקוב אחרי המסלול
             </div>
           </div>
@@ -2090,11 +2090,14 @@ export default function DashboardPage() {
                 <div
                   key={bucket.id}
                   className="flex items-center gap-5 rounded-2xl px-5 py-4 transition-all"
-                  style={{ background: "#A8E040", boxShadow: "0 1px 2px rgba(0,0,0,0.30)" }}
+                  style={{ background: "#131C2E", border: "1px solid #1F2A3F" }}
                 >
                   <div
                     className="icon-sm"
-                    style={{ background: "rgba(27,67,50,0.12)", color: "var(--botanical-forest)" }}
+                    style={{
+                      background: "rgba(168,224,64,0.12)",
+                      color: "#A8E040",
+                    }}
                   >
                     <span className="material-symbols-outlined text-[20px]">
                       {bucket.icon || "flag"}
@@ -2104,36 +2107,36 @@ export default function DashboardPage() {
                     <div className="mb-2 flex items-center justify-between gap-3">
                       <div
                         className="truncate text-[14px] font-extrabold"
-                        style={{ color: "var(--botanical-deep)" }}
+                        style={{ color: "#F8FAFC" }}
                       >
                         {bucket.name}
                       </div>
                       <div
                         className="tabular shrink-0 text-[11px] font-bold"
-                        style={{ color: "rgba(1,45,29,0.60)" }}
+                        style={{ color: "#94A3B8" }}
                       >
                         {dateStr}
                       </div>
                     </div>
                     <div
                       className="h-1.5 overflow-hidden rounded-full"
-                      style={{ background: "rgba(1,45,29,0.10)" }}
+                      style={{ background: "#1F2A3F" }}
                     >
                       <div
                         className="h-full rounded-full transition-all"
-                        style={{ width: `${progressPct}%`, background: "var(--botanical-forest)" }}
+                        style={{ width: `${progressPct}%`, background: "#A8E040" }}
                       />
                     </div>
                     <div className="mt-1.5 flex items-center justify-between">
                       <div
                         className="tabular text-[10px] font-bold"
-                        style={{ color: "rgba(1,45,29,0.65)" }}
+                        style={{ color: "#94A3B8" }}
                       >
                         {fmtILS(bucket.currentAmount)} / {fmtILS(bucket.targetAmount)}
                       </div>
                       <div
                         className="tabular text-[10px] font-bold"
-                        style={{ color: "var(--botanical-deep)" }}
+                        style={{ color: "#F8FAFC" }}
                       >
                         {progressPct}%
                       </div>

@@ -335,7 +335,7 @@ export default function DepositsPage() {
                     setNewRefId("");
                   }}
                   className="w-full rounded-lg px-3 py-2 text-[13px] font-bold"
-                  style={{ border: "1px solid #1F2A3F", background: "#fff" }}
+                  style={{ border: "1px solid #1F2A3F", background: "#131C2E" }}
                 >
                   <option value="pension">פנסיה</option>
                   <option value="hishtalmut">השתלמות</option>
@@ -358,7 +358,7 @@ export default function DepositsPage() {
                       value={newRefId}
                       onChange={(e) => setNewRefId(e.target.value)}
                       className="w-full rounded-lg px-3 py-2 text-[13px] font-bold"
-                      style={{ border: "1px solid #1F2A3F", background: "#fff" }}
+                      style={{ border: "1px solid #1F2A3F", background: "#131C2E" }}
                     >
                       <option value="">— בחר קופה —</option>
                       {pensionFunds.map((f) => (
@@ -386,7 +386,7 @@ export default function DepositsPage() {
                   onChange={(e) => setNewLabel(e.target.value)}
                   placeholder="למשל: פנסיה מנורה / תיק השקעות"
                   className="w-full rounded-lg px-3 py-2 text-[13px] font-bold"
-                  style={{ border: "1px solid #1F2A3F", background: "#fff" }}
+                  style={{ border: "1px solid #1F2A3F", background: "#131C2E" }}
                 />
               </div>
 
@@ -400,7 +400,7 @@ export default function DepositsPage() {
                   onChange={(e) => setNewAmount(e.target.value)}
                   placeholder="2100"
                   className="tabular w-full rounded-lg px-3 py-2 text-[13px] font-extrabold"
-                  style={{ border: "1px solid #1F2A3F", background: "#fff" }}
+                  style={{ border: "1px solid #1F2A3F", background: "#131C2E" }}
                 />
               </div>
             </div>

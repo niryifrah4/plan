@@ -103,11 +103,11 @@ export function RefinanceSimulator({ track, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-soft"
+        className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-[#131C2E] shadow-soft"
         onClick={(e) => e.stopPropagation()}
         dir="rtl"
       >
-        <div className="v-divider sticky top-0 z-10 flex items-center justify-between border-b bg-white px-6 py-4">
+        <div className="v-divider sticky top-0 z-10 flex items-center justify-between border-b bg-[#131C2E] px-6 py-4">
           <div>
             <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
               סימולטור מיחזור / פירעון מואץ

@@ -218,7 +218,7 @@ function SliderField({
 
 function Stat({ label, value, positive }: { label: string; value: number; positive?: boolean }) {
   return (
-    <div className="rounded-xl bg-white p-3" style={{ border: "1px solid #1F2A3F" }}>
+    <div className="rounded-xl bg-[#131C2E] p-3" style={{ border: "1px solid #1F2A3F" }}>
       <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
         {label}
       </div>

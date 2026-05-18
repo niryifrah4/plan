@@ -23,8 +23,8 @@ export function MiniStat({ label, value, sub, color }: MiniStatProps) {
     <div
       className="rounded-xl p-3"
       style={{
-        background: "rgba(1,45,29,0.03)",
-        border: "1px solid rgba(1,45,29,0.06)",
+        background: "rgba(168,224,64,0.03)",
+        border: "1px solid rgba(168,224,64,0.08)",
       }}
     >
       <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-verdant-muted">

@@ -116,8 +116,8 @@ export function GoalContextStrip({ domain, title }: Props) {
                   key={g.id}
                   className="flex items-center gap-3 rounded-xl p-3"
                   style={{
-                    background: "rgba(255,255,255,0.06)",
-                    border: "1px solid rgba(255,255,255,0.08)",
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.06)",
                   }}
                 >
                   <div
@@ -144,7 +144,7 @@ export function GoalContextStrip({ domain, title }: Props) {
         ) : (
           <div
             className="rounded-xl p-3 text-center text-[11px] font-bold"
-            style={{ background: "rgba(255,255,255,0.06)", color: "#9ec9b7" }}
+            style={{ background: "rgba(255,255,255,0.04)", color: "#9ec9b7" }}
           >
             עדיין לא הוגדרו יעדים.{" "}
             <Link

@@ -220,7 +220,7 @@ export function UnmappedQueueTab() {
     return (
       <div
         className="mx-auto max-w-5xl rounded-2xl p-10 text-center"
-        style={{ background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
+        style={{ background: "#131C2E", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
       >
         <div
           className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full"
@@ -377,7 +377,7 @@ export function UnmappedQueueTab() {
 
 function StatCard({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div className="rounded-xl bg-white p-3">
+    <div className="rounded-xl bg-[#131C2E] p-3">
       <div className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
         {label}
       </div>
@@ -416,7 +416,7 @@ function QueueSection({
   return (
     <div
       className="overflow-hidden rounded-2xl"
-      style={{ background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
+      style={{ background: "#131C2E", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
     >
       <div
         className="flex items-center gap-3 px-5 py-3"
@@ -525,7 +525,7 @@ function QueueRow({
             e.target.value = "";
           }}
           className="min-w-[140px] cursor-pointer rounded-lg border px-3 py-2 text-[11px] font-bold outline-none transition-all focus:ring-2 focus:ring-verdant-accent/30"
-          style={{ borderColor: "#1F2A3F", background: "#fff", color: "#A8E040" }}
+          style={{ borderColor: "#1F2A3F", background: "#131C2E", color: "#A8E040" }}
         >
           <option value="" disabled>
             מפה ל…

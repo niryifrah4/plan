@@ -184,7 +184,7 @@ export function InvestmentPropertyCalc() {
         <div className="mb-4 grid grid-cols-3 gap-4">
           <div
             className="rounded-lg p-3 text-center"
-            style={{ background: "#fff", border: "1px solid #1F2A3F" }}
+            style={{ background: "#131C2E", border: "1px solid #1F2A3F" }}
           >
             <div className="mb-0.5 text-[9px] font-bold text-verdant-muted">מס רכישה</div>
             <div className="tabular text-lg font-extrabold" style={{ color: "#F87171" }}>
@@ -193,7 +193,7 @@ export function InvestmentPropertyCalc() {
           </div>
           <div
             className="rounded-lg p-3 text-center"
-            style={{ background: "#fff", border: "1px solid #1F2A3F" }}
+            style={{ background: "#131C2E", border: "1px solid #1F2A3F" }}
           >
             <div className="mb-0.5 text-[9px] font-bold text-verdant-muted">שכ״ט עו״ד</div>
             <div className="tabular text-lg font-extrabold text-verdant-ink">
@@ -202,7 +202,7 @@ export function InvestmentPropertyCalc() {
           </div>
           <div
             className="rounded-lg p-3 text-center"
-            style={{ background: "#fff", border: "1px solid #1F2A3F" }}
+            style={{ background: "#131C2E", border: "1px solid #1F2A3F" }}
           >
             <div className="mb-0.5 text-[9px] font-bold text-verdant-muted">סה״כ עלויות נלוות</div>
             <div className="tabular text-lg font-extrabold text-verdant-ink">
@@ -218,7 +218,7 @@ export function InvestmentPropertyCalc() {
       {/* Yield Analysis */}
       <div
         className="space-y-5 rounded-xl p-6"
-        style={{ background: "#fff", border: "1px solid #1F2A3F" }}
+        style={{ background: "#131C2E", border: "1px solid #1F2A3F" }}
       >
         <div className="caption">ניתוח תשואה</div>
 
@@ -359,7 +359,7 @@ function InputField({
       <div className="mb-1.5 text-[10px] font-bold text-verdant-muted">{label}</div>
       <div
         className="flex items-center gap-2 rounded-xl border px-4 py-2.5"
-        style={{ borderColor: "#1F2A3F", background: "#fff" }}
+        style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
       >
         <input
           type="number"

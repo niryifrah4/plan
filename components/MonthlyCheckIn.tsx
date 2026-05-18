@@ -176,11 +176,11 @@ export function MonthlyCheckIn({ open, onClose, onDone }: Props) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(1,45,29,0.55)", backdropFilter: "blur(4px)" }}
+      style={{ background: "rgba(10,25,41,0.55)", backdropFilter: "blur(4px)" }}
       onClick={onClose}
     >
       <div
-        className="flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-organic bg-white shadow-soft"
+        className="flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-organic bg-[#131C2E] shadow-soft"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -230,7 +230,7 @@ export function MonthlyCheckIn({ open, onClose, onDone }: Props) {
                   key={b.id}
                   className="rounded-xl p-4"
                   style={{
-                    background: "#fff",
+                    background: "#131C2E",
                     border: "1px solid #1F2A3F",
                     borderRight: `4px solid ${b.color}`,
                   }}

@@ -152,7 +152,7 @@ export function SpecialEventsSection() {
             <div
               key={ev.id}
               className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-verdant-bg/60"
-              style={{ background: "#fff", border: "1px solid #1F2A3F" }}
+              style={{ background: "#131C2E", border: "1px solid #1F2A3F" }}
             >
               <span
                 className="material-symbols-outlined text-[20px]"
@@ -278,7 +278,7 @@ function EventForm({ initial, onCancel, onSave }: EventFormProps) {
             onChange={(e) => setLabel(e.target.value)}
             placeholder={type === "income" ? "בונוס שנתי" : "רכישת רכב"}
             className="w-full rounded-lg border px-3 py-2 text-[12px] font-bold outline-none focus:ring-2 focus:ring-verdant-accent/30"
-            style={{ borderColor: "#1F2A3F", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
             autoFocus
           />
         </div>
@@ -291,7 +291,7 @@ function EventForm({ initial, onCancel, onSave }: EventFormProps) {
             value={ym}
             onChange={(e) => setYm(e.target.value)}
             className="w-full rounded-lg border px-3 py-2 text-[12px] font-bold outline-none focus:ring-2 focus:ring-verdant-accent/30"
-            style={{ borderColor: "#1F2A3F", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
             dir="ltr"
           />
         </div>
@@ -307,7 +307,7 @@ function EventForm({ initial, onCancel, onSave }: EventFormProps) {
             onChange={(e) => setAmount(e.target.value)}
             placeholder="25000"
             className="w-full rounded-lg border px-3 py-2 text-[12px] font-bold outline-none focus:ring-2 focus:ring-verdant-accent/30"
-            style={{ borderColor: "#1F2A3F", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
             dir="ltr"
           />
         </div>

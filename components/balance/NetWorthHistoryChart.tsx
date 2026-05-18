@@ -91,7 +91,7 @@ export function NetWorthHistoryChart({ snapshots }: Props) {
                 return p?.date ? fmtFullDate(p.date) : "";
               }}
               contentStyle={{
-                background: "#fff",
+                background: "#131C2E",
                 border: "1px solid #1F2A3F",
                 borderRadius: 8,
                 fontSize: 12,

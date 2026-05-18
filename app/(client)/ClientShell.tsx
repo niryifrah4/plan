@@ -94,7 +94,7 @@ export function ClientShell({
         style={{
           background: "#F8FAFC",
           color: "#F8FAFC",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
+          borderBottom: "1px solid rgba(255,255,255,0.04)",
         }}
         dir="rtl"
       >

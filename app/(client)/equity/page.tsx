@@ -132,7 +132,7 @@ export default function EquityPage() {
       {/* ═══ Grants list ═══ */}
       {mounted && grants.length === 0 && (
         <div
-          className="rounded-2xl bg-white p-8 text-center"
+          className="rounded-2xl bg-[#131C2E] p-8 text-center"
           style={{ border: "1px dashed #c8d6c0" }}
         >
           <span className="material-symbols-outlined text-[40px]" style={{ color: "#9fb3a4" }}>
@@ -198,7 +198,7 @@ function KpiCard({
 }) {
   const color = tone === "emerald" ? "#A8E040" : "#94A3B8";
   return (
-    <div className="rounded-2xl bg-white p-4" style={{ border: "1px solid #1F2A3F" }}>
+    <div className="rounded-2xl bg-[#131C2E] p-4" style={{ border: "1px solid #1F2A3F" }}>
       <div
         className="text-[11px] font-bold uppercase tracking-[0.12em]"
         style={{ color: "#94A3B8" }}
@@ -226,7 +226,7 @@ function GrantCard({
 }) {
   const v = computeVested(grant);
   return (
-    <div className="rounded-2xl bg-white p-5" style={{ border: "1px solid #1F2A3F" }}>
+    <div className="rounded-2xl bg-[#131C2E] p-5" style={{ border: "1px solid #1F2A3F" }}>
       <div className="mb-3 flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
@@ -345,11 +345,11 @@ function GrantEditor({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(1,45,29,0.5)" }}
+      style={{ background: "rgba(10,25,41,0.75)" }}
       onClick={onCancel}
     >
       <div
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-[#131C2E] p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="mb-4 text-[17px] font-extrabold" style={{ color: "#F8FAFC" }}>

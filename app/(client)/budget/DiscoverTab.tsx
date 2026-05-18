@@ -342,11 +342,11 @@ function BuildBudgetModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(1, 45, 29, 0.45)" }}
+      style={{ background: "rgba(10,25,41,0.45)" }}
       onClick={onClose}
     >
       <div
-        className="max-h-[88vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-white"
+        className="max-h-[88vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-[#131C2E]"
         style={{ border: "1px solid #1F2A3F" }}
         onClick={(e) => e.stopPropagation()}
         dir="rtl"
@@ -406,7 +406,7 @@ function BuildBudgetModal({
                   <li
                     key={cat.key}
                     className="rounded-xl p-3"
-                    style={{ background: "#fff", border: "1px solid #1F2A3F" }}
+                    style={{ background: "#131C2E", border: "1px solid #1F2A3F" }}
                   >
                     <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
                       <div className="font-extrabold text-verdant-ink text-[13px]">
@@ -462,7 +462,7 @@ function BuildBudgetModal({
                             )
                           }
                           placeholder="₪"
-                          className="w-24 rounded-md border bg-white px-2 py-1 text-center text-[12px] font-extrabold tabular-nums"
+                          className="w-24 rounded-md border bg-[#131C2E] px-2 py-1 text-center text-[12px] font-extrabold tabular-nums"
                           style={{ borderColor: "#1F2A3F" }}
                           dir="ltr"
                           autoFocus
@@ -643,7 +643,7 @@ function SpendingSnapshot({ summary }: { summary: DiscoverSummary }) {
   return (
     <section
       className="rounded-2xl"
-      style={{ background: "#fff", border: "1px solid #1F2A3F" }}
+      style={{ background: "#131C2E", border: "1px solid #1F2A3F" }}
     >
       <div className="px-5 pt-5 pb-3">
         <div className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-verdant-muted">
@@ -862,7 +862,7 @@ function SubscriptionsRadar({
   return (
     <section
       className="rounded-2xl"
-      style={{ background: "#fff", border: "1px solid #1F2A3F" }}
+      style={{ background: "#131C2E", border: "1px solid #1F2A3F" }}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 pt-5 pb-3">
         <div>

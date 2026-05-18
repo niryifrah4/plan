@@ -111,7 +111,7 @@ export function BituachLeumiCalc() {
           זכויות (אומדן)
         </h4>
         <div className="space-y-3 rounded-xl p-4" style={{ background: "#1A2438" }}>
-          <div className="flex items-start gap-3 rounded-lg p-2" style={{ background: "#fff" }}>
+          <div className="flex items-start gap-3 rounded-lg p-2" style={{ background: "#131C2E" }}>
             <span
               className="material-symbols-outlined mt-0.5 text-[18px]"
               style={{ color: "#A8E040" }}
@@ -131,7 +131,7 @@ export function BituachLeumiCalc() {
           </div>
 
           {childrenUnder18 > 0 && (
-            <div className="flex items-start gap-3 rounded-lg p-2" style={{ background: "#fff" }}>
+            <div className="flex items-start gap-3 rounded-lg p-2" style={{ background: "#131C2E" }}>
               <span
                 className="material-symbols-outlined mt-0.5 text-[18px]"
                 style={{ color: "#4ADE80" }}
@@ -148,7 +148,7 @@ export function BituachLeumiCalc() {
             </div>
           )}
 
-          <div className="flex items-start gap-3 rounded-lg p-2" style={{ background: "#fff" }}>
+          <div className="flex items-start gap-3 rounded-lg p-2" style={{ background: "#131C2E" }}>
             <span
               className="material-symbols-outlined mt-0.5 text-[18px]"
               style={{ color: "#f59e0b" }}
@@ -163,7 +163,7 @@ export function BituachLeumiCalc() {
             </div>
           </div>
 
-          <div className="flex items-start gap-3 rounded-lg p-2" style={{ background: "#fff" }}>
+          <div className="flex items-start gap-3 rounded-lg p-2" style={{ background: "#131C2E" }}>
             <span
               className="material-symbols-outlined mt-0.5 text-[18px]"
               style={{ color: "#3b82f6" }}

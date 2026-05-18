@@ -797,7 +797,7 @@ export function DocumentsTab() {
           {/* ── Header card: file + 3 KPIs + progress ── */}
           <div
             className="rounded-2xl p-5"
-            style={{ background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
+            style={{ background: "#131C2E", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
           >
             <div className="mb-4 flex items-center justify-between">
               <div className="flex min-w-0 items-center gap-3">
@@ -940,7 +940,7 @@ export function DocumentsTab() {
             <div
               className="overflow-hidden rounded-2xl"
               style={{
-                background: "#fff",
+                background: "#131C2E",
                 boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
                 borderRight: "3px solid #B45309",
               }}
@@ -1035,7 +1035,7 @@ export function DocumentsTab() {
                                       }
                                     : {
                                         borderColor: "#e5e7eb",
-                                        background: "#fff",
+                                        background: "#131C2E",
                                         color: "#9ca3af",
                                       }
                                 }
@@ -1079,7 +1079,7 @@ export function DocumentsTab() {
             <div
               className="overflow-hidden rounded-2xl"
               style={{
-                background: "#fff",
+                background: "#131C2E",
                 boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
                 borderRight: "3px solid #A8E040",
               }}
@@ -1181,7 +1181,7 @@ export function DocumentsTab() {
                                           className="w-full cursor-pointer rounded-lg border px-2 py-1.5 text-[11px] font-bold outline-none transition-all focus:ring-2 focus:ring-verdant-accent/30"
                                           style={{
                                             borderColor: "#1F2A3F",
-                                            background: "#fff",
+                                            background: "#131C2E",
                                             color: "#A8E040",
                                           }}
                                         >
@@ -1211,7 +1211,7 @@ export function DocumentsTab() {
                                                   }
                                                 : {
                                                     borderColor: "#e5e7eb",
-                                                    background: "#fff",
+                                                    background: "#131C2E",
                                                     color: "#9ca3af",
                                                   }
                                             }
@@ -1307,7 +1307,7 @@ export function DocumentsTab() {
       {phase === "saved" && doc && (
         <div
           className="rounded-2xl p-10 text-center"
-          style={{ background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
+          style={{ background: "#131C2E", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
         >
           <div
             className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full"
@@ -1423,7 +1423,7 @@ export function DocumentsTab() {
                 )}
               </div>
               <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-                <div className="rounded-xl bg-white p-3">
+                <div className="rounded-xl bg-[#131C2E] p-3">
                   <div className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
                     קבצים
                   </div>
@@ -1431,7 +1431,7 @@ export function DocumentsTab() {
                     {docHistory.length}
                   </div>
                 </div>
-                <div className="rounded-xl bg-white p-3">
+                <div className="rounded-xl bg-[#131C2E] p-3">
                   <div className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
                     תנועות
                   </div>
@@ -1439,7 +1439,7 @@ export function DocumentsTab() {
                     {totalTx.toLocaleString("he-IL")}
                   </div>
                 </div>
-                <div className="rounded-xl bg-white p-3">
+                <div className="rounded-xl bg-[#131C2E] p-3">
                   <div className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
                     אחוז ממופה
                   </div>
@@ -1450,7 +1450,7 @@ export function DocumentsTab() {
                     {pct}%
                   </div>
                 </div>
-                <div className="rounded-xl bg-white p-3">
+                <div className="rounded-xl bg-[#131C2E] p-3">
                   <div className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
                     לא ממופה
                   </div>
@@ -1468,7 +1468,7 @@ export function DocumentsTab() {
                 </div>
               </div>
               {/* Progress bar */}
-              <div className="h-2 overflow-hidden rounded-full bg-white">
+              <div className="h-2 overflow-hidden rounded-full bg-[#131C2E]">
                 <div
                   className="h-full"
                   style={{
@@ -1500,7 +1500,7 @@ export function DocumentsTab() {
       {phase === "idle" && !error && docHistory.length > 0 && (
         <div
           className="mt-6 overflow-hidden rounded-2xl"
-          style={{ background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
+          style={{ background: "#131C2E", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
         >
           <div
             className="flex items-center justify-between px-5 py-3"
@@ -1672,7 +1672,7 @@ export function DocumentsTab() {
         <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div
             className="rounded-2xl p-5"
-            style={{ background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
+            style={{ background: "#131C2E", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
           >
             <div className="mb-3 flex items-center gap-2">
               <span className="material-symbols-outlined text-[18px] text-verdant-emerald">
@@ -1699,7 +1699,7 @@ export function DocumentsTab() {
           </div>
           <div
             className="rounded-2xl p-5"
-            style={{ background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
+            style={{ background: "#131C2E", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
           >
             <div className="mb-3 flex items-center gap-2">
               <span className="material-symbols-outlined text-[18px] text-verdant-emerald">

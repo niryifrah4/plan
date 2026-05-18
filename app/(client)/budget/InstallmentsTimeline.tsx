@@ -67,7 +67,7 @@ export function InstallmentsTimeline() {
   return (
     <section
       className="mb-6 rounded-2xl p-5"
-      style={{ background: "#fff", border: "1px solid #1F2A3F" }}
+      style={{ background: "#131C2E", border: "1px solid #1F2A3F" }}
     >
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <div>

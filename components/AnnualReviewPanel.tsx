@@ -207,7 +207,7 @@ function AnnualReviewForm({ onClose }: { onClose: () => void }) {
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-soft"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-[#131C2E] shadow-soft"
         onClick={(e) => e.stopPropagation()}
         dir="rtl"
       >

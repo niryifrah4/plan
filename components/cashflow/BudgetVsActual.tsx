@@ -56,7 +56,7 @@ export function BudgetVsActual() {
     <div
       className="rounded-2xl p-7"
       style={{
-        background: "#fff",
+        background: "#131C2E",
         border: "1px solid #1F2A3F",
         boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
       }}

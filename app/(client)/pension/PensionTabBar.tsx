@@ -19,7 +19,7 @@ export function PensionTabBar() {
   return (
     <div
       className="mb-6 flex gap-1 rounded-xl p-1"
-      style={{ background: "rgba(1,45,29,0.04)" }}
+      style={{ background: "rgba(168,224,64,0.06)" }}
       dir="rtl"
     >
       {TABS.map((t) => {
@@ -30,10 +30,10 @@ export function PensionTabBar() {
             href={t.href as any}
             className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-all ${
               active
-                ? "bg-white text-verdant-ink shadow-sm"
+                ? "bg-[#131C2E] text-verdant-ink shadow-sm"
                 : "text-verdant-muted hover:text-verdant-ink"
             }`}
-            style={active ? { boxShadow: "0 1px 3px rgba(1,45,29,0.08)" } : undefined}
+            style={active ? { boxShadow: "0 1px 3px rgba(168,224,64,0.10)" } : undefined}
           >
             <span className="material-symbols-outlined text-[18px]">{t.icon}</span>
             {t.label}

@@ -117,7 +117,7 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
   return (
     <section
       className="rounded-2xl p-5"
-      style={{ background: "#fff", border: "1px solid #1F2A3F" }}
+      style={{ background: "#131C2E", border: "1px solid #1F2A3F" }}
     >
       <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-verdant-muted">
         סימולטור
@@ -139,7 +139,7 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
             value={capitalStr}
             onChange={(e) => setCapitalStr(e.target.value)}
             placeholder="לדוגמה 5,000"
-            className="w-32 rounded-md border bg-white px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
+            className="w-32 rounded-md border bg-[#131C2E] px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
             style={{ borderColor: "#1F2A3F" }}
             dir="ltr"
           />
@@ -224,7 +224,7 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
                 {isSelected && (
                   <div
                     className="mt-3 grid grid-cols-2 gap-3 rounded-lg p-3 text-[12px] md:grid-cols-4"
-                    style={{ background: "#fff", border: "1px solid #1F2A3F" }}
+                    style={{ background: "#131C2E", border: "1px solid #1F2A3F" }}
                   >
                     <ScenarioStat
                       label="עלות סגירה"

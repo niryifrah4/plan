@@ -120,7 +120,7 @@ export function GoalLinker({
 
   const selectCls =
     variant === "card"
-      ? "text-[12px] font-bold rounded-lg px-2.5 py-1.5 border outline-none bg-white"
+      ? "text-[12px] font-bold rounded-lg px-2.5 py-1.5 border outline-none bg-[#131C2E]"
       : "text-[10px] font-bold rounded px-1.5 py-1 border outline-none max-w-[130px]";
   const pctInputCls =
     variant === "card"
@@ -181,7 +181,7 @@ export function GoalLinker({
               if (e.target.value) handleSelectChange("", e.target.value, 100);
             }}
             className={selectCls}
-            style={{ borderColor: "#1F2A3F", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
           >
             <option value="">ללא שיוך</option>
             {availableBuckets.map((b) => (

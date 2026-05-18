@@ -186,7 +186,7 @@ export function AccountsTab() {
               />
             ) : (
               <div
-                className="flex cursor-pointer items-center gap-4 border-b px-5 py-4 transition-colors hover:bg-gray-50/40"
+                className="flex cursor-pointer items-center gap-4 border-b px-5 py-4 transition-colors hover:bg-[#1A2438]/40"
                 style={{ borderColor: "var(--verdant-border)" }}
                 onClick={() => setEditingId(bank.id)}
               >
@@ -351,7 +351,7 @@ export function AccountsTab() {
             ) : (
               <>
               <div
-                className="flex items-center gap-4 border-b px-5 py-4 transition-colors hover:bg-gray-50/40"
+                className="flex items-center gap-4 border-b px-5 py-4 transition-colors hover:bg-[#1A2438]/40"
                 style={{ borderColor: "var(--verdant-border)" }}
               >
                 <div
@@ -738,7 +738,7 @@ function QuickAddPurchase({
           if (e.key === "Enter") submit();
           if (e.key === "Escape") onCancel();
         }}
-        className="w-24 rounded-md border bg-white px-2 py-1.5 text-center text-[13px] font-extrabold tabular-nums focus:outline-none"
+        className="w-24 rounded-md border bg-[#131C2E] px-2 py-1.5 text-center text-[13px] font-extrabold tabular-nums focus:outline-none"
         style={{ borderColor: "#1F2A3F" }}
         dir="ltr"
       />
@@ -751,7 +751,7 @@ function QuickAddPurchase({
           if (e.key === "Enter") submit();
           if (e.key === "Escape") onCancel();
         }}
-        className="min-w-[140px] flex-1 rounded-md border bg-white px-2 py-1.5 text-[12px] focus:outline-none"
+        className="min-w-[140px] flex-1 rounded-md border bg-[#131C2E] px-2 py-1.5 text-[12px] focus:outline-none"
         style={{ borderColor: "#1F2A3F" }}
       />
       {parseFloat(amount) > 0 && card.creditLimit > 0 && (

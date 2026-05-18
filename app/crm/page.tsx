@@ -691,7 +691,7 @@ export default function CrmPage() {
                     <button
                       key={v.k}
                       onClick={() => setCalView(v.k)}
-                      className={`rounded-md px-2.5 py-1 text-[10px] font-bold transition-all ${calView === v.k ? "bg-white text-verdant-accent shadow-sm" : "text-verdant-muted hover:text-verdant-ink"}`}
+                      className={`rounded-md px-2.5 py-1 text-[10px] font-bold transition-all ${calView === v.k ? "bg-[#131C2E] text-verdant-accent shadow-sm" : "text-verdant-muted hover:text-verdant-ink"}`}
                     >
                       {v.l}
                     </button>
@@ -1390,7 +1390,7 @@ export default function CrmPage() {
 
       <div
         ref={drawerRef}
-        className={`fixed right-0 top-0 z-50 flex h-full w-[440px] max-w-[90vw] flex-col bg-white shadow-2xl transition-transform duration-300 ease-out ${
+        className={`fixed right-0 top-0 z-50 flex h-full w-[440px] max-w-[90vw] flex-col bg-[#131C2E] shadow-2xl transition-transform duration-300 ease-out ${
           drawerLeadId !== null ? "translate-x-0" : "translate-x-full"
         }`}
         style={{ borderLeft: "1px solid var(--verdant-line)" }}
@@ -1759,7 +1759,7 @@ export default function CrmPage() {
         <>
           <div className="fixed inset-0 z-[55] bg-black/30" onClick={() => setShowNewLead(false)} />
           <div
-            className="fixed left-1/2 top-1/2 z-[56] w-[460px] max-w-[92vw] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-organic bg-white shadow-soft"
+            className="fixed left-1/2 top-1/2 z-[56] w-[460px] max-w-[92vw] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-organic bg-[#131C2E] shadow-soft"
             dir="rtl"
           >
             {/* Modal Header */}

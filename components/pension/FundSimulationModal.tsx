@@ -52,12 +52,12 @@ export function FundSimulationModal({ fund, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-soft"
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-[#131C2E] shadow-soft"
         onClick={(e) => e.stopPropagation()}
         dir="rtl"
       >
         {/* Header */}
-        <div className="v-divider sticky top-0 flex items-center justify-between border-b bg-white px-6 py-4">
+        <div className="v-divider sticky top-0 flex items-center justify-between border-b bg-[#131C2E] px-6 py-4">
           <div>
             <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
               סימולציה
@@ -211,7 +211,7 @@ function ResultCard({
   const color = positive ? "#A8E040" : negative ? "#8B2E2E" : "#94A3B8";
   const sign = positive ? "+" : "";
   return (
-    <div className="rounded-xl bg-white p-4" style={{ border: "1px solid #1F2A3F" }}>
+    <div className="rounded-xl bg-[#131C2E] p-4" style={{ border: "1px solid #1F2A3F" }}>
       <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
         {label}
       </div>

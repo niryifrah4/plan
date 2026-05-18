@@ -199,10 +199,10 @@ function KidCard({
       );
 
   return (
-    <div className="v-divider overflow-hidden rounded-xl border bg-white">
+    <div className="v-divider overflow-hidden rounded-xl border bg-[#131C2E]">
       {/* ── Summary row — always visible ── */}
       <div
-        className="flex cursor-pointer items-center justify-between px-4 py-3.5 transition-colors hover:bg-gray-50"
+        className="flex cursor-pointer items-center justify-between px-4 py-3.5 transition-colors hover:bg-[#1A2438]"
         onClick={onToggle}
       >
         {/* Left: chevron + monthly total + gap line */}
@@ -347,7 +347,7 @@ function EditKidPanel({
   }, [dob, track, balance, parentDep, giftTarget, extraMonthly]);
 
   return (
-    <div className="v-divider space-y-3 border-t bg-gray-50 px-4 py-4">
+    <div className="v-divider space-y-3 border-t bg-[#1A2438] px-4 py-4">
       {/* Basic info */}
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -397,7 +397,7 @@ function EditKidPanel({
                 className={`rounded-lg border px-2 py-1.5 text-[10px] font-extrabold transition-all ${
                   track === t.key
                     ? "text-white shadow-sm"
-                    : "bg-white text-verdant-ink hover:bg-gray-100"
+                    : "bg-[#131C2E] text-verdant-ink hover:bg-gray-100"
                 }`}
                 style={{
                   borderColor: track === t.key ? TRACK_COLORS[t.key] : "#1F2A3F",
@@ -444,7 +444,7 @@ function EditKidPanel({
                 className={`rounded-lg border px-2 py-1.5 text-[11px] font-extrabold transition-all ${
                   parentDep === opt.value
                     ? "border-blue-600 bg-blue-600 text-white shadow-sm"
-                    : "border-gray-300 bg-white text-verdant-ink hover:bg-gray-100"
+                    : "border-gray-300 bg-[#131C2E] text-verdant-ink hover:bg-gray-100"
                 }`}
               >
                 {opt.label}
@@ -507,7 +507,7 @@ function EditKidPanel({
                 ? liveCalc.gap > 0
                   ? "border-amber-200 bg-amber-50"
                   : "border-green-200 bg-green-50"
-                : "border-gray-200 bg-white"
+                : "border-gray-200 bg-[#131C2E]"
             }`}
           >
             <div className="flex items-center justify-between">
@@ -667,7 +667,7 @@ function AddKidForm({
   };
 
   return (
-    <div className="v-divider space-y-3 rounded-xl border-2 border-dashed bg-gray-50 p-4">
+    <div className="v-divider space-y-3 rounded-xl border-2 border-dashed bg-[#1A2438] p-4">
       <h4 className="flex items-center justify-end gap-2 text-right text-[13px] font-extrabold text-verdant-ink">
         <span>הוספת ילד/ה</span>
         <span className="material-symbols-outlined text-[18px] text-verdant-emerald">
@@ -728,7 +728,7 @@ function AddKidForm({
                 className={`rounded-lg border px-2 py-2 text-[10px] font-extrabold transition-all ${
                   track === t.key
                     ? "text-white shadow-sm"
-                    : "bg-white text-verdant-ink hover:bg-gray-100"
+                    : "bg-[#131C2E] text-verdant-ink hover:bg-gray-100"
                 }`}
                 style={{
                   borderColor: track === t.key ? TRACK_COLORS[t.key] : "#1F2A3F",
@@ -775,7 +775,7 @@ function AddKidForm({
                 className={`rounded-lg border px-2 py-1.5 text-[11px] font-extrabold transition-all ${
                   parentDep === opt.value
                     ? "border-blue-600 bg-blue-600 text-white shadow-sm"
-                    : "border-gray-300 bg-white text-verdant-ink hover:bg-gray-100"
+                    : "border-gray-300 bg-[#131C2E] text-verdant-ink hover:bg-gray-100"
                 }`}
               >
                 {opt.label}
@@ -838,7 +838,7 @@ function AddKidForm({
                 ? liveCalc.gap > 0
                   ? "border-amber-200 bg-amber-50"
                   : "border-green-200 bg-green-50"
-                : "border-gray-200 bg-white"
+                : "border-gray-200 bg-[#131C2E]"
             }`}
           >
             <div className="flex items-center justify-between">

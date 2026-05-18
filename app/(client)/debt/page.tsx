@@ -476,7 +476,7 @@ export default function DebtPage() {
           2026-05-05 visual-cleanup: dropped the heavy shadow + replaced the
           off-palette purple tint with a clean botanical border. */}
       <section
-        className="mb-5 overflow-hidden rounded-2xl bg-white"
+        className="mb-5 overflow-hidden rounded-2xl bg-[#131C2E]"
         style={{ border: "1px solid #f0f4ec", boxShadow: "none" }}
       >
         <button
@@ -848,7 +848,7 @@ export default function DebtPage() {
       {/* ═══ Loans Section ═══
           2026-05-05 visual-cleanup: lighter border + no shadow. */}
       <section
-        className="mb-5 overflow-hidden rounded-2xl bg-white"
+        className="mb-5 overflow-hidden rounded-2xl bg-[#131C2E]"
         style={{ border: "1px solid #f0f4ec", boxShadow: "none" }}
       >
         <button
@@ -1092,7 +1092,7 @@ export default function DebtPage() {
       {/* ═══ Installments Section ═══
           2026-05-05 visual-cleanup: lighter border + no shadow. */}
       <section
-        className="mb-5 overflow-hidden rounded-2xl bg-white"
+        className="mb-5 overflow-hidden rounded-2xl bg-[#131C2E]"
         style={{ border: "1px solid #f0f4ec", boxShadow: "none" }}
       >
         <button

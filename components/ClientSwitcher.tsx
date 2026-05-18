@@ -215,7 +215,7 @@ export function ClientSwitcher() {
           background: "#131C2E",
           borderColor: "#1F2A3F",
           color: "#F8FAFC",
-          boxShadow: "0 1px 2px rgba(1,45,29,0.04)",
+          boxShadow: "0 1px 2px rgba(168,224,64,0.06)",
         }}
       >
         <span
@@ -241,7 +241,7 @@ export function ClientSwitcher() {
           style={{
             background: "#131C2E",
             borderColor: "#1F2A3F",
-            boxShadow: "0 10px 30px rgba(1,45,29,0.12)",
+            boxShadow: "0 10px 30px rgba(168,224,64,0.12)",
           }}
           role="listbox"
         >
@@ -378,7 +378,7 @@ export function ClientSwitcher() {
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center"
           style={{
-            background: "rgba(1,45,29,0.4)",
+            background: "rgba(10,25,41,0.4)",
             backdropFilter: "blur(4px)",
             WebkitBackdropFilter: "blur(4px)",
           }}

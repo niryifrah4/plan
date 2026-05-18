@@ -1045,7 +1045,7 @@ function InlineEditRow({
             value={kind}
             onChange={(e) => setKind(e.target.value)}
             className="w-full rounded-lg border px-3 py-2 text-[11px] font-bold outline-none"
-            style={{ borderColor: "#1F2A3F", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
           >
             {Object.entries(KIND_LABELS).map(([k, v]) => (
               <option key={k} value={k}>
@@ -1062,7 +1062,7 @@ function InlineEditRow({
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
             className="w-full rounded-lg border px-3 py-2 text-[11px] font-bold outline-none"
-            style={{ borderColor: "#1F2A3F", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
           >
             <option value="USD">USD</option>
             <option value="ILS">ILS</option>
@@ -1162,7 +1162,7 @@ function AddSecurityForm({
             value={kind}
             onChange={(e) => setKind(e.target.value)}
             className="w-full rounded-lg border px-3 py-2 text-[11px] font-bold outline-none"
-            style={{ borderColor: "#1F2A3F", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
           >
             {Object.entries(KIND_LABELS).map(([k, v]) => (
               <option key={k} value={k}>
@@ -1179,7 +1179,7 @@ function AddSecurityForm({
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
             className="w-full rounded-lg border px-3 py-2 text-[11px] font-bold outline-none"
-            style={{ borderColor: "#1F2A3F", background: "#fff" }}
+            style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
           >
             <option value="USD">USD</option>
             <option value="ILS">ILS</option>
@@ -1273,7 +1273,7 @@ function SmallField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="w-full rounded-lg border px-3 py-2 text-[11px] font-bold outline-none focus:ring-2 focus:ring-verdant-accent/30"
-        style={{ borderColor: "#1F2A3F", background: "#fff" }}
+        style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
         dir="ltr"
       />
     </div>

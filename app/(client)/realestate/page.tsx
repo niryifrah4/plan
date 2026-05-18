@@ -134,7 +134,7 @@ function PropertyForm({ initial, onSave, onCancel }: PropertyFormProps) {
   };
 
   const inputCls =
-    "w-full px-3 py-2 rounded-lg text-sm border focus:outline-none focus:ring-2 focus:ring-verdant-emerald/30 bg-white text-verdant-ink";
+    "w-full px-3 py-2 rounded-lg text-sm border focus:outline-none focus:ring-2 focus:ring-verdant-emerald/30 bg-[#131C2E] text-verdant-ink";
   const labelCls = "text-[11px] font-bold text-verdant-muted block mb-1";
 
   return (
@@ -143,7 +143,7 @@ function PropertyForm({ initial, onSave, onCancel }: PropertyFormProps) {
       onClick={onCancel}
     >
       <div
-        className="mx-4 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-organic bg-white shadow-soft"
+        className="mx-4 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-organic bg-[#131C2E] shadow-soft"
         onClick={(e) => e.stopPropagation()}
         dir="rtl"
       >

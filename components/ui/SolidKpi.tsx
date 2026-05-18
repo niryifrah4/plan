@@ -98,7 +98,7 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg }: Solid
   // Bank-style default: white card with thin tone accent on the right edge.
   return (
     <div
-      className="relative overflow-hidden bg-white px-5 py-4 duration-200"
+      className="relative overflow-hidden bg-[#131C2E] px-5 py-4 duration-200"
       style={{
         borderRadius: "0.75rem",
         border: "1px solid #1F2A3F",

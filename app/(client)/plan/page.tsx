@@ -147,7 +147,7 @@ export default function PlanPage() {
           <button
             onClick={exportToExcel}
             disabled={entries.length === 0}
-            className="flex items-center justify-center gap-2 rounded-2xl bg-white p-4 transition-all disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex items-center justify-center gap-2 rounded-2xl bg-[#131C2E] p-4 transition-all disabled:cursor-not-allowed disabled:opacity-50"
             style={{ border: "1px solid #1F2A3F", color: "#A8E040" }}
           >
             <span className="material-symbols-outlined text-[20px]">download</span>
@@ -169,7 +169,7 @@ export default function PlanPage() {
           ) : (
             <div
               className="space-y-4 rounded-2xl p-5"
-              style={{ background: "#fff", border: "2px solid #A8E04033" }}
+              style={{ background: "#131C2E", border: "2px solid #A8E04033" }}
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-extrabold" style={{ color: "#F8FAFC" }}>
@@ -226,7 +226,7 @@ export default function PlanPage() {
                             : "למשל: הערה למפגש הבא"
                     }
                     className="w-full rounded-lg border px-3 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-verdant-accent/30"
-                    style={{ borderColor: "#1F2A3F", background: "#fff", color: "#F8FAFC" }}
+                    style={{ borderColor: "#1F2A3F", background: "#131C2E", color: "#F8FAFC" }}
                   />
                 </div>
                 <div>
@@ -238,7 +238,7 @@ export default function PlanPage() {
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
                     className="w-full rounded-lg border px-3 py-2.5 text-sm font-semibold outline-none"
-                    style={{ borderColor: "#1F2A3F", background: "#fff", color: "#F8FAFC" }}
+                    style={{ borderColor: "#1F2A3F", background: "#131C2E", color: "#F8FAFC" }}
                   />
                 </div>
               </div>
@@ -253,7 +253,7 @@ export default function PlanPage() {
                   rows={4}
                   placeholder="על מה דיברתם, איך הרגשת, מה החלטתם..."
                   className="w-full resize-none rounded-lg border px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-verdant-accent/30"
-                  style={{ borderColor: "#1F2A3F", background: "#fff", color: "#F8FAFC" }}
+                  style={{ borderColor: "#1F2A3F", background: "#131C2E", color: "#F8FAFC" }}
                 />
               </div>
 
@@ -303,7 +303,7 @@ export default function PlanPage() {
           {filtered.length === 0 ? (
             <div
               className="rounded-2xl py-16 text-center"
-              style={{ background: "#fff", border: "1px dashed #1F2A3F" }}
+              style={{ background: "#131C2E", border: "1px dashed #1F2A3F" }}
             >
               <span
                 className="material-symbols-outlined mb-3 block text-[48px]"
@@ -442,7 +442,7 @@ function EntryCard({
     <div
       className="rounded-2xl p-4"
       style={{
-        background: "#fff",
+        background: "#131C2E",
         border: `1px solid ${meta.color}22`,
         borderInlineStart: `4px solid ${meta.color}`,
         opacity: entry.type === "task" && entry.done ? 0.55 : 1,

@@ -270,7 +270,7 @@ function InputField({
       <div className="mb-1.5 text-[10px] font-bold text-verdant-muted">{label}</div>
       <div
         className="flex items-center gap-2 rounded-xl border px-4 py-2.5"
-        style={{ borderColor: "#1F2A3F", background: "#fff" }}
+        style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
       >
         <input
           type="number"
