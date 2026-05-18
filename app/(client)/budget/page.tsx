@@ -30,6 +30,10 @@ const DailyCashflowTab = dynamic(
   () => import("./DailyCashflowTab").then((m) => m.DailyCashflowTab),
   { ssr: false }
 );
+const DiscoverTab = dynamic(
+  () => import("./DiscoverTab").then((m) => m.DiscoverTab),
+  { ssr: false }
+);
 const InvestmentSurplusCard = dynamic(
   () => import("@/components/budget/InvestmentSurplusCard").then((m) => m.InvestmentSurplusCard),
   { ssr: false }
@@ -902,14 +906,16 @@ export default function BudgetPage() {
   //    /budget (not /balance — cashflow with cashflow).
   //  • "edit" — manage strip + insights + the editable section tables.
   //    Where they go when they actually want to change a number.
-  const [viewTab, setViewTab] = useState<"snapshot" | "daily" | "edit">("snapshot");
+  const [viewTab, setViewTab] = useState<"snapshot" | "discover" | "daily" | "edit">(
+    "snapshot"
+  );
   // Deep-link: /budget?tab=daily opens the daily-cashflow tab directly. Used
   // by the /balance soft-redirect that catches old bookmarks, and as a stable
   // anchor from the sidebar or external links.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const t = new URLSearchParams(window.location.search).get("tab");
-    if (t === "snapshot" || t === "daily" || t === "edit") setViewTab(t);
+    if (t === "snapshot" || t === "discover" || t === "daily" || t === "edit") setViewTab(t);
   }, []);
   const [showInsights, setShowInsights] = useState(false);
   /** Scope filter: 'all' | 'personal' | 'business'. Not persisted. */
@@ -1691,6 +1697,7 @@ export default function BudgetPage() {
           {(
             [
               { key: "snapshot", label: "תמונת מצב", icon: "donut_large" },
+              { key: "discover", label: "ניתוח עבר", icon: "search" },
               { key: "daily", label: "תזרים יומי", icon: "calendar_month" },
               { key: "edit", label: "עריכה", icon: "tune" },
             ] as const
@@ -1738,6 +1745,11 @@ export default function BudgetPage() {
           <CashflowForecast />
         </>
       )}
+
+      {/* ═══════════════════════════════════════════════════════════
+          DISCOVER — past N months Spending Snapshot
+          ═══════════════════════════════════════════════════════════ */}
+      {viewTab === "discover" && <DiscoverTab />}
 
       {/* ═══════════════════════════════════════════════════════════
           DAILY — day-by-day cashflow projection for this month
