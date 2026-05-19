@@ -39,8 +39,8 @@ export interface MiluimOutputs {
 // 2024 constants (ILS). Advisor to refresh annually.
 const DAILY_GRANT_ILS = 340; // ≈ base grant rate per day (simplified)
 const LONG_STRETCH_BONUS = 5000; // extra if single stretch ≥ 60 days
-const EXTRA_CREDIT_POINTS_FULL = 0.5; // per-point value × 2,976 ≈ 1,488 ₪/yr
-const POINT_VALUE_ANNUAL = 2976;
+const EXTRA_CREDIT_POINTS_FULL = 0.5; // per-point value × 2,904 ≈ 1,452 ₪/yr (2026)
+const POINT_VALUE_ANNUAL = 2904;
 
 export function simulateMiluim(i: MiluimInputs): MiluimOutputs {
   const grant =

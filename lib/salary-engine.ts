@@ -105,8 +105,8 @@ export interface SalaryBreakdown {
    Constants (2026 approximations)
    ═══════════════════════════════════════════════════════════ */
 
-/** ₪ per credit point (annual) — 2026 post-CPI update. 1 point = ₪2,976/year ≈ ₪248/month. */
-const CREDIT_POINT_ANNUAL = 2976;
+/** ₪ per credit point (annual) — 2026 post-CPI update. 1 point = ₪2,904/year = ₪242/month. */
+const CREDIT_POINT_ANNUAL = 2904;
 
 /** Study fund benefit cap — above this monthly gross the employer contribution becomes taxable.
  *  Real 2025 value per רשות המסים (₪15,712). Update annually around January.

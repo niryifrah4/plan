@@ -16,8 +16,14 @@
 
 import { useMemo, useState } from "react";
 import { fmtILS } from "@/lib/format";
-import { pmt } from "@shared/financial-math";
+import {
+  pmt,
+  calcEarlyRepaymentFee,
+  inferRepaymentFeeIndexation,
+} from "@shared/financial-math";
 import type { MortgageTrack } from "@/lib/debt-store";
+import { effectiveTrackRate } from "@/lib/debt-store";
+import { useAssumptions } from "@/lib/hooks/useAssumptions";
 
 interface Props {
   track: MortgageTrack;
@@ -38,8 +44,14 @@ function remainingMonths(balance: number, monthly: number, annualRate: number): 
 }
 
 export function RefinanceSimulator({ track, onClose }: Props) {
-  // Baseline numbers from the track
-  const baseRate = track.interestRate || 0.05;
+  const assumptions = useAssumptions();
+  // BoI's published "ריבית ממוצעת" — drives the discount-component of the
+  // early repayment fee. Fraction (e.g. 0.05 = 5%).
+  const marketRate = assumptions.avgMortgageRate ?? 0.05;
+  // Baseline numbers from the track. Prime tracks store interestRate=0 +
+  // margin; use effectiveTrackRate so prime+margin resolves correctly. Fall
+  // back to 5% only when the track has no rate data at all.
+  const baseRate = effectiveTrackRate(track, assumptions.primeRate) || 0.05;
   const baseRatePct = baseRate * 100;
   const baseBalance = track.remainingBalance || 0;
   const baseMonthly = track.monthlyPayment || 0;
@@ -53,10 +65,29 @@ export function RefinanceSimulator({ track, onClose }: Props) {
   // (typically extending it). User can keep current term or stretch up to
   // 30 years; default = baseMonths so existing behavior is unchanged.
   const [newMonths, setNewMonths] = useState(baseMonths);
-  // 2026-05-05 per finance-agent: typical bank refi fee in Israel is
-  // ₪1,000–2,500. Default ₪1,500. Without this number, "saving" is misleading
-  // because the refi cost can wipe out months of saving.
-  const [refiFee, setRefiFee] = useState(1500);
+
+  // 2026-05-18: replaced the flat ₪1,500 refi-fee placeholder with the real
+  // Israeli formula. Computed live from track type + market rate.
+  const indexation = useMemo(
+    () => inferRepaymentFeeIndexation(track.indexation, track.name),
+    [track.indexation, track.name]
+  );
+  const repaymentFee = useMemo(
+    () =>
+      calcEarlyRepaymentFee({
+        remainingBalance: baseBalance,
+        monthlyPayment: baseMonthly,
+        trackRate: baseRate,
+        marketRate,
+        indexation,
+        gaveNotice: true,
+      }),
+    [baseBalance, baseMonthly, baseRate, marketRate, indexation]
+  );
+  // Allow the user to override the auto-computed fee (e.g. they got a
+  // different quote from the bank). Default = auto.
+  const [feeOverride, setFeeOverride] = useState<number | null>(null);
+  const refiFee = feeOverride ?? repaymentFee.total;
 
   const result = useMemo(() => {
     // Refinance only — uses new rate and (possibly) new term
@@ -65,20 +96,26 @@ export function RefinanceSimulator({ track, onClose }: Props) {
     const refiTotal = Math.round(refiMonthly * newMonths) + refiFee;
     const refiSaving = baseTotal - refiTotal;
     const monthlyDelta = baseMonthly - refiMonthly;
-    // Break-even: how many months until cumulative monthly savings cover the
-    // refi fee. If monthlyDelta ≤ 0 (term extended, monthly went up or flat),
-    // there's no break-even on a monthly basis.
     const breakEvenMonth = monthlyDelta > 0 ? Math.ceil(refiFee / monthlyDelta) : null;
     const termDeltaMonths = newMonths - baseMonths;
 
-    // Prepay only — reduce balance, keep monthly + rate, fewer months
+    // Prepay only — reduce balance, keep monthly + rate, fewer months.
+    // 2026-05-18 per finance-agent: prepayment also incurs an early-repayment
+    // fee proportional to the prepaid amount. We scale the discount-component
+    // by the prepay ratio (a reasonable approximation for partial prepay).
     const prepayBalance = Math.max(0, baseBalance - prepay);
     const prepayMonths = remainingMonths(prepayBalance, baseMonthly, baseRate);
-    const prepayTotal = Math.round(baseMonthly * prepayMonths) + prepay;
+    const prepayFeeRatio = baseBalance > 0 ? prepay / baseBalance : 0;
+    const prepayFee = Math.round(
+      repaymentFee.discountFee * prepayFeeRatio +
+        repaymentFee.operationalFee * (prepay > 0 ? 1 : 0)
+    );
+    const prepayTotal = Math.round(baseMonthly * prepayMonths) + prepay + prepayFee;
     const prepaySaving = baseTotal - prepayTotal;
     const monthsSaved = baseMonths - prepayMonths;
 
-    // Combined — refinance + prepay (uses new term too)
+    // Combined — refinance + prepay (uses new term too). Pays the FULL refi
+    // fee since the track is being fully refinanced.
     const combinedBalance = Math.max(0, baseBalance - prepay);
     const combinedMonthly = pmt(combinedBalance, refiRate, newMonths);
     const combinedTotal = Math.round(combinedMonthly * newMonths) + prepay + refiFee;
@@ -91,11 +128,30 @@ export function RefinanceSimulator({ track, onClose }: Props) {
         saving: refiSaving,
         breakEvenMonth,
         termDeltaMonths,
+        fee: refiFee,
       },
-      prepay: { monthly: baseMonthly, total: prepayTotal, saving: prepaySaving, monthsSaved },
+      prepay: {
+        monthly: baseMonthly,
+        total: prepayTotal,
+        saving: prepaySaving,
+        monthsSaved,
+        fee: prepayFee,
+      },
       combined: { monthly: combinedMonthly, total: combinedTotal, saving: combinedSaving },
     };
-  }, [newRate, prepay, newMonths, refiFee, baseBalance, baseMonths, baseMonthly, baseRate, baseTotal]);
+  }, [
+    newRate,
+    prepay,
+    newMonths,
+    refiFee,
+    baseBalance,
+    baseMonths,
+    baseMonthly,
+    baseRate,
+    baseTotal,
+    repaymentFee.discountFee,
+    repaymentFee.operationalFee,
+  ]);
 
   return (
     <div
@@ -103,11 +159,11 @@ export function RefinanceSimulator({ track, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-[#131C2E] shadow-soft"
+        className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-[#FFFFFF] shadow-soft"
         onClick={(e) => e.stopPropagation()}
         dir="rtl"
       >
-        <div className="v-divider sticky top-0 z-10 flex items-center justify-between border-b bg-[#131C2E] px-6 py-4">
+        <div className="v-divider sticky top-0 z-10 flex items-center justify-between border-b bg-[#FFFFFF] px-6 py-4">
           <div>
             <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
               סימולטור מיחזור / פירעון מואץ
@@ -142,7 +198,7 @@ export function RefinanceSimulator({ track, onClose }: Props) {
                 step={0.1}
                 value={newRate}
                 onChange={(e) => setNewRate(parseFloat(e.target.value))}
-                className="h-1.5 w-full accent-[#A8E040]"
+                className="h-1.5 w-full accent-[#2C7A5A]"
               />
               <div className="mt-0.5 text-[10px] text-verdant-muted">
                 ריבית נוכחית: {baseRatePct.toFixed(2)}% ·{" "}
@@ -164,7 +220,7 @@ export function RefinanceSimulator({ track, onClose }: Props) {
                 step={5000}
                 value={prepay}
                 onChange={(e) => setPrepay(parseInt(e.target.value))}
-                className="h-1.5 w-full accent-[#A8E040]"
+                className="h-1.5 w-full accent-[#2C7A5A]"
               />
               <div className="mt-0.5 text-[10px] text-verdant-muted">
                 סכום שאתה משלם היום מתוך כסף נזיל
@@ -186,7 +242,7 @@ export function RefinanceSimulator({ track, onClose }: Props) {
                 step={12}
                 value={newMonths}
                 onChange={(e) => setNewMonths(parseInt(e.target.value))}
-                className="h-1.5 w-full accent-[#A8E040]"
+                className="h-1.5 w-full accent-[#2C7A5A]"
               />
               <div className="mt-0.5 text-[10px] text-verdant-muted">
                 תקופה נוכחית: {Math.round(baseMonths / 12)} שנים. הארכת התקופה תוריד את ההחזר
@@ -194,25 +250,101 @@ export function RefinanceSimulator({ track, onClose }: Props) {
               </div>
             </div>
 
-            {/* Refi fee */}
-            <div>
+            {/* Refi fee — auto-calculated per Israeli formula */}
+            <div className="md:col-span-2">
               <div className="mb-1.5 flex items-center justify-between">
-                <label className="text-[12px] font-bold text-verdant-ink">עמלת מיחזור</label>
-                <span className="text-[13px] font-extrabold tabular-nums text-verdant-ink">
-                  {fmtILS(refiFee)}
-                </span>
+                <label className="text-[12px] font-bold text-verdant-ink">
+                  עמלת פירעון מוקדם
+                  {feeOverride === null ? (
+                    <span
+                      className="ml-2 inline-block rounded-full px-2 py-0.5 text-[9px]"
+                      style={{ background: "#FAFAF7", color: "#2C7A5A" }}
+                    >
+                      חישוב אוטומטי
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => setFeeOverride(null)}
+                      className="mr-2 text-[10px] font-bold underline"
+                      style={{ color: "#2C7A5A" }}
+                    >
+                      חזור לחישוב אוטומטי
+                    </button>
+                  )}
+                </label>
+                <input
+                  type="number"
+                  value={refiFee}
+                  onChange={(e) => setFeeOverride(parseInt(e.target.value) || 0)}
+                  className="w-28 rounded-md border bg-transparent px-2 py-1 text-left text-[13px] font-extrabold tabular-nums focus:outline-none"
+                  style={{
+                    color: "#1A1A1A",
+                    borderColor: "#E5E7EB",
+                    fontFamily: "inherit",
+                  }}
+                />
               </div>
-              <input
-                type="range"
-                min={0}
-                max={5000}
-                step={100}
-                value={refiFee}
-                onChange={(e) => setRefiFee(parseInt(e.target.value))}
-                className="h-1.5 w-full accent-[#A8E040]"
-              />
-              <div className="mt-0.5 text-[10px] text-verdant-muted">
-                בנקים בישראל גובים בד״כ ₪500-2,500. ערך ברירת מחדל: ₪1,500.
+              {feeOverride === null && (
+                <div
+                  className="rounded-lg px-3 py-2 text-[11px]"
+                  style={{ background: "#FAFAF7", border: "1px solid #E5E7EB" }}
+                >
+                  <div className="mb-1 flex items-center justify-between">
+                    <span style={{ color: "#6B7280" }}>
+                      סוג מסלול לחישוב:{" "}
+                      <strong style={{ color: "#2C7A5A" }}>
+                        {indexation === "prime"
+                          ? "פריים (ללא עמלת היוון)"
+                          : indexation === "variable-period"
+                            ? "ריבית משתנה"
+                            : indexation === "fixed-unlinked"
+                              ? "קל״צ (קבועה לא צמודה)"
+                              : indexation === "fixed-linked"
+                                ? "ק״צ (קבועה צמודה)"
+                                : "אחר"}
+                      </strong>
+                    </span>
+                    <span style={{ color: "#6B7280" }}>
+                      ריבית ממוצעת בשוק:{" "}
+                      <strong style={{ color: "#2C7A5A", fontFamily: "inherit" }}>
+                        {(marketRate * 100).toFixed(2)}%
+                      </strong>
+                    </span>
+                  </div>
+                  <div className="space-y-0.5" style={{ color: "#6B7280" }}>
+                    {repaymentFee.discountFee > 0 && (
+                      <div className="flex justify-between">
+                        <span>עמלת היוון (הפרשי ריבית)</span>
+                        <span className="tabular-nums" style={{ color: "#1A1A1A", fontFamily: "inherit" }}>
+                          {fmtILS(repaymentFee.discountFee)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span>עמלה תפעולית</span>
+                      <span className="tabular-nums" style={{ color: "#1A1A1A", fontFamily: "inherit" }}>
+                        {fmtILS(repaymentFee.operationalFee)}
+                      </span>
+                    </div>
+                    {repaymentFee.discountFee === 0 && indexation === "prime" && (
+                      <div className="text-[10px] italic" style={{ color: "#2C7A5A" }}>
+                        אין עמלת היוון על מסלול פריים — ניתן למחזר בכל עת.
+                      </div>
+                    )}
+                    {repaymentFee.discountFee === 0 &&
+                      indexation !== "prime" &&
+                      baseRate <= marketRate && (
+                        <div className="text-[10px] italic" style={{ color: "#2C7A5A" }}>
+                          הריבית שלך נמוכה מהריבית הממוצעת בשוק — אין עמלת היוון.
+                        </div>
+                      )}
+                  </div>
+                </div>
+              )}
+              <div className="mt-1 text-[10px] text-verdant-muted">
+                מבוסס על חוק הבנקאות + ריבית ממוצעת מבנק ישראל (
+                {(marketRate * 100).toFixed(2)}%). ניתן לערוך ידנית אם קיבלת
+                ציטוט שונה מהבנק.
               </div>
             </div>
           </div>
@@ -222,8 +354,8 @@ export function RefinanceSimulator({ track, onClose }: Props) {
             <div
               className="rounded-xl px-4 py-3"
               style={{
-                background: result.refi.termDeltaMonths > 0 ? "rgba(251,191,36,0.12)" : "#F0F9F4",
-                border: `1px solid ${result.refi.termDeltaMonths > 0 ? "#FBBF24" : "#86efac"}`,
+                background: result.refi.termDeltaMonths > 0 ? "rgba(217,119,6,0.12)" : "#F0F9F4",
+                border: `1px solid ${result.refi.termDeltaMonths > 0 ? "#D97706" : "#86efac"}`,
               }}
             >
               <div className="text-[12px] font-bold text-verdant-ink">
@@ -239,12 +371,12 @@ export function RefinanceSimulator({ track, onClose }: Props) {
           {result.refi.breakEvenMonth === null && refiFee > 0 && (
             <div
               className="rounded-xl px-4 py-3"
-              style={{ background: "rgba(248,113,113,0.12)", border: "1px solid #FCA5A5" }}
+              style={{ background: "rgba(220,38,38,0.12)", border: "1px solid #B91C1C" }}
             >
-              <div className="text-[12px] font-bold" style={{ color: "#FCA5A5" }}>
+              <div className="text-[12px] font-bold" style={{ color: "#B91C1C" }}>
                 אין נקודת איזון — ההחזר החודשי לא יורד
               </div>
-              <div className="mt-0.5 text-[11px]" style={{ color: "#F87171" }}>
+              <div className="mt-0.5 text-[11px]" style={{ color: "#DC2626" }}>
                 המיחזור הזה לא מקטין את ההחזר החודשי, רק מאריך את התקופה. עמלת המיחזור לא תכוסה.
               </div>
             </div>
@@ -278,8 +410,10 @@ export function RefinanceSimulator({ track, onClose }: Props) {
           </div>
 
           <div className="text-[11px] leading-relaxed text-verdant-muted">
-            הערכה אינדיקטיבית. עמלת המיחזור שהזנת ({fmtILS(refiFee)}) כלולה בחיסכון. עמלות פירעון
-            מוקדם (אם רלוונטי לבנק שלכם) — לא נלקחו בחשבון.
+            הערכה אינדיקטיבית. עמלת הפירעון המוקדם ({fmtILS(refiFee)}) מחושבת
+            לפי הריבית הממוצעת בשוק ({(marketRate * 100).toFixed(2)}%) ונכללת
+            בחישוב החיסכון. הפרשי מדד למסלולים צמודים לא מחושבים — קבל ציטוט
+            מדויק מהבנק לפני קבלת החלטה.
           </div>
         </div>
 
@@ -287,7 +421,7 @@ export function RefinanceSimulator({ track, onClose }: Props) {
           <button
             onClick={onClose}
             className="rounded-lg px-4 py-2 text-[13px] font-bold"
-            style={{ background: "#A8E040", color: "#131C2E" }}
+            style={{ background: "#2C7A5A", color: "#FFFFFF" }}
           >
             סגור
           </button>
@@ -319,36 +453,36 @@ function ScenarioCard({
     <div
       className="rounded-xl p-4"
       style={{
-        background: highlight ? "linear-gradient(135deg, #A8E040 0%, #F8FAFC 100%)" : "#131C2E",
-        color: highlight ? "#F8FAFC" : "#F8FAFC",
-        border: highlight ? "none" : "1px solid #1F2A3F",
+        background: highlight ? "#2C7A5A" : "#FFFFFF",
+        color: highlight ? "#FFFFFF" : "#1a1a1a",
+        border: highlight ? "none" : "1px solid #E5E7EB",
         opacity: dim ? 0.5 : 1,
       }}
     >
       <div
         className="mb-2 text-[10px] font-bold uppercase tracking-[0.15em]"
-        style={{ color: highlight ? "rgba(255,255,255,0.7)" : "#94A3B8" }}
+        style={{ color: highlight ? "rgba(255,255,255,0.7)" : "#6B7280" }}
       >
         {title}
       </div>
       <div
         className="mb-1 text-[11px] font-medium"
-        style={{ color: highlight ? "rgba(255,255,255,0.85)" : "#94A3B8" }}
+        style={{ color: highlight ? "rgba(255,255,255,0.85)" : "#6B7280" }}
       >
         חיסכון כולל
       </div>
       <div
         className="mb-2 text-2xl font-extrabold tabular-nums leading-none"
         style={{
-          color: highlight ? "#A8E040" : positive ? "#A8E040" : "#8B2E2E",
-          fontFamily: "Manrope, Assistant, sans-serif",
+          color: highlight ? "#FFFFFF" : positive ? "#2C7A5A" : "#8B2E2E",
+          fontFamily: "inherit",
         }}
       >
         {positive ? fmtILS(saving) : `−${fmtILS(Math.abs(saving))}`}
       </div>
       <div
         className="space-y-0.5 text-[11px]"
-        style={{ color: highlight ? "rgba(255,255,255,0.85)" : "#94A3B8" }}
+        style={{ color: highlight ? "rgba(255,255,255,0.85)" : "#6B7280" }}
       >
         <div>
           החזר חודשי: <strong>{fmtILS(Math.round(monthly))}</strong>
@@ -361,8 +495,8 @@ function ScenarioCard({
         <div
           className="mt-2 border-t pt-2 text-[10px] font-medium"
           style={{
-            color: highlight ? "rgba(255,255,255,0.7)" : "#94A3B8",
-            borderColor: highlight ? "rgba(255,255,255,0.15)" : "#1F2A3F",
+            color: highlight ? "rgba(255,255,255,0.7)" : "#6B7280",
+            borderColor: highlight ? "rgba(255,255,255,0.15)" : "#E5E7EB",
           }}
         >
           {extra}

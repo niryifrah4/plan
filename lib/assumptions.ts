@@ -14,6 +14,14 @@ export interface Assumptions {
   primeRate: number; // ריבית הפריים = boiRate + 1.5% (מתעדכן יחד)
   inflationRate: number; // אינפלציה חזויה, e.g. 0.025 = 2.5%
   macroUpdatedAt?: string; // ISO timestamp of last macro update (BoI/Prime/Inflation)
+  /**
+   * Average mortgage rate published monthly by Bank of Israel
+   * ("הריבית הממוצעת על משכנתאות"). Drives the early-repayment fee
+   * calculation: discount-component = PV(payments@trackRate) − PV(payments@avgRate),
+   * floored at zero. Updated manually per BoI release.
+   * Default 2026-Q1: 5.0% — adjust if real rates diverge.
+   */
+  avgMortgageRate: number;
 
   // ── Investment + fees ──
   managementFeePension: number; // e.g. 0.005 = 0.5%
@@ -54,6 +62,7 @@ export const DEFAULT_ASSUMPTIONS: Assumptions = {
   primeRate: 0.06, // 6% = boiRate + 1.5%
   inflationRate: 0.025, // 2.5%
   macroUpdatedAt: undefined,
+  avgMortgageRate: 0.05, // 5.0% — ריבית ממוצעת על משכנתאות חדשות (BoI, מוקדם 2026)
 
   // Investment
   managementFeePension: 0.005,
@@ -193,8 +202,8 @@ export function realReturn(nominal: number, inflation: number, fees: number): nu
 export const TAX_BRACKETS_2026 = [
   { limit: 84_960, rate: 0.1 },
   { limit: 121_800, rate: 0.14 },
-  { limit: 195_600, rate: 0.2 },
-  { limit: 271_920, rate: 0.31 },
+  { limit: 228_000, rate: 0.2 },
+  { limit: 301_200, rate: 0.31 },
   { limit: 565_920, rate: 0.35 },
   { limit: 721_560, rate: 0.47 },
   { limit: Infinity, rate: 0.5 },
@@ -232,7 +241,7 @@ export function israeliIncomeTax(annualIncome: number): {
  * שכר ממוצע במשק (2026) — בסיס לתקרות ביטוח לאומי/בריאות.
  * לעדכן פעם בשנה (בדרך כלל סביב ינואר).
  */
-export const AVG_WAGE_2026 = 13_350;
+export const AVG_WAGE_2026 = 13_566;
 
 /* ═══════════════════════════════════════════════════════════
    פטור על קצבה מזכה (סעיף 9א לפקודת מס הכנסה)

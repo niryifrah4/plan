@@ -27,6 +27,15 @@ export interface Property {
   city?: string;
   purchaseDate?: string; // YYYY-MM
   purchasePrice: number; // מחיר רכישה
+  /**
+   * 2026-05-19: original mortgage principal at purchase (separate from
+   * `mortgageBalance` which is current). Needed to compute true ROI on the
+   * downpayment — `purchasePrice - originalLoanAmount = original equity`.
+   * Without this, ROI can't be calculated honestly (current balance after
+   * payments overstates the apparent equity). Optional — when missing, the
+   * sale simulator suppresses the ROI line rather than show a misleading number.
+   */
+  originalLoanAmount?: number;
   currentValue: number; // שווי נוכחי (הערכה)
   area?: number; // שטח במ"ר
   rooms?: number;

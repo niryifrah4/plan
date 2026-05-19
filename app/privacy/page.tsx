@@ -12,11 +12,11 @@ export default function PrivacyPage() {
   return (
     <main
       dir="rtl"
-      className="min-h-screen bg-[#131C2E]"
-      style={{ fontFamily: "'Assistant', sans-serif" }}
+      className="min-h-screen bg-[#FFFFFF]"
+      style={{ fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif" }}
     >
       <div className="mx-auto max-w-3xl px-6 py-12">
-        <h1 className="mb-2 text-3xl font-extrabold" style={{ color: "#F8FAFC" }}>
+        <h1 className="mb-2 text-3xl font-extrabold" style={{ color: "#1A1A1A" }}>
           מדיניות פרטיות
         </h1>
         <p className="mb-8 text-sm text-verdant-muted">עודכן לאחרונה: 30 באפריל 2026</p>
@@ -133,10 +133,10 @@ export default function PrivacyPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mb-7">
-      <h2 className="mb-2 text-lg font-extrabold" style={{ color: "#A8E040" }}>
+      <h2 className="mb-2 text-lg font-extrabold" style={{ color: "#2C7A5A" }}>
         {title}
       </h2>
-      <div className="text-sm leading-7" style={{ color: "#A8E040" }}>
+      <div className="text-sm leading-7" style={{ color: "#2C7A5A" }}>
         {children}
       </div>
     </section>

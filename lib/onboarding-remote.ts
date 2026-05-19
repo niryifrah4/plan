@@ -26,6 +26,18 @@ import { scopedKey } from "./client-scope";
 
 const BLOB_KEY = "onboarding_snapshot";
 
+/**
+ * 2026-05-19: separate localStorage key tracking when the snapshot was last
+ * pushed. The previous implementation set `savedAt = Date.now()` inside
+ * `readLocalSnapshot()`, which broke multi-device sync — local was ALWAYS
+ * "newer than" remote, so remote never won. The hydrate path silently lost.
+ *
+ * Now: this key is written by `pushOnboardingSnapshot()` with the actual push
+ * time, and set to `remote.savedAt` after a successful hydrate. If the key
+ * is absent (fresh browser), local has no provenance → remote wins.
+ */
+const SAVED_AT_KEY = "verdant:onboarding:savedAt";
+
 /* Keys that make up the onboarding snapshot. */
 const KEYS = [
   "verdant:onboarding:step",
@@ -43,7 +55,25 @@ interface OnboardingBlob {
   data: Record<string, string>; // raw stringified JSON per key
 }
 
-/** Build a snapshot from localStorage. Returns null if nothing exists. */
+/** Read the persisted savedAt for this client. Null when never tracked. */
+function readLocalSavedAt(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(scopedKey(SAVED_AT_KEY));
+}
+
+function writeLocalSavedAt(iso: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(scopedKey(SAVED_AT_KEY), iso);
+  } catch {}
+}
+
+/**
+ * Build a snapshot from localStorage. Returns null if no onboarding keys
+ * are present at all. `savedAt` uses the persisted timestamp when known,
+ * otherwise an empty string so the hydrate comparison treats local as
+ * "no provenance" and lets remote win.
+ */
 function readLocalSnapshot(): OnboardingBlob | null {
   if (typeof window === "undefined") return null;
   const data: Record<string, string> = {};
@@ -56,13 +86,18 @@ function readLocalSnapshot(): OnboardingBlob | null {
     }
   }
   if (!hasAny) return null;
-  return { savedAt: new Date().toISOString(), data };
+  return { savedAt: readLocalSavedAt() ?? "", data };
 }
 
 /** Fire-and-forget push of the current onboarding state to Supabase. */
 export function pushOnboardingSnapshot(): void {
   const snap = readLocalSnapshot();
   if (!snap) return;
+  // Stamp NOW as the canonical save time, both on the blob being pushed AND
+  // on the localStorage key so future hydrate comparisons see the truth.
+  const now = new Date().toISOString();
+  snap.savedAt = now;
+  writeLocalSavedAt(now);
   pushBlobInBackground(BLOB_KEY, snap);
 }
 
@@ -80,8 +115,10 @@ export async function hydrateOnboardingFromRemote(): Promise<boolean> {
   if (!remote || !remote.data) return false;
 
   const local = readLocalSnapshot();
-  // If local exists and is newer, don't clobber in-flight edits.
-  if (local && local.savedAt > remote.savedAt) return false;
+  // If local exists and has a persisted savedAt that is newer, don't clobber
+  // in-flight edits. Empty/missing local.savedAt means "no provenance" — let
+  // remote win, even if local has stale data from a previous session.
+  if (local && local.savedAt && local.savedAt > remote.savedAt) return false;
 
   let wrote = false;
   for (const [k, v] of Object.entries(remote.data)) {
@@ -90,5 +127,8 @@ export async function hydrateOnboardingFromRemote(): Promise<boolean> {
       wrote = true;
     } catch {}
   }
+  // After successful hydrate, adopt the remote's savedAt so subsequent
+  // comparisons reflect that local now matches remote.
+  if (wrote) writeLocalSavedAt(remote.savedAt);
   return wrote;
 }

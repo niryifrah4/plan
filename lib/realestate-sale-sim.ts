@@ -134,10 +134,13 @@ export function simulatePropertySale(
   );
 
   // ── 6. ROI on original equity (purchase price - original loan) ──
-  // We approximate "original equity invested" as purchasePrice - currentBalance
-  // (since we don't track the original loan amount separately).
-  const originalEquity = Math.max(1, purchasePrice - currentBalance);
-  const totalReturn = netCashProceeds - originalEquity;
+  // Honest ROI requires the *original* loan amount at purchase, not the
+  // current balance. Using `purchasePrice - currentBalance` is wrong: after
+  // years of payments, currentBalance < originalLoan, so the apparent equity
+  // is inflated and the resulting annualized ROI is distorted. If the user
+  // didn't enter originalLoanAmount, we cannot compute ROI honestly — return
+  // 0 so the UI hides the misleading line.
+  const originalLoanAmount = prop.originalLoanAmount;
   const yearsHeld = (() => {
     if (!prop.purchaseDate) return yearsToSale;
     const ms = new Date(
@@ -146,8 +149,25 @@ export function simulatePropertySale(
     const years = (Date.now() - ms) / (1000 * 60 * 60 * 24 * 365.25) + yearsToSale;
     return Math.max(0.1, years);
   })();
-  const estimatedROI =
-    originalEquity > 0 ? (Math.pow(netCashProceeds / originalEquity, 1 / yearsHeld) - 1) * 100 : 0;
+  let originalEquity = 0;
+  let estimatedROI = 0;
+  if (
+    typeof originalLoanAmount === "number" &&
+    originalLoanAmount >= 0 &&
+    purchasePrice > originalLoanAmount &&
+    yearsHeld > 0
+  ) {
+    originalEquity = purchasePrice - originalLoanAmount;
+    // Guard explicitly: Math.pow(negative, fractional) returns NaN. Loss
+    // scenarios (netCashProceeds <= 0) must yield 0 so the UI's `> 0` check
+    // suppresses the line — relying on incidental NaN-handling is brittle.
+    estimatedROI =
+      originalEquity > 0 && netCashProceeds > 0
+        ? (Math.pow(netCashProceeds / originalEquity, 1 / yearsHeld) - 1) * 100
+        : 0;
+  }
+  // else: originalEquity stays 0, estimatedROI stays 0 → UI suppresses the
+  // "תשואה שנתית X%" line per the `> 0` check in SaleSimulator.tsx.
 
   // Sale date as ISO
   const saleDate = new Date(Date.now() + yearsToSale * 365.25 * 24 * 3600 * 1000)
