@@ -780,6 +780,14 @@ export default function RealEstatePage() {
   const { status: saveStatus, pulse } = useSaveStatus();
 
   /* ── State ── */
+  // Mount-time clock — Date.now() used directly in render causes hydration
+  // mismatches (server clock vs. client clock differ by milliseconds). We
+  // initialize to null on SSR, populate on mount, and treat null as "0 years"
+  // so ROI shows "—" until hydration completes (one frame, imperceptible).
+  const [nowMs, setNowMs] = useState<number | null>(null);
+  useEffect(() => {
+    setNowMs(Date.now());
+  }, []);
   const [properties, setProperties] = useState<Property[]>([]);
   const [mortgage, setMortgage] = useState<MortgageData | null>(null);
   // Full DebtData — needed to look up per-property mortgages.
@@ -867,10 +875,10 @@ export default function RealEstatePage() {
   // If a property is missing `originalLoanAmount` or `purchaseDate`, it's
   // excluded — better to show "—" than a misleading number.
   const yearsBetween = (iso: string): number => {
-    if (!iso) return 0;
+    if (!iso || nowMs === null) return 0;
     const ms = new Date(iso.length === 7 ? iso + "-01" : iso).getTime();
     if (!isFinite(ms)) return 0;
-    return Math.max(0, (Date.now() - ms) / (1000 * 60 * 60 * 24 * 365.25));
+    return Math.max(0, (nowMs - ms) / (1000 * 60 * 60 * 24 * 365.25));
   };
   const reliableProps = properties.filter(
     (p) =>

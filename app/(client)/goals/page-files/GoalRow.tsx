@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import type { Bucket } from "@/lib/buckets-store";
 import type { BucketProjection, BucketRecommendation } from "@shared/buckets-rebalancing";
 import type { AssetType } from "@/lib/asset-goal-linking";
@@ -320,20 +320,36 @@ function EmergencyCoverage({
     onCoverageChange(clamped, newTarget);
   };
 
-  let liquid = 0;
-  try {
-    const raw = typeof window !== "undefined"
-      ? localStorage.getItem(scopedKey("verdant:accounts"))
-      : null;
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      const banks = parsed?.banks || [];
-      // accounts-store schema uses `balance`, not `currentBalance`. Reading
-      // the wrong field made liquid=0 always — emergency-fund coverage row
-      // showed "missing X ₪" even when the user had cash in the bank.
-      liquid = banks.reduce((s: number, b: { balance?: number }) => s + (b.balance || 0), 0);
-    }
-  } catch {}
+  // Read liquid cash from localStorage AFTER mount — SSR has no localStorage
+  // so the render-path read would yield 0 on the server and a real number on
+  // the client → hydration mismatch. Defer to useEffect. accounts-store schema
+  // uses `balance`, not `currentBalance`.
+  const [liquid, setLiquid] = useState(0);
+  useEffect(() => {
+    const compute = () => {
+      try {
+        const raw = localStorage.getItem(scopedKey("verdant:accounts"));
+        if (!raw) {
+          setLiquid(0);
+          return;
+        }
+        const parsed = JSON.parse(raw);
+        const banks = parsed?.banks || [];
+        const total = banks.reduce(
+          (s: number, b: { balance?: number }) => s + (b.balance || 0),
+          0,
+        );
+        setLiquid(total);
+      } catch {
+        setLiquid(0);
+      }
+    };
+    compute();
+    // Keep in sync when accounts change in other tabs/pages.
+    const handler = () => compute();
+    window.addEventListener("verdant:accounts:updated", handler);
+    return () => window.removeEventListener("verdant:accounts:updated", handler);
+  }, []);
   const gap = Math.max(0, bucket.targetAmount - liquid);
 
   return (
