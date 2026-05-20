@@ -9,6 +9,7 @@ import { useAutoSave } from "@/hooks/useAutoSave";
 import { SaveIndicator } from "@/components/SaveIndicator";
 import { InviteClientButton } from "@/components/crm/InviteClientButton";
 import { SolidKpi } from "@/components/ui/SolidKpi";
+import { getSupabaseBrowser } from "@/lib/supabase/browser";
 
 /* ═══════════════════════════════════════════════════════════════════
    Types
@@ -57,20 +58,20 @@ interface Client {
    ═══════════════════════════════════════════════════════════════════ */
 const STATUS_META: Record<LeadStatus, { label: string; color: string; bg: string; icon: string }> =
   {
-    new: { label: "חדש", color: "#4ADE80", bg: "#4ADE8018", icon: "fiber_new" },
-    in_progress: { label: "בטיפול", color: "#3b82f6", bg: "#3b82f618", icon: "pending" },
+    new: { label: "חדש", color: "#059669", bg: "#05966918", icon: "fiber_new" },
+    in_progress: { label: "בטיפול", color: "#2563EB", bg: "#3b82f618", icon: "pending" },
     not_relevant: { label: "לא רלוונטי", color: "#9ca3af", bg: "#9ca3af18", icon: "block" },
-    converted: { label: "הומר ללקוח", color: "#A8E040", bg: "#A8E04018", icon: "check_circle" },
+    converted: { label: "הומר ללקוח", color: "#2C7A5A", bg: "#2C7A5A18", icon: "check_circle" },
   };
 
 const SOURCE_META: Record<string, { icon: string; color: string }> = {
   פייסבוק: { icon: "share", color: "#1877F2" },
-  הפניה: { icon: "person", color: "#A8E040" },
-  אתר: { icon: "language", color: "#94A3B8" },
+  הפניה: { icon: "person", color: "#2C7A5A" },
+  אתר: { icon: "language", color: "#6B7280" },
   לינקדאין: { icon: "work", color: "#0A66C2" },
   אינסטגרם: { icon: "photo_camera", color: "#E1306C" },
-  "דף נחיתה": { icon: "web", color: "#A8E040" },
-  "שאלון פיננסי": { icon: "quiz", color: "#f59e0b" },
+  "דף נחיתה": { icon: "web", color: "#2C7A5A" },
+  "שאלון פיננסי": { icon: "quiz", color: "#D97706" },
 };
 
 // Backward compat alias
@@ -502,66 +503,28 @@ export default function CrmPage() {
       })
       .catch(() => {});
 
-    // Refetch trigger — dispatched by InviteClientButton after a successful invite
-    // so the new household appears immediately.
-    const onRefetch = () => {
-      fetch("/api/crm/clients")
-        .then((r) => r.json())
-        .then((data) => {
-          if (!Array.isArray(data.households)) return;
-          const monthStr = (iso: string) => {
-            const d = new Date(iso);
-            return `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-          };
-          const rows: Client[] = (
-            data.households as Array<{
-              id: string;
-              family_name: string;
-              members_count: number;
-              stage: string;
-              created_at: string;
-            }>
-          ).map((h, i) => ({
-            id: i + 1,
-            family: h.family_name || "משפחה",
-            step: h.stage === "onboarding" ? 0 : 3,
-            totalSteps: 3,
-            netWorth: 0,
-            trend: "—",
-            members: h.members_count || 1,
-            joined: monthStr(h.created_at),
-            docsUploaded: 0,
-            docsTotal: 10,
-            monthlyRevenue: 0,
-            riskProfile: "—",
-            householdId: h.id,
-          }));
-          setClients(rows);
-        })
-        .catch(() => {});
+    // Single source of truth for the clients tab: pull from /api/crm/clients.
+    // The API already filters orphaned self-signup households (see route).
+    // We REPLACE the local list entirely — no merging with stale localStorage
+    // rows (those have no `householdId` and would break impersonation).
+    const monthStr = (iso: string) => {
+      const d = new Date(iso);
+      return `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
     };
-    window.addEventListener("verdant:clients:refetch", onRefetch);
-
-    // Load real client households from Supabase — REPLACE the clients list entirely.
-    // No merging with legacy localStorage rows (those have no householdId and would
-    // break "כניסה לתיק" impersonation). Only DB households are the source of truth.
-    fetch("/api/crm/clients")
-      .then((r) => r.json())
-      .then((data) => {
-        if (!Array.isArray(data.households)) return;
-        const monthStr = (iso: string) => {
-          const d = new Date(iso);
-          return `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-        };
-        const rows: Client[] = (
-          data.households as Array<{
+    const fetchClients = async () => {
+      try {
+        const res = await fetch("/api/crm/clients");
+        const data = (await res.json()) as {
+          households?: Array<{
             id: string;
             family_name: string;
             members_count: number;
             stage: string;
             created_at: string;
-          }>
-        ).map((h, i) => ({
+          }>;
+        };
+        if (!Array.isArray(data.households)) return;
+        const rows: Client[] = data.households.map((h, i) => ({
           id: i + 1,
           family: h.family_name || "משפחה",
           step: h.stage === "onboarding" ? 0 : 3,
@@ -577,47 +540,67 @@ export default function CrmPage() {
           householdId: h.id,
         }));
         setClients(rows);
-      })
-      .catch(() => {});
+      } catch {
+        /* silent: network errors don't blank out the current list */
+      }
+    };
+    window.addEventListener("verdant:clients:refetch", fetchClients);
+    fetchClients();
 
     return () => {
-      window.removeEventListener("verdant:clients:refetch", onRefetch);
+      window.removeEventListener("verdant:clients:refetch", fetchClients);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function convertToClient() {
+  async function convertToClient() {
     if (!selectedLead) return;
-    setLeads((prev) =>
-      prev.map((l) => (l.id === selectedLead.id ? { ...l, status: "converted" as LeadStatus } : l))
-    );
-    const newId = Math.max(0, ...clients.map((c) => c.id)) + 1;
-    const monthStr = `${String(new Date().getMonth() + 1).padStart(2, "0")}/${new Date().getFullYear()}`;
-    const newClient = {
-      id: newId,
-      family: selectedLead.name,
-      step: 0,
-      totalSteps: 3,
-      netWorth: 0,
-      trend: "—",
-      members: 1,
-      joined: monthStr,
-      docsUploaded: 0,
-      docsTotal: 10,
-      monthlyRevenue: 0,
-      riskProfile: "—",
-      convertedFromLead: selectedLead.name,
-      email: selectedLead.email,
-      phone: selectedLead.phone,
-    };
-    setClients((prev) => [...prev, newClient]);
-    // Also persist current client ID for the client layout to pick up
+    const leadName = selectedLead.name;
+    const leadId = selectedLead.id;
+
+    let res: Response;
     try {
-      localStorage.setItem("verdant:current_hh", String(newId));
-    } catch {}
+      res = await fetch("/api/crm/households", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ familyName: leadName }),
+      });
+    } catch {
+      setToast("❌ שגיאת רשת ביצירת תיק לקוח");
+      return;
+    }
+
+    const json = (await res.json().catch(() => ({}))) as {
+      ok?: boolean;
+      household?: { id: string };
+      error?: string;
+      detail?: string;
+    };
+    if (!res.ok || !json.household?.id) {
+      setToast(`❌ יצירת תיק נכשלה${json.detail ? ` (${json.detail})` : ""}`);
+      return;
+    }
+
+    // Mark the lead as converted in local state. Leads still live in
+    // localStorage — DB-backed lead pipeline is future work.
+    setLeads((prev) =>
+      prev.map((l) => (l.id === leadId ? { ...l, status: "converted" as LeadStatus } : l))
+    );
+
+    // Refetch the clients list from DB so the new household appears with
+    // its real UUID. The fetch handler is what guarantees that the row
+    // gets `householdId` set — which is what "כניסה לתיק" needs to work
+    // (otherwise it falls back to `/dashboard?hh=N` and the (client)
+    // layout bounces the advisor back to /crm with no error message).
+    try {
+      window.dispatchEvent(new CustomEvent("verdant:clients:refetch"));
+    } catch {
+      /* ignore */
+    }
+
     closeDrawer();
-    setTab("clients"); // switch to clients tab to show the new client
-    setToast(`✅ "${selectedLead.name}" הומר ללקוח בהצלחה`);
+    setTab("clients");
+    setToast(`✅ "${leadName}" הומר ללקוח בהצלחה`);
   }
 
   /* ═══════════════════════════════════════════════════════════════════
@@ -635,10 +618,23 @@ export default function CrmPage() {
             advisor can still sign out. */}
         <div className="mb-4 flex justify-end">
           <button
-            onClick={() => router.push("/login")}
+            onClick={async () => {
+              // Real logout: kill the Supabase session BEFORE navigating.
+              // Previously this only routed to /login, leaving the session
+              // active — a fast "Back" or cached page would re-enter the
+              // CRM without re-auth. signOut clears cookies + access tokens.
+              try {
+                const supabase = getSupabaseBrowser();
+                if (supabase) await supabase.auth.signOut();
+              } catch {
+                // Fall through to navigation even if signOut throws —
+                // /login + middleware will re-evaluate auth state.
+              }
+              router.push("/login");
+            }}
             title="התנתקות"
             className="flex h-9 w-9 items-center justify-center rounded-xl text-verdant-muted transition-all hover:bg-red-50 hover:text-red-600"
-            style={{ background: "#1A2438" }}
+            style={{ background: "#FAFAF7" }}
           >
             <span className="material-symbols-outlined text-[18px]">logout</span>
           </button>
@@ -681,7 +677,7 @@ export default function CrmPage() {
                 </div>
                 <div
                   className="flex items-center gap-1 rounded-lg p-0.5"
-                  style={{ background: "#1A2438" }}
+                  style={{ background: "#FAFAF7" }}
                 >
                   {[
                     { k: "daily" as CalendarView, l: "יומי" },
@@ -691,7 +687,7 @@ export default function CrmPage() {
                     <button
                       key={v.k}
                       onClick={() => setCalView(v.k)}
-                      className={`rounded-md px-2.5 py-1 text-[10px] font-bold transition-all ${calView === v.k ? "bg-[#131C2E] text-verdant-accent shadow-sm" : "text-verdant-muted hover:text-verdant-ink"}`}
+                      className={`rounded-md px-2.5 py-1 text-[10px] font-bold transition-all ${calView === v.k ? "bg-[#FFFFFF] text-verdant-accent shadow-sm" : "text-verdant-muted hover:text-verdant-ink"}`}
                     >
                       {v.l}
                     </button>
@@ -750,13 +746,13 @@ export default function CrmPage() {
                         key={iso}
                         className="flex items-start gap-3 rounded-lg px-2.5 py-2"
                         style={{
-                          background: isT ? "#F8FAFC" : dm.length > 0 ? "#1A2438" : "transparent",
+                          background: isT ? "#FFFFFF" : dm.length > 0 ? "#FAFAF7" : "transparent",
                         }}
                       >
                         <div className="min-w-[38px] text-center">
                           <div
                             className="text-[10px] font-bold"
-                            style={{ color: isT ? "rgba(255,255,255,0.5)" : "#94A3B8" }}
+                            style={{ color: isT ? "rgba(255,255,255,0.5)" : "#6B7280" }}
                           >
                             {HE_DAY_SHORT[day.getDay()]}
                           </div>
@@ -782,7 +778,7 @@ export default function CrmPage() {
                                   className="inline-flex items-center gap-1 whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-bold"
                                   style={{
                                     background: isT ? "rgba(255,255,255,0.12)" : `${m.color}12`,
-                                    color: isT ? "#131C2E" : m.color,
+                                    color: isT ? "#FFFFFF" : m.color,
                                   }}
                                 >
                                   <span className="tabular">{m.time}</span>
@@ -796,8 +792,8 @@ export default function CrmPage() {
                           <span
                             className="tabular rounded-full px-1.5 py-0.5 text-[10px] font-extrabold"
                             style={{
-                              background: isT ? "rgba(16,185,129,0.3)" : "#A8E04018",
-                              color: isT ? "#4ADE80" : "#A8E040",
+                              background: isT ? "rgba(16,185,129,0.3)" : "#2C7A5A18",
+                              color: isT ? "#059669" : "#2C7A5A",
                             }}
                           >
                             {dm.length}
@@ -835,7 +831,7 @@ export default function CrmPage() {
                           key={iso}
                           className="flex flex-col items-center rounded-md py-1"
                           style={{
-                            background: isT ? "#F8FAFC" : cnt > 0 ? "#1A2438" : "transparent",
+                            background: isT ? "#FFFFFF" : cnt > 0 ? "#FAFAF7" : "transparent",
                           }}
                         >
                           <span
@@ -849,13 +845,13 @@ export default function CrmPage() {
                                 <span
                                   key={j}
                                   className="h-1 w-1 rounded-full"
-                                  style={{ background: isT ? "#4ADE80" : "#A8E040" }}
+                                  style={{ background: isT ? "#059669" : "#2C7A5A" }}
                                 />
                               ))}
                               {cnt > 3 && (
                                 <span
                                   className="text-[7px] font-bold"
-                                  style={{ color: isT ? "#4ADE80" : "#A8E040" }}
+                                  style={{ color: isT ? "#059669" : "#2C7A5A" }}
                                 >
                                   +
                                 </span>
@@ -889,7 +885,7 @@ export default function CrmPage() {
               <div className="flex items-center gap-2">
                 <span
                   className="tabular text-xs font-extrabold"
-                  style={{ color: tasksDone === tasksTotal ? "#4ADE80" : "#94A3B8" }}
+                  style={{ color: tasksDone === tasksTotal ? "#059669" : "#6B7280" }}
                 >
                   {tasksDone}/{tasksTotal}
                 </span>
@@ -901,13 +897,13 @@ export default function CrmPage() {
 
             <div
               className="mb-4 h-1.5 overflow-hidden rounded-full"
-              style={{ background: "#1F2A3F" }}
+              style={{ background: "#E5E7EB" }}
             >
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{
                   width: `${tasksTotal > 0 ? Math.round((tasksDone / tasksTotal) * 100) : 0}%`,
-                  background: "#4ADE80",
+                  background: "#059669",
                 }}
               />
             </div>
@@ -920,7 +916,7 @@ export default function CrmPage() {
                     <button onClick={() => toggleAdvisorTask(t.id)} className="flex-shrink-0">
                       <span
                         className="material-symbols-outlined text-[18px]"
-                        style={{ color: "#1F2A3F" }}
+                        style={{ color: "#9CA3AF" }}
                       >
                         radio_button_unchecked
                       </span>
@@ -937,7 +933,7 @@ export default function CrmPage() {
                     {t.urgent && (
                       <span
                         className="flex-shrink-0 rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase"
-                        style={{ background: "#F8717118", color: "#F87171" }}
+                        style={{ background: "#DC262618", color: "#DC2626" }}
                       >
                         דחוף
                       </span>
@@ -948,7 +944,7 @@ export default function CrmPage() {
                 <li className="py-6 text-center text-sm text-verdant-muted">
                   <span
                     className="material-symbols-outlined mx-auto mb-1 block text-[22px]"
-                    style={{ color: "#4ADE80" }}
+                    style={{ color: "#059669" }}
                   >
                     check_circle
                   </span>
@@ -980,8 +976,8 @@ export default function CrmPage() {
                 <span
                   className="tabular rounded-full px-2 py-0.5 text-[10px] font-extrabold"
                   style={{
-                    background: tab === t.key ? "#A8E04018" : "#1A2438",
-                    color: tab === t.key ? "#A8E040" : "#94A3B8",
+                    background: tab === t.key ? "#2C7A5A18" : "#FAFAF7",
+                    color: tab === t.key ? "#2C7A5A" : "#6B7280",
                   }}
                 >
                   {t.key === "leads" ? activeLeads.length : filteredClients.length}
@@ -999,7 +995,7 @@ export default function CrmPage() {
             {/* Toolbar */}
             <div
               className="v-divider flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4"
-              style={{ background: "#1A2438" }}
+              style={{ background: "#FAFAF7" }}
             >
               <div className="flex flex-wrap items-center gap-2">
                 <div className="relative">
@@ -1054,7 +1050,7 @@ export default function CrmPage() {
                 <thead>
                   <tr
                     className="v-divider border-b text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted"
-                    style={{ background: "#1A2438" }}
+                    style={{ background: "#FAFAF7" }}
                   >
                     <th className="w-[1%] px-5 py-3 text-right" />
                     <th className="px-4 py-3 text-right">שם מלא</th>
@@ -1084,7 +1080,7 @@ export default function CrmPage() {
                       <tr
                         key={lead.id}
                         onClick={() => openDrawer(lead)}
-                        className="v-divider group cursor-pointer border-b transition-colors hover:bg-[#1A2438]"
+                        className="v-divider group cursor-pointer border-b transition-colors hover:bg-[#FAFAF7]"
                       >
                         <td className="px-5 py-3.5">
                           <span
@@ -1107,8 +1103,8 @@ export default function CrmPage() {
                           <span
                             className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-extrabold"
                             style={{
-                              background: `${SOURCE_META[lead.source]?.color || "#94A3B8"}14`,
-                              color: SOURCE_META[lead.source]?.color || "#94A3B8",
+                              background: `${SOURCE_META[lead.source]?.color || "#6B7280"}14`,
+                              color: SOURCE_META[lead.source]?.color || "#6B7280",
                             }}
                           >
                             <span className="material-symbols-outlined text-[13px]">
@@ -1150,7 +1146,7 @@ export default function CrmPage() {
             {/* Pipeline summary bar */}
             <div
               className="v-divider flex flex-wrap items-center gap-6 border-t px-6 py-3"
-              style={{ background: "#1A2438" }}
+              style={{ background: "#FAFAF7" }}
             >
               {(["new", "in_progress", "not_relevant"] as LeadStatus[]).map((s) => {
                 const cnt = leads.filter((l) => l.status === s).length;
@@ -1169,9 +1165,9 @@ export default function CrmPage() {
                 );
               })}
               <div className="mr-auto flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full" style={{ background: "#A8E040" }} />
+                <span className="h-2 w-2 rounded-full" style={{ background: "#2C7A5A" }} />
                 <span className="text-[11px] font-bold text-verdant-muted">הומרו</span>
-                <span className="tabular text-[11px] font-extrabold" style={{ color: "#A8E040" }}>
+                <span className="tabular text-[11px] font-extrabold" style={{ color: "#2C7A5A" }}>
                   {leads.filter((l) => l.status === "converted").length}
                 </span>
               </div>
@@ -1187,7 +1183,7 @@ export default function CrmPage() {
             {/* Toolbar */}
             <div
               className="v-divider flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4"
-              style={{ background: "#1A2438" }}
+              style={{ background: "#FAFAF7" }}
             >
               <div className="flex flex-wrap items-center gap-2">
                 <div className="relative">
@@ -1229,7 +1225,7 @@ export default function CrmPage() {
                 <thead>
                   <tr
                     className="v-divider border-b text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted"
-                    style={{ background: "#1A2438" }}
+                    style={{ background: "#FAFAF7" }}
                   >
                     <th className="px-5 py-3 text-right">משפחה / שם</th>
                     <th className="px-4 py-3 text-right">שלב</th>
@@ -1257,11 +1253,11 @@ export default function CrmPage() {
                       c.docsTotal > 0 ? Math.round((c.docsUploaded / c.docsTotal) * 100) : 0;
                     const stepLabel = c.step === 0 ? "חדש" : `שלב ${c.step}/${c.totalSteps}`;
                     const stepColor =
-                      c.step === 0 ? "#f59e0b" : c.step >= c.totalSteps ? "#4ADE80" : "#A8E040";
+                      c.step === 0 ? "#D97706" : c.step >= c.totalSteps ? "#059669" : "#2C7A5A";
                     return (
                       <tr
                         key={c.id}
-                        className="v-divider border-b transition-colors hover:bg-[#F8FAFC]"
+                        className="v-divider border-b transition-colors hover:bg-[#FFFFFF]"
                       >
                         <td className="px-5 py-3.5 text-right">
                           <div className="font-extrabold text-verdant-ink">{c.family}</div>
@@ -1289,9 +1285,9 @@ export default function CrmPage() {
                           className="tabular px-4 py-3.5 text-right font-bold"
                           style={{
                             color: c.trend.startsWith("+")
-                              ? "#A8E040"
+                              ? "#2C7A5A"
                               : c.trend.startsWith("-")
-                                ? "#F87171"
+                                ? "#DC2626"
                                 : "#9ca3af",
                           }}
                         >
@@ -1309,13 +1305,13 @@ export default function CrmPage() {
                             </span>
                             <div
                               className="h-1.5 w-16 overflow-hidden rounded-full"
-                              style={{ background: "#1F2A3F" }}
+                              style={{ background: "#E5E7EB" }}
                             >
                               <div
                                 className="h-full rounded-full"
                                 style={{
                                   width: `${docPct}%`,
-                                  background: docPct === 100 ? "#4ADE80" : "#f59e0b",
+                                  background: docPct === 100 ? "#059669" : "#D97706",
                                 }}
                               />
                             </div>
@@ -1361,8 +1357,8 @@ export default function CrmPage() {
                                   window.location.href = `/dashboard?hh=${c.id}`;
                                 }
                               }}
-                              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-2 text-[11px] font-extrabold transition-all hover:shadow-soft active:scale-95"
-                              style={{ background: "#A8E040", color: "#F8FAFC" }}
+                              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-4 py-2 text-[11px] font-extrabold transition-all hover:shadow-soft active:scale-95"
+                              style={{ background: "#2C7A5A", color: "#FFFFFF" }}
                             >
                               כניסה לתיק
                               <span className="material-symbols-outlined text-[14px]">
@@ -1390,7 +1386,7 @@ export default function CrmPage() {
 
       <div
         ref={drawerRef}
-        className={`fixed right-0 top-0 z-50 flex h-full w-[440px] max-w-[90vw] flex-col bg-[#131C2E] shadow-2xl transition-transform duration-300 ease-out ${
+        className={`fixed right-0 top-0 z-50 flex h-full w-[440px] max-w-[90vw] flex-col bg-[#FFFFFF] shadow-2xl transition-transform duration-300 ease-out ${
           drawerLeadId !== null ? "translate-x-0" : "translate-x-full"
         }`}
         style={{ borderLeft: "1px solid var(--verdant-line)" }}
@@ -1400,7 +1396,7 @@ export default function CrmPage() {
             {/* Drawer Header */}
             <div
               className="v-divider flex items-center justify-between border-b px-6 py-5"
-              style={{ background: "#1A2438" }}
+              style={{ background: "#FAFAF7" }}
             >
               <button
                 onClick={closeDrawer}
@@ -1493,8 +1489,8 @@ export default function CrmPage() {
                           className="rounded-full border-2 px-3 py-1.5 text-[11px] font-extrabold transition-all"
                           style={{
                             borderColor: active ? sm.color : "transparent",
-                            background: active ? sm.bg : "#1A2438",
-                            color: active ? sm.color : "#94A3B8",
+                            background: active ? sm.bg : "#FAFAF7",
+                            color: active ? sm.color : "#6B7280",
                           }}
                         >
                           {sm.label}
@@ -1507,7 +1503,7 @@ export default function CrmPage() {
                 <button
                   onClick={saveDrawerEdits}
                   className="w-full rounded-lg py-2 text-sm font-bold transition-colors"
-                  style={{ background: "#A8E04018", color: "#A8E040" }}
+                  style={{ background: "#2C7A5A18", color: "#2C7A5A" }}
                 >
                   שמור שינויים
                 </button>
@@ -1538,14 +1534,14 @@ export default function CrmPage() {
                           className="z-10 mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full"
                           style={{
                             background:
-                              idx === selectedLead.followUps.length - 1 ? "#A8E040" : "#1F2A3F",
+                              idx === selectedLead.followUps.length - 1 ? "#2C7A5A" : "#E5E7EB",
                           }}
                         >
                           <span
                             className="h-2 w-2 rounded-full"
                             style={{
                               background:
-                                idx === selectedLead.followUps.length - 1 ? "#131C2E" : "#94A3B8",
+                                idx === selectedLead.followUps.length - 1 ? "#FFFFFF" : "#6B7280",
                             }}
                           />
                         </div>
@@ -1571,7 +1567,7 @@ export default function CrmPage() {
                   <button
                     type="submit"
                     className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg transition-colors"
-                    style={{ background: "#A8E04018", color: "#A8E040" }}
+                    style={{ background: "#2C7A5A18", color: "#2C7A5A" }}
                   >
                     <span className="material-symbols-outlined text-[18px]">send</span>
                   </button>
@@ -1590,7 +1586,7 @@ export default function CrmPage() {
                   <button
                     onClick={() => setShowSchedule(true)}
                     className="flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-colors"
-                    style={{ background: "#3b82f618", color: "#3b82f6" }}
+                    style={{ background: "#3b82f618", color: "#2563EB" }}
                   >
                     <span className="material-symbols-outlined text-[18px]">calendar_add_on</span>
                     קבע פגישה ביומן
@@ -1700,7 +1696,7 @@ export default function CrmPage() {
                           setSchedTime("");
                         }}
                         className="flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-bold text-white"
-                        style={{ background: "#3b82f6" }}
+                        style={{ background: "#2563EB" }}
                       >
                         <span className="material-symbols-outlined text-[16px]">
                           {gcalConnected ? "event_available" : "open_in_new"}
@@ -1710,7 +1706,7 @@ export default function CrmPage() {
                       <button
                         onClick={() => setShowSchedule(false)}
                         className="rounded-lg px-4 py-2 text-sm font-bold text-verdant-muted"
-                        style={{ background: "#1A2438" }}
+                        style={{ background: "#FAFAF7" }}
                       >
                         ביטול
                       </button>
@@ -1721,7 +1717,7 @@ export default function CrmPage() {
             </div>
 
             {/* Drawer Footer — Convert CTA */}
-            <div className="v-divider border-t px-6 py-4" style={{ background: "#1A2438" }}>
+            <div className="v-divider border-t px-6 py-4" style={{ background: "#FAFAF7" }}>
               {selectedLead.status === "converted" ? (
                 <div className="flex items-center justify-center gap-2 text-center text-sm font-bold text-verdant-accent">
                   <span className="material-symbols-outlined text-[18px]">check_circle</span>
@@ -1748,7 +1744,7 @@ export default function CrmPage() {
       {toast && (
         <div
           className="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 animate-[fadeInUp_0.3s_ease-out] rounded-xl px-6 py-3 text-sm font-bold text-white shadow-lg"
-          style={{ background: "linear-gradient(135deg,#F8FAFC 0%,#A8E040 100%)" }}
+          style={{ background: "var(--morning-ink)" }}
         >
           {toast}
         </div>
@@ -1759,13 +1755,13 @@ export default function CrmPage() {
         <>
           <div className="fixed inset-0 z-[55] bg-black/30" onClick={() => setShowNewLead(false)} />
           <div
-            className="fixed left-1/2 top-1/2 z-[56] w-[460px] max-w-[92vw] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-organic bg-[#131C2E] shadow-soft"
+            className="fixed left-1/2 top-1/2 z-[56] w-[460px] max-w-[92vw] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-organic bg-[#FFFFFF] shadow-soft"
             dir="rtl"
           >
             {/* Modal Header */}
             <div
               className="v-divider flex items-center justify-between border-b px-6 py-5"
-              style={{ background: "#1A2438" }}
+              style={{ background: "#FAFAF7" }}
             >
               <h3 className="text-lg font-extrabold text-verdant-ink">מתעניין חדש</h3>
               <button

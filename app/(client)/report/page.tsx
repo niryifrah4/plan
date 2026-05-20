@@ -13,7 +13,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { fmtILS, fmtPct } from "@/lib/format";
-import { scopedKey } from "@/lib/client-scope";
+import { scopedKey, ACTIVE_CLIENT_CHANGED } from "@/lib/client-scope";
 import {
   loadAccounts,
   totalBankBalance,
@@ -80,43 +80,53 @@ export default function ReportPage() {
   const [recommendations, setRecommendations] = useState("");
 
   useEffect(() => {
-    // Load saved form inputs
-    try {
-      setClientName(localStorage.getItem(scopedKey(LS_NAME_KEY)) || "");
-      setRecommendations(
-        localStorage.getItem(scopedKey(LS_RECS_KEY)) ||
-          "• לסיים תהליך איחוד חסכונות פנסיונים\n• להגדיל חיסכון חודשי ב-5% השנה הבאה\n• לבחון משכנתא לטובת מיחזור\n• להשלים קרן חירום של 6 חודשי הוצאות"
-      );
-    } catch {}
+    // Load EVERYTHING from the active client's scope. Extracted into a
+    // function so we can re-run it on ACTIVE_CLIENT_CHANGED — otherwise a
+    // planner who switches clients via /crm while /report is open would
+    // print a PDF with the NEW client's name in the form but the OLD
+    // client's numbers. Real risk in face-to-face meetings.
+    const loadAll = () => {
+      try {
+        setClientName(localStorage.getItem(scopedKey(LS_NAME_KEY)) || "");
+        setRecommendations(
+          localStorage.getItem(scopedKey(LS_RECS_KEY)) ||
+            "• לסיים תהליך איחוד חסכונות פנסיונים\n• להגדיל חיסכון חודשי ב-5% השנה הבאה\n• לבחון משכנתא לטובת מיחזור\n• להשלים קרן חירום של 6 חודשי הוצאות"
+        );
+      } catch {}
 
-    // Load all stores
-    const accounts = loadAccounts();
-    const pension = loadPensionFunds();
-    const properties = loadProperties();
-    const debtData = loadDebtData();
-    const debtSummary = getDebtSummary(debtData);
-    const buckets = loadBuckets();
-    const securities = loadSecurities();
-    const history = loadHistory();
-    const assumptions = loadAssumptions();
-    const breakdown = computeCurrentNetWorth();
-    const snapshot = buildSnapshotFromCurrent();
-    const budgetLines = buildBudgetLines(0);
+      const accounts = loadAccounts();
+      const pension = loadPensionFunds();
+      const properties = loadProperties();
+      const debtData = loadDebtData();
+      const debtSummary = getDebtSummary(debtData, loadAssumptions().primeRate);
+      const buckets = loadBuckets();
+      const securities = loadSecurities();
+      const history = loadHistory();
+      const assumptions = loadAssumptions();
+      const breakdown = computeCurrentNetWorth();
+      const snapshot = buildSnapshotFromCurrent();
+      const budgetLines = buildBudgetLines(0);
 
-    setData({
-      accounts,
-      pension,
-      properties,
-      debtData,
-      debtSummary,
-      buckets,
-      securities,
-      history,
-      assumptions,
-      breakdown,
-      snapshot,
-      budgetLines,
-    });
+      setData({
+        accounts,
+        pension,
+        properties,
+        debtData,
+        debtSummary,
+        buckets,
+        securities,
+        history,
+        assumptions,
+        breakdown,
+        snapshot,
+        budgetLines,
+      });
+    };
+
+    loadAll();
+    const handler = () => loadAll();
+    window.addEventListener(ACTIVE_CLIENT_CHANGED, handler);
+    return () => window.removeEventListener(ACTIVE_CLIENT_CHANGED, handler);
   }, []);
 
   // Persist inputs
@@ -143,8 +153,8 @@ export default function ReportPage() {
       <div dir="rtl" className="report-root mx-auto max-w-[210mm]">
         {/* Toolbar — screen only */}
         <div
-          className="no-print mb-6 flex items-center justify-between gap-3 rounded-lg border bg-[#131C2E] p-4"
-          style={{ borderColor: "#1F2A3F" }}
+          className="no-print mb-6 flex items-center justify-between gap-3 rounded-lg border bg-[#FFFFFF] p-4"
+          style={{ borderColor: "#E5E7EB" }}
         >
           <div className="flex items-center gap-2">
             <Link
@@ -162,7 +172,7 @@ export default function ReportPage() {
               onChange={(e) => setClientName(e.target.value)}
               placeholder="לדוגמה — משפחת כהן"
               className="max-w-[280px] flex-1 rounded border px-3 py-1.5 text-sm"
-              style={{ borderColor: "#1F2A3F" }}
+              style={{ borderColor: "#E5E7EB" }}
             />
           </div>
           <button
@@ -186,7 +196,7 @@ export default function ReportPage() {
             <div className="mb-10 text-sm text-verdant-muted">תאריך הפקה: {today}</div>
             <div
               className="inline-block border-t-2 pt-3 text-[10px] font-bold uppercase tracking-[0.2em] text-verdant-muted"
-              style={{ borderColor: "#A8E040", minWidth: 200 }}
+              style={{ borderColor: "#2C7A5A", minWidth: 200 }}
             >
               הופק על-ידי מערכת פלאן
             </div>
@@ -212,8 +222,8 @@ export default function ReportPage() {
             value={recommendations}
             onChange={(e) => setRecommendations(e.target.value)}
             rows={8}
-            className="report-recs-text w-full rounded-lg border bg-[#131C2E] p-4 text-sm"
-            style={{ borderColor: "#1F2A3F", fontFamily: "inherit", lineHeight: 1.7 }}
+            className="report-recs-text w-full rounded-lg border bg-[#FFFFFF] p-4 text-sm"
+            style={{ borderColor: "#E5E7EB", fontFamily: "inherit", lineHeight: 1.7 }}
             placeholder="הקלד כאן המלצות ושלבי פעולה ללקוח…"
           />
         </section>
@@ -221,7 +231,7 @@ export default function ReportPage() {
         {/* Footer */}
         <footer
           className="report-footer mt-6 border-t pt-6 text-center text-[10px] text-verdant-muted"
-          style={{ borderColor: "#1F2A3F" }}
+          style={{ borderColor: "#E5E7EB" }}
         >
           <div>הופק ב-{today} על-ידי מערכת פלאן</div>
           <div className="mt-1">
@@ -248,7 +258,7 @@ function SectionHeader({
 }) {
   return (
     <div className="mb-4 flex items-start gap-3">
-      <div className="w-1 self-stretch rounded" style={{ background: "#A8E040", minHeight: 36 }} />
+      <div className="w-1 self-stretch rounded" style={{ background: "#2C7A5A", minHeight: 36 }} />
       <div className="flex-1">
         <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-verdant-muted">
           חלק {num}
@@ -279,7 +289,7 @@ function NetWorthSection({ data }: { data: ReportData }) {
   return (
     <section className="report-section mb-6">
       <SectionHeader num={1} title="תמונת מצב — שווי נקי" subtitle="סיכום נכסים והתחייבויות" />
-      <div className="mb-4 rounded-lg p-6" style={{ background: "#1A2438" }}>
+      <div className="mb-4 rounded-lg p-6" style={{ background: "#FAFAF7" }}>
         <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-verdant-muted">
           שווי נקי כולל
         </div>
@@ -301,10 +311,10 @@ function NetWorthSection({ data }: { data: ReportData }) {
                   <span className="text-verdant-ink">{a.label}</span>
                   <span className="font-bold text-verdant-ink">{fmtILS(a.v)}</span>
                 </div>
-                <div className="mt-1 h-1.5 rounded-full" style={{ background: "#1F2A3F" }}>
+                <div className="mt-1 h-1.5 rounded-full" style={{ background: "#E5E7EB" }}>
                   <div
                     className="h-full rounded-full"
-                    style={{ width: `${(a.v / maxAsset) * 100}%`, background: "#A8E040" }}
+                    style={{ width: `${(a.v / maxAsset) * 100}%`, background: "#2C7A5A" }}
                   />
                 </div>
               </div>
@@ -319,7 +329,7 @@ function NetWorthSection({ data }: { data: ReportData }) {
                 <td className="py-1 text-verdant-ink">משכנתאות</td>
                 <td className="py-1 text-left font-bold">{fmtILS(b.mortgages)}</td>
               </tr>
-              <tr style={{ background: "#1A2438" }}>
+              <tr style={{ background: "#FAFAF7" }}>
                 <td className="py-1 text-verdant-ink">הלוואות ותשלומים</td>
                 <td className="py-1 text-left font-bold">{fmtILS(b.debt)}</td>
               </tr>
@@ -408,11 +418,11 @@ function CashflowSection({ data }: { data: ReportData }) {
       {scopeSplit && (
         <div
           className="mt-3 rounded-lg border p-3 text-[11px]"
-          style={{ borderColor: "#1F2A3F", background: "#1A2438" }}
+          style={{ borderColor: "#E5E7EB", background: "#FAFAF7" }}
         >
           <div
             className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.1em]"
-            style={{ color: "#94A3B8" }}
+            style={{ color: "#6B7280" }}
           >
             חלוקת הוצאות — עסקי / פרטי
           </div>
@@ -427,7 +437,7 @@ function CashflowSection({ data }: { data: ReportData }) {
               />
               פרטי
             </span>
-            <span className="font-bold tabular-nums" style={{ color: "#F8FAFC" }}>
+            <span className="font-bold tabular-nums" style={{ color: "#1A1A1A" }}>
               {fmtILS(Math.round(scopeSplit.personal))}
             </span>
           </div>
@@ -442,7 +452,7 @@ function CashflowSection({ data }: { data: ReportData }) {
               />
               עסקי
             </span>
-            <span className="font-bold tabular-nums" style={{ color: "#F8FAFC" }}>
+            <span className="font-bold tabular-nums" style={{ color: "#1A1A1A" }}>
               {fmtILS(Math.round(scopeSplit.business))}
             </span>
           </div>
@@ -462,7 +472,7 @@ function Stat({
   valueClass?: string;
 }) {
   return (
-    <div className="rounded-lg border p-3" style={{ borderColor: "#1F2A3F", background: "#131C2E" }}>
+    <div className="rounded-lg border p-3" style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}>
       <div className="caption">{label}</div>
       <div className={`mt-1 text-lg font-extrabold text-verdant-ink ${valueClass}`}>{value}</div>
     </div>
@@ -497,7 +507,7 @@ function PensionSection({ data }: { data: ReportData }) {
         <>
           <table className="mb-4 w-full text-[11px]">
             <thead>
-              <tr style={{ background: "#1F2A3F" }}>
+              <tr style={{ background: "#E5E7EB" }}>
                 <th className="p-2 text-right font-bold text-verdant-ink">קרן</th>
                 <th className="p-2 text-right font-bold text-verdant-ink">סוג</th>
                 <th className="p-2 text-right font-bold text-verdant-ink">מסלול</th>
@@ -510,7 +520,7 @@ function PensionSection({ data }: { data: ReportData }) {
             </thead>
             <tbody>
               {funds.map((f, i) => (
-                <tr key={f.id} style={{ background: i % 2 === 0 ? "#131C2E" : "#1A2438" }}>
+                <tr key={f.id} style={{ background: i % 2 === 0 ? "#FFFFFF" : "#FAFAF7" }}>
                   <td className="p-2 text-verdant-ink">{f.company}</td>
                   <td className="p-2 text-verdant-ink">{typeLabel(f.type)}</td>
                   <td className="p-2 text-verdant-ink">{f.track}</td>
@@ -521,7 +531,7 @@ function PensionSection({ data }: { data: ReportData }) {
                   <td className="p-2 text-left">{fmtILS(f.monthlyContrib)}</td>
                 </tr>
               ))}
-              <tr style={{ background: "#A8E040", color: "#131C2E" }}>
+              <tr style={{ background: "#2C7A5A", color: "#FFFFFF" }}>
                 <td className="p-2 font-bold" colSpan={3}>
                   סה״כ
                 </td>
@@ -573,7 +583,7 @@ function RealEstateSection({ data }: { data: ReportData }) {
       <SectionHeader num={4} title="נדל״ן" subtitle="נכסים פיזיים" />
       <table className="w-full text-[11px]">
         <thead>
-          <tr style={{ background: "#1F2A3F" }}>
+          <tr style={{ background: "#E5E7EB" }}>
             <th className="p-2 text-right font-bold text-verdant-ink">נכס</th>
             <th className="p-2 text-right font-bold text-verdant-ink">סוג</th>
             <th className="p-2 text-left font-bold text-verdant-ink">שווי נוכחי</th>
@@ -586,7 +596,7 @@ function RealEstateSection({ data }: { data: ReportData }) {
           {props.map((p, i) => {
             const equity = (p.currentValue || 0) - (p.mortgageBalance || 0);
             return (
-              <tr key={p.id} style={{ background: i % 2 === 0 ? "#131C2E" : "#1A2438" }}>
+              <tr key={p.id} style={{ background: i % 2 === 0 ? "#FFFFFF" : "#FAFAF7" }}>
                 <td className="p-2 font-bold text-verdant-ink">{p.name}</td>
                 <td className="p-2 text-verdant-ink">{reTypeLabel(p.type)}</td>
                 <td className="p-2 text-left font-bold">{fmtILS(p.currentValue)}</td>
@@ -639,7 +649,7 @@ function SecuritiesSection({ data }: { data: ReportData }) {
       <SectionHeader num={5} title="השקעות" subtitle="תיק ניירות ערך" />
       <table className="mb-3 w-full text-[11px]">
         <thead>
-          <tr style={{ background: "#1F2A3F" }}>
+          <tr style={{ background: "#E5E7EB" }}>
             <th className="p-2 text-right font-bold text-verdant-ink">נייר</th>
             <th className="p-2 text-right font-bold text-verdant-ink">סוג</th>
             <th className="p-2 text-left font-bold text-verdant-ink">כמות</th>
@@ -650,7 +660,7 @@ function SecuritiesSection({ data }: { data: ReportData }) {
         </thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={r.id} style={{ background: i % 2 === 0 ? "#131C2E" : "#1A2438" }}>
+            <tr key={r.id} style={{ background: i % 2 === 0 ? "#FFFFFF" : "#FAFAF7" }}>
               <td className="p-2 font-bold text-verdant-ink">{r.symbol}</td>
               <td className="p-2 text-verdant-ink">{r.kind}</td>
               <td className="p-2 text-left">{r.quantity}</td>
@@ -672,18 +682,18 @@ function SecuritiesSection({ data }: { data: ReportData }) {
 /* ── 6. Debt ── */
 function DebtSection({ data }: { data: ReportData }) {
   const s = data.debtSummary;
-  const m = data.debtData.mortgage;
+  const mortgages = data.debtData.mortgages.filter((m) => m.tracks.length > 0);
   return (
     <section className="report-section mb-6">
       <SectionHeader num={6} title="חובות והתחייבויות" subtitle="משכנתאות והלוואות פעילות" />
-      {m && m.tracks.length > 0 && (
-        <>
+      {mortgages.map((m) => (
+        <div key={m.id} className="mb-4">
           <div className="mb-2 text-[11px] font-bold text-verdant-ink">
             משכנתא — {m.bank || "לא צוין"}
           </div>
-          <table className="mb-4 w-full text-[11px]">
+          <table className="mb-2 w-full text-[11px]">
             <thead>
-              <tr style={{ background: "#1F2A3F" }}>
+              <tr style={{ background: "#E5E7EB" }}>
                 <th className="p-2 text-right font-bold text-verdant-ink">מסלול</th>
                 <th className="p-2 text-right font-bold text-verdant-ink">שיטה</th>
                 <th className="p-2 text-left font-bold text-verdant-ink">ריבית</th>
@@ -693,25 +703,25 @@ function DebtSection({ data }: { data: ReportData }) {
             </thead>
             <tbody>
               {m.tracks.map((t, i) => (
-                <tr key={t.id} style={{ background: i % 2 === 0 ? "#131C2E" : "#1A2438" }}>
+                <tr key={t.id} style={{ background: i % 2 === 0 ? "#FFFFFF" : "#FAFAF7" }}>
                   <td className="p-2 text-verdant-ink">{t.name}</td>
                   <td className="p-2 text-verdant-ink">{t.repaymentMethod}</td>
-                  <td className="p-2 text-left">{fmtPct(t.interestRate)}</td>
+                  <td className="p-2 text-left">{fmtPct(t.interestRate * 100)}</td>
                   <td className="p-2 text-left font-bold">{fmtILS(t.remainingBalance)}</td>
                   <td className="p-2 text-left">{fmtILS(t.monthlyPayment)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </>
-      )}
+        </div>
+      ))}
 
       {s.activeLoans.length > 0 && (
         <>
           <div className="mb-2 text-[11px] font-bold text-verdant-ink">הלוואות פעילות</div>
           <table className="mb-4 w-full text-[11px]">
             <thead>
-              <tr style={{ background: "#1F2A3F" }}>
+              <tr style={{ background: "#E5E7EB" }}>
                 <th className="p-2 text-right font-bold text-verdant-ink">נותן הלוואה</th>
                 <th className="p-2 text-left font-bold text-verdant-ink">תחילה</th>
                 <th className="p-2 text-left font-bold text-verdant-ink">תשלומים סה״כ</th>
@@ -720,7 +730,7 @@ function DebtSection({ data }: { data: ReportData }) {
             </thead>
             <tbody>
               {s.activeLoans.map((l, i) => (
-                <tr key={l.id} style={{ background: i % 2 === 0 ? "#131C2E" : "#1A2438" }}>
+                <tr key={l.id} style={{ background: i % 2 === 0 ? "#FFFFFF" : "#FAFAF7" }}>
                   <td className="p-2 text-verdant-ink">{l.lender}</td>
                   <td className="p-2 text-left">{l.startDate}</td>
                   <td className="p-2 text-left">{l.totalPayments}</td>
@@ -732,12 +742,12 @@ function DebtSection({ data }: { data: ReportData }) {
         </>
       )}
 
-      {!m && s.activeLoans.length === 0 && s.activeInstallments.length === 0 && <Empty />}
+      {mortgages.length === 0 && s.activeLoans.length === 0 && s.activeInstallments.length === 0 && <Empty />}
 
       <div className="mt-3 grid grid-cols-3 gap-3">
         <Stat label="סה״כ יתרות" value={fmtILS(s.mortgageBalance + s.loansBalance)} />
         <Stat label="החזר חודשי כולל" value={fmtILS(s.monthlyTotal)} />
-        <Stat label="ריבית משכנתא ממוצעת" value={fmtPct(s.mortgageAvgInterest)} />
+        <Stat label="ריבית משכנתא ממוצעת" value={fmtPct(s.mortgageAvgInterest * 100)} />
       </div>
     </section>
   );
@@ -761,7 +771,7 @@ function GoalsSection({ data }: { data: ReportData }) {
         {buckets.map((b) => {
           const p = pct(b.currentAmount || 0, b.targetAmount || 0);
           return (
-            <div key={b.id} className="rounded-lg border p-3" style={{ borderColor: "#1F2A3F" }}>
+            <div key={b.id} className="rounded-lg border p-3" style={{ borderColor: "#E5E7EB" }}>
               <div className="flex items-center justify-between">
                 <div className="text-sm font-bold text-verdant-ink">{b.name}</div>
                 <div className="text-[11px] text-verdant-muted">
@@ -774,10 +784,10 @@ function GoalsSection({ data }: { data: ReportData }) {
                 </div>
                 <div className="font-bold text-verdant-emerald">{p}%</div>
               </div>
-              <div className="mt-2 h-2 rounded-full" style={{ background: "#1F2A3F" }}>
+              <div className="mt-2 h-2 rounded-full" style={{ background: "#E5E7EB" }}>
                 <div
                   className="h-full rounded-full"
-                  style={{ width: `${p}%`, background: "#A8E040" }}
+                  style={{ width: `${p}%`, background: "#2C7A5A" }}
                 />
               </div>
             </div>
@@ -815,8 +825,8 @@ function PrintStyles() {
 
         html,
         body {
-          background: #131C2E !important;
-          color: #F8FAFC;
+          background: #FFFFFF !important;
+          color: #FFFFFF;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
