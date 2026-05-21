@@ -353,7 +353,13 @@ body {
     color: rgba(255, 255, 255, 0.72);
   }
   .card-forest .kpi-value {
-    color: #ffffff;
+    color: #ffffff !important;
+  }
+  /* Anything inside a card-forest hero defaults to white text so cards
+     don't accidentally inherit the dark .kpi-value color from outside. */
+  .card-forest,
+  .card-forest * {
+    color: inherit;
   }
   .card-forest .pill-inner {
     background: rgba(255, 255, 255, 0.10);

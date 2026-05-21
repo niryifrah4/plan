@@ -1251,8 +1251,15 @@ export default function DashboardPage() {
           <div className="flex items-start gap-6">
             <div className="flex-1">
               <div
-                className="kpi-value tabular"
-                style={{ fontSize: 30, lineHeight: "36px", color: "#FFFFFF" }}
+                className="tabular text-white"
+                style={{
+                  fontSize: 30,
+                  lineHeight: "36px",
+                  fontWeight: 800,
+                  letterSpacing: "-0.01em",
+                  fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif",
+                  fontVariantNumeric: "tabular-nums",
+                }}
               >
                 {fmtILS(netWorthVal)}
               </div>
