@@ -482,12 +482,15 @@ body {
     line-height: 26px;
   }
 
+  /* Hebrew-friendly caption — no uppercase (Hebrew has no case) and
+     tight letter-spacing so the words don't look stretched. */
   .caption {
-    @apply font-semibold uppercase;
+    @apply font-semibold;
     font-size: 11px;
     line-height: 14px;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.01em;
     color: var(--morning-muted);
+    font-family: "Heebo", "Rubik", "Assistant", system-ui, sans-serif;
   }
 
   /* ─── KPI tile — Morning style: clean white with subtle border ─── */

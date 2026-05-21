@@ -1050,20 +1050,26 @@ export default function DashboardPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div
-                        className="text-[11px] font-semibold uppercase tracking-[0.08em]"
+                        className="text-[11px] font-semibold"
                         style={{ color: c.chipFg }}
                       >
                         {c.eyebrow}
                       </div>
                       <div
                         className="mt-0.5 text-[15px] font-bold leading-tight"
-                        style={{ color: "var(--morning-ink)" }}
+                        style={{
+                          color: "var(--morning-ink)",
+                          fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif",
+                        }}
                       >
                         {n.title}
                       </div>
                       <div
                         className="mt-1.5 text-[13px] leading-relaxed"
-                        style={{ color: "var(--morning-muted)" }}
+                        style={{
+                          color: "var(--morning-muted)",
+                          fontFamily: "Heebo, Rubik, Assistant, system-ui, sans-serif",
+                        }}
                       >
                         {n.detail}
                       </div>
@@ -1253,10 +1259,10 @@ export default function DashboardPage() {
               <div
                 className="tabular text-white"
                 style={{
-                  fontSize: 30,
-                  lineHeight: "36px",
-                  fontWeight: 800,
-                  letterSpacing: "-0.01em",
+                  fontSize: 36,
+                  lineHeight: "42px",
+                  fontWeight: 700,
+                  letterSpacing: "-0.02em",
                   fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif",
                   fontVariantNumeric: "tabular-nums",
                 }}
