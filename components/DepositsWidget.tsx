@@ -95,25 +95,25 @@ export function DepositsWidget() {
           </div>
           <div>
             <div className="caption">הפקדות חודשיות</div>
-            <div className="mt-0.5 text-sm font-bold" style={{ color: "#F8FAFC" }}>
+            <div className="mt-0.5 text-sm font-bold" style={{ color: "#1A1A1A" }}>
               {heLabelForMonth(month)}
             </div>
           </div>
         </div>
         <div
           className="rounded-xl px-4 py-5 text-center"
-          style={{ background: "#1A2438", border: "1px dashed #1F2A3F" }}
+          style={{ background: "#FAFAF7", border: "1px dashed #E5E7EB" }}
         >
-          <div className="mb-1 text-[13px] font-bold" style={{ color: "#F8FAFC" }}>
+          <div className="mb-1 text-[13px] font-bold" style={{ color: "#1A1A1A" }}>
             עוד לא הוגדרו הפקדות חודשיות
           </div>
-          <div className="mb-3 text-[11px]" style={{ color: "#94A3B8" }}>
+          <div className="mb-3 text-[11px]" style={{ color: "#6B7280" }}>
             הגדר פעם אחת — אשר כל חודש בלחיצה
           </div>
           <Link
             href={"/deposits" as any}
             className="inline-flex items-center gap-1.5 text-[12px] font-extrabold"
-            style={{ color: "#A8E040" }}
+            style={{ color: "#2C7A5A" }}
           >
             <span className="material-symbols-outlined text-[16px]">add_circle</span>
             הגדר תוכנית הפקדות
@@ -134,7 +134,7 @@ export function DepositsWidget() {
             <div className="caption">הפקדות · {heLabelForMonth(month)}</div>
             <div className="mt-1 flex items-baseline gap-2">
               <span className="kpi-value">{fmtILS(confirmedTotal)}</span>
-              <span className="text-[11px] font-bold" style={{ color: "#94A3B8" }}>
+              <span className="text-[11px] font-bold" style={{ color: "#6B7280" }}>
                 / {fmtILS(total)}
               </span>
             </div>
@@ -143,23 +143,23 @@ export function DepositsWidget() {
         <div className="flex flex-col items-end gap-1">
           <span
             className="tabular text-[11px] font-extrabold"
-            style={{ color: confirmedCount === plannedCount ? "#A8E040" : "#f59e0b" }}
+            style={{ color: confirmedCount === plannedCount ? "#2C7A5A" : "#D97706" }}
           >
             {confirmedCount}/{plannedCount}
           </span>
-          <span className="text-[9px] font-bold" style={{ color: "#94A3B8" }}>
+          <span className="text-[9px] font-bold" style={{ color: "#6B7280" }}>
             אושרו
           </span>
         </div>
       </div>
 
       {/* Progress bar */}
-      <div className="mb-5 h-1.5 w-full rounded-full" style={{ background: "#1F2A3F" }}>
+      <div className="mb-5 h-1.5 w-full rounded-full" style={{ background: "#E5E7EB" }}>
         <div
           className="h-full rounded-full transition-all duration-700"
           style={{
             width: `${progressPct}%`,
-            background: "linear-gradient(90deg, #A8E040, #4ADE80)",
+            background: "linear-gradient(90deg, #2C7A5A, #059669)",
           }}
         />
       </div>
@@ -178,8 +178,8 @@ export function DepositsWidget() {
                 onClick={() => handleToggle(e)}
                 className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md transition-all"
                 style={{
-                  background: e.confirmed ? "#A8E040" : "transparent",
-                  border: e.confirmed ? "1px solid #A8E040" : "1px solid #1F2A3F",
+                  background: e.confirmed ? "#2C7A5A" : "transparent",
+                  border: e.confirmed ? "1px solid #2C7A5A" : "1px solid #E5E7EB",
                 }}
                 aria-label={e.confirmed ? "בטל אישור" : "אשר הפקדה"}
               >
@@ -192,7 +192,7 @@ export function DepositsWidget() {
 
               <span
                 className="material-symbols-outlined text-[16px]"
-                style={{ color: e.confirmed ? "#A8E040" : "#94A3B8" }}
+                style={{ color: e.confirmed ? "#2C7A5A" : "#6B7280" }}
               >
                 {kindIcon}
               </span>
@@ -201,19 +201,19 @@ export function DepositsWidget() {
                 <div
                   className="truncate text-[12px] font-bold"
                   style={{
-                    color: e.confirmed ? "#F8FAFC" : "#94A3B8",
+                    color: e.confirmed ? "#FFFFFF" : "#6B7280",
                   }}
                 >
                   {e.target.label}
                 </div>
-                <div className="text-[10px]" style={{ color: "#94A3B8" }}>
+                <div className="text-[10px]" style={{ color: "#6B7280" }}>
                   {kindLabel}
                 </div>
               </div>
 
               <span
                 className="tabular text-[12px] font-extrabold"
-                style={{ color: e.confirmed ? "#A8E040" : "#94A3B8" }}
+                style={{ color: e.confirmed ? "#2C7A5A" : "#6B7280" }}
               >
                 {fmtILS(e.amount)}
               </span>
@@ -226,7 +226,7 @@ export function DepositsWidget() {
       <Link
         href={"/deposits" as any}
         className="mt-4 flex items-center justify-between border-t pt-3 text-[11px] font-extrabold transition-colors"
-        style={{ borderColor: "#1F2A3F", color: "#A8E040" }}
+        style={{ borderColor: "#E5E7EB", color: "#2C7A5A" }}
       >
         <span>עדכון חודשי מלא</span>
         <span className="material-symbols-outlined text-[14px]">arrow_back</span>

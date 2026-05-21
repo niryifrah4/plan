@@ -286,6 +286,164 @@ export function calcPurchaseTaxPrimary(price: number): number {
   return calcPurchaseTax(price, "primary");
 }
 
+// ---------- Early Repayment Fee (עמלת פירעון מוקדם) — Israel ─────────────
+// Banks charge a discount-component fee when you prepay or refinance a
+// FIXED-RATE mortgage track. Formula (simplified):
+//
+//   discount = max(0, PV(payments @ trackRate) − PV(payments @ marketRate))
+//
+// Plus minor fixed fees (operational + non-notice).
+//
+// Indexation/foreign-currency tracks add further components (CPI gap, FX gap)
+// that are NOT modeled here — surfacing those would require live CPI data.
+// Prime-linked tracks have ZERO discount fee (rate is variable).
+//
+// 2026-05-18 per Nir: replaces the previous flat ₪1,500 placeholder. Reference:
+// תקנות הבנקאות (עמלות פירעון מוקדם), 2002 (with later amendments).
+
+export type RepaymentFeeIndexation =
+  | "fixed-unlinked" // קל"צ — full discount fee applies
+  | "fixed-linked" // ק"צ — discount fee applies (CPI gap omitted, conservative)
+  | "variable-period" // ריבית משתנה כל X שנים — fee only between change dates
+  | "prime" // פריים — no discount fee
+  | "other"; // unknown — calculator returns operational fee only
+
+export interface EarlyRepaymentFeeInputs {
+  /** Remaining principal balance in ₪. */
+  remainingBalance: number;
+  /** Current monthly payment in ₪. */
+  monthlyPayment: number;
+  /** Track's annual interest rate as a fraction (0.048 = 4.8%). */
+  trackRate: number;
+  /** Bank-of-Israel average mortgage rate (fraction). When trackRate ≤
+   *  marketRate, the discount fee is zero — refinancing is "free" of this fee. */
+  marketRate: number;
+  /** Track type — determines whether the discount fee applies. */
+  indexation: RepaymentFeeIndexation;
+  /** Provide notice ≥ 10 days before prepayment to skip the "no notice" fee. */
+  gaveNotice?: boolean;
+  /**
+   * For "variable-period" tracks: months until the next change date.
+   * If 0 or negative, the discount fee is waived (we're at a change date).
+   */
+  monthsToNextChange?: number;
+}
+
+export interface EarlyRepaymentFeeOutputs {
+  /** Discount-component fee (the main one). */
+  discountFee: number;
+  /** Operational flat fee (~₪60). */
+  operationalFee: number;
+  /** Fee for not giving 10-day advance notice. */
+  noNoticeFee: number;
+  /** Total = sum of all. */
+  total: number;
+  /** Breakdown of remaining months used in the discount calc. */
+  monthsRemaining: number;
+  /** PV at the track's rate (the "what you owe today" baseline). */
+  pvAtTrackRate: number;
+  /** PV at the market rate (what the bank could lend out today). */
+  pvAtMarketRate: number;
+}
+
+/** Compute remaining months from balance, monthly payment, annual rate. */
+function solveRemainingMonths(balance: number, monthly: number, annualRate: number): number {
+  if (balance <= 0 || monthly <= 0) return 0;
+  const r = annualRate / 12;
+  if (r === 0) return Math.ceil(balance / monthly);
+  const ratio = (balance * r) / monthly;
+  if (ratio >= 1) return 600; // payment doesn't even cover interest — capped
+  if (ratio <= 0) return 0;
+  return Math.ceil(-Math.log(1 - ratio) / Math.log(1 + r));
+}
+
+/** Present value of N equal monthly payments at annual rate `rate`. */
+function pvOfPayments(monthly: number, months: number, annualRate: number): number {
+  if (monthly <= 0 || months <= 0) return 0;
+  const r = annualRate / 12;
+  if (r === 0) return monthly * months;
+  return (monthly * (1 - Math.pow(1 + r, -months))) / r;
+}
+
+const OPERATIONAL_FEE = 60; // ₪ — תעריפון בנקאי טיפוסי
+
+export function calcEarlyRepaymentFee(i: EarlyRepaymentFeeInputs): EarlyRepaymentFeeOutputs {
+  const monthsRemaining = solveRemainingMonths(
+    i.remainingBalance,
+    i.monthlyPayment,
+    i.trackRate
+  );
+
+  const operationalFee = OPERATIONAL_FEE;
+  const noNoticeFee = i.gaveNotice === false ? Math.round((i.monthlyPayment * 10) / 30) : 0;
+
+  // Prime tracks — no discount fee
+  if (i.indexation === "prime" || i.indexation === "other") {
+    return {
+      discountFee: 0,
+      operationalFee,
+      noNoticeFee,
+      total: operationalFee + noNoticeFee,
+      monthsRemaining,
+      pvAtTrackRate: i.remainingBalance,
+      pvAtMarketRate: i.remainingBalance,
+    };
+  }
+
+  // Variable-period tracks — fee waived at change date
+  if (
+    i.indexation === "variable-period" &&
+    typeof i.monthsToNextChange === "number" &&
+    i.monthsToNextChange <= 0
+  ) {
+    return {
+      discountFee: 0,
+      operationalFee,
+      noNoticeFee,
+      total: operationalFee + noNoticeFee,
+      monthsRemaining,
+      pvAtTrackRate: i.remainingBalance,
+      pvAtMarketRate: i.remainingBalance,
+    };
+  }
+
+  // Discount-component fee
+  const pvAtTrackRate = pvOfPayments(i.monthlyPayment, monthsRemaining, i.trackRate);
+  const pvAtMarketRate = pvOfPayments(i.monthlyPayment, monthsRemaining, i.marketRate);
+  const discountFee = Math.max(0, Math.round(pvAtTrackRate - pvAtMarketRate));
+
+  return {
+    discountFee,
+    operationalFee,
+    noNoticeFee,
+    total: discountFee + operationalFee + noNoticeFee,
+    monthsRemaining,
+    pvAtTrackRate: Math.round(pvAtTrackRate),
+    pvAtMarketRate: Math.round(pvAtMarketRate),
+  };
+}
+
+/** Map a free-text indexation label (as stored on MortgageTrack) to the
+ *  enum used by the fee calculator. Conservative: anything unknown → "other"
+ *  which yields the operational fee only. */
+export function inferRepaymentFeeIndexation(
+  indexationLabel: string,
+  trackName?: string
+): RepaymentFeeIndexation {
+  const name = (trackName || "").toLowerCase();
+  // Prime tracks
+  if (name.includes("פריים") || name.includes("prime")) return "prime";
+  // Variable-period tracks (e.g. "משתנה כל 5", "משתנה כל 10")
+  if (name.includes("משתנה")) return "variable-period";
+  // Fixed-rate tracks — distinguish indexed (ק"צ) vs unlinked (קל"צ)
+  if (name.includes("קל\"צ") || name.includes("קלצ") || name.includes("קל''צ")) return "fixed-unlinked";
+  if (name.includes("ק\"צ") || name.includes("קצ") || name.includes("ק''צ")) return "fixed-linked";
+  // Fall back to indexation field
+  if (indexationLabel === "לא צמוד") return "fixed-unlinked";
+  if (indexationLabel === "מדד") return "fixed-linked";
+  return "other";
+}
+
 // ---------- Capital Gains Tax (מס שבח) — Israel ---------------------------
 // Real gain = nominal gain - inflation component. Taxed at 25% (post-2014
 // reform; earlier portions may qualify for lower rates / exemptions — not

@@ -2,17 +2,13 @@
 
 /**
  * MiniStat — compact label/value/sub block.
- *
- * Used inside accordions and detail views where a full SolidKpi would be
- * overkill. Before this file existed it was redefined inline in
- * /realestate, /debt, /investments, /equity — each with slightly
- * different padding and color logic. This is the SoT.
+ * Used inside accordions and detail views where a full SolidKpi would be overkill.
+ * Morning treatment: subtle leaf-tinted bg with dark ink text.
  */
 
 interface MiniStatProps {
   label: string;
   value: string;
-  /** Optional one-line caption beneath the value. */
   sub?: string;
   /** Override the value color (use the canonical palette). */
   color?: string;
@@ -23,20 +19,33 @@ export function MiniStat({ label, value, sub, color }: MiniStatProps) {
     <div
       className="rounded-xl p-3"
       style={{
-        background: "rgba(168,224,64,0.03)",
-        border: "1px solid rgba(168,224,64,0.08)",
+        background: "var(--morning-surface-2)",
+        border: "1px solid var(--morning-border)",
       }}
     >
-      <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-verdant-muted">
+      <div
+        className="text-[11px] font-medium tracking-[0.04em]"
+        style={{ color: "var(--morning-muted)" }}
+      >
         {label}
       </div>
       <div
-        className="tabular mt-1 text-[15px] font-extrabold"
-        style={{ color: color ?? "#F8FAFC" }}
+        className="tabular mt-1 text-[15px] font-bold"
+        style={{
+          color: color ?? "var(--morning-ink)",
+          fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif",
+        }}
       >
         {value}
       </div>
-      {sub && <div className="mt-0.5 text-[10px] text-verdant-muted">{sub}</div>}
+      {sub && (
+        <div
+          className="mt-0.5 text-[11px]"
+          style={{ color: "var(--morning-muted)" }}
+        >
+          {sub}
+        </div>
+      )}
     </div>
   );
 }

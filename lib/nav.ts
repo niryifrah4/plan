@@ -56,7 +56,6 @@ export const NAV_SECTIONS: NavGroup[] = [
     defaultOpen: true,
     items: [
       { id: "budget", label: "תזרים חודשי", href: "/budget", icon: "pie_chart" },
-      { id: "deposits", label: "הפקדות חודשיות", href: "/deposits", icon: "savings" },
       { id: "balance", label: "מאזן וחשבונות", href: "/balance", icon: "account_balance_wallet" },
       { id: "files", label: "קבצים במיפוי", href: "/files", icon: "folder_open" },
     ],
@@ -70,8 +69,7 @@ export const NAV_SECTIONS: NavGroup[] = [
     collapsible: true,
     defaultOpen: true,
     items: [
-      { id: "investments", label: "שוק ההון", href: "/investments", icon: "candlestick_chart" },
-      { id: "equity", label: "Equity (RSU/ESPP)", href: "/equity", icon: "stacked_bar_chart" },
+      { id: "investments", label: "השקעות", href: "/investments", icon: "candlestick_chart" },
       { id: "pension", label: "פנסיה ופרישה", href: "/pension", icon: "elderly" },
       { id: "realestate", label: "נדל״ן", href: "/realestate", icon: "home_work" },
       { id: "debt", label: "חובות והלוואות", href: "/debt", icon: "credit_score" },

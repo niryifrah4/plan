@@ -1,28 +1,8 @@
 "use client";
 
 /**
- * ═══════════════════════════════════════════════════════════
- *  Hero — the canonical "one number per screen" block
- * ═══════════════════════════════════════════════════════════
- *
- * The single component every page Hero should pass through.
- * Pre-2026-04 the same pattern lived inline in 4-5 places, each with
- * slightly different rounded-2xl vs 3xl, flat vs gradient, padding,
- * font-size — so /pension and /realestate looked like two different
- * apps. This file is the SoT.
- *
- * Usage:
- *   <Hero
- *     eyebrow="הון נדל״ן נטו"
- *     value={fmtILS(equity)}
- *     sub={`${properties.length} נכסים · שווי כולל ${fmtILS(totalValue)}`}
- *   />
- *
- * Tones:
- *   • forest (default)   — main positive Hero (equity, savings, retirement)
- *   • emerald            — success/celebratory
- *   • danger             — debt-focused screen
- *   • muted              — informational (no strong tone)
+ * Hero — the canonical "one number per screen" block.
+ * Morning treatment: light cream-to-leaf gradient with dark ink text.
  */
 
 import type { ReactNode } from "react";
@@ -30,48 +10,69 @@ import type { ReactNode } from "react";
 export type HeroTone = "forest" | "emerald" | "danger" | "muted";
 
 export interface HeroProps {
-  /** Small caption above the value, uppercase tracked. */
   eyebrow: string;
-  /** The big number / headline (string — pre-formatted by caller). */
   value: ReactNode;
-  /** Optional secondary line below the value. */
   sub?: ReactNode;
-  /** Optional inline CTA (button) on the side. */
   action?: ReactNode;
-  /** Color treatment — defaults to "forest". */
   tone?: HeroTone;
-  /** Center the headline (default true). Set false for left-aligned heroes. */
   centered?: boolean;
 }
 
 const TONE_BG: Record<HeroTone, string> = {
-  forest: "linear-gradient(135deg, #F8FAFC 0%, #A8E040 100%)",
-  emerald: "linear-gradient(135deg, #A8E040 0%, #4ADE80 100%)",
-  danger: "linear-gradient(135deg, #4A0E0E 0%, #7A1818 100%)",
-  muted: "linear-gradient(135deg, #A8E040 0%, #94A3B8 100%)",
+  forest: "linear-gradient(135deg, #FFFFFF 0%, #E8F4D1 100%)",
+  emerald: "linear-gradient(135deg, #FFFFFF 0%, #D1FAE5 100%)",
+  danger: "linear-gradient(135deg, #FFFFFF 0%, #FEE2E2 100%)",
+  muted: "linear-gradient(135deg, #FFFFFF 0%, #F0F1EB 100%)",
 };
 
-export function Hero({ eyebrow, value, sub, action, tone = "forest", centered = true }: HeroProps) {
+const TONE_EYEBROW: Record<HeroTone, string> = {
+  forest: "var(--morning-forest-deep)",
+  emerald: "var(--morning-success)",
+  danger: "var(--morning-danger)",
+  muted: "var(--morning-muted)",
+};
+
+const TONE_SUB: Record<HeroTone, string> = {
+  forest: "var(--morning-muted)",
+  emerald: "var(--morning-muted)",
+  danger: "var(--morning-muted)",
+  muted: "var(--morning-muted)",
+};
+
+export function Hero({
+  eyebrow,
+  value,
+  sub,
+  action,
+  tone = "forest",
+  centered = true,
+}: HeroProps) {
   return (
     <section
-      className={`mb-4 rounded-3xl px-6 py-7 md:px-10 md:py-9 ${centered ? "text-center" : "text-right"}`}
-      style={{ background: TONE_BG[tone], color: "#F8FAFC" }}
+      className={`mb-4 rounded-2xl px-6 py-7 md:px-10 md:py-9 ${centered ? "text-center" : "text-right"}`}
+      style={{
+        background: TONE_BG[tone],
+        color: "var(--morning-ink)",
+        border: "1px solid var(--morning-border)",
+        boxShadow: "var(--morning-shadow-card)",
+      }}
       dir="rtl"
     >
       <div className={action ? "flex flex-wrap items-center gap-6" : ""}>
         <div className="min-w-0 flex-1">
           <div
-            className="mb-3 text-[12px] font-bold uppercase tracking-[0.16em] md:text-[13px]"
-            style={{ color: "rgba(255,255,255,0.65)" }}
+            className="mb-3 text-[12px] font-semibold tracking-[0.10em] md:text-[13px]"
+            style={{ color: TONE_EYEBROW[tone] }}
           >
             {eyebrow}
           </div>
           <div
-            className="tabular font-extrabold leading-none"
+            className="tabular font-bold leading-none"
             style={{
               fontSize: "clamp(2.5rem, 7vw, 4rem)",
               letterSpacing: "-0.02em",
-              color: "#131C2E",
+              color: "var(--morning-ink)",
+              fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif",
             }}
           >
             {value}
@@ -79,7 +80,7 @@ export function Hero({ eyebrow, value, sub, action, tone = "forest", centered = 
           {sub && (
             <div
               className="mt-3 text-[13px] font-medium md:text-[14px]"
-              style={{ color: "rgba(255,255,255,0.75)" }}
+              style={{ color: TONE_SUB[tone] }}
             >
               {sub}
             </div>

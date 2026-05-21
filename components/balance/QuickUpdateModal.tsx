@@ -81,7 +81,7 @@ export function QuickUpdateModal({ onClose, onSaved }: Props) {
     >
       <div
         className="v-card max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-organic p-6 shadow-soft"
-        style={{ background: "#131C2E" }}
+        style={{ background: "#FFFFFF" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -105,7 +105,7 @@ export function QuickUpdateModal({ onClose, onSaved }: Props) {
             <div
               key={r.key}
               className="flex items-center justify-between rounded-lg p-3"
-              style={{ background: "#1A2438", border: "1px solid #1F2A3F" }}
+              style={{ background: "#FAFAF7", border: "1px solid #E5E7EB" }}
             >
               <span className="text-sm font-bold text-verdant-ink">
                 <span className="ml-1">{r.icon}</span>
@@ -120,7 +120,7 @@ export function QuickUpdateModal({ onClose, onSaved }: Props) {
             <div
               key={r.key}
               className="flex items-center justify-between rounded-lg p-3"
-              style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.20)" }}
+              style={{ background: "rgba(220,38,38,0.08)", border: "1px solid #FCA5A5" }}
             >
               <span className="text-sm font-bold text-verdant-ink">
                 <span className="ml-1">{r.icon}</span>
@@ -142,8 +142,8 @@ export function QuickUpdateModal({ onClose, onSaved }: Props) {
         <div
           className="mt-2 rounded-xl p-4 text-center"
           style={{
-            background: "linear-gradient(135deg, #A8E040, #4ADE80)",
-            color: "#131C2E",
+            background: "linear-gradient(135deg, #2C7A5A, #059669)",
+            color: "#FFFFFF",
           }}
         >
           <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] opacity-80">
@@ -161,7 +161,7 @@ export function QuickUpdateModal({ onClose, onSaved }: Props) {
             rows={2}
             placeholder="לא חובה — לדוגמה: 'בונוס שנתי', 'תשלום משכנתא מוקדם'..."
             className="w-full rounded-lg border p-2 text-sm"
-            style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
+            style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
           />
         </label>
 

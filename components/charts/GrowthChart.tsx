@@ -49,14 +49,14 @@ export function GrowthChart({ currentNetWorth, growthRate = 0.06, histDecayRate 
           {/* gridlines */}
           {[0, 0.25, 0.5, 0.75, 1].map((f) => {
             const y = H * (1 - f);
-            return <line key={f} x1="0" x2={W} y1={y} y2={y} stroke="#1F2A3F" strokeWidth="1" />;
+            return <line key={f} x1="0" x2={W} y1={y} y2={y} stroke="#E5E7EB" strokeWidth="1" />;
           })}
           {/* bars */}
           {bars.map((b, i) => {
             const x = i * (bw + gap);
             const h = Math.max(2, (Math.abs(b.value) / maxV) * (H - 10));
             const y = H - h;
-            const fill = b.type === "hist" ? "#a7c5b5" : b.type === "now" ? "#F8FAFC" : "#4ADE80";
+            const fill = b.type === "hist" ? "#a7c5b5" : b.type === "now" ? "#FFFFFF" : "#059669";
             const opacity = b.type === "fwd" ? 0.55 : 1;
             return (
               <rect

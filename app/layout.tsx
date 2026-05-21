@@ -6,12 +6,12 @@ import { logEnvStatus } from "@/lib/env";
 if (typeof window === "undefined") logEnvStatus();
 
 export const metadata: Metadata = {
-  title: "פלאן · מערכת לתכנון פיננסי",
-  description: "פלאן — מערכת לתכנון פיננסי ללקוח",
+  title: "plan · מערכת לתכנון פיננסי",
+  description: "plan — מערכת לתכנון פיננסי ללקוח",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
-    title: "פלאן",
+    statusBarStyle: "default",
+    title: "plan",
   },
 };
 
@@ -19,16 +19,18 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
-  themeColor: "#F8FAFC",
+  themeColor: "#F4F5F0",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="he" dir="rtl">
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;500;600;700;800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Rubik:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap"
         />
         <link
           rel="stylesheet"

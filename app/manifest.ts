@@ -9,15 +9,16 @@ import type { MetadataRoute } from "next";
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "פלאן · מערכת לתכנון פיננסי",
-    short_name: "פלאן",
+    name: "plan · מערכת לתכנון פיננסי",
+    short_name: "plan",
     description: "תכנון פיננסי, תזרים מזומנים, השקעות וחובות במקום אחד",
-    start_url: "/dashboard",
+    // Installed PWA → mobile shell. Desktop visitors keep using /dashboard via direct URL.
+    start_url: "/m",
     scope: "/",
     display: "standalone",
     orientation: "portrait-primary",
-    background_color: "#F8FAFC",
-    theme_color: "#F8FAFC",
+    background_color: "#F4F5F0",
+    theme_color: "#F4F5F0",
     lang: "he",
     dir: "rtl",
     categories: ["finance", "productivity", "lifestyle"],

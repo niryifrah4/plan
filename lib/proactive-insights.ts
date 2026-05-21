@@ -23,7 +23,7 @@ import {
   STUDY_FUND_SALARY_CAP,
 } from "./salary-engine";
 import { section45and47Benefit } from "./assumptions";
-import { loadDebtData } from "./debt-store";
+import { loadDebtData, getAllMortgageTracks } from "./debt-store";
 import { loadAccounts, totalBankBalance } from "./accounts-store";
 import { loadAssumptions } from "./assumptions";
 import { deriveMonthlyExpensesFromBudget } from "./budget-store";
@@ -111,13 +111,16 @@ function checkVoluntaryPensionGap(): ProactiveInsight | null {
 
 function checkHighMortgageRate(): ProactiveInsight | null {
   const debt = loadDebtData();
-  if (!debt.mortgage || !debt.mortgage.tracks?.length) return null;
+  const tracks = getAllMortgageTracks(debt);
+  if (tracks.length === 0) return null;
   const a = loadAssumptions();
   const cheapRate = (a.boiRate ?? 0.045) + 0.015; // prime
   let worstGap = 0;
   let worstPrincipal = 0;
-  for (const t of debt.mortgage.tracks) {
-    const gap = t.interestRate / 100 - cheapRate;
+  for (const t of tracks) {
+    // 2026-05-19 Phase 1: track.interestRate is now DECIMAL (0.048), same
+    // scale as cheapRate (boiRate + 0.015). No /100 needed.
+    const gap = t.interestRate - cheapRate;
     if (gap > 0.015 && t.remainingBalance > worstPrincipal * 0.5) {
       // Rough saving: principal × gap × 0.5 (half-life weighted)
       const savings = t.remainingBalance * gap * 0.5;

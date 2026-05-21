@@ -21,34 +21,45 @@ export async function GET(req: NextRequest) {
   const code = searchParams.get("code");
   const redirectParam = searchParams.get("redirect");
 
-  // 2026-05-01: behind a proxy (Render), `new URL(req.url).origin` returns
-  // the internal `localhost:10000` instead of the public host. Use the
-  // X-Forwarded-* headers Render sets, fall back to NEXT_PUBLIC_BASE_URL,
-  // then to the parsed URL as last resort.
+  // 2026-05-20 security hardening (security-agent CRITICAL #2):
+  // Anchor the redirect ORIGIN to the env-configured base URL, not to
+  // x-forwarded-host headers a caller can spoof. Without this, an attacker
+  // forging x-forwarded-host: evil.com would bounce victims through the OAuth
+  // callback to evil.com — classic open-redirect / token-leakage vector.
+  //
+  // The fwd headers are STILL the right source for the *callback URL* during
+  // the OAuth handshake (Render proxy), but the redirect AFTER the handshake
+  // must go through our trusted host only.
   const fwdProto = req.headers.get("x-forwarded-proto") || "https";
   const fwdHost = req.headers.get("x-forwarded-host") || req.headers.get("host");
-  const origin = fwdHost
+  const callbackOrigin = fwdHost
     ? `${fwdProto}://${fwdHost}`
     : process.env.NEXT_PUBLIC_BASE_URL || new URL(req.url).origin;
+  // Trusted origin for outgoing redirects — never user-controlled.
+  const safeOrigin =
+    process.env.NEXT_PUBLIC_BASE_URL || new URL(req.url).origin;
 
   const sb = createClient();
 
   if (code) {
     const { error } = await sb.auth.exchangeCodeForSession(code);
     if (error) {
-      return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`);
+      return NextResponse.redirect(
+        `${safeOrigin}/login?error=${encodeURIComponent(error.message)}`,
+      );
     }
   }
 
   // If the login page passed an explicit redirect (e.g. /budget), honor it
-  // when we can — but only for valid in-app paths.
+  // when we can — but only for valid in-app paths, on the trusted origin.
   if (redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//")) {
-    return NextResponse.redirect(`${origin}${redirectParam}`);
+    return NextResponse.redirect(`${safeOrigin}${redirectParam}`);
   }
 
   // ── Smart redirect by role ─────────────────────────────────
   const target = await resolveLandingPage(sb);
-  return NextResponse.redirect(`${origin}${target}`);
+  return NextResponse.redirect(`${safeOrigin}${target}`);
+  void callbackOrigin; // reserved for future use during OAuth handshake
 }
 
 /**

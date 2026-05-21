@@ -212,15 +212,15 @@ export function ClientSwitcher() {
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-2 rounded-full border px-4 py-2 transition"
         style={{
-          background: "#131C2E",
-          borderColor: "#1F2A3F",
-          color: "#F8FAFC",
-          boxShadow: "0 1px 2px rgba(168,224,64,0.06)",
+          background: "#FFFFFF",
+          borderColor: "#E5E7EB",
+          color: "#1A1A1A",
+          boxShadow: "0 1px 2px rgba(44,122,90,0.06)",
         }}
       >
         <span
           className="material-symbols-outlined"
-          style={{ fontSize: 18, color: "#A8E040" }}
+          style={{ fontSize: 18, color: "#2C7A5A" }}
           aria-hidden
         >
           group
@@ -228,7 +228,7 @@ export function ClientSwitcher() {
         <span className="text-sm font-medium">{label}</span>
         <span
           className="material-symbols-outlined"
-          style={{ fontSize: 18, color: "#A8E040" }}
+          style={{ fontSize: 18, color: "#2C7A5A" }}
           aria-hidden
         >
           {open ? "expand_less" : "expand_more"}
@@ -239,9 +239,9 @@ export function ClientSwitcher() {
         <div
           className="absolute left-0 z-50 mt-2 min-w-[280px] overflow-hidden rounded-xl border"
           style={{
-            background: "#131C2E",
-            borderColor: "#1F2A3F",
-            boxShadow: "0 10px 30px rgba(168,224,64,0.12)",
+            background: "#FFFFFF",
+            borderColor: "#E5E7EB",
+            boxShadow: "0 10px 30px rgba(44,122,90,0.12)",
           }}
           role="listbox"
         >
@@ -258,7 +258,7 @@ export function ClientSwitcher() {
                   key={c.id}
                   className="group flex items-center gap-1 px-2 py-1 transition"
                   style={{
-                    background: isActive ? "#1F2A3F" : "transparent",
+                    background: isActive ? "#E5E7EB" : "transparent",
                   }}
                 >
                   {/* row actions (appear on the LEFT in RTL → opposite of name) */}
@@ -266,7 +266,7 @@ export function ClientSwitcher() {
                     type="button"
                     onClick={(e) => handleDeleteRow(e, c)}
                     className="rounded-md p-1 transition"
-                    style={{ color: "#F87171", opacity: 0.55 }}
+                    style={{ color: "#DC2626", opacity: 0.55 }}
                     title="מחיקה"
                     aria-label={`מחק את משפחת ${c.family}`}
                   >
@@ -300,7 +300,7 @@ export function ClientSwitcher() {
                     type="button"
                     onClick={() => handleSelect(c.id)}
                     className="flex flex-1 items-center justify-between gap-2 rounded-md px-2 py-1 text-right transition"
-                    style={{ color: "#F8FAFC" }}
+                    style={{ color: "#1A1A1A" }}
                     role="option"
                     aria-selected={isActive}
                   >
@@ -308,7 +308,7 @@ export function ClientSwitcher() {
                     {isActive && (
                       <span
                         className="material-symbols-outlined"
-                        style={{ fontSize: 18, color: "#A8E040" }}
+                        style={{ fontSize: 18, color: "#2C7A5A" }}
                         aria-hidden
                       >
                         check
@@ -319,12 +319,12 @@ export function ClientSwitcher() {
               );
             })}
           </div>
-          <div style={{ borderTop: "1px solid #1F2A3F" }}>
+          <div style={{ borderTop: "1px solid #E5E7EB" }}>
             <button
               type="button"
               onClick={handleCreate}
               className="flex w-full items-center gap-2 px-4 py-2 text-right transition"
-              style={{ color: "#A8E040" }}
+              style={{ color: "#2C7A5A" }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
                 add
@@ -335,12 +335,12 @@ export function ClientSwitcher() {
               type="button"
               onClick={handleBackupAll}
               className="flex w-full items-center gap-2 px-4 py-2 text-right transition"
-              style={{ color: "#F8FAFC" }}
+              style={{ color: "#1A1A1A" }}
               title="גיבוי של כל הלקוחות לקובץ אחד"
             >
               <span
                 className="material-symbols-outlined"
-                style={{ fontSize: 18, color: "#A8E040" }}
+                style={{ fontSize: 18, color: "#2C7A5A" }}
                 aria-hidden
               >
                 save
@@ -351,11 +351,11 @@ export function ClientSwitcher() {
               type="button"
               onClick={handleImportClick}
               className="flex w-full items-center gap-2 px-4 py-2 text-right transition"
-              style={{ color: "#F8FAFC" }}
+              style={{ color: "#1A1A1A" }}
             >
               <span
                 className="material-symbols-outlined"
-                style={{ fontSize: 18, color: "#A8E040" }}
+                style={{ fontSize: 18, color: "#2C7A5A" }}
                 aria-hidden
               >
                 upload_file
@@ -388,8 +388,8 @@ export function ClientSwitcher() {
           <div
             className="w-[90%] max-w-[420px] rounded-organic border p-6 shadow-soft"
             style={{
-              background: "#131C2E",
-              borderColor: "#1F2A3F",
+              background: "#FFFFFF",
+              borderColor: "#E5E7EB",
               fontFamily: "'Assistant', sans-serif",
             }}
             onClick={(e) => e.stopPropagation()}
@@ -397,18 +397,18 @@ export function ClientSwitcher() {
             <div className="mb-3 flex items-center gap-2">
               <span
                 className="material-symbols-outlined"
-                style={{ fontSize: 22, color: "#F87171" }}
+                style={{ fontSize: 22, color: "#DC2626" }}
                 aria-hidden
               >
                 warning
               </span>
-              <h3 className="text-base font-bold" style={{ color: "#F8FAFC" }}>
+              <h3 className="text-base font-bold" style={{ color: "#1A1A1A" }}>
                 מחיקת לקוח — לא ניתן לשחזר
               </h3>
             </div>
             <p className="mb-4 text-sm leading-relaxed" style={{ color: "#374151" }}>
               כל הנתונים של{" "}
-              <span className="font-bold" style={{ color: "#F87171" }}>
+              <span className="font-bold" style={{ color: "#DC2626" }}>
                 משפחת {pendingDelete.family}
               </span>{" "}
               יימחקו לצמיתות מהמחשב שלך.
@@ -424,9 +424,9 @@ export function ClientSwitcher() {
               autoFocus
               className="mb-4 w-full rounded-lg border px-3 py-2 text-sm outline-none"
               style={{
-                borderColor: "#1F2A3F",
-                background: "#131C2E",
-                color: "#F8FAFC",
+                borderColor: "#E5E7EB",
+                background: "#FFFFFF",
+                color: "#1A1A1A",
                 fontFamily: "'Assistant', sans-serif",
               }}
             />
@@ -444,8 +444,8 @@ export function ClientSwitcher() {
                 disabled={!canConfirmDelete}
                 className="rounded-lg px-4 py-2 text-sm font-bold transition"
                 style={{
-                  background: canConfirmDelete ? "#F87171" : "#e5e7eb",
-                  color: canConfirmDelete ? "#131C2E" : "#9ca3af",
+                  background: canConfirmDelete ? "#DC2626" : "#e5e7eb",
+                  color: canConfirmDelete ? "#FFFFFF" : "#9ca3af",
                   cursor: canConfirmDelete ? "pointer" : "not-allowed",
                 }}
               >

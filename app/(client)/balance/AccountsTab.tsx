@@ -109,13 +109,13 @@ export function AccountsTab() {
     <div className="space-y-6">
       {/* ── KPIs ── */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <KPI icon="account_balance" label="יתרה בנקאית" value={fmtILS(bankTotal)} color="#A8E040" />
-        <KPI icon="credit_card" label="חיובי אשראי" value={fmtILS(creditTotal)} color="#f59e0b" />
+        <KPI icon="account_balance" label="יתרה בנקאית" value={fmtILS(bankTotal)} color="#2C7A5A" />
+        <KPI icon="credit_card" label="חיובי אשראי" value={fmtILS(creditTotal)} color="#D97706" />
         <KPI
           icon="savings"
           label="נזילות נטו"
           value={fmtILS(netLiquid)}
-          color={netLiquid >= 0 ? "#A8E040" : "#F87171"}
+          color={netLiquid >= 0 ? "#2C7A5A" : "#DC2626"}
         />
         <KPI
           icon="account_balance_wallet"
@@ -143,7 +143,7 @@ export function AccountsTab() {
             </h2>
             <span
               className="rounded-full px-2 py-0.5 text-xs font-bold"
-              style={{ background: "#1A2438", color: "var(--verdant-muted)" }}
+              style={{ background: "#FAFAF7", color: "var(--verdant-muted)" }}
             >
               {data.banks.length}
             </span>
@@ -186,17 +186,17 @@ export function AccountsTab() {
               />
             ) : (
               <div
-                className="flex cursor-pointer items-center gap-4 border-b px-5 py-4 transition-colors hover:bg-[#1A2438]/40"
+                className="flex cursor-pointer items-center gap-4 border-b px-5 py-4 transition-colors hover:bg-[#FAFAF7]/40"
                 style={{ borderColor: "var(--verdant-border)" }}
                 onClick={() => setEditingId(bank.id)}
               >
                 <div
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                  style={{ background: "#A8E04015" }}
+                  style={{ background: "#2C7A5A15" }}
                 >
                   <span
                     className="material-symbols-outlined text-[20px]"
-                    style={{ color: "#A8E040" }}
+                    style={{ color: "#2C7A5A" }}
                   >
                     account_balance
                   </span>
@@ -212,7 +212,7 @@ export function AccountsTab() {
                     {bank.isMain && (
                       <span
                         className="rounded-full px-1.5 py-0.5 text-[9px] font-bold"
-                        style={{ background: "#A8E04015", color: "#A8E040" }}
+                        style={{ background: "#2C7A5A15", color: "#2C7A5A" }}
                       >
                         ראשי
                       </span>
@@ -231,7 +231,7 @@ export function AccountsTab() {
                           color:
                             bank.balance < 0 && bank.creditLimit! > 0
                               ? Math.abs(bank.balance) / bank.creditLimit! > 0.8
-                                ? "#F87171"
+                                ? "#DC2626"
                                 : "var(--verdant-muted)"
                               : "var(--verdant-muted)",
                         }}
@@ -251,7 +251,7 @@ export function AccountsTab() {
                               : "0%",
                           background:
                             bank.balance < 0 && Math.abs(bank.balance) / bank.creditLimit! > 0.8
-                              ? "#ef4444"
+                              ? "#DC2626"
                               : "#6366f1",
                         }}
                       />
@@ -261,7 +261,7 @@ export function AccountsTab() {
                 <div className="text-left">
                   <div
                     className="tabular text-base font-extrabold"
-                    style={{ color: bank.balance >= 0 ? "#A8E040" : "#F87171" }}
+                    style={{ color: bank.balance >= 0 ? "#2C7A5A" : "#DC2626" }}
                   >
                     {fmtILS(bank.balance)}
                   </div>
@@ -290,7 +290,7 @@ export function AccountsTab() {
           style={{ borderColor: "var(--verdant-border)" }}
         >
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[20px]" style={{ color: "#f59e0b" }}>
+            <span className="material-symbols-outlined text-[20px]" style={{ color: "#D97706" }}>
               credit_card
             </span>
             <h2 className="text-sm font-extrabold" style={{ color: "var(--verdant-ink)" }}>
@@ -298,7 +298,7 @@ export function AccountsTab() {
             </h2>
             <span
               className="rounded-full px-2 py-0.5 text-xs font-bold"
-              style={{ background: "rgba(251,191,36,0.12)", color: "#92400e" }}
+              style={{ background: "rgba(217,119,6,0.12)", color: "#92400e" }}
             >
               {data.creditCards.length}
             </span>
@@ -351,7 +351,7 @@ export function AccountsTab() {
             ) : (
               <>
               <div
-                className="flex items-center gap-4 border-b px-5 py-4 transition-colors hover:bg-[#1A2438]/40"
+                className="flex items-center gap-4 border-b px-5 py-4 transition-colors hover:bg-[#FAFAF7]/40"
                 style={{ borderColor: "var(--verdant-border)" }}
               >
                 <div
@@ -360,7 +360,7 @@ export function AccountsTab() {
                 >
                   <span
                     className="material-symbols-outlined text-[20px]"
-                    style={{ color: "#f59e0b" }}
+                    style={{ color: "#D97706" }}
                   >
                     credit_card
                   </span>
@@ -376,7 +376,7 @@ export function AccountsTab() {
                     •••• {card.lastFourDigits} · יום חיוב: {card.billingDay} ·{" "}
                     <span
                       style={{
-                        color: daysLeft <= 3 ? "#F87171" : daysLeft <= 7 ? "#b45309" : "var(--verdant-muted)",
+                        color: daysLeft <= 3 ? "#DC2626" : daysLeft <= 7 ? "#b45309" : "var(--verdant-muted)",
                         fontWeight: daysLeft <= 7 ? 700 : 500,
                       }}
                     >
@@ -393,7 +393,7 @@ export function AccountsTab() {
                         color:
                           card.creditLimit > 0
                             ? card.currentCharge / card.creditLimit > 0.8
-                              ? "#F87171"
+                              ? "#DC2626"
                               : "var(--verdant-muted)"
                             : "var(--verdant-muted)",
                       }}
@@ -413,8 +413,8 @@ export function AccountsTab() {
                             : "0%",
                         background:
                           card.creditLimit > 0 && card.currentCharge / card.creditLimit > 0.8
-                            ? "#ef4444"
-                            : "#f59e0b",
+                            ? "#DC2626"
+                            : "#D97706",
                       }}
                     />
                   </div>
@@ -432,8 +432,8 @@ export function AccountsTab() {
                   title="הוסף עסקה לסל"
                   className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-green-50"
                   style={{
-                    background: quickAddId === card.id ? "#A8E040" : "#1A2438",
-                    color: "#A8E040",
+                    background: quickAddId === card.id ? "#2C7A5A" : "#FAFAF7",
+                    color: quickAddId === card.id ? "#FFFFFF" : "#2C7A5A",
                   }}
                 >
                   <span className="material-symbols-outlined text-[16px]">
@@ -538,7 +538,7 @@ function BankForm({
   return (
     <div
       className="border-b px-5 py-4"
-      style={{ background: "#1A2438", borderColor: "var(--verdant-border)" }}
+      style={{ background: "#FAFAF7", borderColor: "var(--verdant-border)" }}
     >
       <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-3">
         <div>
@@ -723,9 +723,9 @@ function QuickAddPurchase({
   return (
     <div
       className="flex flex-wrap items-center gap-3 border-b px-5 py-3"
-      style={{ background: "#F8FAFC", borderColor: "var(--verdant-border)" }}
+      style={{ background: "#FFFFFF", borderColor: "var(--verdant-border)" }}
     >
-      <span className="text-[12px] font-bold" style={{ color: "#A8E040" }}>
+      <span className="text-[12px] font-bold" style={{ color: "#2C7A5A" }}>
         הוסף לסל:
       </span>
       <input
@@ -738,8 +738,8 @@ function QuickAddPurchase({
           if (e.key === "Enter") submit();
           if (e.key === "Escape") onCancel();
         }}
-        className="w-24 rounded-md border bg-[#131C2E] px-2 py-1.5 text-center text-[13px] font-extrabold tabular-nums focus:outline-none"
-        style={{ borderColor: "#1F2A3F" }}
+        className="w-24 rounded-md border bg-[#FFFFFF] px-2 py-1.5 text-center text-[13px] font-extrabold tabular-nums focus:outline-none"
+        style={{ borderColor: "#E5E7EB" }}
         dir="ltr"
       />
       <input
@@ -751,13 +751,13 @@ function QuickAddPurchase({
           if (e.key === "Enter") submit();
           if (e.key === "Escape") onCancel();
         }}
-        className="min-w-[140px] flex-1 rounded-md border bg-[#131C2E] px-2 py-1.5 text-[12px] focus:outline-none"
-        style={{ borderColor: "#1F2A3F" }}
+        className="min-w-[140px] flex-1 rounded-md border bg-[#FFFFFF] px-2 py-1.5 text-[12px] focus:outline-none"
+        style={{ borderColor: "#E5E7EB" }}
       />
       {parseFloat(amount) > 0 && card.creditLimit > 0 && (
         <span
           className="text-[11px] font-bold"
-          style={{ color: utilPct >= 80 ? "#F87171" : "#A8E040" }}
+          style={{ color: utilPct >= 80 ? "#DC2626" : "#2C7A5A" }}
         >
           → {fmtILS(projectedAfter)} ({utilPct}%)
         </span>
@@ -804,7 +804,7 @@ function CardForm({
   return (
     <div
       className="border-b px-5 py-4"
-      style={{ background: "#1A2438", borderColor: "var(--verdant-border)" }}
+      style={{ background: "#FAFAF7", borderColor: "var(--verdant-border)" }}
     >
       <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-3">
         <div>

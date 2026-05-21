@@ -73,7 +73,7 @@ export function AllocationPie({
 
       <div className="relative mb-4 flex items-center justify-center" style={{ minHeight: px }}>
         <svg width={px} height={px} viewBox="0 0 42 42" className="-rotate-90">
-          <circle cx="21" cy="21" r="15.9155" fill="transparent" stroke="#1F2A3F" strokeWidth="5" />
+          <circle cx="21" cy="21" r="15.9155" fill="transparent" stroke="#E5E7EB" strokeWidth="5" />
           {slices.map((s, i) => {
             const el = (
               <circle

@@ -21,12 +21,18 @@ export type RepaymentMethod = "שפיצר" | "קרן שווה" | "בלון" | "�
 export interface MortgageTrack {
   id: string;
   name: string;
-  /** Absolute interest rate (e.g. 0.048). Ignored if `margin` is set — effective rate = primeRate + margin. */
+  /**
+   * Annual interest rate as a DECIMAL fraction (0.048 = 4.8%).
+   * Ignored if `margin` is set — effective rate = primeRate + margin.
+   * UI converts to/from percent at the input boundary.
+   * 2026-05-19 Phase 1: standardized to decimal across the whole debt module.
+   * Legacy percent-scale data (>1) is normalized on load by `migrateDebtShape`.
+   */
   interestRate: number;
   /**
-   * Optional margin over Prime (e.g. 0.005 = +0.5%). When present, effective
-   * rate is derived as `primeRate + margin` so Prime tracks auto-update when
-   * BoI rate changes. Leave undefined for fixed-rate tracks.
+   * Optional margin over Prime as a DECIMAL fraction (0.005 = +0.5%).
+   * When present, effective rate = primeRate + margin so Prime tracks
+   * auto-update when BoI rate changes. Leave undefined for fixed-rate tracks.
    */
   margin?: number;
   indexation: IndexationType;
@@ -53,6 +59,19 @@ export function effectiveTrackRate(track: MortgageTrack, primeRate: number): num
 }
 
 export interface MortgageData {
+  /**
+   * Stable id for the mortgage. Required since 2026-05-18 — supports the
+   * multi-mortgage model (a household can have several mortgages, one per
+   * property). Legacy data is auto-id'd on load via `migrateDebtShape`.
+   */
+  id: string;
+  /**
+   * Optional foreign key to a Property in realestate-store. Once assigned,
+   * the mortgage is "owned" by that property and shows on its card in
+   * /realestate. Left undefined for legacy mortgages until the user picks
+   * a property in /debt. UI surfaces unassigned mortgages with a prompt.
+   */
+  propertyId?: string;
   bank: string;
   propertyValue: number;
   tracks: MortgageTrack[];
@@ -65,8 +84,8 @@ export interface Loan {
   totalPayments: number;
   monthlyPayment: number;
   /**
-   * Annual interest rate as a fraction (0.065 = 6.5%). Optional — older
-   * loans may lack it; calculations fall back to a heuristic only when
+   * Annual interest rate as a DECIMAL fraction (0.065 = 6.5%). Optional —
+   * older loans may lack it; calculations fall back to a heuristic only when
    * undefined and surface a disclaimer to the user.
    * Added 2026-05-05 per Nir + finance-agent: was previously hardcoded 6%.
    */
@@ -85,32 +104,125 @@ export interface Installment {
 export interface DebtData {
   loans: Loan[];
   installments: Installment[];
-  mortgage?: MortgageData;
+  /**
+   * Array of mortgages — a household can have one mortgage per property.
+   * Changed 2026-05-18 from `mortgage?: MortgageData` to `mortgages: MortgageData[]`.
+   * `migrateDebtShape()` converts old persisted data on read.
+   */
+  mortgages: MortgageData[];
 }
 
 import { scopedKey } from "./client-scope";
 import { pushBlobInBackground, pullBlob } from "./sync/blob-sync";
+import {
+  pushDebtToTablesInBackground,
+  backfillDebtFromBlobIfNeeded,
+} from "./sync/debt-tables";
+import { loadAssumptions } from "./assumptions";
 
 const STORAGE_KEY = "verdant:debt_data";
 const BLOB_KEY = "debt_data";
+
+/* ── Legacy migration ─────────────────────────────────────────────────────
+ * Two migrations happen here, both idempotent:
+ *
+ * 1. Shape: persisted data from before 2026-05-18 used `mortgage?:
+ *    MortgageData` (single). New shape uses `mortgages: MortgageData[]`.
+ *
+ * 2. Rate scale (2026-05-19): legacy data stored mortgage `interestRate` and
+ *    `margin` on a percent scale (4.8 meant 4.8%). New standard is decimal
+ *    (0.048 = 4.8%) across the whole module. Any value > 1 is treated as
+ *    legacy percent and divided by 100. Real Israeli mortgage rates never
+ *    exceed 100%, so this heuristic is safe. Same migration is applied to
+ *    `loan.interestRate` defensively, even though it was already decimal.
+ *
+ * Never mutates input, never loses data, never throws on garbage input.
+ */
+function normalizeRate(raw: unknown): number | undefined {
+  if (typeof raw !== "number" || !Number.isFinite(raw)) return undefined;
+  return raw > 1 ? raw / 100 : raw;
+}
+
+function normalizeTrackRates(track: MortgageTrack): MortgageTrack {
+  const next: MortgageTrack = { ...track };
+  const ir = normalizeRate(track.interestRate);
+  if (ir !== undefined) next.interestRate = ir;
+  if (typeof track.margin === "number") {
+    const m = normalizeRate(track.margin);
+    if (m !== undefined) next.margin = m;
+  }
+  return next;
+}
+
+function normalizeLoanRates(loan: Loan): Loan {
+  if (typeof loan.interestRate !== "number") return loan;
+  const r = normalizeRate(loan.interestRate);
+  return r === undefined ? loan : { ...loan, interestRate: r };
+}
+
+function migrateDebtShape(raw: unknown): DebtData {
+  const empty: DebtData = { loans: [], installments: [], mortgages: [] };
+  if (!raw || typeof raw !== "object") return empty;
+  const obj = raw as Record<string, unknown>;
+  const loansRaw = Array.isArray(obj.loans) ? (obj.loans as Loan[]) : [];
+  const loans = loansRaw.map(normalizeLoanRates);
+  const installments = Array.isArray(obj.installments) ? (obj.installments as Installment[]) : [];
+
+  // New shape already
+  if (Array.isArray(obj.mortgages)) {
+    // Ensure each mortgage has a stable id (defensive — older partial saves)
+    // and normalize rate scale on every track.
+    const mortgages = (obj.mortgages as MortgageData[]).map((m, i) => ({
+      ...m,
+      id: m.id || `mtg_${Date.now()}_${i}`,
+      tracks: (m.tracks || []).map(normalizeTrackRates),
+    }));
+    return { loans, installments, mortgages };
+  }
+
+  // Legacy single-mortgage shape — convert
+  const legacy = obj.mortgage as MortgageData | undefined;
+  const mortgages: MortgageData[] =
+    legacy && legacy.tracks && legacy.tracks.length > 0
+      ? [
+          {
+            ...legacy,
+            id: legacy.id || "mtg_legacy",
+            tracks: legacy.tracks.map(normalizeTrackRates),
+          },
+        ]
+      : [];
+  return { loans, installments, mortgages };
+}
 
 /* ── Read / Write ── */
 
 export function loadDebtData(): DebtData {
   try {
     const raw = localStorage.getItem(scopedKey(STORAGE_KEY));
-    if (raw) return JSON.parse(raw);
+    if (raw) return migrateDebtShape(JSON.parse(raw));
   } catch {}
-  return { loans: [], installments: [] };
+  return { loans: [], installments: [], mortgages: [] };
 }
 
 export function saveDebtData(data: DebtData): void {
   try {
-    localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(data));
+    // Always persist in the new shape — drop any leftover legacy `mortgage`.
+    const clean: DebtData = {
+      loans: data.loans || [],
+      installments: data.installments || [],
+      mortgages: data.mortgages || [],
+    };
+    localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(clean));
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("verdant:debt:updated"));
     }
-    pushBlobInBackground(BLOB_KEY, data);
+    // Phase 2 dual-write (2026-05-19): write to BOTH the JSON blob (legacy
+    // read path) and the typed tables (Phase 3+ read path). The blob is
+    // still authoritative; the typed tables are mirrored best-effort.
+    // Either write can fail without the other.
+    pushBlobInBackground(BLOB_KEY, clean);
+    pushDebtToTablesInBackground(clean);
   } catch (e) {
     console.warn("[DebtStore] save failed:", e);
   }
@@ -118,13 +230,18 @@ export function saveDebtData(data: DebtData): void {
 
 /** Pull from Supabase and overwrite local. Call on boot / household switch. */
 export async function hydrateDebtFromRemote(): Promise<boolean> {
-  const remote = await pullBlob<DebtData>(BLOB_KEY);
+  const remote = await pullBlob<unknown>(BLOB_KEY);
   if (!remote) return false;
   try {
-    localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(remote));
+    const migrated = migrateDebtShape(remote);
+    localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(migrated));
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("verdant:debt:updated"));
     }
+    // Phase 2 backfill (2026-05-19): if the typed tables are empty for this
+    // household but the blob has data, push the data into the typed tables
+    // once. Idempotent and fire-and-forget — never blocks hydration.
+    void backfillDebtFromBlobIfNeeded(migrated);
     return true;
   } catch {
     return false;
@@ -149,6 +266,68 @@ export function isInstallmentActive(inst: Installment): boolean {
   return inst.currentPayment <= inst.totalPayments;
 }
 
+/* ── Multi-mortgage helpers (new in 2026-05-18) ───────────────────────── */
+
+/** Flatten all tracks across every mortgage. Use when "all tracks" is the right unit. */
+export function getAllMortgageTracks(data: DebtData): MortgageTrack[] {
+  return data.mortgages.flatMap((m) => m.tracks || []);
+}
+
+/** Find every mortgage attached to a given property (typically 0 or 1). */
+export function getMortgagesForProperty(data: DebtData, propertyId: string): MortgageData[] {
+  return data.mortgages.filter((m) => m.propertyId === propertyId);
+}
+
+/** Mortgages with no propertyId set — used to prompt the user to assign one. */
+export function getUnassignedMortgages(data: DebtData): MortgageData[] {
+  return data.mortgages.filter((m) => !m.propertyId);
+}
+
+/**
+ * Summary of mortgage(s) attached to a single property — used by the
+ * /realestate page to render per-property mortgage info. Returns zero
+ * totals when the property has no mortgage assigned.
+ */
+export interface PropertyMortgageSummary {
+  mortgages: MortgageData[];
+  tracks: MortgageTrack[];
+  monthlyPayment: number;
+  remainingBalance: number;
+  originalAmount: number;
+  /** Weighted-by-balance avg interest rate, as a DECIMAL fraction (0.048 = 4.8%). */
+  weightedAvgInterest: number;
+}
+
+export function getPropertyMortgageSummary(
+  propertyId: string,
+  data?: DebtData,
+  primeRate?: number
+): PropertyMortgageSummary {
+  const d = data ?? loadDebtData();
+  const rate = primeRate ?? loadAssumptions().primeRate;
+  const mortgages = getMortgagesForProperty(d, propertyId);
+  const tracks = mortgages.flatMap((m) => m.tracks || []);
+  const monthlyPayment = tracks.reduce((s, t) => s + (t.monthlyPayment || 0), 0);
+  const remainingBalance = tracks.reduce((s, t) => s + (t.remainingBalance || 0), 0);
+  const originalAmount = tracks.reduce((s, t) => s + (t.originalAmount || 0), 0);
+  const totalBal = tracks.reduce((s, t) => s + (t.remainingBalance || 0), 0);
+  const weightedAvgInterest =
+    totalBal > 0
+      ? tracks.reduce(
+          (s, t) => s + effectiveTrackRate(t, rate) * (t.remainingBalance || 0),
+          0
+        ) / totalBal
+      : 0;
+  return {
+    mortgages,
+    tracks,
+    monthlyPayment,
+    remainingBalance,
+    originalAmount,
+    weightedAvgInterest,
+  };
+}
+
 /* ── Summary Aggregators (used by dashboard, wealth, budget) ── */
 
 export interface DebtSummary {
@@ -169,12 +348,13 @@ export interface DebtSummary {
   mortgageAvgInterest: number;
 }
 
-export function getDebtSummary(data?: DebtData): DebtSummary {
+export function getDebtSummary(data?: DebtData, primeRate?: number): DebtSummary {
   const d = data ?? loadDebtData();
+  const rate = primeRate ?? loadAssumptions().primeRate;
 
   const activeLoans = d.loans.filter(isLoanActive);
   const activeInstallments = d.installments.filter(isInstallmentActive);
-  const mortgageTracks = d.mortgage?.tracks || [];
+  const mortgageTracks = getAllMortgageTracks(d);
 
   const mortgageMonthly = mortgageTracks.reduce((s, t) => s + (t.monthlyPayment || 0), 0);
   const loansMonthly = activeLoans.reduce((s, l) => s + (l.monthlyPayment || 0), 0);
@@ -186,12 +366,19 @@ export function getDebtSummary(data?: DebtData): DebtSummary {
     return s + remain * (l.monthlyPayment || 0);
   }, 0);
 
-  // Weighted average mortgage interest
+  // Weighted average mortgage interest — uses effectiveTrackRate so Prime
+  // tracks (where interestRate is 0 and only margin is set) contribute their
+  // real effective rate (primeRate + margin) instead of 0%.
+  // 2026-05-18 fix per finance-agent: was producing 0% for Prime tracks,
+  // dragging dashboard avg-interest dramatically below reality.
+  // Result is a DECIMAL fraction (0.048 = 4.8%) — Phase 1 scale standard.
   const totalMortgageOrig = mortgageTracks.reduce((s, t) => s + (t.originalAmount || 0), 0);
   const mortgageAvgInterest =
     totalMortgageOrig > 0
-      ? mortgageTracks.reduce((s, t) => s + (t.interestRate || 0) * (t.originalAmount || 0), 0) /
-        totalMortgageOrig
+      ? mortgageTracks.reduce(
+          (s, t) => s + effectiveTrackRate(t, rate) * (t.originalAmount || 0),
+          0
+        ) / totalMortgageOrig
       : 0;
 
   return {
@@ -217,36 +404,45 @@ export interface LiabilitySummaryRow {
   name: string;
   liability_group: "mortgage" | "loans" | "cc";
   balance: number;
+  /** Annual rate as a PERCENT scalar (4.8 = 4.8%). Matches the field name and
+   * `tasks-engine`'s "expensive debt" threshold of `rate_pct > 8`. */
   rate_pct: number;
   monthly_payment: number;
 }
 
-export function getDebtAsLiabilities(): LiabilitySummaryRow[] {
+export function getDebtAsLiabilities(primeRate?: number): LiabilitySummaryRow[] {
   const d = loadDebtData();
+  const rate = primeRate ?? loadAssumptions().primeRate;
   const rows: LiabilitySummaryRow[] = [];
 
-  // Mortgage — single aggregated row
-  const tracks = d.mortgage?.tracks || [];
-  if (tracks.length > 0) {
+  // Mortgages — one aggregated row per mortgage. Uses effectiveTrackRate so
+  // Prime-margin tracks contribute their true effective rate instead of the
+  // raw 0 stored in `interestRate`.
+  for (const mortgage of d.mortgages) {
+    const tracks = mortgage.tracks || [];
+    if (tracks.length === 0) continue;
     const totalBalance = tracks.reduce((s, t) => s + (t.remainingBalance || 0), 0);
     const totalMonthly = tracks.reduce((s, t) => s + (t.monthlyPayment || 0), 0);
     const totalOrig = tracks.reduce((s, t) => s + (t.originalAmount || 0), 0);
-    const avgRate =
+    const avgRateDecimal =
       totalOrig > 0
-        ? tracks.reduce((s, t) => s + (t.interestRate || 0) * (t.originalAmount || 0), 0) /
-          totalOrig
+        ? tracks.reduce(
+            (s, t) => s + effectiveTrackRate(t, rate) * (t.originalAmount || 0),
+            0
+          ) / totalOrig
         : 0;
     rows.push({
-      id: "debt-mortgage",
-      name: d.mortgage?.bank ? `משכנתא — ${d.mortgage.bank}` : "משכנתא",
+      id: `debt-mortgage-${mortgage.id}`,
+      name: mortgage.bank ? `משכנתא — ${mortgage.bank}` : "משכנתא",
       liability_group: "mortgage",
       balance: totalBalance,
-      rate_pct: avgRate,
+      rate_pct: avgRateDecimal * 100,
       monthly_payment: totalMonthly,
     });
   }
 
-  // Loans
+  // Loans — expose the stored rate (decimal) as percent, so `tasks-engine`
+  // can flag expensive loans (rate_pct > 8). Returns 0 when rate unset.
   const activeLoans = d.loans.filter(isLoanActive);
   for (const l of activeLoans) {
     const remain = Math.max(0, l.totalPayments - loanElapsedMonths(l.startDate));
@@ -255,7 +451,7 @@ export function getDebtAsLiabilities(): LiabilitySummaryRow[] {
       name: l.lender || "הלוואה",
       liability_group: "loans",
       balance: remain * (l.monthlyPayment || 0),
-      rate_pct: 0, // Rate not stored per loan in current model
+      rate_pct: (l.interestRate ?? 0) * 100,
       monthly_payment: l.monthlyPayment || 0,
     });
   }

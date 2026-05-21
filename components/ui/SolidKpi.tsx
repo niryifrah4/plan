@@ -1,43 +1,32 @@
 "use client";
 
 /**
- * SolidKpi — bank-style KPI tile.
+ * SolidKpi — Morning-style KPI tile.
  *
- * 2026-04-28 redesign per Nir: "עצב את כל ה-KPIס בכל דפי המערכת בסגנון
- * נקי של אפליקציית בנק. ללא צבעים מיותרים, פונטים ברורים (Manrope Bold),
- * ו-Whitespace רחב."
- *
- * Visual rules:
- *  - White card on every tile (no colored backgrounds)
- *  - Numbers are dark ink — they carry the meaning, not the background
- *  - Tone is communicated by a thin colored accent line on the right edge
- *    (forest = brand, red = bad, amber = warn, emerald = good)
- *  - Manrope tabular numerals for currency
- *  - Generous padding (px-5 py-4) for the whitespace bank apps use
- *
- * The `tone` prop is preserved for callers but no longer drives bg.
+ * White card on cream background. Number carries the meaning (dark ink),
+ * tone is communicated by a thin right-edge accent stripe.
  */
 
 export type KpiTone = "forest" | "emerald" | "mint" | "sage" | "red" | "amber" | "ink";
 
 const ACCENT_COLOR: Record<KpiTone, string> = {
-  forest: "#A8E040",
-  emerald: "#4ADE80",
-  mint: "#7FA68D",
-  sage: "#94a3b8",
-  red: "#8B2E2E",
-  amber: "#B45309",
-  ink: "#F8FAFC",
+  forest: "#2C7A5A",
+  emerald: "#059669",
+  mint: "#4A9B7A",
+  sage: "#6B7280",
+  red: "#DC2626",
+  amber: "#D97706",
+  ink: "#1A1A1A",
 };
 
 const VALUE_COLOR: Record<KpiTone, string> = {
-  forest: "#F8FAFC",
-  emerald: "#F8FAFC",
-  mint: "#F8FAFC",
-  sage: "#1F2937",
-  red: "#8B2E2E",
-  amber: "#B45309",
-  ink: "#F8FAFC",
+  forest: "#1A1A1A",
+  emerald: "#059669",
+  mint: "#1A1A1A",
+  sage: "#1A1A1A",
+  red: "#DC2626",
+  amber: "#D97706",
+  ink: "#1A1A1A",
 };
 
 export interface SolidKpiProps {
@@ -46,8 +35,7 @@ export interface SolidKpiProps {
   icon?: string;
   sub?: string | null;
   tone?: KpiTone;
-  /** Legacy override — used by /insurance for the dynamic coverage tile.
-   *  When set, falls back to the old colored-bg style for that tile only. */
+  /** Legacy override — used by /insurance for the dynamic coverage tile. */
   bg?: string;
 }
 
@@ -59,30 +47,33 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg }: Solid
         className="relative overflow-hidden p-4 transition-all duration-200"
         style={{
           background: bg,
-          color: "#131C2E",
+          color: "#fff",
           borderRadius: "0.75rem",
-          boxShadow: "0 1px 2px rgba(0,0,0,0.30)",
+          boxShadow: "var(--morning-shadow-card)",
         }}
       >
         <div className="mb-2 flex items-center justify-between">
           <div
-            className="text-[10px] font-bold uppercase tracking-[0.15em]"
-            style={{ color: "rgba(255,255,255,0.7)" }}
+            className="text-[10px] font-semibold tracking-[0.15em]"
+            style={{ color: "rgba(255,255,255,0.85)" }}
           >
             {label}
           </div>
           {icon && (
             <span
               className="material-symbols-outlined text-[18px]"
-              style={{ color: "rgba(255,255,255,0.85)" }}
+              style={{ color: "rgba(255,255,255,0.9)" }}
             >
               {icon}
             </span>
           )}
         </div>
         <div
-          className="text-2xl font-extrabold tabular-nums leading-tight"
-          style={{ color: "#131C2E", fontFamily: "Manrope, Assistant, system-ui, sans-serif" }}
+          className="text-2xl font-bold tabular-nums leading-tight"
+          style={{
+            color: "#fff",
+            fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif",
+          }}
         >
           {value}
         </div>
@@ -95,37 +86,39 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg }: Solid
     );
   }
 
-  // Bank-style default: white card with thin tone accent on the right edge.
+  // Morning default: white card with thin tone accent on the right edge (RTL).
   return (
     <div
-      className="relative overflow-hidden bg-[#131C2E] px-5 py-4 duration-200"
+      className="relative overflow-hidden px-5 py-4 duration-200"
       style={{
         borderRadius: "0.75rem",
-        border: "1px solid #1F2A3F",
+        background: "var(--morning-surface)",
+        border: "1px solid var(--morning-border)",
+        boxShadow: "var(--morning-shadow-card)",
       }}
     >
-      {/* Right-edge accent — single thin stripe carrying the tone (RTL). */}
+      {/* Right-edge accent stripe (RTL) */}
       <span
         aria-hidden
         className="absolute bottom-3 right-0 top-3 rounded-l"
         style={{
           width: 3,
           background: ACCENT_COLOR[tone],
-          opacity: 0.8,
+          opacity: 0.85,
         }}
       />
 
       <div className="mb-2 flex items-center justify-between">
         <div
-          className="text-[10px] font-bold uppercase tracking-[0.18em]"
-          style={{ color: "#94A3B8" }}
+          className="text-[11px] font-medium tracking-[0.04em]"
+          style={{ color: "var(--morning-muted)" }}
         >
           {label}
         </div>
         {icon && (
           <span
             className="material-symbols-outlined text-[18px]"
-            style={{ color: ACCENT_COLOR[tone], opacity: 0.7 }}
+            style={{ color: ACCENT_COLOR[tone], opacity: 0.85 }}
           >
             {icon}
           </span>
@@ -133,10 +126,10 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg }: Solid
       </div>
 
       <div
-        className="text-2xl font-extrabold tabular-nums leading-tight"
+        className="text-2xl font-bold tabular-nums leading-tight"
         style={{
           color: VALUE_COLOR[tone],
-          fontFamily: "Manrope, Assistant, system-ui, sans-serif",
+          fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif",
           letterSpacing: "-0.01em",
         }}
       >
@@ -144,7 +137,10 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg }: Solid
       </div>
 
       {sub && (
-        <div className="mt-1 text-[11px] font-medium" style={{ color: "#94A3B8" }}>
+        <div
+          className="mt-1 text-[11px] font-medium"
+          style={{ color: "var(--morning-muted)" }}
+        >
           {sub}
         </div>
       )}

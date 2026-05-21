@@ -43,105 +43,123 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  /* ─── Botanical Wealth palette (matches /login) ─── */
-  const C = {
-    primary: "#A8E040",
-    deep: "#F8FAFC",
-    cream: "#F8FAFC",
-    sage: "#94A3B8",
-    inputBg: "#1A2438",
-    border: "#E5E9DC",
-  };
-
   return (
     <div
-      className="flex min-h-screen items-center justify-center px-4"
+      className="flex min-h-screen items-center justify-center px-4 py-10"
       dir="rtl"
       style={{
-        background: C.cream,
-        fontFamily: "'Manrope', 'Assistant', sans-serif",
+        background:
+          "linear-gradient(135deg, #F4F5F0 0%, #F0F8E3 60%, #E8F4D1 100%)",
       }}
     >
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
-      />
-
-      <div
-        className="w-full"
-        style={{
-          maxWidth: "420px",
-          background: "#131C2E",
-          borderRadius: "2.25rem",
-          boxShadow: "0 16px 40px rgba(0,0,0,0.35)",
-          padding: "48px 36px",
-        }}
-      >
-        <div className="text-center">
-          <h1
-            style={{
-              fontSize: "32px",
-              fontWeight: 800,
-              color: C.deep,
-              letterSpacing: "-0.02em",
-              lineHeight: 1,
-            }}
-          >
-            plan
-          </h1>
-          <p style={{ fontSize: "12px", fontWeight: 500, color: C.sage, marginTop: "6px" }}>
-            מערכת לתכנון פיננסי
-          </p>
-        </div>
-
-        <div style={{ marginTop: "24px" }} className="text-center">
-          <h2 style={{ fontSize: "24px", fontWeight: 700, color: C.deep, lineHeight: 1.2 }}>
-            איפוס סיסמה
-          </h2>
-          <p
-            style={{
-              fontSize: "13px",
-              fontWeight: 500,
-              color: C.sage,
-              marginTop: "6px",
-              lineHeight: 1.5,
-            }}
-          >
-            {sent
-              ? "שלחנו לכם מייל עם קישור לאיפוס הסיסמה. בדקו את תיבת הדואר."
-              : "הזינו את כתובת המייל שלכם ונשלח לכם קישור לאיפוס הסיסמה"}
-          </p>
-        </div>
-
-        {error && (
+      <div className="w-full max-w-md">
+        {/* Brand */}
+        <div className="mb-8 text-center">
           <div
-            className="flex items-start gap-2 px-3 py-2"
+            className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl"
             style={{
-              marginTop: "20px",
-              background: "rgba(248,113,113,0.08)",
-              border: "1px solid rgba(248,113,113,0.20)",
-              borderRadius: "12px",
+              background: "var(--morning-surface)",
+              border: "1px solid var(--morning-leaf-soft)",
+              boxShadow: "var(--morning-shadow-card)",
             }}
           >
             <span
-              className="material-symbols-outlined mt-0.5 text-[14px]"
-              style={{ color: "#F87171" }}
+              className="material-symbols-outlined text-[28px]"
+              style={{ color: "var(--morning-forest)" }}
             >
-              error
+              eco
             </span>
-            <span style={{ fontSize: "12px", fontWeight: 600, color: "#FCA5A5" }}>{error}</span>
           </div>
-        )}
+          <div
+            className="text-[32px] font-bold leading-none tracking-tight lowercase"
+            style={{
+              color: "var(--morning-ink)",
+              fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif",
+            }}
+          >
+            plan
+          </div>
+          <div
+            className="mt-1 text-[13px] font-medium"
+            style={{ color: "var(--morning-muted)" }}
+          >
+            מערכת לתכנון פיננסי
+          </div>
+        </div>
 
-        {!sent ? (
-          <form onSubmit={handleSubmit} style={{ marginTop: "24px" }}>
-            <div>
+        {/* Card */}
+        <div
+          style={{
+            background: "var(--morning-surface)",
+            borderRadius: "1.25rem",
+            border: "1px solid var(--morning-border)",
+            boxShadow: "var(--morning-shadow-soft)",
+            padding: "32px 28px",
+          }}
+        >
+          {/* Title */}
+          <div className="text-center">
+            <h1
+              style={{
+                fontSize: "24px",
+                fontWeight: 700,
+                color: "var(--morning-ink)",
+                lineHeight: 1.2,
+                letterSpacing: "-0.01em",
+                fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif",
+              }}
+            >
+              {sent ? "המייל בדרך אליכם 📬" : "איפוס סיסמה"}
+            </h1>
+            <p
+              style={{
+                fontSize: "14px",
+                color: "var(--morning-muted)",
+                marginTop: "8px",
+                lineHeight: 1.5,
+              }}
+            >
+              {sent
+                ? "שלחנו לכם מייל עם קישור לאיפוס הסיסמה. בדקו את תיבת הדואר (כולל ספאם)."
+                : "הזינו את כתובת המייל שלכם ונשלח לכם קישור לאיפוס"}
+            </p>
+          </div>
+
+          {error && (
+            <div
+              className="mt-5 flex items-start gap-2 px-3 py-2"
+              style={{
+                background: "var(--morning-danger-soft)",
+                border: "1px solid rgba(220, 38, 38, 0.25)",
+                borderRadius: "10px",
+              }}
+            >
+              <span
+                className="material-symbols-outlined mt-0.5 text-[14px]"
+                style={{ color: "var(--morning-danger)" }}
+              >
+                error
+              </span>
+              <span
+                style={{
+                  fontSize: "12px",
+                  fontWeight: 500,
+                  color: "var(--morning-danger)",
+                }}
+              >
+                {error}
+              </span>
+            </div>
+          )}
+
+          {!sent ? (
+            <form onSubmit={handleSubmit} className="mt-5">
               <label
                 className="block"
                 style={{
                   fontSize: "12px",
-                  fontWeight: 600,
-                  color: C.primary,
+                  fontWeight: 500,
+                  color: "var(--morning-muted)",
                   marginBottom: "6px",
                 }}
               >
@@ -154,68 +172,80 @@ export default function ForgotPasswordPage() {
                 placeholder="mail@example.com"
                 dir="ltr"
                 required
+                autoFocus
                 style={{
                   width: "100%",
-                  height: "46px",
-                  padding: "0 16px",
-                  background: C.inputBg,
-                  borderRadius: "16px",
-                  border: "none",
+                  height: "44px",
+                  padding: "0 14px",
+                  background: "var(--morning-surface)",
+                  borderRadius: "10px",
+                  border: "1px solid var(--morning-border)",
                   outline: "none",
                   fontSize: "14px",
                   fontWeight: 400,
-                  color: C.deep,
+                  color: "var(--morning-ink)",
                   fontFamily: "inherit",
+                  transition: "all 0.15s",
                 }}
               />
-            </div>
 
-            <div style={{ height: "24px" }} />
+              <div style={{ height: "24px" }} />
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex w-full items-center justify-center gap-2 transition-all hover:shadow-lg disabled:opacity-50"
-              style={{
-                height: "52px",
-                borderRadius: "9999px",
-                background: C.primary,
-                color: C.cream,
-                fontSize: "15px",
-                fontWeight: 700,
-              }}
-            >
-              {loading ? (
-                <span className="material-symbols-outlined animate-spin text-[20px]">
-                  progress_activity
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex w-full items-center justify-center gap-2 transition-all disabled:opacity-50"
+                style={{
+                  height: "48px",
+                  borderRadius: "10px",
+                  background: "var(--morning-forest)",
+                  color: "#fff",
+                  fontSize: "15px",
+                  fontWeight: 600,
+                  boxShadow: "0 4px 12px rgba(44, 122, 90, 0.16)",
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading)
+                    e.currentTarget.style.background = "var(--morning-forest-deep)";
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading)
+                    e.currentTarget.style.background = "var(--morning-forest)";
+                }}
+              >
+                {loading ? (
+                  <span className="material-symbols-outlined animate-spin text-[20px]">
+                    progress_activity
+                  </span>
+                ) : null}
+                שלחו קישור לאיפוס
+              </button>
+            </form>
+          ) : (
+            <div className="mt-6 flex justify-center">
+              <div
+                className="flex h-16 w-16 items-center justify-center rounded-full"
+                style={{
+                  background: "var(--morning-leaf-tint)",
+                  color: "var(--morning-forest)",
+                }}
+              >
+                <span className="material-symbols-outlined text-[32px]">
+                  mark_email_read
                 </span>
-              ) : null}
-              שלחו לי קישור לאיפוס
-            </button>
-          </form>
-        ) : (
-          <div style={{ marginTop: "24px", textAlign: "center" }}>
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: "48px", color: C.primary }}
-            >
-              mark_email_read
-            </span>
-          </div>
-        )}
+              </div>
+            </div>
+          )}
 
-        <div style={{ marginTop: "24px", textAlign: "center" }}>
-          <a
-            href="/login"
-            style={{
-              fontSize: "13px",
-              fontWeight: 600,
-              color: C.primary,
-              textDecoration: "none",
-            }}
-          >
-            ← חזרה לדף ההתחברות
-          </a>
+          <div className="mt-6 text-center">
+            <a
+              href="/login"
+              className="morning-link"
+              style={{ fontSize: "13px", fontWeight: 500 }}
+            >
+              ← חזרה לדף ההתחברות
+            </a>
+          </div>
         </div>
       </div>
     </div>

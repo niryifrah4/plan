@@ -189,7 +189,7 @@ function ExpandedDetails({
         <KpiCell
           label="נדרש בחודש"
           value={fmtILS(Math.round(proj.requiredMonthly))}
-          valueColor={requiredAboveCurrent ? "#8B2E2E" : "#2C7A5A"}
+          valueColor={requiredAboveCurrent ? "#DC2626" : "#2C7A5A"}
         />
         <KpiCell label="מכשיר" value={inst?.label || "—"} small />
         <KpiCell

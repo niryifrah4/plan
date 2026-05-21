@@ -17,6 +17,7 @@
     "db:types": "supabase gen types typescript --local > types/supabase.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.96.0",
     "@sentry/nextjs": "^10.51.0",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.0",

@@ -22,7 +22,7 @@ export const GOAL_ICONS: Record<string, string> = {
 };
 
 export const PRIORITY_COLORS: Record<BucketPriority, { bg: string; text: string }> = {
-  high: { bg: "#8B2E2E10", text: "#8B2E2E" },
+  high: { bg: "#DC262610", text: "#DC2626" },
   medium: { bg: "#B4530910", text: "#B45309" },
   low: { bg: "#2C7A5A10", text: "#2C7A5A" },
 };
@@ -37,7 +37,7 @@ export const STATUS_COLOR: Record<string, string> = {
   ahead: "#2C7A5A",
   on_track: "#059669",
   behind: "#B45309",
-  at_risk: "#8B2E2E",
+  at_risk: "#DC2626",
 };
 export const STATUS_LABEL: Record<string, string> = {
   ahead: "מקדים",

@@ -5,7 +5,7 @@
 
 import type { Property } from "./realestate-store";
 import { loadAssumptions } from "./assumptions";
-import { loadDebtData, type MortgageTrack } from "./debt-store";
+import { loadDebtData, getMortgagesForProperty } from "./debt-store";
 
 export interface RERecommendation {
   id: string;
@@ -25,7 +25,6 @@ export function generateRERecommendations(properties: Property[]): RERecommendat
   const recs: RERecommendation[] = [];
   const assumptions = loadAssumptions();
   const debtData = loadDebtData();
-  const mortgageTracks = debtData.mortgage?.tracks || [];
 
   for (const prop of properties) {
     const rent = prop.monthlyRent ?? 0;
@@ -40,10 +39,11 @@ export function generateRERecommendations(properties: Property[]): RERecommendat
     const equityPct = value > 0 ? equity / value : 0;
     const netYield = value > 0 ? ((noi * 12) / value) * 100 : 0;
 
-    // Find linked mortgage tracks for interest rate check
-    const linkedTracks = mortgageTracks.filter(
-      (t) => t.name?.includes(prop.name) || prop.mortgageLinked
-    );
+    // Linked mortgage tracks — strict propertyId match (no more fragile
+    // name-substring matching). A property with no assigned mortgage simply
+    // gets no rate-based recommendations.
+    const linkedMortgages = getMortgagesForProperty(debtData, prop.id);
+    const linkedTracks = linkedMortgages.flatMap((m) => m.tracks);
 
     // 1. Negative cashflow — DSCR < 1.0
     if (mtg > 0 && dscr < 1.0 && rent > 0) {

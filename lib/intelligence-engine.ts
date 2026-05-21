@@ -185,21 +185,24 @@ export function instrumentAlerts(instruments: FinancialInstrument[]): SmartAlert
 /* ─── Dynamic Rule of 300 ─── */
 
 /**
- * Rule of 300 dynamically adjusted for inflation, management fees,
- * and current cashflow trajectory.
- * Base: monthly expenses × 300
- * Adjusted: factor grows when real SWR drops below 4%.
+ * Rule of 300 dynamically adjusted for management fees.
+ *
+ * The 4% SWR (Trinity Study) is already expressed in real (inflation-adjusted)
+ * terms — withdrawals grow with inflation each year. Subtracting inflation again
+ * here would double-count. Management fees, however, eat directly into the
+ * sustainable withdrawal, so we net them out.
+ *
+ * Capital needed = monthlyExpenses × 12 / (SWR − fees)
  */
 export function dynamicFreedomNumber(
   monthlyExpenses: number,
-  inflationRate: number,
+  _inflationRate: number,
   managementFees: number
 ): { freedomNumber: number; multiplier: number; realSWR: number } {
-  // Nominal SWR = 4%, but real SWR accounts for inflation + fees
   const nominalSWR = 0.04;
-  const realSWR = nominalSWR - inflationRate - managementFees;
-  // If real SWR is lower, you need MORE capital → higher multiplier
-  const multiplier = realSWR > 0.005 ? 1 / (realSWR * 12) : 500; // cap at 500
+  const realSWR = nominalSWR - managementFees;
+  // Floor at 0.5% to keep the multiplier finite when fees somehow exceed SWR
+  const multiplier = realSWR > 0.005 ? 12 / realSWR : 2400;
   const freedomNum = monthlyExpenses * multiplier;
 
   return {

@@ -8,9 +8,9 @@ export function SaveIndicator({ status }: { status: "idle" | "saving" | "saved" 
   if (status === "idle") return null;
 
   const config = {
-    saving: { icon: "cloud_sync", text: "שומר...", color: "#94A3B8", bg: "#1A2438" },
-    saved: { icon: "cloud_done", text: "השינויים נשמרו", color: "#4ADE80", bg: "#4ADE8015" },
-    error: { icon: "cloud_off", text: "שגיאת שמירה", color: "#F87171", bg: "#F8717115" },
+    saving: { icon: "cloud_sync", text: "שומר...", color: "#6B7280", bg: "#FAFAF7" },
+    saved: { icon: "cloud_done", text: "השינויים נשמרו", color: "#059669", bg: "#05966915" },
+    error: { icon: "cloud_off", text: "שגיאת שמירה", color: "#DC2626", bg: "#DC262615" },
   }[status];
 
   return (

@@ -13,8 +13,9 @@ export function ImpersonationBanner({ familyName }: { familyName: string }) {
       dir="rtl"
       className="sticky top-0 z-40 flex items-center gap-2 px-4 py-2 text-[13px] font-bold"
       style={{
-        background: "linear-gradient(90deg, #F8FAFC, #A8E040)",
-        color: "#F8FAFC",
+        background: "var(--morning-leaf-tint)",
+        color: "var(--morning-forest-deep)",
+        borderBottom: "1px solid var(--morning-leaf-soft)",
       }}
     >
       <span className="material-symbols-outlined text-[18px]">visibility</span>

@@ -45,14 +45,14 @@ export function CashflowBarChart({ data, height = 420 }: Props) {
           <CartesianGrid strokeDasharray="2 4" stroke="#eef2ea" vertical={false} />
           <XAxis
             dataKey="month"
-            tick={{ fontSize: 12, fontWeight: 800, fill: "#F8FAFC" }}
-            axisLine={{ stroke: "#1F2A3F" }}
+            tick={{ fontSize: 12, fontWeight: 800, fill: "#1A1A1A" }}
+            axisLine={{ stroke: "#E5E7EB" }}
             tickLine={false}
             reversed /* RTL */
           />
           <YAxis
-            tick={{ fontSize: 11, fill: "#94A3B8", fontWeight: 700 }}
-            axisLine={{ stroke: "#1F2A3F" }}
+            tick={{ fontSize: 11, fill: "#6B7280", fontWeight: 700 }}
+            axisLine={{ stroke: "#E5E7EB" }}
             tickLine={false}
             tickFormatter={fmtK}
             orientation="right"
@@ -60,10 +60,10 @@ export function CashflowBarChart({ data, height = 420 }: Props) {
           <Tooltip
             formatter={(v: number) => fmtILS(v)}
             contentStyle={{
-              background: "#131C2E",
-              border: "1px solid #1F2A3F",
+              background: "#FFFFFF",
+              border: "1px solid #E5E7EB",
               borderRadius: 8,
-              fontFamily: "Assistant",
+              fontFamily: "inherit",
               fontWeight: 700,
             }}
           />
@@ -71,7 +71,7 @@ export function CashflowBarChart({ data, height = 420 }: Props) {
             verticalAlign="bottom"
             height={32}
             formatter={(v) => (
-              <span style={{ color: "#F8FAFC", fontWeight: 700, fontSize: 12 }}>{v}</span>
+              <span style={{ color: "#1A1A1A", fontWeight: 700, fontSize: 12 }}>{v}</span>
             )}
           />
           <Bar
@@ -110,7 +110,7 @@ export function CashflowBarChart({ data, height = 420 }: Props) {
               dataKey="gap"
               position="top"
               formatter={(v: number) => fmtILS(v)}
-              style={{ fontSize: 10, fontWeight: 800, fill: "#F8FAFC" }}
+              style={{ fontSize: 10, fontWeight: 800, fill: "#1A1A1A" }}
             />
           </Bar>
         </BarChart>
@@ -118,7 +118,7 @@ export function CashflowBarChart({ data, height = 420 }: Props) {
       {data.some((d) => isLowSafetyMargin(d.gap)) && (
         <div
           className="mt-2 rounded-lg px-3 py-2 text-[11px] font-bold"
-          style={{ background: "rgba(251,191,36,0.12)", color: "#92400e" }}
+          style={{ background: "rgba(217,119,6,0.12)", color: "#92400e" }}
         >
           ⚠ חודש אחד או יותר במרווח ביטחון נמוך — אזור לא בטוח לתכנון תקציב
         </div>

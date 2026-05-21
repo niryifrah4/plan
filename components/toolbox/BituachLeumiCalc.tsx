@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { fmtILS } from "@/lib/format";
-import { bituachLeumiEstimate } from "@/lib/assumptions";
+import { bituachLeumiEstimate, OLD_AGE_ALLOWANCE_DEFAULTS } from "@/lib/assumptions";
 
 export function BituachLeumiCalc() {
   const [monthlyGross, setMonthlyGross] = useState(28500);
@@ -14,12 +14,12 @@ export function BituachLeumiCalc() {
   // Simplified rights estimation
   const retirementAge = 67;
   const yearsToRetirement = Math.max(0, retirementAge - age);
-  const estimatedPensionBase = 3000; // Base old-age allowance ~₪3,000/month (2025)
+  const estimatedPensionBase = OLD_AGE_ALLOWANCE_DEFAULTS.single; // ₪1,795/חודש (2026)
   const seniorityBonus = Math.min(50, Math.max(0, (age - 22) * 2)); // 2% per insurance year, max 50%
   const estimatedMonthly = estimatedPensionBase * (1 + seniorityBonus / 100);
 
-  // Child allowance (2025 rates approximation)
-  const childAllowance = childrenUnder18 * 188; // ~₪188 per child
+  // Child allowance (₪212 per child, 2026)
+  const childAllowance = childrenUnder18 * 212;
 
   return (
     <div className="space-y-6">
@@ -39,7 +39,7 @@ export function BituachLeumiCalc() {
             </label>
             <div
               className="flex items-center rounded-lg border px-3 py-2"
-              style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
+              style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
             >
               <input
                 type="number"
@@ -57,7 +57,7 @@ export function BituachLeumiCalc() {
             </label>
             <div
               className="flex items-center rounded-lg border px-3 py-2"
-              style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
+              style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
             >
               <input
                 type="number"
@@ -74,7 +74,7 @@ export function BituachLeumiCalc() {
             </label>
             <div
               className="flex items-center rounded-lg border px-3 py-2"
-              style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
+              style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
             >
               <input
                 type="number"
@@ -96,7 +96,7 @@ export function BituachLeumiCalc() {
           </span>
           תשלומים
         </h4>
-        <div className="space-y-2 rounded-xl p-4" style={{ background: "#1A2438" }}>
+        <div className="space-y-2 rounded-xl p-4" style={{ background: "#FAFAF7" }}>
           <Row label="דמי ביטוח לאומי חודשי" value={fmtILS(bl.monthly)} />
           <Row label="דמי ביטוח לאומי שנתי" value={fmtILS(bl.annual)} />
         </div>
@@ -110,11 +110,11 @@ export function BituachLeumiCalc() {
           </span>
           זכויות (אומדן)
         </h4>
-        <div className="space-y-3 rounded-xl p-4" style={{ background: "#1A2438" }}>
-          <div className="flex items-start gap-3 rounded-lg p-2" style={{ background: "#131C2E" }}>
+        <div className="space-y-3 rounded-xl p-4" style={{ background: "#FAFAF7" }}>
+          <div className="flex items-start gap-3 rounded-lg p-2" style={{ background: "#FFFFFF" }}>
             <span
               className="material-symbols-outlined mt-0.5 text-[18px]"
-              style={{ color: "#A8E040" }}
+              style={{ color: "#2C7A5A" }}
             >
               elderly
             </span>
@@ -123,7 +123,7 @@ export function BituachLeumiCalc() {
               <div className="mt-0.5 text-[10px] text-verdant-muted">
                 מגיל {retirementAge} · בעוד {yearsToRetirement} שנים
               </div>
-              <div className="tabular mt-1 text-sm font-extrabold" style={{ color: "#A8E040" }}>
+              <div className="tabular mt-1 text-sm font-extrabold" style={{ color: "#2C7A5A" }}>
                 ~{fmtILS(estimatedMonthly)}/חודש
               </div>
               <div className="text-[9px] text-verdant-muted">כולל תוספת ותק {seniorityBonus}%</div>
@@ -131,27 +131,27 @@ export function BituachLeumiCalc() {
           </div>
 
           {childrenUnder18 > 0 && (
-            <div className="flex items-start gap-3 rounded-lg p-2" style={{ background: "#131C2E" }}>
+            <div className="flex items-start gap-3 rounded-lg p-2" style={{ background: "#FFFFFF" }}>
               <span
                 className="material-symbols-outlined mt-0.5 text-[18px]"
-                style={{ color: "#4ADE80" }}
+                style={{ color: "#059669" }}
               >
                 child_care
               </span>
               <div className="flex-1">
                 <div className="text-xs font-extrabold text-verdant-ink">קצבת ילדים</div>
                 <div className="mt-0.5 text-[10px] text-verdant-muted">{childrenUnder18} ילדים</div>
-                <div className="tabular mt-1 text-sm font-extrabold" style={{ color: "#4ADE80" }}>
+                <div className="tabular mt-1 text-sm font-extrabold" style={{ color: "#059669" }}>
                   ~{fmtILS(childAllowance)}/חודש
                 </div>
               </div>
             </div>
           )}
 
-          <div className="flex items-start gap-3 rounded-lg p-2" style={{ background: "#131C2E" }}>
+          <div className="flex items-start gap-3 rounded-lg p-2" style={{ background: "#FFFFFF" }}>
             <span
               className="material-symbols-outlined mt-0.5 text-[18px]"
-              style={{ color: "#f59e0b" }}
+              style={{ color: "#D97706" }}
             >
               healing
             </span>
@@ -163,10 +163,10 @@ export function BituachLeumiCalc() {
             </div>
           </div>
 
-          <div className="flex items-start gap-3 rounded-lg p-2" style={{ background: "#131C2E" }}>
+          <div className="flex items-start gap-3 rounded-lg p-2" style={{ background: "#FFFFFF" }}>
             <span
               className="material-symbols-outlined mt-0.5 text-[18px]"
-              style={{ color: "#3b82f6" }}
+              style={{ color: "#2563EB" }}
             >
               work_off
             </span>

@@ -355,7 +355,7 @@ export function AnnualReportUpload() {
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 text-center transition-colors ${errorMsg ? "border-red-300 bg-red-50/50" : dragOver ? "border-verdant-accent bg-verdant-accent/5" : "v-divider hover:bg-[#1A2438]"}`}
+        className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 text-center transition-colors ${errorMsg ? "border-red-300 bg-red-50/50" : dragOver ? "border-verdant-accent bg-verdant-accent/5" : "v-divider hover:bg-[#FAFAF7]"}`}
       >
         <span className="material-symbols-outlined mb-2 text-[36px] text-verdant-accent">
           cloud_upload
@@ -460,7 +460,7 @@ export function AnnualReportUpload() {
             {pdfBundle.policies.map((p: AnnualPolicy) => (
               <div
                 key={p.id}
-                className="v-divider rounded border bg-[#1A2438] p-2 text-right text-[11px]"
+                className="v-divider rounded border bg-[#FAFAF7] p-2 text-right text-[11px]"
               >
                 <div className="flex items-baseline justify-between">
                   <span className="font-bold text-verdant-ink">{fmtILS(p.balance)}</span>
@@ -497,7 +497,7 @@ export function AnnualReportUpload() {
             {xmlBundle.products.map((p: ParsedMislakaProduct, i: number) => (
               <div
                 key={i}
-                className="v-divider rounded-lg border bg-[#1A2438] p-3 text-right text-[11px] transition-colors hover:bg-[#1A2438]"
+                className="v-divider rounded-lg border bg-[#FAFAF7] p-3 text-right text-[11px] transition-colors hover:bg-[#FAFAF7]"
               >
                 <div className="mb-1 flex items-baseline justify-between">
                   <span className="font-extrabold tabular-nums text-verdant-ink">
@@ -506,7 +506,7 @@ export function AnnualReportUpload() {
                   <span className="font-extrabold text-verdant-ink">{p.company}</span>
                 </div>
                 <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-verdant-muted">
-                  <span className="font-bold" style={{ color: "#A8E040" }}>
+                  <span className="font-bold" style={{ color: "#2C7A5A" }}>
                     {PRODUCT_TYPE_LABELS[p.productType] || `סוג ${p.productType}`}
                   </span>
                   {p.employer && <span>מעסיק: {p.employer}</span>}
@@ -575,7 +575,7 @@ export function AnnualReportUpload() {
             {maslakaPdfProducts.map((p: any, i: number) => (
               <div
                 key={i}
-                className="v-divider rounded-lg border bg-[#1A2438] p-3 text-right text-[11px] transition-colors hover:bg-[#1A2438]"
+                className="v-divider rounded-lg border bg-[#FAFAF7] p-3 text-right text-[11px] transition-colors hover:bg-[#FAFAF7]"
               >
                 <div className="mb-1 flex items-baseline justify-between">
                   <span className="tabular font-extrabold text-verdant-ink">
@@ -584,7 +584,7 @@ export function AnnualReportUpload() {
                   <span className="font-extrabold text-verdant-ink">{p.company}</span>
                 </div>
                 <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-verdant-muted">
-                  <span className="font-bold" style={{ color: "#A8E040" }}>
+                  <span className="font-bold" style={{ color: "#2C7A5A" }}>
                     {p.productType}
                   </span>
                   <span
@@ -602,7 +602,7 @@ export function AnnualReportUpload() {
                   </div>
                 )}
                 {p.liquidityDate && (
-                  <div className="mt-1 text-[10px] font-bold" style={{ color: "#A8E040" }}>
+                  <div className="mt-1 text-[10px] font-bold" style={{ color: "#2C7A5A" }}>
                     נזילות: {p.liquidityDate}
                   </div>
                 )}
@@ -645,7 +645,7 @@ export function AnnualReportUpload() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="v-divider rounded border bg-[#131C2E] p-2 text-right">
+    <div className="v-divider rounded border bg-[#FFFFFF] p-2 text-right">
       <div className="text-[10px] font-bold uppercase tracking-wider text-verdant-muted">
         {label}
       </div>

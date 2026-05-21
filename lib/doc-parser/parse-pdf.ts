@@ -57,16 +57,10 @@ export async function parsePDF(buffer: Buffer, filename: string): Promise<Parsed
     const result = await pdfParse(buffer);
     text = result.text;
   } catch {
-    return {
-      filename,
-      type: "pdf",
-      bankHint: "לא זוהה",
-      transactions: [],
-      totalDebit: 0,
-      totalCredit: 0,
-      dateRange: { from: "", to: "" },
-      warnings: ["שגיאה בקריאת PDF — ייתכן שהקובץ סרוק (תמונה). נסה להעלות קובץ Excel במקום."],
-    };
+    // pdf-parse crashed — almost certainly a scanned/image-only PDF.
+    // Hand off to the Vision fallback rather than giving up.
+    const { parsePDFWithVision } = await import("./vision-pdf-parser");
+    return parsePDFWithVision(buffer, filename);
   }
 
   const bankHint = detectBank(text);
@@ -163,7 +157,12 @@ export async function parsePDF(buffer: Buffer, filename: string): Promise<Parsed
   }
 
   if (transactions.length === 0) {
-    warnings.push("לא זוהו תנועות בקובץ — ייתכן שזהו PDF סרוק. נסה להעלות את קובץ האקסל מהבנק.");
+    // Text extraction succeeded but found no transactions. Almost always a
+    // scanned PDF whose text layer is just garbage. Try the Vision fallback
+    // before giving up — same `ParsedDocument` shape comes back so the rest
+    // of the pipeline is identical.
+    const { parsePDFWithVision } = await import("./vision-pdf-parser");
+    return parsePDFWithVision(buffer, filename);
   }
 
   const totalDebit = transactions.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);

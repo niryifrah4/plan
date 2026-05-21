@@ -106,8 +106,9 @@ export function PortfolioGrowthProjector({ currentValue }: Props) {
       <div
         className="mb-4 rounded-2xl py-4 text-center"
         style={{
-          background: "linear-gradient(135deg, #A8E040 0%, #F8FAFC 100%)",
-          color: "#F8FAFC",
+          background: "linear-gradient(135deg, #2C7A5A 0%, #1F5A42 100%)",
+          color: "#FFFFFF",
+          boxShadow: "0 8px 24px rgba(44, 122, 90, 0.18)",
         }}
       >
         <div
@@ -118,7 +119,7 @@ export function PortfolioGrowthProjector({ currentValue }: Props) {
         </div>
         <div
           className="mt-2 text-[40px] font-extrabold tabular-nums leading-none"
-          style={{ fontFamily: "Manrope, Assistant, sans-serif" }}
+          style={{ fontFamily: "inherit" }}
         >
           {fmtILS(projection.finalBalance)}
         </div>
@@ -145,7 +146,7 @@ export function PortfolioGrowthProjector({ currentValue }: Props) {
                 className="w-full rounded-t transition-all"
                 style={{
                   height: `${Math.max(heightPct, 2)}%`,
-                  background: "#A8E040",
+                  background: "#2C7A5A",
                   opacity: 0.7 + (p.year / years) * 0.3,
                 }}
               />
@@ -210,7 +211,7 @@ function SliderField({
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="h-1.5 w-full accent-[#A8E040]"
+        className="h-1.5 w-full accent-[#2C7A5A]"
       />
     </div>
   );
@@ -218,13 +219,13 @@ function SliderField({
 
 function Stat({ label, value, positive }: { label: string; value: number; positive?: boolean }) {
   return (
-    <div className="rounded-xl bg-[#131C2E] p-3" style={{ border: "1px solid #1F2A3F" }}>
+    <div className="rounded-xl bg-[#FFFFFF] p-3" style={{ border: "1px solid #E5E7EB" }}>
       <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
         {label}
       </div>
       <div
         className="text-base font-extrabold tabular-nums"
-        style={{ color: positive && value > 0 ? "#A8E040" : "#F8FAFC" }}
+        style={{ color: positive && value > 0 ? "#2C7A5A" : "#1A1A1A" }}
       >
         {positive && value > 0 ? "+" : ""}
         {fmtILS(value)}

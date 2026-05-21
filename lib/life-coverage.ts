@@ -18,7 +18,7 @@
 
 import { loadAssumptions } from "./assumptions";
 import { loadBuckets } from "./buckets-store";
-import { loadDebtData } from "./debt-store";
+import { loadDebtData, getAllMortgageTracks } from "./debt-store";
 import { loadAccounts, totalBankBalance } from "./accounts-store";
 import { loadPensionFunds } from "./pension-store";
 import { loadSecurities, totalSecuritiesValue } from "./securities-store";
@@ -113,7 +113,7 @@ export function buildLifeCoverage(): LifeCoverage {
   const securitiesValue = totalSecuritiesValue(securities);
   const pensionValue = pensions.reduce((s, f) => s + (f.balance || 0), 0);
   const reValue = properties.reduce((s, p) => s + (p.currentValue || 0), 0);
-  const mortgageBalance = (debt.mortgage?.tracks || []).reduce(
+  const mortgageBalance = getAllMortgageTracks(debt).reduce(
     (s, t) => s + (t.remainingBalance || 0),
     0
   );
@@ -224,7 +224,7 @@ export function buildLifeCoverage(): LifeCoverage {
   const savingsPts = Math.round(20 * Math.max(0, Math.min(1, savingsRatio / 0.25))); // cap at 25%
 
   const monthlyDebtService =
-    (debt.mortgage?.tracks || []).reduce((s, t) => s + (t.monthlyPayment || 0), 0) +
+    getAllMortgageTracks(debt).reduce((s, t) => s + (t.monthlyPayment || 0), 0) +
     (debt.loans || []).reduce((s, l) => s + (l.monthlyPayment || 0), 0);
   const debtRatio = monthlyIncome > 0 ? monthlyDebtService / monthlyIncome : 0;
   // 15 pts at 0% debt, 0 pts at 40%+ debt-to-income

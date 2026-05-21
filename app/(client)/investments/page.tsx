@@ -96,12 +96,12 @@ const KIND_LABELS: Record<AssetKind, string> = {
 const KIND_COLORS: Record<AssetKind, string> = {
   stock: "#2C7A5A",
   etf: "#059669",
-  crypto: "#f59e0b",
+  crypto: "#D97706",
   bond: "#06b6d4",
   fund: "#059669",
   rsu: "#059669",
   espp: "#10b981",
-  option: "#3b82f6",
+  option: "#2563EB",
 };
 
 const TRADEABLE_KINDS: AssetKind[] = ["stock", "etf", "crypto", "bond", "fund"];
@@ -1857,7 +1857,7 @@ function ExchangesPanel({ accounts }: { accounts: Account[] }) {
             className="flex h-10 w-10 items-center justify-center rounded-xl"
             style={{ background: "#f59e0b15" }}
           >
-            <span className="material-symbols-outlined text-[20px]" style={{ color: "#f59e0b" }}>
+            <span className="material-symbols-outlined text-[20px]" style={{ color: "#D97706" }}>
               account_balance_wallet
             </span>
           </div>
@@ -1896,7 +1896,7 @@ function ExchangesPanel({ accounts }: { accounts: Account[] }) {
     >
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px]" style={{ color: "#f59e0b" }}>
+          <span className="material-symbols-outlined text-[18px]" style={{ color: "#D97706" }}>
             account_balance_wallet
           </span>
           <h3 className="text-[13px] font-extrabold text-verdant-ink">ארנקי קריפטו מסונכרנים</h3>
@@ -1924,7 +1924,7 @@ function ExchangesPanel({ accounts }: { accounts: Account[] }) {
               <div className="flex items-center gap-3">
                 <span
                   className="rounded-md px-2 py-0.5 text-[10px] font-extrabold uppercase"
-                  style={{ background: "#f59e0b15", color: "#f59e0b" }}
+                  style={{ background: "#f59e0b15", color: "#D97706" }}
                 >
                   {c.exchange}
                 </span>

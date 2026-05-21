@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SolidKpi, SolidKpiRow } from "@/components/ui/SolidKpi";
+import { InsuranceNeedsPanel } from "@/components/insurance/InsuranceNeedsPanel";
 import {
   RISK_CATEGORIES,
   loadRiskItems,
@@ -24,10 +25,10 @@ const STATUS_CONFIG: Record<
   CoverageStatus,
   { label: string; color: string; bg: string; icon: string }
 > = {
-  covered: { label: "מכוסה", color: "#4ADE80", bg: "#ecfdf5", icon: "check_circle" },
-  partial: { label: "חלקי", color: "#f59e0b", bg: "rgba(251,191,36,0.08)", icon: "warning" },
-  missing: { label: "חסר", color: "#ef4444", bg: "rgba(248,113,113,0.08)", icon: "cancel" },
-  not_relevant: { label: "לא רלוונטי", color: "#94a3b8", bg: "#0A1929", icon: "do_not_disturb_on" },
+  covered: { label: "מכוסה", color: "#059669", bg: "#ecfdf5", icon: "check_circle" },
+  partial: { label: "חלקי", color: "#D97706", bg: "rgba(217,119,6,0.08)", icon: "warning" },
+  missing: { label: "חסר", color: "#DC2626", bg: "rgba(220,38,38,0.08)", icon: "cancel" },
+  not_relevant: { label: "לא רלוונטי", color: "#6b7280", bg: "#F4F5F0", icon: "do_not_disturb_on" },
 };
 
 const STATUS_ORDER: CoverageStatus[] = ["covered", "partial", "missing", "not_relevant"];
@@ -116,7 +117,7 @@ export default function RiskManagementPage() {
           value={`${pct}%`}
           icon="verified"
           tone="forest"
-          bg={pct >= 80 ? "#F8FAFC" : pct >= 50 ? "#B45309" : "#8B2E2E"}
+          bg={pct >= 80 ? "#FFFFFF" : pct >= 50 ? "#B45309" : "#DC2626"}
           sub={pct >= 80 ? "כיסוי מלא" : pct >= 50 ? "פערים חלקיים" : "פערים מהותיים"}
         />
         <SolidKpi label="מכוסים" value={String(stats.covered)} icon="check_circle" tone="emerald" />
@@ -134,7 +135,10 @@ export default function RiskManagementPage() {
         />
       </SolidKpiRow>
 
-      {/* ── Category Cards ── */}
+      {/* ── Needs Engine — required vs existing coverage per risk ── */}
+      <InsuranceNeedsPanel />
+
+      {/* ── Category Cards (tracking checklist below the needs engine) ── */}
       <div className="space-y-4">
         {RISK_CATEGORIES.map((cat) => (
           <CategoryCard
@@ -224,14 +228,14 @@ function CategoryCard({
   onAdd,
 }: CategoryCardProps) {
   const catPct = Math.round(stats.coveragePct * 100);
-  const barColor = catPct >= 80 ? "#4ADE80" : catPct >= 50 ? "#f59e0b" : "#ef4444";
+  const barColor = catPct >= 80 ? "#059669" : catPct >= 50 ? "#D97706" : "#DC2626";
 
   return (
     <div className="card overflow-hidden">
       {/* Header */}
       <button
         onClick={onToggle}
-        className="flex w-full items-center gap-3 p-4 text-right transition-colors hover:bg-[#1A2438]/60"
+        className="flex w-full items-center gap-3 p-4 text-right transition-colors hover:bg-[#FAFAF7]/60"
       >
         <span className="material-symbols-outlined" style={{ fontSize: 28, color: barColor }}>
           {category.icon}
@@ -249,7 +253,7 @@ function CategoryCard({
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
             {stats.covered > 0 && (
-              <span className="text-xs font-bold" style={{ color: "#4ADE80" }}>
+              <span className="text-xs font-bold" style={{ color: "#059669" }}>
                 {stats.covered}
                 <span className="material-symbols-outlined align-middle" style={{ fontSize: 14 }}>
                   check_circle
@@ -257,7 +261,7 @@ function CategoryCard({
               </span>
             )}
             {stats.missing > 0 && (
-              <span className="text-xs font-bold" style={{ color: "#ef4444" }}>
+              <span className="text-xs font-bold" style={{ color: "#DC2626" }}>
                 {stats.missing}
                 <span className="material-symbols-outlined align-middle" style={{ fontSize: 14 }}>
                   cancel
@@ -296,7 +300,7 @@ function CategoryCard({
               return (
                 <div key={ri.id}>
                   <div
-                    className="flex items-center gap-3 border-b px-4 py-3 transition-colors hover:bg-[#1A2438]/40"
+                    className="flex items-center gap-3 border-b px-4 py-3 transition-colors hover:bg-[#FAFAF7]/40"
                     style={{ borderColor: "var(--verdant-border)" }}
                   >
                     {/* Status button */}
@@ -331,7 +335,7 @@ function CategoryCard({
                         {ri.provider && (
                           <span
                             className="rounded px-1.5 py-0.5 text-[10px]"
-                            style={{ background: "#1A2438", color: "#64748b" }}
+                            style={{ background: "#FAFAF7", color: "#9ca3af" }}
                           >
                             {ri.provider}
                           </span>
@@ -339,7 +343,7 @@ function CategoryCard({
                         {ri.coverageAmount ? (
                           <span
                             className="rounded px-1.5 py-0.5 text-[10px]"
-                            style={{ background: "#ecfdf5", color: "#4ADE80" }}
+                            style={{ background: "#ecfdf5", color: "#059669" }}
                           >
                             כיסוי: {fmtCurrency(ri.coverageAmount)}
                           </span>
@@ -347,7 +351,7 @@ function CategoryCard({
                         {ri.monthlyCost ? (
                           <span
                             className="rounded px-1.5 py-0.5 text-[10px]"
-                            style={{ background: "#1A2438", color: "#3b82f6" }}
+                            style={{ background: "#FAFAF7", color: "#2563EB" }}
                           >
                             {fmtCurrency(ri.monthlyCost)}/חודש
                           </span>
@@ -381,7 +385,7 @@ function CategoryCard({
                   {isEditing && (
                     <div
                       className="grid grid-cols-2 gap-3 border-b px-6 py-4 md:grid-cols-3"
-                      style={{ background: "#1A2438", borderColor: "var(--verdant-border)" }}
+                      style={{ background: "#FAFAF7", borderColor: "var(--verdant-border)" }}
                     >
                       <Field label="ספק / חברה">
                         <input

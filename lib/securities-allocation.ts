@@ -13,6 +13,7 @@
 
 import type { SecurityRow } from "./securities-store";
 import type { PieSlice } from "@/components/charts/AllocationPie";
+import type { FundAllocation } from "./fund-registry";
 
 const KIND_LABEL: Record<string, string> = {
   rsu: "RSU",
@@ -35,7 +36,7 @@ const KIND_COLOR: Record<string, string> = {
   bond: "#1E3A8A",
   crypto: "#B45309",
   fund: "#6B21A8",
-  other: "#94a3b8",
+  other: "#6b7280",
 };
 
 const CURRENCY_TO_GEO_LABEL: Record<string, string> = {
@@ -51,13 +52,63 @@ const GEO_COLOR_BY_LABEL: Record<string, string> = {
   "ארה״ב": "#0F766E",
   אירופה: "#7C2D12",
   בריטניה: "#6B21A8",
-  אחר: "#94a3b8",
+  אחר: "#6b7280",
 };
 
 export interface SecuritiesAllocations {
   byKind: PieSlice[];
   byGeo: PieSlice[];
   total: number;
+}
+
+/**
+ * Build a per-row FundAllocation from a single SecurityRow.
+ *
+ * Used by the multi-dimensional allocation engine on /balance so that a
+ * security gets correctly classified by its actual currency + kind rather
+ * than being defaulted to `us_stock` (100% USD / US / equity).
+ *
+ * Currency:    100% in the row's currency (ILS / USD / EUR / OTHER bucket)
+ * Geography:   currency as a proxy — same heuristic as `buildSecuritiesAllocations`
+ * Asset class: kind → equity / bonds / alternative (RSU/option/ESPP count as equity)
+ * Liquidity:   `immediate` (publicly-traded securities settle T+1-T+3)
+ */
+const STOCK_KINDS = new Set(["stock", "etf", "rsu", "option", "espp"]);
+const BOND_KINDS = new Set(["bond"]);
+const ALT_KINDS = new Set(["crypto", "fund", "other"]);
+
+export function securityToAllocation(sec: SecurityRow): FundAllocation {
+  const currency = (sec.currency || "ILS").toUpperCase();
+  const kind = (sec.kind || "stock").toLowerCase();
+
+  // Currency vector — 100% in the row's denomination
+  const currencyVec = { ILS: 0, USD: 0, EUR: 0, OTHER: 0 };
+  if (currency === "ILS" || currency === "NIS") currencyVec.ILS = 100;
+  else if (currency === "USD") currencyVec.USD = 100;
+  else if (currency === "EUR") currencyVec.EUR = 100;
+  else currencyVec.OTHER = 100;
+
+  // Geography vector — currency as a proxy. A USD-denominated EM ETF will
+  // still land in US here; this matches `buildSecuritiesAllocations`.
+  const geoVec = { IL: 0, US: 0, EU: 0, EM: 0, OTHER: 0 };
+  if (currency === "ILS" || currency === "NIS") geoVec.IL = 100;
+  else if (currency === "USD") geoVec.US = 100;
+  else if (currency === "EUR") geoVec.EU = 100;
+  else geoVec.OTHER = 100;
+
+  // Asset class — by kind
+  const classVec = { equity: 0, bonds: 0, cash: 0, alternative: 0 };
+  if (STOCK_KINDS.has(kind)) classVec.equity = 100;
+  else if (BOND_KINDS.has(kind)) classVec.bonds = 100;
+  else if (ALT_KINDS.has(kind)) classVec.alternative = 100;
+  else classVec.equity = 100; // sensible default for unknown kinds
+
+  return {
+    currency: currencyVec,
+    geography: geoVec,
+    assetClass: classVec,
+    liquidity: "immediate",
+  };
 }
 
 const sortByValue = (a: PieSlice, b: PieSlice) => b.value - a.value;
@@ -78,7 +129,7 @@ export function buildSecuritiesAllocations(rows: SecurityRow[]): SecuritiesAlloc
       label: KIND_LABEL[k] || k,
       value: v,
       pct: total > 0 ? (v / total) * 100 : 0,
-      color: KIND_COLOR[k] || "#94a3b8",
+      color: KIND_COLOR[k] || "#6b7280",
     }))
     .sort(sortByValue);
 
@@ -96,7 +147,7 @@ export function buildSecuritiesAllocations(rows: SecurityRow[]): SecuritiesAlloc
       label,
       value: v,
       pct: total > 0 ? (v / total) * 100 : 0,
-      color: GEO_COLOR_BY_LABEL[label] || "#94a3b8",
+      color: GEO_COLOR_BY_LABEL[label] || "#6b7280",
     }))
     .sort(sortByValue);
 

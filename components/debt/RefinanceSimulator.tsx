@@ -474,7 +474,7 @@ function ScenarioCard({
       <div
         className="mb-2 text-2xl font-extrabold tabular-nums leading-none"
         style={{
-          color: highlight ? "#FFFFFF" : positive ? "#2C7A5A" : "#8B2E2E",
+          color: highlight ? "#FFFFFF" : positive ? "#2C7A5A" : "#DC2626",
           fontFamily: "inherit",
         }}
       >

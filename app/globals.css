@@ -1,76 +1,124 @@
+/* ───────────────────────────────────────────────────────────────────
+   Morning Design System (2026-05-18)
+   Light / forest green / cream — inspired by Morning (חשבונית ירוקה).
+
+   Strategy: keep all legacy class names (.card-botanical, .btn-botanical,
+   .eclipse-*, .verdant-*, .kpi, .pill-*, etc.) so existing JSX inherits
+   the new look without a refactor. New components should use .morning-*
+   class names.
+   ─────────────────────────────────────────────────────────────────── */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Eclipse design (2026-05-19) — Rubik covers Hebrew + Latin in one
-   family with strong display weights. Inter stays in the fallback chain
-   for tabular-nums compatibility. */
-@import url("https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800;900&family=Heebo:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap");
-
 :root {
-  /* ─── Eclipse — Dark / Lime tokens (single source of truth) ─── */
-  --eclipse-bg: #0a1929;
-  --eclipse-surface: #131c2e;
-  --eclipse-surface-2: #1a2438;
-  --eclipse-surface-elev: #1f2a3f;
-  --eclipse-border: #1f2a3f;
-  --eclipse-border-strong: #2a3754;
-  --eclipse-ink: #f8fafc;
-  --eclipse-muted: #94a3b8;
-  --eclipse-subtle: #64748b;
-  --eclipse-lime: #a8e040;
-  --eclipse-lime-soft: #cdf075;
-  --eclipse-lime-deep: #7bb930;
-  --eclipse-success: #4ade80;
-  --eclipse-warning: #fbbf24;
-  --eclipse-danger: #f87171;
-  --eclipse-info: #60a5fa;
-  --eclipse-glow: 0 0 0 1px rgba(168, 224, 64, 0.25),
-    0 8px 24px rgba(168, 224, 64, 0.12);
+  /* ─── Morning palette — single source of truth ─── */
+  --morning-bg: #f4f5f0; /* warm cream page background */
+  --morning-surface: #ffffff; /* cards */
+  --morning-surface-2: #fafaf7; /* hover */
+  --morning-surface-3: #f0f1eb; /* pressed / deep hover */
+  --morning-border: #e5e7eb; /* dividers */
+  --morning-border-strong: #d1d5db;
+  --morning-ink: #1a1a1a; /* primary text */
+  --morning-muted: #6b7280; /* secondary text */
+  --morning-subtle: #9ca3af; /* tertiary text */
 
-  /* ─── Botanical legacy aliases — REMAPPED to Eclipse so existing
-        components inherit the new look without a refactor. Every
-        `var(--botanical-*)` reference in components now resolves to
-        the dark/lime equivalent. ─── */
-  --botanical-forest: var(--eclipse-lime); /* primary CTA → lime */
-  --botanical-secondary: var(--eclipse-success);
-  --botanical-deep: var(--eclipse-ink);
-  --botanical-cream: var(--eclipse-bg);
-  --botanical-surface: var(--eclipse-surface);
-  --botanical-line: var(--eclipse-border);
-  --botanical-ink: var(--eclipse-ink);
-  --botanical-sage: var(--eclipse-muted);
-  --botanical-light-sage: var(--eclipse-surface-2);
-  --botanical-accent: var(--eclipse-lime);
+  /* Brand — forest green */
+  --morning-forest: #2c7a5a;
+  --morning-forest-deep: #1f5a42;
+  --morning-forest-soft: #4a9b7a;
 
-  /* Extended scale */
-  --botanical-mint-bg: rgba(74, 222, 128, 0.12);
-  --botanical-mint-soft: rgba(74, 222, 128, 0.06);
-  --botanical-emerald: var(--eclipse-success);
-  --botanical-moss: var(--eclipse-lime-deep);
-  --botanical-sage-tint: rgba(168, 224, 64, 0.06);
+  /* Light green accents */
+  --morning-leaf: #c5e89a;
+  --morning-leaf-soft: #e8f4d1;
+  --morning-leaf-tint: #f0f8e3;
 
-  /* Verdant legacy aliases — same remap */
-  --verdant-bg: var(--eclipse-bg);
-  --verdant-ink: var(--eclipse-ink);
-  --verdant-muted: var(--eclipse-muted);
-  --verdant-accent: var(--eclipse-lime);
-  --verdant-emerald: var(--eclipse-lime);
-  --verdant-line: var(--eclipse-border);
-  --verdant-red: var(--eclipse-danger);
-  --verdant-amber: var(--eclipse-warning);
+  /* Violet — secondary actions / links */
+  --morning-violet: #8b5cf6;
+  --morning-violet-soft: #f3e8ff;
+
+  /* Coral — urgency */
+  --morning-coral: #e07a7a;
+  --morning-coral-soft: #fee2e2;
+
+  /* Semantic */
+  --morning-success: #059669;
+  --morning-success-soft: #d1fae5;
+  --morning-warning: #d97706;
+  --morning-warning-soft: #fef3c7;
+  --morning-danger: #dc2626;
+  --morning-danger-soft: #fee2e2;
+  --morning-info: #2563eb;
+  --morning-info-soft: #dbeafe;
+
+  /* Effects */
+  --morning-glow: 0 0 0 3px rgba(44, 122, 90, 0.12),
+    0 4px 12px rgba(44, 122, 90, 0.16);
+  --morning-shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04),
+    0 4px 12px rgba(16, 24, 40, 0.04);
+  --morning-shadow-card-hover: 0 2px 4px rgba(16, 24, 40, 0.06),
+    0 12px 24px rgba(16, 24, 40, 0.08);
+  --morning-shadow-soft: 0 12px 32px rgba(16, 24, 40, 0.08);
+  --morning-shadow-fab: 0 4px 12px rgba(44, 122, 90, 0.24),
+    0 8px 24px rgba(44, 122, 90, 0.16);
+
+  /* ─── Eclipse legacy aliases — REMAPPED to Morning ─── */
+  --eclipse-bg: var(--morning-bg);
+  --eclipse-surface: var(--morning-surface);
+  --eclipse-surface-2: var(--morning-surface-2);
+  --eclipse-surface-elev: var(--morning-surface-3);
+  --eclipse-border: var(--morning-border);
+  --eclipse-border-strong: var(--morning-border-strong);
+  --eclipse-ink: var(--morning-ink);
+  --eclipse-muted: var(--morning-muted);
+  --eclipse-subtle: var(--morning-subtle);
+  --eclipse-lime: var(--morning-forest);
+  --eclipse-lime-soft: var(--morning-forest-soft);
+  --eclipse-lime-deep: var(--morning-forest-deep);
+  --eclipse-success: var(--morning-success);
+  --eclipse-warning: var(--morning-warning);
+  --eclipse-danger: var(--morning-danger);
+  --eclipse-info: var(--morning-info);
+  --eclipse-glow: var(--morning-glow);
+
+  /* ─── Botanical legacy aliases — REMAPPED to Morning ─── */
+  --botanical-forest: var(--morning-forest);
+  --botanical-secondary: var(--morning-forest-soft);
+  --botanical-deep: var(--morning-ink);
+  --botanical-cream: var(--morning-bg);
+  --botanical-surface: var(--morning-surface);
+  --botanical-line: var(--morning-border);
+  --botanical-ink: var(--morning-ink);
+  --botanical-sage: var(--morning-muted);
+  --botanical-light-sage: var(--morning-surface-2);
+  --botanical-accent: var(--morning-forest);
+  --botanical-mint-bg: rgba(44, 122, 90, 0.08);
+  --botanical-mint-soft: rgba(44, 122, 90, 0.04);
+  --botanical-emerald: var(--morning-forest);
+  --botanical-moss: var(--morning-forest-deep);
+  --botanical-sage-tint: rgba(44, 122, 90, 0.04);
+
+  /* ─── Verdant legacy aliases — REMAPPED to Morning ─── */
+  --verdant-bg: var(--morning-bg);
+  --verdant-ink: var(--morning-ink);
+  --verdant-muted: var(--morning-muted);
+  --verdant-accent: var(--morning-forest);
+  --verdant-emerald: var(--morning-forest);
+  --verdant-line: var(--morning-border);
+  --verdant-red: var(--morning-danger);
+  --verdant-amber: var(--morning-warning);
 }
 
 html,
 body {
-  background-color: var(--eclipse-bg);
-  color: var(--eclipse-ink);
-  font-family: "Rubik", "Inter", "Assistant", system-ui, sans-serif;
+  background-color: var(--morning-bg);
+  color: var(--morning-ink);
+  font-family: "Heebo", "Rubik", "Assistant", system-ui, sans-serif;
   font-feature-settings:
     "tnum" 1,
     "cv11" 1;
   -webkit-font-smoothing: antialiased;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 h1,
@@ -84,31 +132,39 @@ h6,
   font-family: "Rubik", "Heebo", "Assistant", system-ui, sans-serif;
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: var(--eclipse-ink);
+  color: var(--morning-ink);
 }
 
-/* Global content zoom — preserved from Botanical for comfort. */
+/* Global content zoom — kept for visual comfort, will revisit in phase 2 */
 body {
   zoom: 1.06;
 }
 
 /* ───────────────────────────────────────────────────────────────────
-   Components — all rebuilt against Eclipse tokens.
-   The class names match the previous Botanical primitives so JSX
-   that uses them inherits the new look.
+   Components — all rebuilt against Morning tokens.
+   Class names match the previous Botanical/Eclipse primitives so JSX
+   using them inherits the new look automatically.
    ─────────────────────────────────────────────────────────────────── */
 @layer components {
-  .v-card {
-    @apply border;
-    background: var(--eclipse-surface);
-    border-color: var(--eclipse-border);
-    border-radius: 1rem;
+  /* ─── Card primitives ─── */
+  .v-card,
+  .card {
+    background: var(--morning-surface);
+    border: 1px solid var(--morning-border);
+    border-radius: 0.75rem;
+    box-shadow: var(--morning-shadow-card);
   }
   .v-card-pad {
     @apply v-card p-5 md:p-6;
   }
+  .card-pad {
+    @apply card p-5;
+  }
+  .card-pad-lg {
+    @apply card p-6 md:p-8;
+  }
   .v-divider {
-    border-color: var(--eclipse-border);
+    border-color: var(--morning-border);
   }
   .eq-row {
     @apply grid gap-5;
@@ -121,59 +177,60 @@ body {
   /* ─── Form inputs ─── */
   .inp {
     @apply w-full border px-3 py-2 text-sm outline-none transition-all;
-    background: var(--eclipse-surface);
-    border-color: var(--eclipse-border);
-    color: var(--eclipse-ink);
-    border-radius: 0.75rem;
+    background: var(--morning-surface);
+    border-color: var(--morning-border);
+    color: var(--morning-ink);
+    border-radius: 0.5rem;
   }
   .inp::placeholder {
-    color: var(--eclipse-subtle);
+    color: var(--morning-subtle);
   }
   .inp:focus {
-    border-color: var(--eclipse-lime);
-    box-shadow: 0 0 0 3px rgba(168, 224, 64, 0.2);
+    border-color: var(--morning-forest);
+    box-shadow: 0 0 0 3px rgba(44, 122, 90, 0.12);
   }
   select.inp {
     @apply appearance-none;
-    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M7%2010l5%205%205-5z%22%2F%3E%3C%2Fsvg%3E");
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M7%2010l5%205%205-5z%22%2F%3E%3C%2Fsvg%3E");
     background-size: 12px;
-    background-position: right 0.75rem center;
+    background-position: left 0.75rem center;
     background-repeat: no-repeat;
-    padding-right: 2rem;
+    padding-left: 2rem;
   }
   textarea.inp {
     @apply resize-y;
     min-height: 80px;
   }
 
-  /* ─── Primary CTA ─── */
+  /* ─── Buttons — unified shape: 8px rounded, NOT full pill ─── */
   .btn-botanical {
-    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 font-bold transition-all duration-150 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50;
-    background: var(--eclipse-lime);
-    color: var(--eclipse-bg);
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 font-semibold transition-all duration-150 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50;
+    background: var(--morning-forest);
+    color: #ffffff;
   }
   .btn-botanical:hover:not(:disabled) {
-    background: var(--eclipse-lime-soft);
-    box-shadow: var(--eclipse-glow);
+    background: var(--morning-forest-deep);
+    box-shadow: var(--morning-glow);
   }
 
   .btn-botanical-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-full border px-6 py-3 font-semibold transition-all duration-150 active:scale-95;
-    background: var(--eclipse-surface);
-    color: var(--eclipse-ink);
-    border-color: var(--eclipse-border);
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border px-5 py-2.5 font-semibold transition-all duration-150 active:scale-95;
+    background: var(--morning-surface);
+    color: var(--morning-ink);
+    border-color: var(--morning-border);
   }
   .btn-botanical-ghost:hover {
-    background: var(--eclipse-surface-2);
-    border-color: var(--eclipse-border-strong);
+    background: var(--morning-surface-2);
+    border-color: var(--morning-border-strong);
   }
 
   /* ─── Hero / large cards ─── */
   .card-botanical {
-    background: var(--eclipse-surface);
-    border: 1px solid var(--eclipse-border);
-    border-radius: 1.5rem;
+    background: var(--morning-surface);
+    border: 1px solid var(--morning-border);
+    border-radius: 1rem;
     padding: 2rem;
+    box-shadow: var(--morning-shadow-card);
   }
   @media (min-width: 768px) {
     .card-botanical {
@@ -182,41 +239,43 @@ body {
   }
 
   .card-botanical-sm {
-    background: var(--eclipse-surface);
-    border: 1px solid var(--eclipse-border);
-    border-radius: 1rem;
+    background: var(--morning-surface);
+    border: 1px solid var(--morning-border);
+    border-radius: 0.75rem;
     padding: 1.5rem;
+    box-shadow: var(--morning-shadow-card);
   }
 
   .input-botanical {
     @apply w-full border px-5 py-3 text-[15px] outline-none transition-all;
-    background: var(--eclipse-surface-2);
-    border-color: var(--eclipse-border);
-    color: var(--eclipse-ink);
-    border-radius: 0.75rem;
+    background: var(--morning-surface);
+    border-color: var(--morning-border);
+    color: var(--morning-ink);
+    border-radius: 0.5rem;
   }
   .input-botanical::placeholder {
-    color: var(--eclipse-subtle);
+    color: var(--morning-subtle);
   }
   .input-botanical:focus {
-    border-color: var(--eclipse-lime);
-    box-shadow: 0 0 0 3px rgba(168, 224, 64, 0.2);
+    border-color: var(--morning-forest);
+    box-shadow: 0 0 0 3px rgba(44, 122, 90, 0.12);
   }
 
   .label-botanical {
     @apply text-[11px] font-semibold uppercase tracking-[0.18em];
-    color: var(--eclipse-muted);
+    color: var(--morning-muted);
   }
 
   .heading-botanical {
     @apply font-bold tracking-tight;
-    color: var(--eclipse-ink);
+    color: var(--morning-ink);
   }
 
-  /* ─── Canonical buttons (4 variants × 2 sizes) ─── */
+  /* ─── Canonical buttons (4 variants × 2 sizes)
+     Shape standard: 8px rounded corners (rounded-lg). FAB stays circular. ─── */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-full font-bold transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40;
-    font-family: "Rubik", "Inter", "Assistant", system-ui, sans-serif;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40;
+    font-family: "Heebo", "Rubik", "Assistant", system-ui, sans-serif;
   }
   .btn-md {
     @apply px-5 py-2.5 text-[13px];
@@ -226,139 +285,152 @@ body {
   }
 
   .btn-primary {
-    background: var(--eclipse-lime);
-    color: var(--eclipse-bg);
+    background: var(--morning-forest);
+    color: #ffffff;
   }
   .btn-primary:hover:not(:disabled) {
-    background: var(--eclipse-lime-soft);
-    box-shadow: var(--eclipse-glow);
+    background: var(--morning-forest-deep);
+    box-shadow: var(--morning-glow);
   }
 
   .btn-secondary {
-    background: var(--eclipse-surface);
-    color: var(--eclipse-ink);
-    border: 1px solid var(--eclipse-border);
+    background: var(--morning-surface);
+    color: var(--morning-ink);
+    border: 1px solid var(--morning-border);
   }
   .btn-secondary:hover:not(:disabled) {
-    background: var(--eclipse-surface-2);
-    border-color: var(--eclipse-lime);
+    background: var(--morning-surface-2);
+    border-color: var(--morning-forest);
   }
 
   .btn-ghost {
     background: transparent;
-    color: var(--eclipse-muted);
+    color: var(--morning-muted);
   }
   .btn-ghost:hover:not(:disabled) {
-    background: var(--eclipse-surface-2);
-    color: var(--eclipse-ink);
+    background: var(--morning-surface-2);
+    color: var(--morning-ink);
   }
 
   .btn-danger {
-    background: rgba(248, 113, 113, 0.08);
-    color: var(--eclipse-danger);
-    border: 1px solid rgba(248, 113, 113, 0.25);
+    background: var(--morning-danger-soft);
+    color: var(--morning-danger);
+    border: 1px solid rgba(220, 38, 38, 0.25);
   }
   .btn-danger:hover:not(:disabled) {
-    background: rgba(248, 113, 113, 0.15);
-    border-color: var(--eclipse-danger);
+    background: rgba(220, 38, 38, 0.16);
+    border-color: var(--morning-danger);
   }
 
-  /* ─── Card primitives ─── */
-  .card {
-    @apply border;
-    background: var(--eclipse-surface);
-    border-color: var(--eclipse-border);
-    border-radius: 1rem;
+  /* ─── Morning FAB (floating action +) ─── */
+  .btn-fab {
+    @apply inline-flex h-14 w-14 items-center justify-center rounded-full transition-all duration-150 active:scale-95;
+    background: var(--morning-forest);
+    color: #ffffff;
+    box-shadow: var(--morning-shadow-fab);
   }
-  .card-pad {
-    @apply card p-5;
-  }
-  .card-pad-lg {
-    @apply card p-6 md:p-8;
+  .btn-fab:hover {
+    background: var(--morning-forest-deep);
+    transform: translateY(-2px);
   }
 
-  /* Hero / forest card — the deeper, lime-accented surface */
+  /* Hero / forest card — solid forest green for the main wealth hero.
+     White text and light-translucent surfaces inside, matches the deep
+     trust-and-substance feel of Morning's premium tiles. */
   .card-forest {
     background: linear-gradient(
       135deg,
-      var(--eclipse-surface-2) 0%,
-      var(--eclipse-surface) 100%
+      var(--morning-forest) 0%,
+      var(--morning-forest-deep) 100%
     );
-    color: var(--eclipse-ink);
-    border-radius: 1.25rem;
+    color: #ffffff;
+    border-radius: 1rem;
     padding: 1.5rem;
-    border: 1px solid var(--eclipse-border);
+    border: 1px solid var(--morning-forest-deep);
+    box-shadow: 0 8px 24px rgba(44, 122, 90, 0.18);
   }
   .card-forest .caption {
-    color: var(--eclipse-muted);
+    color: rgba(255, 255, 255, 0.72);
   }
   .card-forest .kpi-value {
-    color: var(--eclipse-ink);
+    color: #ffffff;
   }
   .card-forest .pill-inner {
-    background: rgba(255, 255, 255, 0.04);
-    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.10);
+    border-radius: 0.75rem;
     padding: 0.875rem 1rem;
-    border: 1px solid var(--eclipse-border);
+    border: 1px solid rgba(255, 255, 255, 0.16);
   }
 
-  /* Mint card (insight / tip) */
+  /* Mint card (insight / tip) — Morning leaf-tinted */
   .card-mint {
-    background: rgba(168, 224, 64, 0.08);
-    color: var(--eclipse-ink);
-    border-radius: 1.25rem;
+    background: var(--morning-leaf-tint);
+    color: var(--morning-ink);
+    border-radius: 1rem;
     padding: 1.5rem;
-    border: 1px solid rgba(168, 224, 64, 0.25);
+    border: 1px solid var(--morning-leaf-soft);
   }
   .card-mint .kpi-value {
-    color: var(--eclipse-ink);
+    color: var(--morning-ink);
   }
 
   .card-tint-mint {
     @apply card;
-    background: rgba(74, 222, 128, 0.04);
-    border-color: rgba(74, 222, 128, 0.15);
+    background: var(--morning-success-soft);
+    border-color: rgba(5, 150, 105, 0.16);
   }
   .card-tint-sage {
     @apply card;
-    background: rgba(168, 224, 64, 0.04);
-    border-color: rgba(168, 224, 64, 0.15);
+    background: var(--morning-leaf-tint);
+    border-color: var(--morning-leaf-soft);
   }
   .card-tint-cream {
     @apply card;
-    background: var(--eclipse-surface-2);
-    border-color: var(--eclipse-border);
+    background: var(--morning-surface-2);
+    border-color: var(--morning-border);
   }
 
-  /* ─── Status pills ─── */
+  /* ─── Status pills — Morning style: soft pastel bg ─── */
   .pill {
-    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-bold;
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-semibold;
     font-size: 11px;
     line-height: 14px;
   }
   .pill-mint {
-    background: rgba(74, 222, 128, 0.14);
-    color: var(--eclipse-success);
+    background: var(--morning-success-soft);
+    color: var(--morning-success);
   }
   .pill-emerald {
-    background: rgba(74, 222, 128, 0.22);
-    color: var(--eclipse-success);
+    background: var(--morning-success-soft);
+    color: var(--morning-success);
   }
   .pill-forest {
-    background: var(--eclipse-lime);
-    color: var(--eclipse-bg);
+    background: var(--morning-forest);
+    color: #ffffff;
   }
   .pill-sage {
-    background: rgba(168, 224, 64, 0.12);
-    color: var(--eclipse-lime-soft);
+    background: var(--morning-leaf-tint);
+    color: var(--morning-forest-deep);
   }
   .pill-danger {
-    background: rgba(248, 113, 113, 0.14);
-    color: var(--eclipse-danger);
+    background: var(--morning-coral-soft);
+    color: var(--morning-danger);
   }
   .pill-amber {
-    background: rgba(251, 191, 36, 0.14);
-    color: var(--eclipse-warning);
+    background: var(--morning-warning-soft);
+    color: var(--morning-warning);
+  }
+  .pill-violet {
+    background: var(--morning-violet-soft);
+    color: var(--morning-violet);
+  }
+  .pill-open {
+    background: var(--morning-violet-soft);
+    color: #7c3aed;
+  }
+  .pill-closed {
+    background: var(--morning-success-soft);
+    color: var(--morning-success);
   }
 
   /* ─── Icon containers ─── */
@@ -369,17 +441,17 @@ body {
     @apply flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl;
   }
   .icon-forest {
-    background: var(--eclipse-lime);
-    color: var(--eclipse-bg);
+    background: var(--morning-forest);
+    color: #ffffff;
   }
   .icon-soft {
-    background: var(--eclipse-surface-2);
-    color: var(--eclipse-lime);
+    background: var(--morning-leaf-tint);
+    color: var(--morning-forest);
   }
   .icon-outline {
-    background: var(--eclipse-surface);
-    border: 1px solid var(--eclipse-border);
-    color: var(--eclipse-lime);
+    background: var(--morning-surface);
+    border: 1px solid var(--morning-border);
+    color: var(--morning-forest);
   }
 
   /* ─── Typography scale ─── */
@@ -405,48 +477,118 @@ body {
   }
 
   .caption {
-    @apply font-bold uppercase;
+    @apply font-semibold uppercase;
     font-size: 11px;
     line-height: 14px;
     letter-spacing: 0.14em;
-    color: var(--eclipse-muted);
+    color: var(--morning-muted);
   }
 
-  /* ─── KPI tile ─── */
+  /* ─── KPI tile — Morning style: clean white with subtle border ─── */
   .kpi {
     @apply card flex flex-col gap-1 p-5;
   }
   .kpi-label {
     @apply caption;
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 500;
+    color: var(--morning-muted);
   }
   .kpi-value {
     font-family: "Rubik", "Heebo", "Assistant", system-ui, sans-serif;
-    font-size: 22px;
-    line-height: 28px;
-    font-weight: 800;
+    font-size: 24px;
+    line-height: 30px;
+    font-weight: 700;
     letter-spacing: -0.01em;
-    color: var(--eclipse-ink);
+    color: var(--morning-ink);
     font-variant-numeric: tabular-nums;
   }
   .kpi-hint {
     font-size: 12px;
     line-height: 16px;
-    color: var(--eclipse-muted);
+    color: var(--morning-muted);
+  }
+
+  /* Morning trick: smaller decimals on big numbers */
+  .num-decimal {
+    font-size: 0.7em;
+    color: var(--morning-muted);
+    font-weight: 600;
   }
 
   /* ─── Page shell ─── */
   .page-title {
     font-family: "Rubik", "Heebo", "Assistant", system-ui, sans-serif;
-    font-size: 24px;
-    line-height: 30px;
-    font-weight: 800;
+    font-size: 26px;
+    line-height: 32px;
+    font-weight: 700;
     letter-spacing: -0.02em;
-    color: var(--eclipse-ink);
+    color: var(--morning-ink);
   }
   .page-subtitle {
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--morning-muted);
+  }
+
+  /* Morning greeting style — used on dashboard */
+  .morning-greeting {
+    font-family: "Rubik", "Heebo", "Assistant", system-ui, sans-serif;
+    font-size: 32px;
+    line-height: 38px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--morning-ink);
+  }
+  .morning-greeting-sub {
+    font-size: 15px;
+    line-height: 22px;
+    color: var(--morning-muted);
+    margin-top: 4px;
+  }
+
+  /* Morning tab — underline indicator */
+  .morning-tab {
+    @apply relative px-4 py-3 text-[14px] font-medium transition-colors;
+    color: var(--morning-muted);
+  }
+  .morning-tab:hover {
+    color: var(--morning-ink);
+  }
+  .morning-tab[data-active="true"] {
+    color: var(--morning-forest);
+  }
+  .morning-tab[data-active="true"]::after {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--morning-forest);
+    border-radius: 2px;
+  }
+
+  /* Morning breadcrumb */
+  .morning-breadcrumb {
     font-size: 13px;
     line-height: 18px;
-    color: var(--eclipse-muted);
+    color: var(--morning-muted);
+  }
+  .morning-breadcrumb a:hover {
+    color: var(--morning-forest);
+  }
+
+  /* Morning link — violet for secondary actions */
+  .morning-link {
+    color: var(--morning-violet);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: color 0.15s;
+  }
+  .morning-link:hover {
+    color: #7c3aed;
   }
 }
 
@@ -456,6 +598,10 @@ body {
 }
 
 /* Global text-size accessibility — tiny text bumped to readable. */
+.text-\[8px\] {
+  font-size: 11px !important;
+  line-height: 14px !important;
+}
 .text-\[9px\] {
   font-size: 11px !important;
   line-height: 14px !important;
@@ -465,13 +611,13 @@ body {
   line-height: 16px !important;
 }
 .text-\[11px\] {
-  font-size: 13px !important;
-  line-height: 18px !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
 }
 
 ::selection {
-  background: rgba(168, 224, 64, 0.25);
-  color: var(--eclipse-ink);
+  background: rgba(44, 122, 90, 0.18);
+  color: var(--morning-ink);
 }
 
 @keyframes fadeInUp {
@@ -496,7 +642,7 @@ body {
   }
 }
 
-/* Scrollbar polish — dark surface */
+/* Scrollbar polish — light surface */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -505,9 +651,9 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--eclipse-border-strong);
+  background: var(--morning-border-strong);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--eclipse-muted);
+  background: var(--morning-muted);
 }

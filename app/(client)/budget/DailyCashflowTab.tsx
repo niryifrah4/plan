@@ -25,6 +25,7 @@ import {
   type DailyEvent,
 } from "@/lib/daily-cashflow-store";
 import { ACCOUNTS_EVENT } from "@/lib/accounts-store";
+import { useConfirm } from "@/components/ui/ConfirmModal";
 
 const HE_DAY_SUFFIX = "ה-";
 const HE_MONTHS = [
@@ -49,6 +50,7 @@ function recommendedBuffer(totalRecurringOutflows: number): number {
 }
 
 export function DailyCashflowTab() {
+  const { confirm, modal } = useConfirm();
   const [data, setData] = useState<DailyCashflow | null>(null);
   const [monthsAhead, setMonthsAhead] = useState<1 | 3 | 6 | 12>(1);
 
@@ -112,17 +114,27 @@ export function DailyCashflowTab() {
     });
   }, []);
 
-  const removeEvent = useCallback((id: string) => {
-    setData((prev) => {
-      if (!prev) return prev;
-      const target = prev.events.find((e) => e.id === id);
-      if (!target) return prev;
-      if (!window.confirm(`למחוק את "${target.label || "השורה"}"?`)) return prev;
-      const next = { ...prev, events: prev.events.filter((e) => e.id !== id) };
-      saveDailyCashflow(next);
-      return next;
-    });
-  }, []);
+  const removeEvent = useCallback(
+    async (id: string) => {
+      const target = data?.events.find((e) => e.id === id);
+      if (!target) return;
+      const ok = await confirm({
+        title: `למחוק את "${target.label || "השורה"}"?`,
+        body: "האירוע יוסר מהתחזית היומית. פעולה זו בלתי הפיכה.",
+        confirmLabel: "כן, מחק",
+        cancelLabel: "ביטול",
+        variant: "danger",
+      });
+      if (!ok) return;
+      setData((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, events: prev.events.filter((e) => e.id !== id) };
+        saveDailyCashflow(next);
+        return next;
+      });
+    },
+    [data, confirm]
+  );
 
   const traj = useMemo(
     () => (data ? buildTrajectory(data, monthsAhead) : null),
@@ -142,10 +154,10 @@ export function DailyCashflowTab() {
   //   ⚠️ in approved overdraft frame (negative but inside creditLine)
   //   ❌ over the approved frame
   const colorForBalance = (v: number) => {
-    if (v < -(data.creditLine || 0)) return "#FCA5A5"; // over frame
+    if (v < -(data.creditLine || 0)) return "#B91C1C"; // over frame
     if (v < 0) return "#B45309"; // in frame minus
     if (v < data.threshold) return "#92400E"; // tight but above zero
-    return "#A8E040"; // healthy
+    return "#2C7A5A"; // healthy
   };
   const minBalColor = colorForBalance(traj.minBalance);
   const avgBalColor = colorForBalance(traj.averageBalance);
@@ -163,10 +175,11 @@ export function DailyCashflowTab() {
 
   return (
     <div className="space-y-6" dir="rtl">
+      {modal}
       {/* ═══════ Hero / summary ═══════ */}
       <section
         className="rounded-2xl p-5"
-        style={{ background: "#131C2E", border: "1px solid #1F2A3F" }}
+        style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}
       >
         <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -186,7 +199,7 @@ export function DailyCashflowTab() {
               windows show the rhythm and reveal medium-term overdraft risk. */}
           <div
             className="inline-flex rounded-full p-0.5"
-            style={{ background: "#1A2438", border: "1px solid #1F2A3F" }}
+            style={{ background: "#FAFAF7", border: "1px solid #E5E7EB" }}
           >
             {([1, 3, 6, 12] as const).map((n) => {
               const active = monthsAhead === n;
@@ -196,8 +209,8 @@ export function DailyCashflowTab() {
                   onClick={() => setMonthsAhead(n)}
                   className="rounded-full px-3 py-1 text-[11px] font-bold transition-colors"
                   style={{
-                    background: active ? "#A8E040" : "transparent",
-                    color: active ? "#131C2E" : "#94A3B8",
+                    background: active ? "#2C7A5A" : "transparent",
+                    color: active ? "#FFFFFF" : "#6B7280",
                   }}
                 >
                   {n === 1 ? "החודש" : `${n} חודשים`}
@@ -227,7 +240,7 @@ export function DailyCashflowTab() {
           <Kpi
             label="ימים מתחת לסף"
             value={`${traj.daysBelowThreshold}`}
-            color={traj.daysBelowThreshold > 0 ? "#B45309" : "#A8E040"}
+            color={traj.daysBelowThreshold > 0 ? "#B45309" : "#2C7A5A"}
             hint={
               traj.daysBelowZero > 0
                 ? `${traj.daysBelowZero} מתוכם במינוס`
@@ -253,9 +266,9 @@ export function DailyCashflowTab() {
           <div
             className="mt-4 flex flex-wrap items-center gap-2 rounded-xl px-4 py-2.5 text-[12px]"
             style={{
-              background: bufferGap > 0 ? "rgba(251,191,36,0.08)" : "#1A2438",
-              border: `1px solid ${bufferGap > 0 ? "rgba(251,191,36,0.30)" : "#1F2A3F"}`,
-              color: bufferGap > 0 ? "#92400e" : "#A8E040",
+              background: bufferGap > 0 ? "rgba(217,119,6,0.08)" : "#FAFAF7",
+              border: `1px solid ${bufferGap > 0 ? "rgba(217,119,6,0.30)" : "#E5E7EB"}`,
+              color: bufferGap > 0 ? "#92400e" : "#2C7A5A",
             }}
           >
             <span className="material-symbols-outlined text-[16px]">
@@ -276,15 +289,15 @@ export function DailyCashflowTab() {
         )}
 
         {/* Settings strip */}
-        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-[#1A2438] px-4 py-3">
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-[#FAFAF7] px-4 py-3">
           <label className="flex items-center gap-2 text-[12px] font-bold text-verdant-ink">
             יתרה נוכחית
             <input
               type="number"
               value={data.openingBalance}
               onChange={(e) => update({ openingBalance: parseFloat(e.target.value) || 0 })}
-              className="w-28 rounded-md border bg-[#131C2E] px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
-              style={{ borderColor: "#1F2A3F" }}
+              className="w-28 rounded-md border bg-[#FFFFFF] px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
+              style={{ borderColor: "#E5E7EB" }}
               dir="ltr"
             />
             <span className="text-verdant-muted">₪</span>
@@ -296,8 +309,8 @@ export function DailyCashflowTab() {
               type="number"
               value={data.threshold}
               onChange={(e) => update({ threshold: parseFloat(e.target.value) || 0 })}
-              className="w-28 rounded-md border bg-[#131C2E] px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
-              style={{ borderColor: "#1F2A3F" }}
+              className="w-28 rounded-md border bg-[#FFFFFF] px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
+              style={{ borderColor: "#E5E7EB" }}
               dir="ltr"
             />
             <span className="text-verdant-muted">₪</span>
@@ -312,8 +325,8 @@ export function DailyCashflowTab() {
               type="number"
               value={data.creditLine || 0}
               onChange={(e) => update({ creditLine: parseFloat(e.target.value) || 0 })}
-              className="w-28 rounded-md border bg-[#131C2E] px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
-              style={{ borderColor: "#1F2A3F" }}
+              className="w-28 rounded-md border bg-[#FFFFFF] px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
+              style={{ borderColor: "#E5E7EB" }}
               dir="ltr"
             />
             <span className="text-verdant-muted">₪</span>
@@ -332,8 +345,8 @@ export function DailyCashflowTab() {
               onChange={(e) =>
                 update({ salaryDayOfMonth: parseInt(e.target.value, 10) || 0 })
               }
-              className="w-16 rounded-md border bg-[#131C2E] px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
-              style={{ borderColor: "#1F2A3F" }}
+              className="w-16 rounded-md border bg-[#FFFFFF] px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
+              style={{ borderColor: "#E5E7EB" }}
               placeholder="—"
               dir="ltr"
             />
@@ -345,11 +358,11 @@ export function DailyCashflowTab() {
             routine ₪200 minus. Context matters more than the number. */}
         <details
           className="mt-3 rounded-lg text-[11px]"
-          style={{ background: "#F8FAFC", border: "1px solid #1F2A3F" }}
+          style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}
         >
           <summary
             className="cursor-pointer px-3 py-2 font-bold text-verdant-ink"
-            style={{ color: "#A8E040" }}
+            style={{ color: "#2C7A5A" }}
           >
             כמה מסוכן מינוס בעו״ש? — 3 רמות
           </summary>
@@ -364,7 +377,7 @@ export function DailyCashflowTab() {
               ממנים את התזרים שלכם בריבית בנקאית בלי לדעת.
             </div>
             <div>
-              <span className="font-extrabold" style={{ color: "#FCA5A5" }}>3. חריגה מהמסגרת:</span>{" "}
+              <span className="font-extrabold" style={{ color: "#B91C1C" }}>3. חריגה מהמסגרת:</span>{" "}
               ריבית חריגה (לפעמים 15%+). הבנק עלול לסרב לתשלומים. חייבים לטפל מיד.
             </div>
           </div>
@@ -383,7 +396,7 @@ export function DailyCashflowTab() {
       {/* ═══════ Events table ═══════ */}
       <section
         className="rounded-2xl p-5"
-        style={{ background: "#131C2E", border: "1px solid #1F2A3F" }}
+        style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}
       >
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div>
@@ -409,11 +422,11 @@ export function DailyCashflowTab() {
         {sortedAuto.length > 0 && (
           <div
             className="mb-3 overflow-hidden rounded-xl"
-            style={{ border: "1px solid #1F2A3F", background: "#1A2438" }}
+            style={{ border: "1px solid #E5E7EB", background: "#FAFAF7" }}
           >
             <div
               className="flex items-center justify-between px-3 py-2 text-[11px] font-extrabold uppercase tracking-[0.08em]"
-              style={{ color: "#A8E040", borderBottom: "1px solid #1F2A3F" }}
+              style={{ color: "#2C7A5A", borderBottom: "1px solid #E5E7EB" }}
             >
               <span className="inline-flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-[14px]">credit_card</span>
@@ -432,9 +445,9 @@ export function DailyCashflowTab() {
                 className="grid items-center px-3 py-2 text-[13px]"
                 style={{
                   gridTemplateColumns: "60px minmax(120px,1fr) 110px",
-                  borderTop: "1px solid #1F2A3F",
+                  borderTop: "1px solid #E5E7EB",
                   columnGap: "8px",
-                  background: "#131C2E",
+                  background: "#FFFFFF",
                 }}
               >
                 <div className="text-center font-extrabold tabular-nums text-verdant-ink">
@@ -448,7 +461,7 @@ export function DailyCashflowTab() {
                 </div>
                 <div
                   className="text-left font-extrabold tabular-nums"
-                  style={{ color: ev.amount < 0 ? "#FCA5A5" : "#A8E040" }}
+                  style={{ color: ev.amount < 0 ? "#B91C1C" : "#2C7A5A" }}
                   dir="ltr"
                 >
                   {ev.amount.toLocaleString("he-IL")}
@@ -461,7 +474,7 @@ export function DailyCashflowTab() {
         {sortedManual.length === 0 && sortedAuto.length === 0 ? (
           <div
             className="rounded-xl px-4 py-8 text-center text-[13px]"
-            style={{ background: "#1A2438", border: "1px dashed #1F2A3F", color: "#94A3B8" }}
+            style={{ background: "#FAFAF7", border: "1px dashed #E5E7EB", color: "#6B7280" }}
           >
             <div className="font-bold text-verdant-ink">עוד אין חיובים מוגדרים</div>
             <div className="mt-1 text-[12px] leading-relaxed">
@@ -476,13 +489,13 @@ export function DailyCashflowTab() {
             </div>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl" style={{ border: "1px solid #1F2A3F" }}>
+          <div className="overflow-hidden rounded-xl" style={{ border: "1px solid #E5E7EB" }}>
             <div
               className="grid items-center px-3 py-2 text-[11px] font-extrabold uppercase tracking-[0.08em]"
               style={{
                 gridTemplateColumns: "60px minmax(120px,1fr) 110px 60px",
-                background: "#1A2438",
-                color: "#94A3B8",
+                background: "#FAFAF7",
+                color: "#6B7280",
                 columnGap: "8px",
               }}
             >
@@ -555,7 +568,7 @@ function EventRow({
       className="grid items-center px-3 py-2 text-[13px]"
       style={{
         gridTemplateColumns: "60px minmax(120px,1fr) 110px 60px",
-        borderTop: "1px solid #1F2A3F",
+        borderTop: "1px solid #E5E7EB",
         columnGap: "8px",
       }}
     >
@@ -565,8 +578,8 @@ function EventRow({
         max={31}
         value={event.dayOfMonth}
         onChange={(e) => onUpdate({ dayOfMonth: parseInt(e.target.value, 10) || 1 })}
-        className="rounded-md border bg-[#131C2E] py-1 text-center font-extrabold tabular-nums"
-        style={{ borderColor: "#1F2A3F" }}
+        className="rounded-md border bg-[#FFFFFF] py-1 text-center font-extrabold tabular-nums"
+        style={{ borderColor: "#E5E7EB" }}
         dir="ltr"
       />
       <input
@@ -574,18 +587,18 @@ function EventRow({
         value={event.label}
         onChange={(e) => onUpdate({ label: e.target.value })}
         placeholder="לדוגמה: ויזה כאל, משכורת בעל…"
-        className="rounded-md border bg-[#131C2E] px-2 py-1 font-semibold"
-        style={{ borderColor: "#1F2A3F" }}
+        className="rounded-md border bg-[#FFFFFF] px-2 py-1 font-semibold"
+        style={{ borderColor: "#E5E7EB" }}
       />
       <input
         type="number"
         value={event.amount}
         onChange={(e) => onUpdate({ amount: parseFloat(e.target.value) || 0 })}
         placeholder="−1500 = חיוב"
-        className="rounded-md border bg-[#131C2E] py-1 text-left font-extrabold tabular-nums"
+        className="rounded-md border bg-[#FFFFFF] py-1 text-left font-extrabold tabular-nums"
         style={{
-          borderColor: "#1F2A3F",
-          color: isIncome ? "#A8E040" : event.amount < 0 ? "#FCA5A5" : "#94A3B8",
+          borderColor: "#E5E7EB",
+          color: isIncome ? "#2C7A5A" : event.amount < 0 ? "#B91C1C" : "#6B7280",
         }}
         dir="ltr"
       />
@@ -593,7 +606,7 @@ function EventRow({
         onClick={onRemove}
         title="מחק"
         className="mx-auto flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-red-50"
-        style={{ color: "#FCA5A5" }}
+        style={{ color: "#B91C1C" }}
       >
         <span className="material-symbols-outlined text-[16px]">close</span>
       </button>
@@ -652,7 +665,7 @@ function TrajectoryChart({
             y={yOf(frameFloor)}
             width={innerW}
             height={Math.max(0, PAD.top + innerH - yOf(frameFloor))}
-            fill="rgba(248,113,113,0.12)"
+            fill="rgba(220,38,38,0.12)"
             opacity={0.7}
           />
         )}
@@ -663,7 +676,7 @@ function TrajectoryChart({
             y={yOf(0)}
             width={innerW}
             height={Math.max(0, yOf(frameFloor) - yOf(0))}
-            fill="rgba(251,191,36,0.20)"
+            fill="rgba(217,119,6,0.20)"
             opacity={0.55}
           />
         )}
@@ -674,7 +687,7 @@ function TrajectoryChart({
             y={yOf(0)}
             width={innerW}
             height={Math.max(0, PAD.top + innerH - yOf(0))}
-            fill="rgba(248,113,113,0.12)"
+            fill="rgba(220,38,38,0.12)"
             opacity={0.5}
           />
         )}
@@ -685,7 +698,7 @@ function TrajectoryChart({
             y={yOf(threshold)}
             width={innerW}
             height={Math.max(0, yOf(Math.max(0, yMin)) - yOf(threshold))}
-            fill="rgba(251,191,36,0.12)"
+            fill="rgba(217,119,6,0.12)"
             opacity={0.6}
           />
         )}
@@ -697,7 +710,7 @@ function TrajectoryChart({
               x2={PAD.left + innerW}
               y1={yOf(t)}
               y2={yOf(t)}
-              stroke={t === 0 ? "#94a3b8" : "#1F2A3F"}
+              stroke={t === 0 ? "#6b7280" : "#E5E7EB"}
               strokeWidth={t === 0 ? 1 : 0.5}
               strokeDasharray={t === threshold ? "4 3" : undefined}
             />
@@ -706,7 +719,7 @@ function TrajectoryChart({
               y={yOf(t) + 3}
               fontSize="10"
               textAnchor="end"
-              fill="#94A3B8"
+              fill="#6B7280"
               fontWeight="600"
             >
               {Math.round(t / 1000)}K
@@ -714,7 +727,7 @@ function TrajectoryChart({
           </g>
         ))}
         {/* Trajectory line */}
-        <path d={path} stroke="#A8E040" strokeWidth="2" fill="none" />
+        <path d={path} stroke="#2C7A5A" strokeWidth="2" fill="none" />
         {/* Event dots */}
         {points.map((p, i) =>
           p.events.length > 0 ? (
@@ -723,8 +736,8 @@ function TrajectoryChart({
                 cx={xOf(i)}
                 cy={yOf(p.balance)}
                 r={3.5}
-                fill="#A8E040"
-                stroke="#131C2E"
+                fill="#2C7A5A"
+                stroke="#FFFFFF"
                 strokeWidth={1.5}
               />
               <title>
@@ -744,7 +757,7 @@ function TrajectoryChart({
               cy={yOf(trajectory.minBalance)}
               r={5}
               fill="none"
-              stroke={trajectory.minBalance < 0 ? "#FCA5A5" : "#B45309"}
+              stroke={trajectory.minBalance < 0 ? "#B91C1C" : "#B45309"}
               strokeWidth={2}
             />
           </g>
@@ -761,7 +774,7 @@ function TrajectoryChart({
                 x2={xOf(i)}
                 y1={PAD.top}
                 y2={PAD.top + innerH}
-                stroke="#1F2A3F"
+                stroke="#E5E7EB"
                 strokeWidth={0.7}
                 strokeDasharray="2 3"
               />
@@ -780,7 +793,7 @@ function TrajectoryChart({
                   y={PAD.top + innerH + 18}
                   fontSize="10"
                   textAnchor="middle"
-                  fill="#94A3B8"
+                  fill="#6B7280"
                   fontWeight="600"
                 >
                   {d}
@@ -806,7 +819,7 @@ function TrajectoryChart({
                     y={PAD.top + innerH + 18}
                     fontSize="10"
                     textAnchor="middle"
-                    fill="#94A3B8"
+                    fill="#6B7280"
                     fontWeight="600"
                   >
                     {label}

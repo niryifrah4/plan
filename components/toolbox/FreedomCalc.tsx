@@ -55,11 +55,14 @@ export function FreedomCalc() {
       }
     }
     const freedomYear = trajectory.findIndex((t) => t.balance >= dynamic.freedomNumber);
+    const alreadyFree = freedomYear >= 0;
+    const yearsToFreedom = alreadyFree ? freedomYear : 60;
     return {
-      years: freedomYear > 0 ? freedomYear : 60,
-      age: currentAge + (freedomYear > 0 ? freedomYear : 60),
-      finalBalance: trajectory[freedomYear > 0 ? freedomYear : trajectory.length - 1].balance,
-      trajectory: trajectory.slice(0, 41), // Up to 40 years
+      years: yearsToFreedom,
+      age: currentAge + yearsToFreedom,
+      finalBalance: trajectory[alreadyFree ? freedomYear : trajectory.length - 1].balance,
+      alreadyFree: freedomYear === 0,
+      trajectory: trajectory.slice(0, 41),
     };
   }, [
     monthlyExpense,
@@ -83,24 +86,24 @@ export function FreedomCalc() {
       <div
         className="relative overflow-hidden rounded-2xl p-6"
         style={{
-          background: "linear-gradient(135deg,#F8FAFC 0%,#064e32 50%,#A8E040 100%)",
-          color: "#131C2E",
+          background: "linear-gradient(135deg,#FFFFFF 0%,#064e32 50%,#2C7A5A 100%)",
+          color: "#FFFFFF",
         }}
       >
         <div
           className="absolute inset-0 opacity-[0.04]"
           style={{
-            backgroundImage: "radial-gradient(circle at 20% 80%, #4ADE80 0%, transparent 50%)",
+            backgroundImage: "radial-gradient(circle at 20% 80%, #059669 0%, transparent 50%)",
           }}
         />
         <div className="relative">
           <div className="mb-2 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[22px]" style={{ color: "#4ADE80" }}>
+            <span className="material-symbols-outlined text-[22px]" style={{ color: "#059669" }}>
               workspace_premium
             </span>
             <span
               className="text-[10px] font-bold uppercase tracking-[0.25em]"
-              style={{ color: "#4ADE80" }}
+              style={{ color: "#059669" }}
             >
               חוק ה-300 הדינמי
             </span>
@@ -119,10 +122,10 @@ export function FreedomCalc() {
               className="mb-3 mt-2 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5"
               style={{ background: "rgba(245,158,11,0.2)" }}
             >
-              <span className="material-symbols-outlined text-[14px]" style={{ color: "#fbbf24" }}>
+              <span className="material-symbols-outlined text-[14px]" style={{ color: "#d97706" }}>
                 info
               </span>
-              <span className="text-[10px] font-bold" style={{ color: "#fbbf24" }}>
+              <span className="text-[10px] font-bold" style={{ color: "#d97706" }}>
                 בגלל אינפלציה ודמי ניהול, המכפיל עלה מ-300 ל-{dynamic.multiplier}. נדרש הון גבוה
                 יותר!
               </span>
@@ -144,7 +147,7 @@ export function FreedomCalc() {
               <div className="mb-0.5 text-[9px] uppercase tracking-widest opacity-50">
                 הפרש דינמי
               </div>
-              <div className="tabular text-sm font-bold" style={{ color: "#fbbf24" }}>
+              <div className="tabular text-sm font-bold" style={{ color: "#d97706" }}>
                 +{fmtILS(dynamic.freedomNumber - staticNum)}
               </div>
             </div>
@@ -158,7 +161,7 @@ export function FreedomCalc() {
             >
               <div
                 className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${pct}%`, background: "linear-gradient(90deg,#4ADE80,#4ADE80)" }}
+                style={{ width: `${pct}%`, background: "linear-gradient(90deg,#059669,#059669)" }}
               />
             </div>
             <div className="mt-1.5 flex justify-between text-[10px] opacity-60">
@@ -187,7 +190,7 @@ export function FreedomCalc() {
             x2={chartW}
             y1={chartH - (dynamic.freedomNumber / maxVal) * chartH}
             y2={chartH - (dynamic.freedomNumber / maxVal) * chartH}
-            stroke="#f59e0b"
+            stroke="#D97706"
             strokeDasharray="6 4"
             strokeWidth="1.5"
             opacity="0.6"
@@ -218,7 +221,7 @@ export function FreedomCalc() {
               })
               .join(" ")}
             fill="none"
-            stroke="#A8E040"
+            stroke="#2C7A5A"
             strokeWidth="2.5"
             strokeLinecap="round"
           />
@@ -227,18 +230,18 @@ export function FreedomCalc() {
             (() => {
               const x = (simulation.years / Math.max(simulation.trajectory.length - 1, 1)) * chartW;
               const y = chartH - (dynamic.freedomNumber / maxVal) * (chartH - 4);
-              return <circle cx={x} cy={y} r="5" fill="#f59e0b" stroke="#131C2E" strokeWidth="2" />;
+              return <circle cx={x} cy={y} r="5" fill="#D97706" stroke="#FFFFFF" strokeWidth="2" />;
             })()}
           <defs>
             <linearGradient id="freedomGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#A8E040" />
-              <stop offset="100%" stopColor="#A8E040" stopOpacity="0" />
+              <stop offset="0%" stopColor="#2C7A5A" />
+              <stop offset="100%" stopColor="#2C7A5A" stopOpacity="0" />
             </linearGradient>
           </defs>
         </svg>
         <div className="mt-1 flex justify-between text-[9px] font-bold text-verdant-muted">
           <span>היום</span>
-          <span style={{ color: "#f59e0b" }}>קו החופש</span>
+          <span style={{ color: "#D97706" }}>קו החופש</span>
           <span>+40 שנים</span>
         </div>
       </div>
@@ -277,7 +280,7 @@ export function FreedomCalc() {
             <div className="text-[10px] font-bold text-verdant-muted">שנים לחופש</div>
           </div>
           <div>
-            <div className="tabular text-2xl font-extrabold" style={{ color: "#A8E040" }}>
+            <div className="tabular text-2xl font-extrabold" style={{ color: "#2C7A5A" }}>
               {simulation.age}
             </div>
             <div className="text-[10px] font-bold text-verdant-muted">גיל חופש כלכלי</div>
@@ -312,7 +315,7 @@ function Field({
       </label>
       <div
         className="flex items-center gap-1 rounded-lg border px-3 py-2"
-        style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
+        style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
       >
         <input
           type="number"

@@ -117,7 +117,7 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
   return (
     <section
       className="rounded-2xl p-5"
-      style={{ background: "#131C2E", border: "1px solid #1F2A3F" }}
+      style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}
     >
       <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-verdant-muted">
         סימולטור
@@ -130,7 +130,7 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
         איזו עסקה תשחרר הכי הרבה תזרים חודשי בכל שקל מושקע.
       </p>
 
-      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl bg-[#1A2438] px-4 py-3">
+      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl bg-[#FAFAF7] px-4 py-3">
         <label className="flex items-center gap-2 text-[12px] font-bold text-verdant-ink">
           סכום פנוי
           <input
@@ -139,8 +139,8 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
             value={capitalStr}
             onChange={(e) => setCapitalStr(e.target.value)}
             placeholder="לדוגמה 5,000"
-            className="w-32 rounded-md border bg-[#131C2E] px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
-            style={{ borderColor: "#1F2A3F" }}
+            className="w-32 rounded-md border bg-[#FFFFFF] px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
+            style={{ borderColor: "#E5E7EB" }}
             dir="ltr"
           />
           <span className="text-verdant-muted">₪</span>
@@ -155,7 +155,7 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
       {options.length === 0 ? (
         <div
           className="rounded-xl px-4 py-6 text-center text-[12px]"
-          style={{ background: "#1A2438", border: "1px dashed #1F2A3F", color: "#94A3B8" }}
+          style={{ background: "#FAFAF7", border: "1px dashed #E5E7EB", color: "#6B7280" }}
         >
           אין עסקאות פתוחות שאפשר לסגור — הזינו הלוואות ועסקאות תשלומים למעלה.
         </div>
@@ -172,16 +172,16 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
                 className="block w-full rounded-xl px-4 py-3 text-right transition-all"
                 style={{
                   background: isSelected
-                    ? "#1A2438"
+                    ? "#FAFAF7"
                     : disabled
-                      ? "#F8FAFC"
-                      : "#131C2E",
+                      ? "#FFFFFF"
+                      : "#FFFFFF",
                   border: `1px solid ${
                     isSelected
-                      ? "#A8E040"
+                      ? "#2C7A5A"
                       : disabled
-                        ? "#1F2A3F"
-                        : "#1F2A3F"
+                        ? "#E5E7EB"
+                        : "#E5E7EB"
                   }`,
                   opacity: disabled ? 0.55 : 1,
                   cursor: disabled ? "not-allowed" : "pointer",
@@ -193,8 +193,8 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
                       <span
                         className="rounded-full px-2 py-0.5 text-[10px] font-extrabold"
                         style={{
-                          background: opt.kind === "loan" ? "rgba(248,113,113,0.08)" : "#1A2438",
-                          color: opt.kind === "loan" ? "#FCA5A5" : "#1d4ed8",
+                          background: opt.kind === "loan" ? "rgba(220,38,38,0.08)" : "#FAFAF7",
+                          color: opt.kind === "loan" ? "#B91C1C" : "#1d4ed8",
                         }}
                       >
                         {opt.kind === "loan" ? "הלוואה" : "תשלומים"}
@@ -211,7 +211,7 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
                   <div className="text-left">
                     <div
                       className="text-[16px] font-extrabold tabular-nums"
-                      style={{ color: "#A8E040" }}
+                      style={{ color: "#2C7A5A" }}
                     >
                       +{fmtILS(opt.monthlyRelief)}/ח׳
                     </div>
@@ -224,33 +224,33 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
                 {isSelected && (
                   <div
                     className="mt-3 grid grid-cols-2 gap-3 rounded-lg p-3 text-[12px] md:grid-cols-4"
-                    style={{ background: "#131C2E", border: "1px solid #1F2A3F" }}
+                    style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}
                   >
                     <ScenarioStat
                       label="עלות סגירה"
                       value={fmtILS(opt.costToClose)}
-                      color="#F8FAFC"
+                      color="#FFFFFF"
                     />
                     <ScenarioStat
                       label="הקלה חודשית"
                       value={`+${fmtILS(opt.monthlyRelief)}`}
-                      color="#A8E040"
+                      color="#2C7A5A"
                     />
                     <ScenarioStat
                       label="זמן עד שמחזירים"
                       value={`${Math.ceil(opt.costToClose / Math.max(1, opt.monthlyRelief))} חודשים`}
-                      color="#A8E040"
+                      color="#2C7A5A"
                       sub="אם מפנים את ההקלה לחזרה לחיסכון"
                     />
                     <ScenarioStat
                       label="תשואה שנתית מוערכת"
                       value={`${(opt.annualizedRoi * 100).toFixed(1)}%`}
-                      color="#A8E040"
+                      color="#2C7A5A"
                       sub="הקלה × 12 ÷ עלות סגירה"
                     />
                     <div
                       className="col-span-2 md:col-span-4 mt-1 border-t pt-2 text-[12px] leading-relaxed text-verdant-ink"
-                      style={{ borderColor: "#1F2A3F" }}
+                      style={{ borderColor: "#E5E7EB" }}
                     >
                       <span className="font-extrabold">לפני: </span>
                       החזר חודשי כולל {fmtILS(currentMonthlyService)} · <br />

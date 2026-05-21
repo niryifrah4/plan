@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
-import { ClientSwitcher } from "@/components/ClientSwitcher";
 import { useClient } from "@/lib/client-context";
 import { startSessionWatcher } from "@/lib/session-security";
 import { isSupabaseConfigured } from "@/lib/supabase/browser";
+import { getCurrentUser } from "@/lib/auth";
 
 export function ClientShell({
   children,
@@ -16,6 +16,22 @@ export function ClientShell({
   isAdvisor?: boolean;
 }) {
   const { familyName, membersCount, loading } = useClient();
+  // Pull the logged-in advisor's name from the auth session so the sidebar
+  // footer reflects whoever is signed in (not a hardcoded value).
+  const [advisorName, setAdvisorName] = useState<string>("מתכנן");
+  useEffect(() => {
+    let cancelled = false;
+    getCurrentUser()
+      .then((u) => {
+        if (cancelled || !u) return;
+        const name = u.fullName?.trim();
+        if (name) setAdvisorName(name);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   // Mobile: sidebar is a slide-over drawer. Closed by default.
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const pathname = usePathname();
@@ -92,8 +108,8 @@ export function ClientShell({
       <header
         className="fixed inset-x-0 top-0 z-20 flex h-14 items-center justify-between px-4 md:hidden"
         style={{
-          background: "#F8FAFC",
-          color: "#F8FAFC",
+          background: "#FFFFFF",
+          color: "#1A1A1A",
           borderBottom: "1px solid rgba(255,255,255,0.04)",
         }}
         dir="rtl"
@@ -108,9 +124,9 @@ export function ClientShell({
         </button>
         <div className="flex items-center gap-2">
           <span
-            style={{ fontSize: 16, fontWeight: 800, fontFamily: "Manrope, Assistant, sans-serif" }}
+            style={{ fontSize: 18, fontWeight: 700, fontFamily: "Rubik, Heebo, Assistant, sans-serif" }}
           >
-            פלאן
+            plan
           </span>
         </div>
         <div className="w-10" />
@@ -137,17 +153,16 @@ export function ClientShell({
         <Sidebar
           familyName={loading ? "טוען..." : familyName}
           membersCount={membersCount}
-          advisorName="ניר יפרח"
+          advisorName={advisorName}
           isAdvisor={isAdvisor}
         />
       </div>
 
       {/* Main content — pad-top on mobile to clear the fixed header,
-          right-margin on md+ to clear the fixed sidebar. */}
+          right-margin on md+ to clear the fixed sidebar.
+          2026-05-19 per Nir: removed the inline ClientSwitcher — advisors
+          switch clients from /crm instead, freeing up screen real estate. */}
       <main className="min-h-screen px-3 pb-8 pt-16 sm:px-6 md:mr-[280px] md:px-10 md:pt-8">
-        <div className="mb-6 flex justify-start">
-          <ClientSwitcher />
-        </div>
         {children}
       </main>
     </>

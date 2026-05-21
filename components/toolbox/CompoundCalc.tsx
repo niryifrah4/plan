@@ -39,8 +39,8 @@ export function CompoundCalc() {
             onClick={() => setShowReal(!showReal)}
             className="flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold transition-colors"
             style={{
-              background: showReal ? "#A8E04012" : "#A8E04012",
-              color: showReal ? "#A8E040" : "#A8E040",
+              background: showReal ? "#2C7A5A12" : "#2C7A5A12",
+              color: showReal ? "#2C7A5A" : "#2C7A5A",
             }}
           >
             <span className="material-symbols-outlined text-[12px]">swap_horiz</span>
@@ -54,7 +54,7 @@ export function CompoundCalc() {
               type="number"
               value={lump}
               onChange={(e) => setLump(Number(e.target.value))}
-              className="v-divider tabular mt-1 w-full rounded-lg border bg-[#131C2E] px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
+              className="v-divider tabular mt-1 w-full rounded-lg border bg-[#FFFFFF] px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
               dir="ltr"
             />
           </label>
@@ -64,7 +64,7 @@ export function CompoundCalc() {
               type="number"
               value={monthly}
               onChange={(e) => setMonthly(Number(e.target.value))}
-              className="v-divider tabular mt-1 w-full rounded-lg border bg-[#131C2E] px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
+              className="v-divider tabular mt-1 w-full rounded-lg border bg-[#FFFFFF] px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
               dir="ltr"
             />
           </label>
@@ -75,7 +75,7 @@ export function CompoundCalc() {
               step="0.5"
               value={rate}
               onChange={(e) => setRate(Number(e.target.value))}
-              className="v-divider tabular mt-1 w-full rounded-lg border bg-[#131C2E] px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
+              className="v-divider tabular mt-1 w-full rounded-lg border bg-[#FFFFFF] px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
               dir="ltr"
             />
           </label>
@@ -85,7 +85,7 @@ export function CompoundCalc() {
               type="number"
               value={years}
               onChange={(e) => setYears(Number(e.target.value))}
-              className="v-divider tabular mt-1 w-full rounded-lg border bg-[#131C2E] px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
+              className="v-divider tabular mt-1 w-full rounded-lg border bg-[#FFFFFF] px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
               dir="ltr"
             />
           </label>
@@ -96,7 +96,7 @@ export function CompoundCalc() {
         <h3 className="mb-4 text-right text-lg font-extrabold text-verdant-ink">
           תוצאות{" "}
           {showReal && (
-            <span className="text-xs font-bold" style={{ color: "#A8E040" }}>
+            <span className="text-xs font-bold" style={{ color: "#2C7A5A" }}>
               (ערכים ריאליים)
             </span>
           )}
@@ -112,15 +112,15 @@ export function CompoundCalc() {
             <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
               {showReal ? "ריבית ריאלית" : "ריבית מצטברת"}
             </div>
-            <div className="tabular text-xl font-extrabold" style={{ color: "#A8E040" }}>
+            <div className="tabular text-xl font-extrabold" style={{ color: "#2C7A5A" }}>
               {fmtILS(interest)}
             </div>
           </div>
           <div
             className="rounded-lg p-4 text-right"
             style={{
-              background: showReal ? "#A8E04008" : "#A8E04011",
-              border: `1px solid ${showReal ? "#A8E040" : "#A8E040"}`,
+              background: showReal ? "#2C7A5A08" : "#2C7A5A11",
+              border: `1px solid ${showReal ? "#2C7A5A" : "#2C7A5A"}`,
             }}
           >
             <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
@@ -128,7 +128,7 @@ export function CompoundCalc() {
             </div>
             <div
               className="tabular text-2xl font-extrabold"
-              style={{ color: showReal ? "#A8E040" : "#A8E040" }}
+              style={{ color: showReal ? "#2C7A5A" : "#2C7A5A" }}
             >
               {fmtILS(fv)}
             </div>

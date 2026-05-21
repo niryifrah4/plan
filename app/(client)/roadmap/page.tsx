@@ -14,7 +14,7 @@ import { buildFamilyRoadmap, type RoadmapEvent, type FamilyRoadmap } from "@/lib
 
 const CATEGORY_COLOR: Record<RoadmapEvent["category"], string> = {
   kid: "#7C2D12",
-  goal: "#A8E040",
+  goal: "#2C7A5A",
   debt: "#0F766E",
   retirement: "#B45309",
   milestone: "#6B21A8",
@@ -53,7 +53,7 @@ export default function RoadmapPage() {
 
       {/* Net worth start vs end */}
       <section className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-        <div className="rounded-xl bg-[#131C2E] p-4" style={{ border: "1px solid #1F2A3F" }}>
+        <div className="rounded-xl bg-[#FFFFFF] p-4" style={{ border: "1px solid #E5E7EB" }}>
           <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
             היום
           </div>
@@ -63,7 +63,7 @@ export default function RoadmapPage() {
           <div className="mt-0.5 text-[11px] text-verdant-muted">הון נטו נוכחי</div>
         </div>
         {retirementYear && (
-          <div className="rounded-xl bg-[#131C2E] p-4" style={{ border: "1px solid #1F2A3F" }}>
+          <div className="rounded-xl bg-[#FFFFFF] p-4" style={{ border: "1px solid #E5E7EB" }}>
             <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
               בפרישה
             </div>
@@ -78,19 +78,20 @@ export default function RoadmapPage() {
         <div
           className="rounded-xl p-4"
           style={{
-            background: "linear-gradient(135deg, #A8E040 0%, #F8FAFC 100%)",
-            color: "#F8FAFC",
+            background: "linear-gradient(135deg, #2C7A5A 0%, #1F5A42 100%)",
+            color: "#FFFFFF",
+            boxShadow: "0 8px 24px rgba(44, 122, 90, 0.18)",
           }}
         >
           <div
             className="text-[10px] font-bold uppercase tracking-[0.15em]"
-            style={{ color: "rgba(255,255,255,0.7)" }}
+            style={{ color: "rgba(255,255,255,0.72)" }}
           >
             בעוד {netWorthSeries.length - 1} שנים
           </div>
           <div
             className="mt-1 text-2xl font-extrabold tabular-nums"
-            style={{ fontFamily: "Manrope, Assistant, sans-serif" }}
+            style={{ fontFamily: "Rubik, Heebo, Assistant, sans-serif" }}
           >
             {fmtILS(endNetWorth)}
           </div>
@@ -126,7 +127,7 @@ export default function RoadmapPage() {
                   className="w-full rounded-t transition-all"
                   style={{
                     height: `${Math.max(heightPct, 2)}%`,
-                    background: isRetirement ? "#B45309" : "#A8E040",
+                    background: isRetirement ? "#B45309" : "#2C7A5A",
                     opacity: 0.6 + (idx / netWorthSeries.length) * 0.4,
                   }}
                 />
@@ -169,7 +170,7 @@ export default function RoadmapPage() {
                 <div
                   key={i}
                   className="flex items-center gap-3 rounded-xl p-3"
-                  style={{ background: "#F8FAFC" }}
+                  style={{ background: "#FFFFFF" }}
                 >
                   <div
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
@@ -192,7 +193,7 @@ export default function RoadmapPage() {
                     <div className="text-left">
                       <div
                         className="text-[13px] font-extrabold tabular-nums"
-                        style={{ color: e.amount < 0 ? "#A8E040" : "#8B2E2E" }}
+                        style={{ color: e.amount < 0 ? "#2C7A5A" : "#DC2626" }}
                       >
                         {e.amount < 0 ? "+" : "−"}
                         {fmtILS(Math.abs(e.amount))}

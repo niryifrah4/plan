@@ -59,7 +59,7 @@ function PropertyMortgagePanel({
     return (
       <div
         className="v-divider border-t px-5 py-3"
-        style={{ background: "#0F1726" }}
+        style={{ background: "#FAFAF7" }}
       >
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -87,7 +87,7 @@ function PropertyMortgagePanel({
 
   // One or more mortgages — render each
   return (
-    <div className="v-divider border-t" style={{ background: "#0F1726" }}>
+    <div className="v-divider border-t" style={{ background: "#FAFAF7" }}>
       {linked.map((mortgage) => {
         const tracks = mortgage.tracks || [];
         const monthly = tracks.reduce((s, t) => s + (t.monthlyPayment || 0), 0);
@@ -546,7 +546,7 @@ function PropertyForm({ initial, onSave, onCancel }: PropertyFormProps) {
               style={{
                 background: "#FAFAF7",
                 color: "#6B7280",
-                border: "1px dashed #c9d3c0",
+                border: "1px dashed #E5E7EB",
                 cursor: "not-allowed",
               }}
             >
@@ -693,7 +693,7 @@ function ForecastChart({ data }: { data: ForecastRow[] }) {
             x2={W - PAD.right}
             y1={y(t)}
             y2={y(t)}
-            stroke="#e5e7d8"
+            stroke="#E5E7EB"
             strokeWidth={0.5}
           />
           <text
@@ -1016,7 +1016,7 @@ export default function RealEstatePage() {
           ? `תשואה על הון עצמי מושקע של ${fmtILS(totalEquityInvested)}`
           : undefined,
       icon: "monitoring",
-      color: roi > 10 ? "#2C7A5A" : roi > 0 ? "#f59e0b" : "#DC2626",
+      color: roi > 10 ? "#2C7A5A" : roi > 0 ? "#D97706" : "#DC2626",
     },
     {
       label: "DSCR",
@@ -1030,14 +1030,14 @@ export default function RealEstatePage() {
               : "שלילי — ההכנסות לא מכסות"
           : "אין משכנתא",
       icon: "shield",
-      color: dscr >= 1.25 ? "#2C7A5A" : dscr >= 1.0 ? "#f59e0b" : "#DC2626",
+      color: dscr >= 1.25 ? "#2C7A5A" : dscr >= 1.0 ? "#D97706" : "#DC2626",
     },
     {
       label: "LTV",
       value: `${ltv.toFixed(0)}%`,
       sub: ltv <= 60 ? "יחס בריא" : ltv <= 75 ? "סביר" : "גבוה — סיכון",
       icon: "percent",
-      color: ltv <= 60 ? "#2C7A5A" : ltv <= 75 ? "#f59e0b" : "#DC2626",
+      color: ltv <= 60 ? "#2C7A5A" : ltv <= 75 ? "#D97706" : "#DC2626",
     },
   ];
 
@@ -1067,7 +1067,7 @@ export default function RealEstatePage() {
               ? "emerald"
               : k.color === "#DC2626"
                 ? "red"
-                : k.color === "#f59e0b"
+                : k.color === "#D97706"
                   ? "amber"
                   : "forest";
           return (
@@ -1168,7 +1168,7 @@ export default function RealEstatePage() {
                         </div>
                       );
                     }
-                    const color = r.cagrPct >= 0 ? "#2C7A5A" : "#8B2E2E";
+                    const color = r.cagrPct >= 0 ? "#2C7A5A" : "#DC2626";
                     return (
                       <div
                         className="mt-0.5 text-[10px] font-bold tabular-nums"
@@ -1239,7 +1239,7 @@ export default function RealEstatePage() {
                   <MiniStat
                     label="אחוז הון"
                     value={`${equityPct.toFixed(0)}%`}
-                    color={equityPct > 70 ? "#2C7A5A" : equityPct > 50 ? "#f59e0b" : "#DC2626"}
+                    color={equityPct > 70 ? "#2C7A5A" : equityPct > 50 ? "#D97706" : "#DC2626"}
                   />
                   {rent > 0 && <MiniStat label="שכ״ד חודשי" value={fmtILS(rent)} />}
                   {rent > 0 && (
@@ -1263,14 +1263,14 @@ export default function RealEstatePage() {
                     <MiniStat
                       label="DSCR"
                       value={propDscr.toFixed(2)}
-                      color={propDscr >= 1.25 ? "#2C7A5A" : propDscr >= 1.0 ? "#f59e0b" : "#DC2626"}
+                      color={propDscr >= 1.25 ? "#2C7A5A" : propDscr >= 1.0 ? "#D97706" : "#DC2626"}
                     />
                   )}
                   {isInvestment && rent > 0 && (
                     <MiniStat
                       label="Cash-on-Cash"
                       value={`${coc.toFixed(1)}%`}
-                      color={coc > 5 ? "#2C7A5A" : coc > 0 ? "#f59e0b" : "#DC2626"}
+                      color={coc > 5 ? "#2C7A5A" : coc > 0 ? "#D97706" : "#DC2626"}
                     />
                   )}
                   {prop.holdingYears != null && prop.holdingYears > 0 && (
@@ -1326,7 +1326,7 @@ export default function RealEstatePage() {
       <button
         onClick={() => setShowAddForm(true)}
         className="mb-6 w-full rounded-xl border-2 border-dashed py-3 text-sm font-bold text-verdant-emerald transition-colors hover:bg-[#FAFAF7]"
-        style={{ borderColor: "#b6d4a8" }}
+        style={{ borderColor: "#E5E7EB" }}
       >
         <span className="material-symbols-outlined ml-1 align-middle text-[16px]">add</span>
         הוסף נכס
@@ -1398,7 +1398,7 @@ export default function RealEstatePage() {
                       return (
                         <span
                           style={{
-                            color: d >= 1.25 ? "#2C7A5A" : d >= 1.0 ? "#f59e0b" : "#DC2626",
+                            color: d >= 1.25 ? "#2C7A5A" : d >= 1.0 ? "#D97706" : "#DC2626",
                           }}
                         >
                           {d.toFixed(2)}
@@ -1413,7 +1413,7 @@ export default function RealEstatePage() {
                         p.currentValue > 0 ? ((p.mortgageBalance ?? 0) / p.currentValue) * 100 : 0;
                       return (
                         <span
-                          style={{ color: l <= 60 ? "#2C7A5A" : l <= 75 ? "#f59e0b" : "#DC2626" }}
+                          style={{ color: l <= 60 ? "#2C7A5A" : l <= 75 ? "#D97706" : "#DC2626" }}
                         >
                           {l.toFixed(0)}%
                         </span>
@@ -1626,7 +1626,7 @@ export default function RealEstatePage() {
                 className="h-full rounded-full transition-all duration-500"
                 style={{
                   width: `${Math.round((1 - totalMortgageBalance / (mortgage.tracks.reduce((s, t) => s + t.originalAmount, 0) || 1)) * 100)}%`,
-                  background: "linear-gradient(90deg, #2C7A5A, #a78bfa)",
+                  background: "linear-gradient(90deg, #2C7A5A, #8B5CF6)",
                 }}
               />
             </div>

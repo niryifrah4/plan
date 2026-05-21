@@ -23,35 +23,10 @@ import { scopedKey } from "@/lib/client-scope";
 import { normalizeSupplier } from "@/lib/doc-parser/normalizer";
 import { learnOverride } from "@/lib/doc-parser/categorizer";
 import { markUpdated, triggerFullSync } from "@/lib/sync-engine";
-
-const STORAGE_KEY = "verdant:parsed_transactions";
-const UNMAPPED_KEYS = new Set(["other", "transfers"]);
-const CONFIDENCE_THRESHOLD = 0.7;
+import { CAT_OPTIONS, UNMAPPED_KEYS, CONFIDENCE_THRESHOLD } from "@/lib/documents-categories";
+import { STORAGE_KEY } from "@/lib/documents-store";
 
 const fmtILS = (v: number) => "₪" + Math.abs(Math.round(v)).toLocaleString("he-IL");
-
-const CAT_OPTIONS = [
-  { key: "food", label: "מזון וצריכה" },
-  { key: "housing", label: "דיור ומגורים" },
-  { key: "transport", label: "תחבורה ורכב" },
-  { key: "utilities", label: "חשבונות שוטפים" },
-  { key: "health", label: "בריאות" },
-  { key: "education", label: "חינוך וילדים" },
-  { key: "insurance", label: "ביטוח" },
-  { key: "leisure", label: "פנאי ובידור" },
-  { key: "shopping", label: "קניות" },
-  { key: "salary", label: "משכורת" },
-  { key: "pension", label: "פנסיה וחיסכון" },
-  { key: "transfers", label: "העברות" },
-  { key: "cash", label: "מזומן" },
-  { key: "subscriptions", label: "מנויים" },
-  { key: "refunds", label: "זיכויים באשראי" },
-  { key: "fees", label: "עמלות וריביות" },
-  { key: "dining_out", label: "אוכל בחוץ ובילויים" },
-  { key: "home_maintenance", label: "תחזוקת בית" },
-  { key: "misc", label: "שונות" },
-  { key: "other", label: "אחר" },
-];
 
 interface MerchantGroup {
   key: string; // normalized supplier
@@ -220,19 +195,19 @@ export function UnmappedQueueTab() {
     return (
       <div
         className="mx-auto max-w-5xl rounded-2xl p-10 text-center"
-        style={{ background: "#131C2E", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
+        style={{ background: "#FFFFFF", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
       >
         <div
           className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full"
-          style={{ background: "#1A2438" }}
+          style={{ background: "#FAFAF7" }}
         >
-          <span className="material-symbols-outlined text-[28px]" style={{ color: "#A8E040" }}>
+          <span className="material-symbols-outlined text-[28px]" style={{ color: "#2C7A5A" }}>
             folder_open
           </span>
         </div>
         <h2
           className="mb-1 text-base font-extrabold text-verdant-ink"
-          style={{ fontFamily: "Assistant" }}
+          style={{ fontFamily: "inherit" }}
         >
           אין תנועות לתצוגה
         </h2>
@@ -256,21 +231,21 @@ export function UnmappedQueueTab() {
       <div
         className="mx-auto max-w-5xl rounded-2xl p-10 text-center"
         style={{
-          background: "linear-gradient(135deg,#1A2438 0%,#ecfdf5 100%)",
-          border: "1.5px solid #A8E04030",
+          background: "linear-gradient(135deg,#FAFAF7 0%,#ecfdf5 100%)",
+          border: "1.5px solid #2C7A5A30",
         }}
       >
         <div
           className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full"
-          style={{ background: "#A8E04015" }}
+          style={{ background: "#2C7A5A15" }}
         >
-          <span className="material-symbols-outlined text-[28px]" style={{ color: "#A8E040" }}>
+          <span className="material-symbols-outlined text-[28px]" style={{ color: "#2C7A5A" }}>
             task_alt
           </span>
         </div>
         <h2
           className="mb-1 text-xl font-extrabold text-verdant-ink"
-          style={{ fontFamily: "Assistant" }}
+          style={{ fontFamily: "inherit" }}
         >
           הכל ממופה
         </h2>
@@ -290,18 +265,18 @@ export function UnmappedQueueTab() {
       <div
         className="rounded-2xl p-5"
         style={{
-          background: "linear-gradient(135deg,#1A2438 0%,#F8FAFC 100%)",
-          border: "1px solid #1F2A3F",
+          background: "linear-gradient(135deg,#FAFAF7 0%,#FFFFFF 100%)",
+          border: "1px solid #E5E7EB",
         }}
       >
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[20px]" style={{ color: "#A8E040" }}>
+            <span className="material-symbols-outlined text-[20px]" style={{ color: "#2C7A5A" }}>
               inbox
             </span>
             <h3
               className="text-base font-extrabold text-verdant-ink"
-              style={{ fontFamily: "Assistant" }}
+              style={{ fontFamily: "inherit" }}
             >
               תור פענוח
             </h3>
@@ -314,22 +289,22 @@ export function UnmappedQueueTab() {
           <StatCard
             label="קבוצות לטיפול"
             value={stats.groupCount.toLocaleString("he-IL")}
-            color="#A8E040"
+            color="#2C7A5A"
           />
           <StatCard
             label="תנועות לא ממופות"
             value={stats.unmappedTxCount.toLocaleString("he-IL")}
-            color={stats.unmappedTxCount > 0 ? "#8B2E2E" : "#A8E040"}
+            color={stats.unmappedTxCount > 0 ? "#DC2626" : "#2C7A5A"}
           />
           <StatCard
             label="תנועות לבדיקה"
             value={stats.lowConfTxCount.toLocaleString("he-IL")}
-            color={stats.lowConfTxCount > 0 ? "#B45309" : "#A8E040"}
+            color={stats.lowConfTxCount > 0 ? "#B45309" : "#2C7A5A"}
           />
-          <StatCard label="סכום לטיפול" value={fmtILS(stats.totalAmount)} color="#F8FAFC" />
+          <StatCard label="סכום לטיפול" value={fmtILS(stats.totalAmount)} color="#FFFFFF" />
         </div>
         <div className="mt-3 flex items-center gap-1.5 text-[11px] font-bold text-verdant-muted">
-          <span className="material-symbols-outlined text-[14px]" style={{ color: "#A8E040" }}>
+          <span className="material-symbols-outlined text-[14px]" style={{ color: "#2C7A5A" }}>
             auto_fix_high
           </span>
           <span>בחירה כאן מלמדת את הפענוח — העלאות עתידיות של אותו בית-עסק ימופו אוטומטית.</span>
@@ -341,8 +316,8 @@ export function UnmappedQueueTab() {
         <QueueSection
           title="לא ממופה"
           subtitle="קטגוריה: אחר / העברות — דורש הכרעה"
-          color="#8B2E2E"
-          bg="rgba(248,113,113,0.08)"
+          color="#DC2626"
+          bg="rgba(220,38,38,0.08)"
           icon="help"
           groups={unmappedGroups}
           expanded={expanded}
@@ -359,7 +334,7 @@ export function UnmappedQueueTab() {
           title="לבדיקה"
           subtitle="המערכת סיווגה — אבל לא בוודאות גבוהה"
           color="#B45309"
-          bg="rgba(251,191,36,0.08)"
+          bg="rgba(217,119,6,0.08)"
           icon="flaky"
           groups={lowConfGroups}
           expanded={expanded}
@@ -377,7 +352,7 @@ export function UnmappedQueueTab() {
 
 function StatCard({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div className="rounded-xl bg-[#131C2E] p-3">
+    <div className="rounded-xl bg-[#FFFFFF] p-3">
       <div className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
         {label}
       </div>
@@ -416,7 +391,7 @@ function QueueSection({
   return (
     <div
       className="overflow-hidden rounded-2xl"
-      style={{ background: "#131C2E", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
+      style={{ background: "#FFFFFF", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
     >
       <div
         className="flex items-center gap-3 px-5 py-3"
@@ -426,7 +401,7 @@ function QueueSection({
           {icon}
         </span>
         <div className="flex-1">
-          <div className="text-sm font-extrabold" style={{ color, fontFamily: "Assistant" }}>
+          <div className="text-sm font-extrabold" style={{ color, fontFamily: "inherit" }}>
             {title}
           </div>
           <div className="text-[10px] font-bold text-verdant-muted">{subtitle}</div>
@@ -438,7 +413,7 @@ function QueueSection({
           {groups.length} קבוצות · {groups.reduce((s, g) => s + g.count, 0)} תנועות
         </span>
       </div>
-      <div className="divide-y" style={{ borderColor: "#1A2438" }}>
+      <div className="divide-y" style={{ borderColor: "#FAFAF7" }}>
         {groups.map((g) => (
           <QueueRow
             key={g.key}
@@ -473,7 +448,7 @@ function QueueRow({
   return (
     <div
       className="transition-all"
-      style={{ background: isRecentlyMapped ? "#1A2438" : undefined }}
+      style={{ background: isRecentlyMapped ? "#FAFAF7" : undefined }}
     >
       <div className="flex items-center gap-3 px-5 py-3">
         <button
@@ -490,7 +465,7 @@ function QueueRow({
           <div className="min-w-0 flex-1">
             <div
               className="truncate text-[13px] font-extrabold text-verdant-ink"
-              style={{ fontFamily: "Assistant" }}
+              style={{ fontFamily: "inherit" }}
             >
               {group.displaySample}
             </div>
@@ -500,13 +475,13 @@ function QueueRow({
               </span>
               {group.avgConfidence != null && (
                 <>
-                  <span style={{ color: "#1F2A3F" }}>·</span>
+                  <span style={{ color: "#9CA3AF" }}>·</span>
                   <span>ביטחון {Math.round(group.avgConfidence * 100)}%</span>
                 </>
               )}
               {group.sourceFiles.length > 0 && (
                 <>
-                  <span style={{ color: "#1F2A3F" }}>·</span>
+                  <span style={{ color: "#9CA3AF" }}>·</span>
                   <span className="flex items-center gap-0.5" title={group.sourceFiles.join("\n")}>
                     <span className="material-symbols-outlined text-[11px]">attach_file</span>
                     {group.sourceFiles.length === 1
@@ -525,7 +500,7 @@ function QueueRow({
             e.target.value = "";
           }}
           className="min-w-[140px] cursor-pointer rounded-lg border px-3 py-2 text-[11px] font-bold outline-none transition-all focus:ring-2 focus:ring-verdant-accent/30"
-          style={{ borderColor: "#1F2A3F", background: "#131C2E", color: "#A8E040" }}
+          style={{ borderColor: "#E5E7EB", background: "#FFFFFF", color: "#2C7A5A" }}
         >
           <option value="" disabled>
             מפה ל…
@@ -542,7 +517,7 @@ function QueueRow({
         <div className="px-5 pb-3">
           <div
             className="overflow-hidden rounded-xl"
-            style={{ background: "#1A2438", border: "1px solid #1A2438" }}
+            style={{ background: "#FAFAF7", border: "1px solid #FAFAF7" }}
           >
             <table className="w-full text-xs">
               <tbody>
@@ -550,7 +525,7 @@ function QueueRow({
                   const t = transactions[i];
                   if (!t) return null;
                   return (
-                    <tr key={i} className="border-b" style={{ borderColor: "#1A2438" }}>
+                    <tr key={i} className="border-b" style={{ borderColor: "#FAFAF7" }}>
                       <td className="tabular w-20 px-3 py-1.5 text-verdant-muted" dir="ltr">
                         {t.date}
                       </td>
@@ -559,7 +534,7 @@ function QueueRow({
                       </td>
                       <td
                         className="tabular w-24 px-3 py-1.5 text-left font-extrabold"
-                        style={{ color: t.amount > 0 ? "#F87171" : "#4ADE80" }}
+                        style={{ color: t.amount > 0 ? "#DC2626" : "#059669" }}
                       >
                         {t.amount > 0 ? "-" : "+"}
                         {fmtILS(t.amount)}

@@ -135,16 +135,16 @@ export function AffordabilityCalc() {
       {!results.isAffordable && (
         <div
           className="flex items-start gap-3 rounded-xl p-5"
-          style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.20)" }}
+          style={{ background: "rgba(220,38,38,0.08)", border: "1px solid #FCA5A5" }}
         >
           <span
             className="material-symbols-outlined mt-0.5 text-[22px]"
-            style={{ color: "#F87171" }}
+            style={{ color: "#DC2626" }}
           >
             warning
           </span>
           <div>
-            <div className="text-[12px] font-extrabold" style={{ color: "#F87171" }}>
+            <div className="text-[12px] font-extrabold" style={{ color: "#DC2626" }}>
               חריגה מכושר החזר
             </div>
             <div className="mt-1 text-[11px] font-bold leading-relaxed text-verdant-muted">
@@ -163,27 +163,27 @@ export function AffordabilityCalc() {
           label="מחיר דירה מקסימלי"
           value={fmtILS(Math.round(results.effectiveMax))}
           icon="home"
-          color="#A8E040"
+          color="#2C7A5A"
           highlight
         />
         <ResultCard
           label="גובה משכנתא דרוש"
           value={fmtILS(Math.round(results.effectiveMortgage))}
           icon="account_balance"
-          color="#F8FAFC"
+          color="#FFFFFF"
         />
         <ResultCard
           label="החזר חודשי משוער"
           value={fmtILS(Math.round(results.effectivePayment))}
           icon="payments"
-          color={results.paymentToIncomeRatio > 35 ? "#F87171" : "#A8E040"}
+          color={results.paymentToIncomeRatio > 35 ? "#DC2626" : "#2C7A5A"}
         />
       </div>
 
       {/* Details */}
       <div
         className="space-y-4 rounded-xl p-6"
-        style={{ background: "#F8FAFC", border: "1px solid #1F2A3F" }}
+        style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}
       >
         <div className="caption">פירוט</div>
         <div className="grid grid-cols-2 gap-x-8 gap-y-3">
@@ -200,10 +200,10 @@ export function AffordabilityCalc() {
             value={`${results.paymentToIncomeRatio.toFixed(1)}%`}
             color={
               results.paymentToIncomeRatio > 35
-                ? "#F87171"
+                ? "#DC2626"
                 : results.paymentToIncomeRatio > 30
-                  ? "#f59e0b"
-                  : "#A8E040"
+                  ? "#D97706"
+                  : "#2C7A5A"
             }
           />
           <DetailRow label="סה״כ ריבית לתקופה" value={fmtILS(Math.round(results.totalInterest))} />
@@ -212,29 +212,29 @@ export function AffordabilityCalc() {
         </div>
 
         {/* Visual: Payment ratio bar */}
-        <div className="border-t pt-4" style={{ borderColor: "#1F2A3F" }}>
+        <div className="border-t pt-4" style={{ borderColor: "#E5E7EB" }}>
           <div className="mb-2 flex justify-between text-[10px] font-bold text-verdant-muted">
             <span>יחס החזר מהכנסה פנויה</span>
             <span className="tabular">{results.paymentToIncomeRatio.toFixed(1)}% מתוך 35%</span>
           </div>
-          <div className="h-3 overflow-hidden rounded-full" style={{ background: "#1F2A3F" }}>
+          <div className="h-3 overflow-hidden rounded-full" style={{ background: "#E5E7EB" }}>
             <div
               className="h-full rounded-full transition-all duration-500"
               style={{
                 width: `${Math.min(100, (results.paymentToIncomeRatio / 35) * 100)}%`,
                 background:
                   results.paymentToIncomeRatio > 35
-                    ? "#ef4444"
+                    ? "#DC2626"
                     : results.paymentToIncomeRatio > 30
-                      ? "#f59e0b"
-                      : "#A8E040",
+                      ? "#D97706"
+                      : "#2C7A5A",
               }}
             />
           </div>
           <div className="mt-1 flex justify-between text-[9px] font-bold text-verdant-muted">
             <span>0%</span>
-            <span style={{ color: "#f59e0b" }}>30%</span>
-            <span style={{ color: "#F87171" }}>35% (תקרה)</span>
+            <span style={{ color: "#D97706" }}>30%</span>
+            <span style={{ color: "#DC2626" }}>35% (תקרה)</span>
           </div>
         </div>
       </div>
@@ -270,7 +270,7 @@ function InputField({
       <div className="mb-1.5 text-[10px] font-bold text-verdant-muted">{label}</div>
       <div
         className="flex items-center gap-2 rounded-xl border px-4 py-2.5"
-        style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
+        style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
       >
         <input
           type="number"
@@ -302,8 +302,8 @@ function ResultCard({
     <div
       className="rounded-xl p-5 text-center"
       style={{
-        background: highlight ? `linear-gradient(135deg, ${color}08, ${color}04)` : "#131C2E",
-        border: `1px solid ${highlight ? color + "30" : "#1F2A3F"}`,
+        background: highlight ? `linear-gradient(135deg, ${color}08, ${color}04)` : "#FFFFFF",
+        border: `1px solid ${highlight ? color + "30" : "#E5E7EB"}`,
       }}
     >
       <span className="material-symbols-outlined mb-2 text-[24px]" style={{ color }}>
@@ -323,7 +323,7 @@ function DetailRow({ label, value, color }: { label: string; value: string; colo
   return (
     <div className="flex items-center justify-between">
       <span className="text-[11px] font-bold text-verdant-muted">{label}</span>
-      <span className="tabular text-[12px] font-extrabold" style={{ color: color || "#F8FAFC" }}>
+      <span className="tabular text-[12px] font-extrabold" style={{ color: color || "#FFFFFF" }}>
         {value}
       </span>
     </div>

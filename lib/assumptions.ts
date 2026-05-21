@@ -186,9 +186,20 @@ export function freedomNumber(monthlyExpenses: number): number {
   return monthlyExpenses * 300;
 }
 
-/** Real return = Nominal return - Inflation - Management fees */
+/**
+ * Real return after management fees and inflation, using the Fisher equation.
+ *
+ * Step 1 — fees are subtracted directly from the gross nominal return (standard
+ * fund convention; fees are charged continuously on AUM).
+ * Step 2 — the resulting net-nominal return is deflated by inflation via Fisher:
+ *   1 + real = (1 + net_nominal) / (1 + inflation)
+ *
+ * For small values the result is close to the naive linear `nominal - inflation - fees`,
+ * but Fisher is correct over long horizons where the compounding gap matters.
+ */
 export function realReturn(nominal: number, inflation: number, fees: number): number {
-  return nominal - inflation - fees;
+  const netNominal = nominal - fees;
+  return (1 + netNominal) / (1 + inflation) - 1;
 }
 
 /**
@@ -238,10 +249,11 @@ export function israeliIncomeTax(annualIncome: number): {
 }
 
 /**
- * שכר ממוצע במשק (2026) — בסיס לתקרות ביטוח לאומי/בריאות.
+ * שכר ממוצע במשק (2026) — בסיס לתקרות ביטוח לאומי / קרן פנסיה.
+ * 13,769 ₪ לפי סעיף 2 לחוק הביטוח הלאומי (תקף לתקרות פנסיה ו-BL).
  * לעדכן פעם בשנה (בדרך כלל סביב ינואר).
  */
-export const AVG_WAGE_2026 = 13_566;
+export const AVG_WAGE_2026 = 13_769;
 
 /* ═══════════════════════════════════════════════════════════
    פטור על קצבה מזכה (סעיף 9א לפקודת מס הכנסה)

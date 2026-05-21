@@ -52,8 +52,8 @@ export const BUCKET_META: Record<Bucket, BucketInfo> = {
     key: "unmapped",
     label: "לא מופו",
     icon: "help_outline",
-    color: "#94a3b8",
-    bgLight: "#f8fafc",
+    color: "#6b7280",
+    bgLight: "#ffffff",
   },
 };
 

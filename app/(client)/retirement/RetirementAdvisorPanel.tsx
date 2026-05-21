@@ -22,10 +22,10 @@ const SEV_COLORS: Record<
   AdvisorInsight["severity"],
   { bg: string; border: string; text: string; icon: string }
 > = {
-  critical: { bg: "rgba(248,113,113,0.12)", border: "#8B2E2E", text: "#8B2E2E", icon: "#F87171" },
-  warning: { bg: "rgba(251,191,36,0.12)", border: "#B45309", text: "#92400E", icon: "#d97706" },
-  info: { bg: "#F0F9F4", border: "#4ADE80", text: "#A8E040", icon: "#4ADE80" },
-  positive: { bg: "#A8E040", border: "#A8E040", text: "#014421", icon: "#A8E040" },
+  critical: { bg: "rgba(220,38,38,0.12)", border: "#DC2626", text: "#DC2626", icon: "#DC2626" },
+  warning: { bg: "rgba(217,119,6,0.12)", border: "#B45309", text: "#92400E", icon: "#d97706" },
+  info: { bg: "#F0F9F4", border: "#059669", text: "#2C7A5A", icon: "#059669" },
+  positive: { bg: "#2C7A5A", border: "#2C7A5A", text: "#014421", icon: "#2C7A5A" },
 };
 
 export function RetirementAdvisorPanel({
@@ -61,16 +61,16 @@ export function RetirementAdvisorPanel({
 
   const headerColor =
     report.overallSeverity === "critical"
-      ? "#8B2E2E"
+      ? "#DC2626"
       : report.overallSeverity === "concern"
         ? "#B45309"
-        : "#A8E040";
+        : "#2C7A5A";
   const headerBg =
     report.overallSeverity === "critical"
-      ? "rgba(248,113,113,0.12)"
+      ? "rgba(220,38,38,0.12)"
       : report.overallSeverity === "concern"
-        ? "rgba(251,191,36,0.12)"
-        : "#A8E040";
+        ? "rgba(217,119,6,0.12)"
+        : "#2C7A5A";
   const headerIcon =
     report.overallSeverity === "critical"
       ? "error"
@@ -86,7 +86,7 @@ export function RetirementAdvisorPanel({
       >
         <div
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-          style={{ background: headerColor, color: "#131C2E" }}
+          style={{ background: headerColor, color: "#FFFFFF" }}
         >
           <span className="material-symbols-outlined">{headerIcon}</span>
         </div>
@@ -120,7 +120,7 @@ export function RetirementAdvisorPanel({
                 key={i}
                 className="flex items-start gap-3 rounded-xl p-4"
                 style={{
-                  background: "#131C2E",
+                  background: "#FFFFFF",
                   border: `1px solid ${c.border}30`,
                   borderRight: `3px solid ${c.border}`,
                 }}
@@ -158,7 +158,7 @@ export function RetirementAdvisorPanel({
                     <button
                       onClick={() => handleApply(ins.action!)}
                       className="mt-3 rounded-lg px-3 py-1.5 text-[11px] font-extrabold transition-shadow"
-                      style={{ background: c.border, color: "#131C2E" }}
+                      style={{ background: c.border, color: "#FFFFFF" }}
                     >
                       {ins.action.label} ←
                     </button>

@@ -30,7 +30,7 @@ function fmtFullDate(iso: string): string {
 export function NetWorthHistoryChart({ snapshots }: Props) {
   if (snapshots.length === 0) {
     return (
-      <div className="card-pad text-center" style={{ background: "#1A2438" }}>
+      <div className="card-pad text-center" style={{ background: "#FAFAF7" }}>
         <div className="mb-2 text-3xl">📈</div>
         <div className="mb-1 text-sm font-extrabold text-verdant-ink">עדיין אין היסטוריה</div>
         <div className="text-xs text-verdant-muted">
@@ -56,7 +56,7 @@ export function NetWorthHistoryChart({ snapshots }: Props) {
   if (ytdFirst && ytdFirst.netWorth !== 0) {
     ytdPct = ((current - ytdFirst.netWorth) / Math.abs(ytdFirst.netWorth)) * 100;
   }
-  const ytdColor = ytdPct === null ? "#94A3B8" : ytdPct >= 0 ? "#A8E040" : "#dc2626";
+  const ytdColor = ytdPct === null ? "#6B7280" : ytdPct >= 0 ? "#2C7A5A" : "#dc2626";
 
   return (
     <div>
@@ -65,20 +65,20 @@ export function NetWorthHistoryChart({ snapshots }: Props) {
           <AreaChart data={data} margin={{ top: 12, right: 16, left: 12, bottom: 8 }}>
             <defs>
               <linearGradient id="nwFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#A8E040" stopOpacity={0.35} />
-                <stop offset="100%" stopColor="#A8E040" stopOpacity={0.02} />
+                <stop offset="0%" stopColor="#2C7A5A" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="#2C7A5A" stopOpacity={0.02} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="2 4" stroke="#1F2A3F" vertical={false} />
+            <CartesianGrid strokeDasharray="2 4" stroke="#E5E7EB" vertical={false} />
             <XAxis
               dataKey="month"
-              tick={{ fontSize: 11, fontWeight: 700, fill: "#F8FAFC" }}
-              axisLine={{ stroke: "#1F2A3F" }}
+              tick={{ fontSize: 11, fontWeight: 700, fill: "#1A1A1A" }}
+              axisLine={{ stroke: "#E5E7EB" }}
               tickLine={false}
             />
             <YAxis
-              tick={{ fontSize: 10, fill: "#94A3B8", fontWeight: 700 }}
-              axisLine={{ stroke: "#1F2A3F" }}
+              tick={{ fontSize: 10, fill: "#6B7280", fontWeight: 700 }}
+              axisLine={{ stroke: "#E5E7EB" }}
               tickLine={false}
               tickFormatter={(v: number) => `${Math.round(v / 1000)}K`}
               orientation="right"
@@ -91,8 +91,8 @@ export function NetWorthHistoryChart({ snapshots }: Props) {
                 return p?.date ? fmtFullDate(p.date) : "";
               }}
               contentStyle={{
-                background: "#131C2E",
-                border: "1px solid #1F2A3F",
+                background: "#FFFFFF",
+                border: "1px solid #E5E7EB",
                 borderRadius: 8,
                 fontSize: 12,
                 direction: "rtl",
@@ -101,10 +101,10 @@ export function NetWorthHistoryChart({ snapshots }: Props) {
             <Area
               type="monotone"
               dataKey="netWorth"
-              stroke="#A8E040"
+              stroke="#2C7A5A"
               strokeWidth={2.5}
               fill="url(#nwFill)"
-              dot={{ r: 3, fill: "#A8E040", stroke: "#131C2E", strokeWidth: 1.5 }}
+              dot={{ r: 3, fill: "#2C7A5A", stroke: "#FFFFFF", strokeWidth: 1.5 }}
               activeDot={{ r: 5 }}
             />
           </AreaChart>

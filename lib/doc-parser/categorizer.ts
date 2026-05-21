@@ -503,7 +503,7 @@ export const CATEGORIES: Category[] = [
     key: "transfers",
     label: "העברות",
     icon: "swap_horiz",
-    color: "#64748b",
+    color: "#9ca3af",
     keywords: [
       "העברה",
       'העב"ב',
@@ -776,7 +776,7 @@ export const CATEGORIES: Category[] = [
     key: "misc",
     label: "שונות",
     icon: "category",
-    color: "#64748b",
+    color: "#9ca3af",
     keywords: [],
   },
 ];

@@ -23,6 +23,7 @@ import {
   sortSpecialEvents,
   SPECIAL_EVENTS_EVENT,
 } from "@/lib/special-events-store";
+import { useConfirm } from "@/components/ui/ConfirmModal";
 
 const HE_MONTHS_SHORT = [
   "ינו׳",
@@ -52,6 +53,7 @@ function nextYm(offsetMonths: number): string {
 }
 
 export function SpecialEventsSection() {
+  const { confirm, modal } = useConfirm();
   const [events, setEvents] = useState<SpecialEvent[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -93,6 +95,7 @@ export function SpecialEventsSection() {
 
   return (
     <section className="mt-8">
+      {modal}
       {/* Header */}
       <div className="mb-3 flex items-center justify-between">
         <div>
@@ -110,7 +113,7 @@ export function SpecialEventsSection() {
               setShowForm(true);
             }}
             className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-all"
-            style={{ background: "#A8E040", color: "#131C2E" }}
+            style={{ background: "#2C7A5A", color: "#FFFFFF" }}
           >
             <span className="material-symbols-outlined text-[14px]">add</span>
             הוסף אירוע
@@ -122,7 +125,7 @@ export function SpecialEventsSection() {
       {sorted.length === 0 && !showForm && (
         <div
           className="rounded-xl px-4 py-5 text-center"
-          style={{ background: "#1A2438", border: "1px dashed #1F2A3F" }}
+          style={{ background: "#FAFAF7", border: "1px dashed #E5E7EB" }}
         >
           <div className="mb-1 text-[13px] font-bold text-verdant-ink">
             אין עדיין אירועים מיוחדים
@@ -152,12 +155,12 @@ export function SpecialEventsSection() {
             <div
               key={ev.id}
               className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-verdant-bg/60"
-              style={{ background: "#131C2E", border: "1px solid #1F2A3F" }}
+              style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}
             >
               <span
                 className="material-symbols-outlined text-[20px]"
                 style={{
-                  color: ev.type === "income" ? "#A8E040" : "#B45309",
+                  color: ev.type === "income" ? "#2C7A5A" : "#B45309",
                 }}
               >
                 {ev.icon || (ev.type === "income" ? "trending_up" : "trending_down")}
@@ -168,7 +171,7 @@ export function SpecialEventsSection() {
               </div>
               <div
                 className="text-[14px] font-extrabold tabular-nums"
-                style={{ color: ev.type === "income" ? "#A8E040" : "#B45309" }}
+                style={{ color: ev.type === "income" ? "#2C7A5A" : "#B45309" }}
               >
                 {ev.type === "income" ? "+" : "−"}
                 {fmtILS(ev.amount)}
@@ -186,8 +189,15 @@ export function SpecialEventsSection() {
                 </span>
               </button>
               <button
-                onClick={() => {
-                  if (confirm(`למחוק את "${ev.label}"?`)) handleDelete(ev.id);
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: `למחוק את "${ev.label}"?`,
+                    body: "האירוע יוסר מתחזית התזרים. פעולה זו בלתי הפיכה.",
+                    confirmLabel: "כן, מחק",
+                    cancelLabel: "ביטול",
+                    variant: "danger",
+                  });
+                  if (ok) handleDelete(ev.id);
                 }}
                 className="rounded-md p-1.5 hover:bg-verdant-bg"
                 title="מחק"
@@ -238,13 +248,13 @@ function EventForm({ initial, onCancel, onSave }: EventFormProps) {
     <form
       onSubmit={handleSubmit}
       className="rounded-xl p-4"
-      style={{ background: "#1A2438", border: "1px solid #1F2A3F" }}
+      style={{ background: "#FAFAF7", border: "1px solid #E5E7EB" }}
     >
       {/* Type toggle */}
       <div className="mb-3 flex items-center gap-1">
         {(
           [
-            { key: "income", label: "הכנסה", icon: "trending_up", color: "#A8E040" },
+            { key: "income", label: "הכנסה", icon: "trending_up", color: "#2C7A5A" },
             { key: "expense", label: "הוצאה", icon: "trending_down", color: "#B45309" },
           ] as const
         ).map((t) => {
@@ -256,9 +266,9 @@ function EventForm({ initial, onCancel, onSave }: EventFormProps) {
               onClick={() => setType(t.key)}
               className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-all"
               style={{
-                background: active ? t.color : "#131C2E",
-                color: active ? "#131C2E" : "#94A3B8",
-                border: `1px solid ${active ? t.color : "#1F2A3F"}`,
+                background: active ? t.color : "#FFFFFF",
+                color: active ? "#FFFFFF" : "#6B7280",
+                border: `1px solid ${active ? t.color : "#E5E7EB"}`,
               }}
             >
               <span className="material-symbols-outlined text-[14px]">{t.icon}</span>
@@ -278,7 +288,7 @@ function EventForm({ initial, onCancel, onSave }: EventFormProps) {
             onChange={(e) => setLabel(e.target.value)}
             placeholder={type === "income" ? "בונוס שנתי" : "רכישת רכב"}
             className="w-full rounded-lg border px-3 py-2 text-[12px] font-bold outline-none focus:ring-2 focus:ring-verdant-accent/30"
-            style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
+            style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
             autoFocus
           />
         </div>
@@ -291,7 +301,7 @@ function EventForm({ initial, onCancel, onSave }: EventFormProps) {
             value={ym}
             onChange={(e) => setYm(e.target.value)}
             className="w-full rounded-lg border px-3 py-2 text-[12px] font-bold outline-none focus:ring-2 focus:ring-verdant-accent/30"
-            style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
+            style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
             dir="ltr"
           />
         </div>
@@ -307,7 +317,7 @@ function EventForm({ initial, onCancel, onSave }: EventFormProps) {
             onChange={(e) => setAmount(e.target.value)}
             placeholder="25000"
             className="w-full rounded-lg border px-3 py-2 text-[12px] font-bold outline-none focus:ring-2 focus:ring-verdant-accent/30"
-            style={{ borderColor: "#1F2A3F", background: "#131C2E" }}
+            style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
             dir="ltr"
           />
         </div>
@@ -316,7 +326,7 @@ function EventForm({ initial, onCancel, onSave }: EventFormProps) {
       {error && (
         <div
           className="mt-3 rounded-lg px-3 py-2 text-[12px] font-bold"
-          style={{ background: "rgba(248,113,113,0.12)", color: "#FCA5A5" }}
+          style={{ background: "rgba(220,38,38,0.12)", color: "#B91C1C" }}
         >
           {error}
         </div>
@@ -326,7 +336,7 @@ function EventForm({ initial, onCancel, onSave }: EventFormProps) {
         <button
           type="submit"
           className="rounded-full px-5 py-2 text-[12px] font-bold transition-all"
-          style={{ background: "#A8E040", color: "#131C2E" }}
+          style={{ background: "#2C7A5A", color: "#FFFFFF" }}
         >
           {initial ? "עדכן" : "הוסף"}
         </button>

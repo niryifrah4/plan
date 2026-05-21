@@ -624,6 +624,10 @@ export default function CrmPage() {
               // active — a fast "Back" or cached page would re-enter the
               // CRM without re-auth. signOut clears cookies + access tokens.
               try {
+                // Step 1: clear the impersonation cookie first — a stale
+                // `plan_impersonate_hh` cookie surviving across logouts could
+                // let the next session jump straight into the last household.
+                await fetch("/api/crm/impersonate", { method: "DELETE" }).catch(() => {});
                 const supabase = getSupabaseBrowser();
                 if (supabase) await supabase.auth.signOut();
               } catch {

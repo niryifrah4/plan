@@ -42,7 +42,7 @@ const RISK_COLOR = {
   bonds: "#1E3A8A", // deep blue — defensive
   cash: "#0F766E", // teal — cash
   alternative: "#6B21A8", // purple
-  unknown: "#94a3b8", // gray
+  unknown: "#6b7280", // gray
 };
 
 const GEO_LABEL = {
@@ -60,7 +60,7 @@ const GEO_COLOR = {
   EU: "#7C2D12",
   EM: "#B45309",
   OTHER: "#6B21A8",
-  unknown: "#94a3b8",
+  unknown: "#6b7280",
 };
 
 export interface PensionAllocations {

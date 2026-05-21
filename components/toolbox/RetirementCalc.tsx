@@ -2,49 +2,14 @@
 
 import { useState, useMemo } from "react";
 import { fmtILS } from "@/lib/format";
-
-/* ── Tax Brackets (Israel 2025) ── */
-
-function estimateTaxRate(annualIncome: number): number {
-  const brackets = [
-    { limit: 84_120, rate: 0.1 },
-    { limit: 120_720, rate: 0.14 },
-    { limit: 193_800, rate: 0.2 },
-    { limit: 269_280, rate: 0.31 },
-    { limit: 560_280, rate: 0.35 },
-    { limit: 721_560, rate: 0.47 },
-    { limit: Infinity, rate: 0.5 },
-  ];
-  let tax = 0,
-    prev = 0;
-  for (const b of brackets) {
-    if (annualIncome <= prev) break;
-    const slice = Math.min(annualIncome, b.limit) - prev;
-    tax += slice * b.rate;
-    prev = b.limit;
-  }
-  return annualIncome > 0 ? tax / annualIncome : 0;
-}
+import { israeliIncomeTax } from "@/lib/assumptions";
 
 function computeTax(annualIncome: number): number {
-  const brackets = [
-    { limit: 84_120, rate: 0.1 },
-    { limit: 120_720, rate: 0.14 },
-    { limit: 193_800, rate: 0.2 },
-    { limit: 269_280, rate: 0.31 },
-    { limit: 560_280, rate: 0.35 },
-    { limit: 721_560, rate: 0.47 },
-    { limit: Infinity, rate: 0.5 },
-  ];
-  let tax = 0,
-    prev = 0;
-  for (const b of brackets) {
-    if (annualIncome <= prev) break;
-    const slice = Math.min(annualIncome, b.limit) - prev;
-    tax += slice * b.rate;
-    prev = b.limit;
-  }
-  return tax;
+  return israeliIncomeTax(annualIncome).tax;
+}
+
+function estimateTaxRate(annualIncome: number): number {
+  return israeliIncomeTax(annualIncome).effectiveRate;
 }
 
 /* ── Row helper ── */
@@ -87,8 +52,9 @@ export function RetirementCalc() {
 
   /* ── Section A: Grant Exemption ── */
   const grantCalc = useMemo(() => {
-    const EXEMPTION_CEILING_2025 = 13_750;
-    const exemptionPerYear = Math.min(salary, EXEMPTION_CEILING_2025);
+    // תקרת פטור למענק פרישה לפי שנת עבודה (2026): ₪13,750/חודש
+    const EXEMPTION_CEILING_MONTHLY = 13_750;
+    const exemptionPerYear = Math.min(salary, EXEMPTION_CEILING_MONTHLY);
     const totalExemption = exemptionPerYear * yearsOfService;
     const taxableGrant = Math.max(0, totalGrant - totalExemption);
     return { exemptionPerYear, totalExemption, taxableGrant };
@@ -96,11 +62,22 @@ export function RetirementCalc() {
 
   /* ── Section B: Tax Spread ── */
   const spreadCalc = useMemo(() => {
+    // פריסה אפשרית רק מ-4 שנות ותק ומעלה (שנה אחת לכל 4 שנים, עד 6 שנים)
     const spreadYears = Math.min(6, Math.floor(yearsOfService / 4));
-    const annualSpread =
-      spreadYears > 0 ? grantCalc.taxableGrant / spreadYears : grantCalc.taxableGrant;
-
     const taxNoSpread = computeTax(grantCalc.taxableGrant);
+
+    if (spreadYears === 0) {
+      // אין זכאות לפריסה — אין חיסכון
+      return {
+        spreadYears: 0,
+        annualSpread: grantCalc.taxableGrant,
+        taxNoSpread,
+        taxWithSpread: Math.round(taxNoSpread),
+        taxSaving: 0,
+      };
+    }
+
+    const annualSpread = grantCalc.taxableGrant / spreadYears;
     const avgTaxRate = estimateTaxRate(annualSpread);
     const taxWithSpread = annualSpread * avgTaxRate * spreadYears;
     const taxSaving = taxNoSpread - taxWithSpread;
@@ -131,7 +108,7 @@ export function RetirementCalc() {
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
           <div>
             <label className={labelCls}>שנות ותק</label>
-            <div className={wrapCls} style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}>
+            <div className={wrapCls} style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}>
               <input
                 type="number"
                 value={yearsOfService}
@@ -143,7 +120,7 @@ export function RetirementCalc() {
           </div>
           <div>
             <label className={labelCls}>שכר אחרון (חודשי)</label>
-            <div className={wrapCls} style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}>
+            <div className={wrapCls} style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}>
               <input
                 type="number"
                 value={salary}
@@ -156,7 +133,7 @@ export function RetirementCalc() {
           </div>
           <div>
             <label className={labelCls}>מענק פרישה כולל</label>
-            <div className={wrapCls} style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}>
+            <div className={wrapCls} style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}>
               <input
                 type="number"
                 value={totalGrant}
@@ -169,7 +146,7 @@ export function RetirementCalc() {
           </div>
           <div>
             <label className={labelCls}>קצבה צפויה (חודשית)</label>
-            <div className={wrapCls} style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}>
+            <div className={wrapCls} style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}>
               <input
                 type="number"
                 value={monthlyPension}
@@ -182,7 +159,7 @@ export function RetirementCalc() {
           </div>
           <div>
             <label className={labelCls}>גיל בפרישה</label>
-            <div className={wrapCls} style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}>
+            <div className={wrapCls} style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}>
               <input
                 type="number"
                 value={retireAge}
@@ -194,7 +171,7 @@ export function RetirementCalc() {
           </div>
           <div>
             <label className={labelCls}>שנת פרישה</label>
-            <div className={wrapCls} style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}>
+            <div className={wrapCls} style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}>
               <input
                 type="number"
                 value={retireYear}
@@ -214,26 +191,26 @@ export function RetirementCalc() {
           <h3 className="text-sm font-extrabold text-verdant-ink">פטור על מענק פרישה</h3>
         </div>
 
-        <div className="space-y-3 rounded-xl p-4" style={{ background: "#1A2438" }}>
+        <div className="space-y-3 rounded-xl p-4" style={{ background: "#FAFAF7" }}>
           <Row label="תקרת פטור לשנת ותק" value={fmtILS(grantCalc.exemptionPerYear)} />
           <Row
             label={`פטור כולל (${yearsOfService} שנות ותק)`}
             value={fmtILS(grantCalc.totalExemption)}
-            color="#A8E040"
+            color="#2C7A5A"
           />
           <Row label="מענק פרישה" value={fmtILS(totalGrant)} />
-          <div className="border-t pt-2" style={{ borderColor: "#1F2A3F" }}>
+          <div className="border-t pt-2" style={{ borderColor: "#E5E7EB" }}>
             <Row
               label="מענק חייב במס"
               value={fmtILS(grantCalc.taxableGrant)}
-              color={grantCalc.taxableGrant > 0 ? "#F87171" : "#A8E040"}
+              color={grantCalc.taxableGrant > 0 ? "#DC2626" : "#2C7A5A"}
               bold
             />
           </div>
         </div>
 
         <p className="mt-3 text-[10px] leading-relaxed text-verdant-muted">
-          * תקרת פטור 2025: &#8362;13,750 לשנת ותק, או השכר — הנמוך מביניהם.
+          * תקרת פטור 2026: &#8362;13,750 לשנת ותק, או השכר — הנמוך מביניהם.
         </p>
       </div>
 
@@ -241,12 +218,13 @@ export function RetirementCalc() {
       <div
         className="rounded-2xl p-5 md:p-6"
         style={{
-          background: "linear-gradient(135deg,#F8FAFC 0%,#064e32 50%,#A8E040 100%)",
-          color: "#131C2E",
+          background: "linear-gradient(135deg,#2C7A5A 0%,#1F5A42 100%)",
+          color: "#FFFFFF",
+          boxShadow: "0 8px 24px rgba(44, 122, 90, 0.18)",
         }}
       >
         <div className="mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px]" style={{ color: "#4ADE80" }}>
+          <span className="material-symbols-outlined text-[18px]" style={{ color: "#059669" }}>
             calculate
           </span>
           <h3 className="text-sm font-extrabold text-white">פריסת מס (קדימה)</h3>
@@ -268,13 +246,13 @@ export function RetirementCalc() {
           >
             <div className="flex justify-between text-[11px]">
               <span className="font-bold opacity-80">מס ללא פריסה</span>
-              <span className="tabular font-extrabold" style={{ color: "#fca5a5" }}>
+              <span className="tabular font-extrabold" style={{ color: "#b91c1c" }}>
                 {fmtILS(spreadCalc.taxNoSpread)}
               </span>
             </div>
             <div className="flex justify-between text-[11px]">
               <span className="font-bold opacity-80">מס עם פריסה</span>
-              <span className="tabular font-extrabold" style={{ color: "#4ADE80" }}>
+              <span className="tabular font-extrabold" style={{ color: "#059669" }}>
                 {fmtILS(spreadCalc.taxWithSpread)}
               </span>
             </div>
@@ -283,7 +261,7 @@ export function RetirementCalc() {
           <div className="mt-3 border-t pt-3" style={{ borderColor: "rgba(255,255,255,0.15)" }}>
             <div className="flex justify-between text-sm">
               <span className="font-extrabold">חיסכון מפריסה</span>
-              <span className="tabular text-lg font-extrabold" style={{ color: "#4ADE80" }}>
+              <span className="tabular text-lg font-extrabold" style={{ color: "#059669" }}>
                 {fmtILS(spreadCalc.taxSaving)}
               </span>
             </div>
@@ -291,7 +269,7 @@ export function RetirementCalc() {
         </div>
 
         <p className="mt-3 text-[10px] leading-relaxed opacity-60">
-          * פריסה קדימה: עד 6 שנים, בכפוף ל-1 שנת פריסה לכל 4 שנות ותק. שיעורי מס לפי מדרגות 2025.
+          * פריסה קדימה: עד 6 שנים, בכפוף ל-1 שנת פריסה לכל 4 שנות ותק. שיעורי מס לפי מדרגות 2026.
         </p>
       </div>
 
@@ -336,7 +314,7 @@ export function RetirementCalc() {
               </tr>
               <tr className="v-divider border-b">
                 <td className="py-2.5 font-bold text-verdant-muted">פקטור 1.35</td>
-                <td className="py-2.5 text-center font-bold" style={{ color: "#A8E040" }}>
+                <td className="py-2.5 text-center font-bold" style={{ color: "#2C7A5A" }}>
                   לא (יתרון!)
                 </td>
                 <td className="py-2.5 text-center">כן</td>
@@ -348,7 +326,7 @@ export function RetirementCalc() {
               </tr>
               <tr>
                 <td className="py-2.5 font-bold text-verdant-muted">מומלץ ב:</td>
-                <td className="py-2.5 text-center font-bold" style={{ color: "#A8E040" }}>
+                <td className="py-2.5 text-center font-bold" style={{ color: "#2C7A5A" }}>
                   רוב המקרים
                 </td>
                 <td className="py-2.5 text-center text-verdant-muted">ותק קצר + שכר נמוך</td>

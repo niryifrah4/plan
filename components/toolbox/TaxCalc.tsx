@@ -7,25 +7,74 @@ import { capitalGainsTax } from "@/lib/financial-math";
 
 type IncomeType = "employment" | "passive";
 
+/**
+ * Passive (non-personal-effort) income tax — section 121(b) of the Israeli Income Tax Ordinance:
+ * for taxpayers under age 60, the minimum marginal rate on non-earned income is 31%.
+ * In practice we replace the 10%/14%/20% brackets with a flat 31% floor up to the 31% bracket ceiling.
+ */
+function passiveIncomeTaxUnder60(annualIncome: number) {
+  const brackets = [
+    { limit: 301_200, rate: 0.31 },
+    { limit: 565_920, rate: 0.35 },
+    { limit: 721_560, rate: 0.47 },
+    { limit: Infinity, rate: 0.5 },
+  ];
+  let remaining = annualIncome;
+  let totalTax = 0;
+  let marginalBracket = 0.31;
+  let prev = 0;
+  for (const b of brackets) {
+    const taxable = Math.min(remaining, b.limit - prev);
+    if (taxable <= 0) break;
+    totalTax += taxable * b.rate;
+    marginalBracket = b.rate;
+    remaining -= taxable;
+    prev = b.limit;
+  }
+  return {
+    tax: totalTax,
+    effectiveRate: annualIncome > 0 ? totalTax / annualIncome : 0,
+    marginalBracket,
+  };
+}
+
 export function TaxCalc() {
   const [monthlyGross, setMonthlyGross] = useState(28500);
   const [incomeType, setIncomeType] = useState<IncomeType>("employment");
+  const [age, setAge] = useState(42);
   const [capitalGains, setCapitalGains] = useState(0);
   const [costBasis, setCostBasis] = useState(0);
   const [creditPoints, setCreditPoints] = useState(2.25);
 
   const annualIncome = monthlyGross * 12;
+  const passiveFloorApplies = incomeType === "passive" && age < 60;
 
-  const incomeTax = useMemo(() => israeliIncomeTax(annualIncome), [annualIncome]);
-  const bituachLeumi = useMemo(() => bituachLeumiEstimate(monthlyGross), [monthlyGross]);
+  const incomeTax = useMemo(
+    () =>
+      passiveFloorApplies
+        ? passiveIncomeTaxUnder60(annualIncome)
+        : israeliIncomeTax(annualIncome),
+    [annualIncome, passiveFloorApplies]
+  );
+  // Bituach Leumi applies to earned income only — passive income has separate (lower) rates
+  // not modeled here, so we surface 0 for passive to avoid double-counting.
+  const bituachLeumi = useMemo(
+    () =>
+      incomeType === "employment"
+        ? bituachLeumiEstimate(monthlyGross)
+        : { monthly: 0, annual: 0 },
+    [monthlyGross, incomeType]
+  );
   const cgt = useMemo(
     () => capitalGainsTax(costBasis, costBasis + capitalGains),
     [capitalGains, costBasis]
   );
 
-  // נקודות זיכוי: 1 נקודה = ₪2,904/שנה (2025) = ₪242/חודש
+  // נקודות זיכוי: 1 נקודה = ₪2,904/שנה (2026) = ₪242/חודש.
+  // נקודות זיכוי תקפות רק להכנסה מיגיעה אישית (סעיף 36 לפקודה).
   const creditPerPointMonthly = 242;
-  const monthlyCredit = creditPoints * creditPerPointMonthly;
+  const effectiveCreditPoints = incomeType === "employment" ? creditPoints : 0;
+  const monthlyCredit = effectiveCreditPoints * creditPerPointMonthly;
   const monthlyIncomeTax = Math.max(0, incomeTax.tax / 12 - monthlyCredit);
 
   const totalMonthlyDeductions = monthlyIncomeTax + bituachLeumi.monthly;
@@ -40,14 +89,14 @@ export function TaxCalc() {
           <h3 className="text-sm font-extrabold text-verdant-ink">מס הכנסה שולי</h3>
         </div>
 
-        <div className="mb-5 grid grid-cols-3 gap-4">
+        <div className="mb-5 grid grid-cols-2 gap-4 md:grid-cols-4">
           <div>
             <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
-              משכורת ברוטו חודשית
+              {incomeType === "employment" ? "משכורת ברוטו חודשית" : "הכנסה חודשית ברוטו"}
             </label>
             <div
               className="flex items-center rounded-lg border px-3 py-2"
-              style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
+              style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
             >
               <input
                 type="number"
@@ -65,13 +114,34 @@ export function TaxCalc() {
             </label>
             <div
               className="flex items-center rounded-lg border px-3 py-2"
-              style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
+              style={{
+                borderColor: "#E5E7EB",
+                background: incomeType === "passive" ? "#F3F4F6" : "#FFFFFF",
+              }}
             >
               <input
                 type="number"
                 value={creditPoints}
                 onChange={(e) => setCreditPoints(Number(e.target.value))}
                 step="0.25"
+                disabled={incomeType === "passive"}
+                className="tabular flex-1 bg-transparent text-sm font-bold text-verdant-ink outline-none disabled:opacity-50"
+                dir="ltr"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
+              גיל
+            </label>
+            <div
+              className="flex items-center rounded-lg border px-3 py-2"
+              style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
+            >
+              <input
+                type="number"
+                value={age}
+                onChange={(e) => setAge(Number(e.target.value))}
                 className="tabular flex-1 bg-transparent text-sm font-bold text-verdant-ink outline-none"
                 dir="ltr"
               />
@@ -85,7 +155,7 @@ export function TaxCalc() {
               value={incomeType}
               onChange={(e) => setIncomeType(e.target.value as IncomeType)}
               className="w-full rounded-lg border px-3 py-2 text-sm font-bold outline-none"
-              style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
+              style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
             >
               <option value="employment">יגיעה אישית (שכיר/עצמאי)</option>
               <option value="passive">שלא מיגיעה (השקעות, שכ&quot;ד)</option>
@@ -93,16 +163,29 @@ export function TaxCalc() {
           </div>
         </div>
 
+        {passiveFloorApplies && (
+          <div
+            className="mb-4 flex items-start gap-2 rounded-lg p-3 text-[11px] leading-relaxed"
+            style={{ background: "rgba(139,92,246,0.08)", color: "#5b21b6" }}
+          >
+            <span className="material-symbols-outlined text-[16px]">info</span>
+            <span>
+              סעיף 121(ב): מתחת לגיל 60, הכנסה שלא מיגיעה אישית חייבת במס במדרגה מינימלית של 31%.
+              נקודות זיכוי וביטוח לאומי לא חלים.
+            </span>
+          </div>
+        )}
+
         {/* Tax breakdown */}
-        <div className="space-y-3 rounded-xl p-4" style={{ background: "#1A2438" }}>
+        <div className="space-y-3 rounded-xl p-4" style={{ background: "#FAFAF7" }}>
           <Row label="הכנסה שנתית" value={fmtILS(annualIncome)} />
-          <Row label="מס הכנסה לפני זיכוי" value={fmtILS(incomeTax.tax / 12)} color="#F87171" />
+          <Row label="מס הכנסה לפני זיכוי" value={fmtILS(incomeTax.tax / 12)} color="#DC2626" />
           <Row
             label={`זיכוי נקודות (${creditPoints})`}
             value={`-${fmtILS(monthlyCredit)}`}
-            color="#A8E040"
+            color="#2C7A5A"
           />
-          <Row label="מס הכנסה חודשי" value={fmtILS(monthlyIncomeTax)} color="#F87171" />
+          <Row label="מס הכנסה חודשי" value={fmtILS(monthlyIncomeTax)} color="#DC2626" />
           <Row
             label="שיעור מס אפקטיבי"
             value={fmtPct(annualIncome > 0 ? ((monthlyIncomeTax * 12) / annualIncome) * 100 : 0)}
@@ -110,13 +193,13 @@ export function TaxCalc() {
           <Row
             label="מדרגת מס שולי"
             value={fmtPct(incomeTax.marginalBracket * 100)}
-            color="#F87171"
+            color="#DC2626"
           />
-          <div className="border-t pt-2" style={{ borderColor: "#1F2A3F" }}>
-            <Row label="ביטוח לאומי חודשי" value={fmtILS(bituachLeumi.monthly)} color="#F87171" />
+          <div className="border-t pt-2" style={{ borderColor: "#E5E7EB" }}>
+            <Row label="ביטוח לאומי חודשי" value={fmtILS(bituachLeumi.monthly)} color="#DC2626" />
           </div>
-          <div className="border-t pt-2" style={{ borderColor: "#1F2A3F" }}>
-            <Row label="נטו חודשי (אומדן)" value={fmtILS(netMonthly)} bold color="#A8E040" />
+          <div className="border-t pt-2" style={{ borderColor: "#E5E7EB" }}>
+            <Row label="נטו חודשי (אומדן)" value={fmtILS(netMonthly)} bold color="#2C7A5A" />
           </div>
         </div>
       </div>
@@ -135,7 +218,7 @@ export function TaxCalc() {
             </label>
             <div
               className="flex items-center rounded-lg border px-3 py-2"
-              style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
+              style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
             >
               <input
                 type="number"
@@ -153,7 +236,7 @@ export function TaxCalc() {
             </label>
             <div
               className="flex items-center rounded-lg border px-3 py-2"
-              style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
+              style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
             >
               <input
                 type="number"
@@ -167,10 +250,10 @@ export function TaxCalc() {
           </div>
         </div>
 
-        <div className="space-y-3 rounded-xl p-4" style={{ background: "#1A2438" }}>
+        <div className="space-y-3 rounded-xl p-4" style={{ background: "#FAFAF7" }}>
           <Row label="רווח הון נומינלי" value={fmtILS(cgt.gain)} />
-          <Row label="מס רווח הון (25%)" value={fmtILS(cgt.tax)} color="#F87171" />
-          <Row label="נטו לאחר מס" value={fmtILS(cgt.netAfterTax)} bold color="#A8E040" />
+          <Row label="מס רווח הון (25%)" value={fmtILS(cgt.tax)} color="#DC2626" />
+          <Row label="נטו לאחר מס" value={fmtILS(cgt.netAfterTax)} bold color="#2C7A5A" />
         </div>
       </div>
     </div>
@@ -193,7 +276,7 @@ function Row({
       <span className="text-xs text-verdant-muted">{label}</span>
       <span
         className={`tabular text-xs ${bold ? "font-extrabold" : "font-bold"}`}
-        style={{ color: color || "#F8FAFC" }}
+        style={{ color: color || "#FFFFFF" }}
       >
         {value}
       </span>

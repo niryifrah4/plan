@@ -83,6 +83,56 @@ export const KIDS_TRACKS: KidsTrack[] = [
   },
 ];
 
+/* ── Allocation per track ──
+ * Used by the multi-dimensional allocation engine on /balance so kids
+ * savings don't get flattened to "100% ILS cash" the way they were when
+ * the asset just bucketed under bank_account.
+ *
+ * The vectors here approximate the typical Israeli kids-savings product
+ * (קופת גמל לחיסכון לכל ילד) — real allocations vary by provider, but
+ * these are close enough for a household-level net-worth view.
+ *
+ * Locked liquidity reflects the legal lock until age 18 (early withdrawal
+ * loses the tax break).
+ */
+import type { FundAllocation } from "./fund-registry";
+
+const KIDS_ALLOCATIONS: Record<KidsTrack["key"], FundAllocation> = {
+  low: {
+    currency: { ILS: 90, USD: 8, EUR: 1, OTHER: 1 },
+    geography: { IL: 80, US: 12, EU: 5, EM: 2, OTHER: 1 },
+    assetClass: { equity: 10, bonds: 70, cash: 18, alternative: 2 },
+    liquidity: "locked",
+    liquidityNote: "חיסכון לכל ילד — נעול עד גיל 18",
+  },
+  medium: {
+    currency: { ILS: 75, USD: 18, EUR: 4, OTHER: 3 },
+    geography: { IL: 55, US: 28, EU: 10, EM: 5, OTHER: 2 },
+    assetClass: { equity: 50, bonds: 38, cash: 9, alternative: 3 },
+    liquidity: "locked",
+    liquidityNote: "חיסכון לכל ילד — נעול עד גיל 18",
+  },
+  high: {
+    currency: { ILS: 55, USD: 32, EUR: 8, OTHER: 5 },
+    geography: { IL: 30, US: 48, EU: 12, EM: 7, OTHER: 3 },
+    assetClass: { equity: 88, bonds: 5, cash: 5, alternative: 2 },
+    liquidity: "locked",
+    liquidityNote: "חיסכון לכל ילד — נעול עד גיל 18",
+  },
+  halacha: {
+    currency: { ILS: 88, USD: 9, EUR: 2, OTHER: 1 },
+    geography: { IL: 80, US: 12, EU: 5, EM: 2, OTHER: 1 },
+    assetClass: { equity: 50, bonds: 40, cash: 8, alternative: 2 },
+    liquidity: "locked",
+    liquidityNote: "חיסכון לכל ילד הלכתי — נעול עד גיל 18",
+  },
+};
+
+/** Look up the allocation vector for a kids-savings track key. */
+export function kidsTrackToAllocation(track: string): FundAllocation {
+  return KIDS_ALLOCATIONS[track as KidsTrack["key"]] || KIDS_ALLOCATIONS.medium;
+}
+
 /* ── Major investment houses ── */
 
 export const KIDS_PROVIDERS = [

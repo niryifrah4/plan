@@ -454,17 +454,24 @@ function syncLiabilitiesToDebtStore(liabilities: OnbLiability[]): void {
     if (balance === 0 && monthly === 0) continue;
 
     if (lib.type === "משכנתא") {
-      // Sync as mortgage
-      if (!debt.mortgage) {
+      // Sync as mortgage — only seed if NO mortgage exists yet. Existing
+      // mortgages (already created via the /debt page) are left untouched
+      // so the user's manual edits aren't clobbered by re-syncing.
+      if (debt.mortgages.length === 0) {
         const totalPayments = monthly > 0 ? Math.round(balance / monthly) : 0;
-        debt.mortgage = {
+        debt.mortgages.push({
+          id: "onb_mortgage_1",
+          // propertyId left unset on purpose — the user assigns it on /debt
+          // once they add a property on /realestate.
           bank: lib.lender || "לא צוין",
           propertyValue: 0,
           tracks: [
             {
-              id: "onb_mortgage_1",
+              id: "onb_mortgage_track_1",
               name: "מסלול ראשי",
-              interestRate: parseFloat(lib.rate) || 0,
+              // Onboarding input is typed as percent (e.g. "4.8"); store as
+              // DECIMAL fraction to match the unified scale across the module.
+              interestRate: (parseFloat(lib.rate) || 0) / 100,
               indexation: "לא צמוד",
               repaymentMethod: "שפיצר",
               originalAmount: balance,
@@ -475,7 +482,7 @@ function syncLiabilitiesToDebtStore(liabilities: OnbLiability[]): void {
               totalPayments,
             },
           ],
-        };
+        });
         changed = true;
       }
     } else {

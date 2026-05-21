@@ -6,7 +6,7 @@ import Link from "next/link";
 import { fmtILS, fmtPct } from "@/lib/format";
 import { savingsRate as calcSavingsRate } from "@/lib/financial-math";
 import type { CashflowSummary } from "@/types/db";
-import { getTotalLiabilities, loadDebtData } from "@/lib/debt-store";
+import { getTotalLiabilities, loadDebtData, getAllMortgageTracks } from "@/lib/debt-store";
 import { syncOnboardingToStores } from "@/lib/onboarding-sync";
 import {
   buildBudgetLines,
@@ -64,19 +64,14 @@ import {
   currentMonthKey,
   DEPOSITS_EVENT,
 } from "@/lib/deposits-store";
-// DepositsWidget is its own data-driven section in the middle of the
-// dashboard — lazy-load it so the hero + cashflow card render first.
-const DepositsWidget = dynamic(
-  () => import("@/components/DepositsWidget").then((m) => m.DepositsWidget),
-  { ssr: false, loading: () => null }
-);
+// DepositsWidget removed from dashboard 2026-05-19 per Nir — lives on /deposits.
 import { scopedKey } from "@/lib/client-scope";
 import { SCOPE_COLORS, effectiveScope, type Scope } from "@/lib/scope-types";
 
 const TRACK_COLOR: Record<string, string> = {
-  on: "#A8E040",
-  behind: "#f59e0b",
-  at_risk: "#F87171",
+  on: "#2C7A5A",
+  behind: "#D97706",
+  at_risk: "#DC2626",
 };
 const TRACK_LABEL: Record<string, string> = { on: "בדרך", behind: "בפיגור", at_risk: "בסיכון" };
 const GOAL_ICONS: Record<string, string> = {
@@ -127,7 +122,7 @@ function shouldShowCheckin(clientHasData: boolean): boolean {
 
 type ChartRange = "ytd" | "1y" | "3y" | "5y" | "10y" | "max";
 const CHART_RANGES: { key: ChartRange; label: string }[] = [
-  { key: "ytd", label: "YTD" },
+  { key: "ytd", label: "מתחה״ש" },
   { key: "1y", label: "שנה" },
   { key: "3y", label: "3 שנים" },
   { key: "5y", label: "5 שנים" },
@@ -426,7 +421,7 @@ export default function DashboardPage() {
   // 2026-05-03 fix (Victor): same mortgage entered in BOTH debt-store and
   // realestate-store was double-counted in dashboard NW (WealthTab already
   // dedups via reMortgageExtra; dashboard didn't). Aligned the logic.
-  const debtMortgageOnly = (loadDebtData().mortgage?.tracks || []).reduce(
+  const debtMortgageOnly = getAllMortgageTracks(loadDebtData()).reduce(
     (s, t) => s + (t.remainingBalance || 0),
     0
   );
@@ -544,20 +539,20 @@ export default function DashboardPage() {
     savingsRate >= 20 ? "מעולה" : savingsRate >= 10 ? "טוב" : savingsRate >= 5 ? "סביר" : null;
   const savingsLabelColor =
     savingsRate >= 20
-      ? "#A8E040"
+      ? "#2C7A5A"
       : savingsRate >= 10
-        ? "#A8E040"
+        ? "#2C7A5A"
         : savingsRate >= 5
           ? "#b45309"
-          : "#F8FAFC";
+          : "#FFFFFF";
 
   // Allocation slices for donut
   const allocationSlices = useMemo(() => {
     const groups: Record<string, { label: string; color: string; total: number }> = {
-      liquid: { label: "נזיל", color: "#A8E040", total: 0 },
-      investments: { label: "השקעות", color: "#F8FAFC", total: 0 },
-      pension: { label: "פנסיוני", color: "#4ADE80", total: 0 },
-      realestate: { label: "נדל״ן", color: "#4ADE80", total: 0 },
+      liquid: { label: "נזיל", color: "#2C7A5A", total: 0 },
+      investments: { label: "השקעות", color: "#1A1A1A", total: 0 },
+      pension: { label: "פנסיוני", color: "#059669", total: 0 },
+      realestate: { label: "נדל״ן", color: "#059669", total: 0 },
       kids: { label: "חיסכון ילדים", color: "#6366f1", total: 0 },
     };
     assets.forEach((a) => {
@@ -803,7 +798,7 @@ export default function DashboardPage() {
         <div className="card-pad text-center">
           <div
             className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-organic"
-            style={{ background: "#A8E04015" }}
+            style={{ background: "#2C7A5A15" }}
           >
             <span className="material-symbols-outlined text-[36px] text-verdant-emerald">
               waving_hand
@@ -856,7 +851,7 @@ export default function DashboardPage() {
           </div>
           <div
             className="mt-7 flex items-start gap-2 rounded-xl p-3 text-right"
-            style={{ background: "#1A2438", border: "1px solid #c9e3d4" }}
+            style={{ background: "#FAFAF7", border: "1px solid #c9e3d4" }}
           >
             <span className="material-symbols-outlined mt-0.5 text-[16px] text-verdant-emerald">
               tips_and_updates
@@ -881,12 +876,12 @@ export default function DashboardPage() {
         >
           <div
             className="mx-4 w-full max-w-md rounded-organic p-8 shadow-soft"
-            style={{ background: "#131C2E", border: "2px solid #A8E04030" }}
+            style={{ background: "#FFFFFF", border: "2px solid #2C7A5A30" }}
           >
             <div className="mb-6 flex items-center gap-3">
               <div
                 className="flex h-11 w-11 items-center justify-center rounded-xl"
-                style={{ background: "linear-gradient(135deg,#F8FAFC,#A8E040)" }}
+                style={{ background: "linear-gradient(135deg,#2C7A5A,#1F5A42)" }}
               >
                 <span className="material-symbols-outlined text-[22px] text-white">fact_check</span>
               </div>
@@ -898,7 +893,7 @@ export default function DashboardPage() {
 
             <div
               className="mb-6 rounded-xl p-5"
-              style={{ background: "#F8FAFC", border: "1px solid #1F2A3F" }}
+              style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}
             >
               <div className="mb-2 text-[11px] font-bold text-verdant-muted">
                 יתרת עו״ש צפויה לפי התחזית:
@@ -923,7 +918,7 @@ export default function DashboardPage() {
               <button
                 onClick={dismissCheckin}
                 className="rounded-xl px-4 py-3 text-[12px] font-bold text-verdant-muted transition-colors hover:bg-verdant-bg"
-                style={{ background: "#1F2A3F" }}
+                style={{ background: "#E5E7EB" }}
               >
                 דלג
               </button>
@@ -938,7 +933,7 @@ export default function DashboardPage() {
       {!depositsBannerDismissed && depositsPending.count > 0 && (
         <div
           className="mb-4 flex items-center gap-3 rounded-2xl px-4 py-3"
-          style={{ background: "rgba(251,191,36,0.12)", border: "1px solid #FBBF24" }}
+          style={{ background: "rgba(217,119,6,0.12)", border: "1px solid #D97706" }}
         >
           <span className="material-symbols-outlined text-[22px]" style={{ color: "#92400E" }}>
             fact_check
@@ -954,7 +949,7 @@ export default function DashboardPage() {
           <Link
             href="/deposits"
             className="rounded-lg px-3 py-1.5 text-[12px] font-bold"
-            style={{ background: "#92400E", color: "#131C2E" }}
+            style={{ background: "#92400E", color: "#FFFFFF" }}
           >
             לעבור →
           </Link>
@@ -972,54 +967,122 @@ export default function DashboardPage() {
       {/* ═══════ Macro — BoI / Prime / Inflation control ═══════ */}
       <MacroPanel />
 
-      {/* ═══════ Benchmark advisory nudges (2026-04-29) ═══════
-          Top 3 prioritized recommendations based on age / savings rate /
-          asset mix / risk tolerance. Each links to the page that owns the fix. */}
+      {/* ═══════ Recommendations — prominent card design (2026-05-19)
+          Solid white surface, strong colored accent stripe, large icon chip,
+          clear title/detail hierarchy. Each links to the page that owns the fix. */}
       {(() => {
         if (nudges.length === 0) return null;
-        const SEV: Record<string, { bg: string; border: string; text: string }> = {
-          critical: { bg: "rgba(248,113,113,0.08)", border: "#fca5a5", text: "#F87171" },
-          warning: { bg: "rgba(251,191,36,0.08)", border: "#FBBF24", text: "#92400e" },
-          info: { bg: "#1A2438", border: "#93c5fd", text: "#1d4ed8" },
-          opportunity: { bg: "#1A2438", border: "#86efac", text: "#166534" },
+        const SEV: Record<
+          string,
+          { stripe: string; chipBg: string; chipFg: string; eyebrow: string }
+        > = {
+          critical: {
+            stripe: "#DC2626",
+            chipBg: "#FEE2E2",
+            chipFg: "#DC2626",
+            eyebrow: "דחוף לטפל",
+          },
+          warning: {
+            stripe: "#D97706",
+            chipBg: "#FEF3C7",
+            chipFg: "#92400E",
+            eyebrow: "שווה תשומת לב",
+          },
+          info: {
+            stripe: "#2563EB",
+            chipBg: "#DBEAFE",
+            chipFg: "#1D4ED8",
+            eyebrow: "לידיעה",
+          },
+          opportunity: {
+            stripe: "#2C7A5A",
+            chipBg: "#E8F4D1",
+            chipFg: "#1F5A42",
+            eyebrow: "הזדמנות",
+          },
         };
         return (
-          <section className="mb-6">
-            <div className="mb-3 flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px] text-verdant-emerald">
-                tips_and_updates
-              </span>
-              <h2 className="text-sm font-extrabold text-verdant-ink">המלצות לחודש הזה</h2>
+          <section className="mb-8">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className="flex h-9 w-9 items-center justify-center rounded-lg"
+                  style={{ background: "var(--morning-leaf-tint)", color: "var(--morning-forest)" }}
+                >
+                  <span className="material-symbols-outlined text-[20px]">tips_and_updates</span>
+                </div>
+                <div>
+                  <h2
+                    className="text-[17px] font-bold leading-tight"
+                    style={{ color: "var(--morning-ink)" }}
+                  >
+                    המלצות לחודש הזה
+                  </h2>
+                  <div className="text-[12px]" style={{ color: "var(--morning-muted)" }}>
+                    {nudges.length} פעולות שכדאי לשקול
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {nudges.map((n) => {
                 const c = SEV[n.severity];
                 const card = (
                   <div
-                    className="flex items-start gap-3 rounded-xl p-3"
-                    style={{ background: c.bg, borderRight: `3px solid ${c.border}` }}
+                    className="group relative flex items-start gap-4 overflow-hidden rounded-xl p-4 transition-all"
+                    style={{
+                      background: "var(--morning-surface)",
+                      border: "1px solid var(--morning-border)",
+                      boxShadow: "var(--morning-shadow-card)",
+                    }}
                   >
+                    {/* Left accent stripe (RTL) */}
                     <span
-                      className="material-symbols-outlined mt-0.5 text-[18px]"
-                      style={{ color: c.text }}
+                      aria-hidden
+                      className="absolute bottom-0 right-0 top-0"
+                      style={{ width: 4, background: c.stripe }}
+                    />
+                    <div
+                      className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg"
+                      style={{ background: c.chipBg, color: c.chipFg }}
                     >
-                      {n.icon}
-                    </span>
+                      <span className="material-symbols-outlined text-[22px]">{n.icon}</span>
+                    </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-[13px] font-extrabold" style={{ color: c.text }}>
+                      <div
+                        className="text-[11px] font-semibold uppercase tracking-[0.08em]"
+                        style={{ color: c.chipFg }}
+                      >
+                        {c.eyebrow}
+                      </div>
+                      <div
+                        className="mt-0.5 text-[15px] font-bold leading-tight"
+                        style={{ color: "var(--morning-ink)" }}
+                      >
                         {n.title}
                       </div>
-                      <div className="mt-0.5 text-[12px] leading-relaxed" style={{ color: c.text }}>
+                      <div
+                        className="mt-1.5 text-[13px] leading-relaxed"
+                        style={{ color: "var(--morning-muted)" }}
+                      >
                         {n.detail}
                       </div>
                     </div>
+                    {n.href && (
+                      <span
+                        className="material-symbols-outlined self-center text-[20px] transition-transform group-hover:-translate-x-0.5"
+                        style={{ color: "var(--morning-muted)" }}
+                      >
+                        chevron_left
+                      </span>
+                    )}
                   </div>
                 );
                 return n.href ? (
                   <Link
                     key={n.id}
                     href={n.href as any}
-                    className="block transition-opacity hover:opacity-90"
+                    className="block transition-shadow hover:shadow-md"
                   >
                     {card}
                   </Link>
@@ -1057,7 +1120,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <div className="caption mb-1.5">יתרה פנויה</div>
-              <div className="kpi-value" style={{ color: latestGap >= 0 ? "#A8E040" : "#F87171" }}>
+              <div className="kpi-value" style={{ color: latestGap >= 0 ? "#2C7A5A" : "#DC2626" }}>
                 {fmtILS(latestGap)}
               </div>
             </div>
@@ -1073,7 +1136,7 @@ export default function DashboardPage() {
                       <span
                         className="rounded px-1.5 py-0.5 text-[10px] font-bold"
                         style={{
-                          background: savingsRate >= 10 ? "#A8E040" : `${savingsLabelColor}15`,
+                          background: savingsRate >= 10 ? "#2C7A5A" : `${savingsLabelColor}15`,
                           color: savingsLabelColor,
                         }}
                       >
@@ -1082,7 +1145,7 @@ export default function DashboardPage() {
                     )}
                   </>
                 ) : (
-                  <span className="kpi-value" style={{ color: "#94A3B8" }}>
+                  <span className="kpi-value" style={{ color: "#6B7280" }}>
                     —
                   </span>
                 )}
@@ -1091,7 +1154,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Savings rate bar */}
-          <div className="h-1.5 w-full rounded-full" style={{ background: "#1F2A3F" }}>
+          <div className="h-1.5 w-full rounded-full" style={{ background: "#E5E7EB" }}>
             <div
               className="h-full rounded-full transition-all duration-700"
               style={{
@@ -1105,7 +1168,7 @@ export default function DashboardPage() {
           {scopeSplit && (
             <div
               className="mt-4 border-t pt-3 text-[10px]"
-              style={{ borderColor: "#1F2A3F", color: "#94A3B8" }}
+              style={{ borderColor: "#E5E7EB", color: "#6B7280" }}
             >
               <div className="mb-1 flex items-center justify-between">
                 <span className="flex items-center gap-1.5 font-bold">
@@ -1133,12 +1196,12 @@ export default function DashboardPage() {
               </div>
               <div
                 className="flex items-center justify-between border-t pt-1"
-                style={{ borderColor: "#1F2A3F" }}
+                style={{ borderColor: "#E5E7EB" }}
               >
-                <span className="font-extrabold" style={{ color: "#F8FAFC" }}>
+                <span className="font-extrabold" style={{ color: "#1A1A1A" }}>
                   סה״כ
                 </span>
-                <span className="font-extrabold tabular-nums" style={{ color: "#F8FAFC" }}>
+                <span className="font-extrabold tabular-nums" style={{ color: "#1A1A1A" }}>
                   {fmtILS(Math.round(scopeSplit.personal + scopeSplit.business))}
                 </span>
               </div>
@@ -1155,11 +1218,11 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3">
               <div
                 className="icon-sm"
-                style={{ background: "rgba(255,255,255,0.06)", color: "#A8E040" }}
+                style={{ background: "rgba(255,255,255,0.06)", color: "#2C7A5A" }}
               >
                 <span className="material-symbols-outlined text-[20px]">insights</span>
               </div>
-              <div className="caption">Net Worth · שווי נקי</div>
+              <div className="caption">שווי נטו</div>
             </div>
             {nwChange !== null && (
               <span className={`pill ${nwChange >= 0 ? "pill-mint" : "pill-danger"}`}>
@@ -1180,7 +1243,7 @@ export default function DashboardPage() {
             <div className="flex-1">
               <div
                 className="kpi-value tabular"
-                style={{ fontSize: 30, lineHeight: "36px", color: "#131C2E" }}
+                style={{ fontSize: 30, lineHeight: "36px", color: "#FFFFFF" }}
               >
                 {fmtILS(netWorthVal)}
               </div>
@@ -1208,22 +1271,21 @@ export default function DashboardPage() {
                 <div className="pill-inner flex items-center justify-between">
                   <span
                     className="text-[12px] font-bold"
-                    style={{ color: "rgba(249,250,242,0.65)" }}
+                    style={{ color: "rgba(249,250,242,0.72)" }}
                   >
                     התחייבויות
                   </span>
-                  <span className="tabular text-[13px] font-extrabold" style={{ color: "#fca5a5" }}>
+                  <span className="tabular text-[13px] font-extrabold" style={{ color: "#FCA5A5" }}>
                     {fmtILS(totalLiabilities)}
                   </span>
                 </div>
-                {/* Leverage = liabilities / assets. Surfacing it here so the
-                    couple sees the ratio next to its inputs — the conversation
-                    "we have ₪X in debt against ₪Y in assets" has a clean answer
-                    in one number. */}
+                {/* Leverage = liabilities / assets. Light tones to read on the
+                    forest-green hero — full saturation (#b91c1c/#D97706/#2C7A5A)
+                    disappears against the dark green. */}
                 {totalAssets > 0 && (() => {
                   const lev = Math.round((totalLiabilities / totalAssets) * 100);
                   const levColor =
-                    lev > 60 ? "#fca5a5" : lev > 40 ? "#FBBF24" : "#A8E040";
+                    lev > 60 ? "#FCA5A5" : lev > 40 ? "#FCD34D" : "#86EFAC";
                   const levLabel =
                     lev === 0
                       ? "ללא חובות"
@@ -1236,7 +1298,7 @@ export default function DashboardPage() {
                     <div className="pill-inner flex items-center justify-between">
                       <span
                         className="text-[12px] font-bold"
-                        style={{ color: "rgba(249,250,242,0.65)" }}
+                        style={{ color: "rgba(249,250,242,0.72)" }}
                       >
                         מינוף · {levLabel}
                       </span>
@@ -1259,10 +1321,8 @@ export default function DashboardPage() {
         </Link>
       </section>
 
-      {/* ═══════ Zone 2.5 — Monthly Deposits Widget ═══════ */}
-      <section className="mb-10">
-        <DepositsWidget />
-      </section>
+      {/* Monthly Deposits Widget removed from dashboard per Nir (2026-05-19) —
+          lives on its own /deposits page; couples don't need it on the home view. */}
 
       {/* ═══════ Zone 3 — Growth Chart (Full Width) ═══════ */}
       <section className="card-pad-lg relative mb-10 overflow-hidden">
@@ -1286,11 +1346,11 @@ export default function DashboardPage() {
                   fireResult.yearsToFire >= 0 && (
                     <div
                       className="mt-2 inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-extrabold"
-                      style={{ background: "#A8E040", color: "#A8E040" }}
+                      style={{ background: "var(--morning-leaf-tint)", color: "var(--morning-forest-deep)" }}
                     >
                       <span
                         className="material-symbols-outlined text-[14px]"
-                        style={{ color: "#4ADE80" }}
+                        style={{ color: "var(--morning-forest)" }}
                       >
                         explore
                       </span>
@@ -1301,7 +1361,7 @@ export default function DashboardPage() {
                 {fireResult.fireAge === null && fireResult.monthlyExpenses > 0 && (
                   <div
                     className="mt-2 inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-extrabold"
-                    style={{ background: "rgba(251,191,36,0.12)", color: "#92400E" }}
+                    style={{ background: "rgba(217,119,6,0.12)", color: "#92400E" }}
                   >
                     <span className="material-symbols-outlined text-[14px]">explore_off</span>
                     FIRE · חסרים {fmtILS(Math.round(fireResult.gapToFireCapital))} הון להון עצמאי
@@ -1314,16 +1374,16 @@ export default function DashboardPage() {
                     style={{
                       background:
                         lifeCoverage.planScore >= 75
-                          ? "#A8E040"
+                          ? "#2C7A5A"
                           : lifeCoverage.planScore >= 50
-                            ? "rgba(251,191,36,0.12)"
-                            : "rgba(248,113,113,0.12)",
+                            ? "rgba(217,119,6,0.12)"
+                            : "rgba(220,38,38,0.12)",
                       color:
                         lifeCoverage.planScore >= 75
-                          ? "#A8E040"
+                          ? "#2C7A5A"
                           : lifeCoverage.planScore >= 50
                             ? "#92400E"
-                            : "#F87171",
+                            : "#DC2626",
                     }}
                     title="מדד פלאן · 0-100 · גבוה=טוב יותר. משקלל כיסוי יעדים, חיסכון, חוב, וקרן חירום."
                   >
@@ -1333,7 +1393,7 @@ export default function DashboardPage() {
                   {lifeCoverage.missingPiece > 0 && (
                     <span
                       className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-extrabold"
-                      style={{ background: "rgba(248,113,113,0.12)", color: "#F87171" }}
+                      style={{ background: "rgba(220,38,38,0.12)", color: "#DC2626" }}
                       title="ערך נוכחי של יעדים שלא יכוסו לפי המסלול הנוכחי"
                     >
                       <span className="material-symbols-outlined text-[13px]">remove_circle</span>
@@ -1343,7 +1403,7 @@ export default function DashboardPage() {
                   {lifeCoverage.surplusPiece > 0 && (
                     <span
                       className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-extrabold"
-                      style={{ background: "#1A2438", color: "#78350F" }}
+                      style={{ background: "#FAFAF7", color: "#78350F" }}
                       title="כסף בעו״ש מעל קרן חירום של 6 חודשים — כסף שלא עובד"
                     >
                       <span className="material-symbols-outlined text-[13px]">savings</span>
@@ -1359,30 +1419,30 @@ export default function DashboardPage() {
                 {viewMode === "capital" ? (
                   <>
                     <span className="flex items-center gap-1.5">
-                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#4ADE80" }} />
+                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#059669" }} />
                       נדל&quot;ן
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#F8FAFC" }} />
+                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#FFFFFF" }} />
                       פנסיוני
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#A8E040" }} />
+                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#2C7A5A" }} />
                       נזיל + השקעות
                     </span>
                   </>
                 ) : (
                   <>
                     <span className="flex items-center gap-1.5">
-                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#4ADE80" }} />
+                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#059669" }} />
                       שכ&quot;ד נטו
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#F8FAFC" }} />
+                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#FFFFFF" }} />
                       פנסיה + בט&quot;ל + השתלמות
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#A8E040" }} />
+                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "#2C7A5A" }} />
                       משיכה נזילה (SWR)
                     </span>
                   </>
@@ -1396,7 +1456,7 @@ export default function DashboardPage() {
             {/* Capital ↔ Income — the "heart of the heart" toggle */}
             <div
               className="flex w-fit gap-1 rounded-lg p-1"
-              style={{ background: "rgba(168,224,64,0.06)" }}
+              style={{ background: "rgba(44,122,90,0.06)" }}
               title="הון מצטבר מול הכנסה חודשית בפרישה"
             >
               {[
@@ -1408,7 +1468,7 @@ export default function DashboardPage() {
                   onClick={() => setViewMode(m.key as "capital" | "income")}
                   className={`rounded-md px-3 py-1.5 text-[11px] font-bold transition-all ${
                     viewMode === m.key
-                      ? "bg-[#131C2E] text-verdant-ink shadow-sm"
+                      ? "bg-[#FFFFFF] text-verdant-ink shadow-sm"
                       : "text-verdant-muted hover:text-verdant-ink"
                   }`}
                 >
@@ -1418,7 +1478,7 @@ export default function DashboardPage() {
             </div>
             <div
               className="flex w-fit gap-1 rounded-lg p-1"
-              style={{ background: "rgba(168,224,64,0.06)" }}
+              style={{ background: "rgba(44,122,90,0.06)" }}
             >
               {CHART_RANGES.map((r) => (
                 <button
@@ -1426,7 +1486,7 @@ export default function DashboardPage() {
                   onClick={() => setChartRange(r.key)}
                   className={`rounded-md px-3 py-1.5 text-[11px] font-bold transition-all ${
                     chartRange === r.key
-                      ? "bg-[#131C2E] text-verdant-ink shadow-sm"
+                      ? "bg-[#FFFFFF] text-verdant-ink shadow-sm"
                       : "text-verdant-muted hover:text-verdant-ink"
                   }`}
                 >
@@ -1436,7 +1496,7 @@ export default function DashboardPage() {
             </div>
             <div
               className="flex w-fit gap-1 rounded-lg p-1"
-              style={{ background: "rgba(168,224,64,0.06)" }}
+              style={{ background: "rgba(44,122,90,0.06)" }}
               title="ריאלי = אחרי אינפלציה ומס 25%"
             >
               {[
@@ -1448,7 +1508,7 @@ export default function DashboardPage() {
                   onClick={() => setDisplayMode(m.key as "nominal" | "real")}
                   className={`rounded-md px-3 py-1.5 text-[11px] font-bold transition-all ${
                     displayMode === m.key
-                      ? "bg-[#131C2E] text-verdant-ink shadow-sm"
+                      ? "bg-[#FFFFFF] text-verdant-ink shadow-sm"
                       : "text-verdant-muted hover:text-verdant-ink"
                   }`}
                 >
@@ -1459,7 +1519,7 @@ export default function DashboardPage() {
             {displayMode === "real" && (
               <span
                 className="rounded-full px-2 py-1 text-[10px] font-bold"
-                style={{ background: "#A8E040", color: "#A8E040" }}
+                style={{ background: "var(--morning-leaf-tint)", color: "var(--morning-forest-deep)" }}
               >
                 ערכי היום · כולל אינפלציה ומס 25%
               </span>
@@ -1469,25 +1529,25 @@ export default function DashboardPage() {
           <svg
             viewBox={`0 0 ${CW} ${CH}`}
             className="w-full"
-            style={{ height: 280, background: "#0A1929", borderRadius: 8 }}
+            style={{ height: 280, background: "#F4F5F0", borderRadius: 8 }}
           >
             <defs>
               <linearGradient id="wm-re" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor="#4ADE80" stopOpacity="0.85" />
-                <stop offset="100%" stopColor="#4ADE80" stopOpacity="0.15" />
+                <stop offset="0%" stopColor="#059669" stopOpacity="0.85" />
+                <stop offset="100%" stopColor="#059669" stopOpacity="0.15" />
               </linearGradient>
               <linearGradient id="wm-pen" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor="#4ADE80" stopOpacity="0.75" />
-                <stop offset="100%" stopColor="#4ADE80" stopOpacity="0.1" />
+                <stop offset="0%" stopColor="#059669" stopOpacity="0.75" />
+                <stop offset="100%" stopColor="#059669" stopOpacity="0.1" />
               </linearGradient>
               <linearGradient id="wm-liq" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor="#A8E040" stopOpacity="0.7" />
-                <stop offset="100%" stopColor="#A8E040" stopOpacity="0.08" />
+                <stop offset="0%" stopColor="#2C7A5A" stopOpacity="0.7" />
+                <stop offset="100%" stopColor="#2C7A5A" stopOpacity="0.08" />
               </linearGradient>
               <linearGradient id="wm-total" x1="0" x2="1" y1="0" y2="0">
-                <stop offset="0%" stopColor="#F8FAFC" />
-                <stop offset="55%" stopColor="#A8E040" />
-                <stop offset="100%" stopColor="#4ADE80" />
+                <stop offset="0%" stopColor="#FFFFFF" />
+                <stop offset="55%" stopColor="#2C7A5A" />
+                <stop offset="100%" stopColor="#059669" />
               </linearGradient>
               <filter id="wm-glow" x="-20%" y="-20%" width="140%" height="140%">
                 <feGaussianBlur stdDeviation="3.5" result="blur" />
@@ -1509,7 +1569,7 @@ export default function DashboardPage() {
                     x2={CW - 44}
                     y1={yPos}
                     y2={yPos}
-                    stroke="#1F2A3F"
+                    stroke="#E5E7EB"
                     strokeWidth="1"
                     strokeDasharray={f === 0 ? undefined : "2 4"}
                   />
@@ -1519,7 +1579,7 @@ export default function DashboardPage() {
                       y={yPos + 4}
                       textAnchor="end"
                       fontSize="9"
-                      fill="#94A3B8"
+                      fill="#6B7280"
                       fontWeight="600"
                       fontFamily="Assistant, sans-serif"
                     >
@@ -1635,8 +1695,8 @@ export default function DashboardPage() {
                 const y = CHART_PAD_TOP + (CH - CHART_PAD_TOP) * (1 - last.total / maxNW);
                 return (
                   <g>
-                    <circle cx={x} cy={y} r="7" fill="#4ADE80" opacity="0.25" />
-                    <circle cx={x} cy={y} r="4" fill="#131C2E" stroke="#A8E040" strokeWidth="2" />
+                    <circle cx={x} cy={y} r="7" fill="#059669" opacity="0.25" />
+                    <circle cx={x} cy={y} r="4" fill="#FFFFFF" stroke="#2C7A5A" strokeWidth="2" />
                   </g>
                 );
               })()}
@@ -1657,14 +1717,14 @@ export default function DashboardPage() {
                 const labelX = Math.max(0, Math.min(x - labelW / 2, chartW - labelW));
                 return (
                   <g>
-                    <circle cx={x} cy={y} r="4" fill="#A8E040" opacity="0.5" />
+                    <circle cx={x} cy={y} r="4" fill="#2C7A5A" opacity="0.5" />
                     <rect
                       x={labelX}
                       y={y - 20}
                       width={labelW}
                       height="16"
                       rx="3"
-                      fill="#F8FAFC"
+                      fill="#FFFFFF"
                       opacity="0.8"
                     />
                     <text
@@ -1672,7 +1732,7 @@ export default function DashboardPage() {
                       y={y - 8}
                       textAnchor="middle"
                       fontSize="8.5"
-                      fill="#131C2E"
+                      fill="#FFFFFF"
                       fontWeight="700"
                       fontFamily="Assistant, sans-serif"
                     >
@@ -1720,7 +1780,7 @@ export default function DashboardPage() {
                   );
                   const projectedNW = chartData[idx].total;
                   const isCovered = projectedNW >= remaining;
-                  const color = isCovered ? bucket.color || "#B45309" : "#8B2E2E";
+                  const color = isCovered ? bucket.color || "#B45309" : "#DC2626";
                   const gap = isCovered ? 0 : Math.round(remaining - projectedNW);
                   return (
                     <g key={bucket.id}>
@@ -1745,9 +1805,9 @@ export default function DashboardPage() {
                       />
                       <circle cx={x} cy={pinY} r="4" fill={color} />
                       {isCovered ? (
-                        <circle cx={x} cy={pinY} r="1.5" fill="#131C2E" />
+                        <circle cx={x} cy={pinY} r="1.5" fill="#FFFFFF" />
                       ) : (
-                        <g stroke="#131C2E" strokeWidth="1.2" strokeLinecap="round">
+                        <g stroke="#FFFFFF" strokeWidth="1.2" strokeLinecap="round">
                           <line x1={x - 2} y1={pinY - 2} x2={x + 2} y2={pinY + 2} />
                           <line x1={x - 2} y1={pinY + 2} x2={x + 2} y2={pinY - 2} />
                         </g>
@@ -1778,20 +1838,20 @@ export default function DashboardPage() {
                       x2={x}
                       y1={CHART_PAD_TOP}
                       y2={CH}
-                      stroke="#4ADE80"
+                      stroke="#059669"
                       strokeDasharray="3 3"
                       strokeWidth="1.5"
                       opacity="0.7"
                     />
-                    <circle cx={x} cy={y} r="6" fill="#4ADE80" opacity="0.2" />
-                    <circle cx={x} cy={y} r="3.5" fill="#4ADE80" />
+                    <circle cx={x} cy={y} r="6" fill="#059669" opacity="0.2" />
+                    <circle cx={x} cy={y} r="3.5" fill="#059669" />
                     <rect
                       x={x - 22}
                       y={20}
                       width="44"
                       height="14"
                       rx="4"
-                      fill="#4ADE80"
+                      fill="#059669"
                       opacity="0.15"
                     />
                     <text
@@ -1799,7 +1859,7 @@ export default function DashboardPage() {
                       y={30}
                       textAnchor="middle"
                       fontSize="9"
-                      fill="#A8E040"
+                      fill="#2C7A5A"
                       fontWeight="800"
                       fontFamily="Assistant, sans-serif"
                     >
@@ -1825,13 +1885,13 @@ export default function DashboardPage() {
                         x2={x}
                         y1={CHART_PAD_TOP}
                         y2={CH}
-                        stroke="#f59e0b"
+                        stroke="#D97706"
                         strokeDasharray="4 3"
                         strokeWidth="1.5"
                         opacity="0.65"
                       />
-                      <circle cx={x} cy={y} r="5" fill="#f59e0b" opacity="0.2" />
-                      <circle cx={x} cy={y} r="3" fill="#f59e0b" />
+                      <circle cx={x} cy={y} r="5" fill="#D97706" opacity="0.2" />
+                      <circle cx={x} cy={y} r="3" fill="#D97706" />
                       {/* "פרישה" label above chart — centered on line, with background pill */}
                       <rect
                         x={x - 20}
@@ -1839,7 +1899,7 @@ export default function DashboardPage() {
                         width="40"
                         height="14"
                         rx="4"
-                        fill="#f59e0b"
+                        fill="#D97706"
                         opacity="0.15"
                       />
                       <text
@@ -1873,7 +1933,7 @@ export default function DashboardPage() {
                       x2={chartW}
                       y1={yTarget}
                       y2={yTarget}
-                      stroke="#F87171"
+                      stroke="#DC2626"
                       strokeDasharray="6 4"
                       strokeWidth="1.5"
                       opacity="0.7"
@@ -1884,14 +1944,14 @@ export default function DashboardPage() {
                       width="104"
                       height="14"
                       rx="4"
-                      fill="#F87171"
+                      fill="#DC2626"
                       opacity="0.12"
                     />
                     <text
                       x={6}
                       y={yTarget - 5}
                       fontSize="9"
-                      fill="#8B2E2E"
+                      fill="#DC2626"
                       fontWeight="800"
                       fontFamily="Assistant, sans-serif"
                     >
@@ -1930,8 +1990,8 @@ export default function DashboardPage() {
               const gap = incomeResult.gapAtRetirement;
               const shortfall = gap > 0;
               const sev = shortfall ? (gap / targetRetireIncome > 0.3 ? "critical" : "warn") : "ok";
-              const color = sev === "critical" ? "#8B2E2E" : sev === "warn" ? "#B45309" : "#A8E040";
-              const bg = sev === "critical" ? "rgba(248,113,113,0.12)" : sev === "warn" ? "rgba(251,191,36,0.12)" : "#A8E040";
+              const color = sev === "critical" ? "#DC2626" : sev === "warn" ? "#B45309" : "#2C7A5A";
+              const bg = sev === "critical" ? "rgba(220,38,38,0.12)" : sev === "warn" ? "rgba(217,119,6,0.12)" : "#2C7A5A";
               return (
                 <div className="mt-4 grid grid-cols-4 gap-3">
                   <div
@@ -1947,7 +2007,7 @@ export default function DashboardPage() {
                   </div>
                   <div
                     className="rounded-xl p-3"
-                    style={{ background: "#F8FAFC", border: "1px solid #1F2A3F" }}
+                    style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}
                   >
                     <div className="text-[10px] font-bold text-verdant-muted">בפרישה צפוי</div>
                     <div className="tabular text-lg font-extrabold text-verdant-ink">
@@ -1967,14 +2027,14 @@ export default function DashboardPage() {
                   </div>
                   <div
                     className="rounded-xl p-3"
-                    style={{ background: "#F8FAFC", border: "1px solid #1F2A3F" }}
+                    style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}
                   >
                     <div className="text-[10px] font-bold text-verdant-muted">
                       פער ממוצע (לכל תקופת פרישה)
                     </div>
                     <div
                       className="tabular text-lg font-extrabold"
-                      style={{ color: incomeResult.gapAverage > 0 ? "#8B2E2E" : "#A8E040" }}
+                      style={{ color: incomeResult.gapAverage > 0 ? "#DC2626" : "#2C7A5A" }}
                     >
                       {fmtILS(Math.round(Math.abs(incomeResult.gapAverage)))}
                     </div>
@@ -1984,8 +2044,9 @@ export default function DashboardPage() {
                       href={"/retirement" as any}
                       className="flex items-center justify-between rounded-xl px-4 py-3 transition-all"
                       style={{
-                        background: "linear-gradient(135deg,#F8FAFC,#A8E040)",
-                        color: "#131C2E",
+                        background: "linear-gradient(135deg,#2C7A5A,#1F5A42)",
+                        color: "#FFFFFF",
+                        boxShadow: "0 4px 12px rgba(44, 122, 90, 0.18)",
                       }}
                     >
                       <span className="flex items-center gap-2 text-[12px] font-extrabold">
@@ -2048,12 +2109,12 @@ export default function DashboardPage() {
               // Status → botanical palette (no stray purple/blue — aligned with brand)
               const statusColor =
                 projection.status === "ahead"
-                  ? "#A8E040" // forest
+                  ? "#2C7A5A" // forest
                   : projection.status === "on_track"
-                    ? "#4ADE80" // emerald
+                    ? "#059669" // emerald
                     : projection.status === "behind"
                       ? "#B45309" // amber
-                      : "#8B2E2E"; // deep red
+                      : "#DC2626"; // deep red
               const statusLabel =
                 projection.status === "ahead"
                   ? "מקדים"
@@ -2090,13 +2151,13 @@ export default function DashboardPage() {
                 <div
                   key={bucket.id}
                   className="flex items-center gap-5 rounded-2xl px-5 py-4 transition-all"
-                  style={{ background: "#131C2E", border: "1px solid #1F2A3F" }}
+                  style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}
                 >
                   <div
                     className="icon-sm"
                     style={{
-                      background: "rgba(168,224,64,0.12)",
-                      color: "#A8E040",
+                      background: "rgba(44,122,90,0.12)",
+                      color: "#2C7A5A",
                     }}
                   >
                     <span className="material-symbols-outlined text-[20px]">
@@ -2107,36 +2168,36 @@ export default function DashboardPage() {
                     <div className="mb-2 flex items-center justify-between gap-3">
                       <div
                         className="truncate text-[14px] font-extrabold"
-                        style={{ color: "#F8FAFC" }}
+                        style={{ color: "#1A1A1A" }}
                       >
                         {bucket.name}
                       </div>
                       <div
                         className="tabular shrink-0 text-[11px] font-bold"
-                        style={{ color: "#94A3B8" }}
+                        style={{ color: "#6B7280" }}
                       >
                         {dateStr}
                       </div>
                     </div>
                     <div
                       className="h-1.5 overflow-hidden rounded-full"
-                      style={{ background: "#1F2A3F" }}
+                      style={{ background: "#E5E7EB" }}
                     >
                       <div
                         className="h-full rounded-full transition-all"
-                        style={{ width: `${progressPct}%`, background: "#A8E040" }}
+                        style={{ width: `${progressPct}%`, background: "#2C7A5A" }}
                       />
                     </div>
                     <div className="mt-1.5 flex items-center justify-between">
                       <div
                         className="tabular text-[10px] font-bold"
-                        style={{ color: "#94A3B8" }}
+                        style={{ color: "#6B7280" }}
                       >
                         {fmtILS(bucket.currentAmount)} / {fmtILS(bucket.targetAmount)}
                       </div>
                       <div
                         className="tabular text-[10px] font-bold"
-                        style={{ color: "#F8FAFC" }}
+                        style={{ color: "#1A1A1A" }}
                       >
                         {progressPct}%
                       </div>
@@ -2164,7 +2225,7 @@ export default function DashboardPage() {
           <div className="mb-4 flex items-baseline justify-between">
             <h2 className="text-xl font-extrabold text-verdant-ink">תובנות פרואקטיביות</h2>
             {totalAnnualOpportunity(insights) > 0 && (
-              <span className="tabular text-[11px] font-bold" style={{ color: "#4ADE80" }}>
+              <span className="tabular text-[11px] font-bold" style={{ color: "#059669" }}>
                 הזדמנות שנתית כוללת: {fmtILS(totalAnnualOpportunity(insights))}
               </span>
             )}
@@ -2173,12 +2234,12 @@ export default function DashboardPage() {
             {insights.map((ins) => {
               const bar =
                 ins.severity === "critical"
-                  ? "#F87171"
+                  ? "#DC2626"
                   : ins.severity === "warning"
                     ? "#d97706"
                     : ins.severity === "opportunity"
-                      ? "#4ADE80"
-                      : "#A8E040";
+                      ? "#059669"
+                      : "#2C7A5A";
               return (
                 <Link
                   key={ins.id}

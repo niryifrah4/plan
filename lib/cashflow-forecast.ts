@@ -18,7 +18,7 @@
  */
 
 import { loadAssumptions } from "./assumptions";
-import { loadDebtData } from "./debt-store";
+import { loadDebtData, getAllMortgageTracks, effectiveTrackRate } from "./debt-store";
 import { buildBudgetLines, totalBudget, deriveMonthlyExpensesFromBudget } from "./budget-store";
 import { getMonthlyNetIncome } from "./income";
 import { loadSpecialEvents } from "./special-events-store";
@@ -116,13 +116,17 @@ export function buildForecast(): ForecastMonth[] {
 
   // Mortgage: aggregate from tracks. Estimate end based on weighted balance
   // + monthly payment + average rate.
-  const mortgageTracks = debt.mortgage?.tracks || [];
+  const mortgageTracks = getAllMortgageTracks(debt);
   let mortgageMonthly = mortgageTracks.reduce((s, t) => s + (t.monthlyPayment || 0), 0);
   const mortgageBalance = mortgageTracks.reduce((s, t) => s + (t.remainingBalance || 0), 0);
+  // 2026-05-19 Phase 1: use effectiveTrackRate so Prime-margin tracks
+  // contribute their real rate (prime + margin) instead of the 0.05 fallback.
+  // Rates are DECIMAL across the module.
   const mortgageRate =
     mortgageTracks.length > 0
       ? mortgageTracks.reduce(
-          (s, t) => s + (t.interestRate || 0.05) * (t.remainingBalance || 0),
+          (s, t) =>
+            s + (effectiveTrackRate(t, a.primeRate) || 0.05) * (t.remainingBalance || 0),
           0
         ) / Math.max(1, mortgageBalance)
       : 0.05;

@@ -52,12 +52,12 @@ export function FundSimulationModal({ fund, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-[#131C2E] shadow-soft"
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-[#FFFFFF] shadow-soft"
         onClick={(e) => e.stopPropagation()}
         dir="rtl"
       >
         {/* Header */}
-        <div className="v-divider sticky top-0 flex items-center justify-between border-b bg-[#131C2E] px-6 py-4">
+        <div className="v-divider sticky top-0 flex items-center justify-between border-b bg-[#FFFFFF] px-6 py-4">
           <div>
             <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
               סימולציה
@@ -114,7 +114,7 @@ export function FundSimulationModal({ fund, onClose }: Props) {
         </div>
 
         {/* Results */}
-        <div className="v-divider border-t px-6 py-4" style={{ background: "#F8FAFC" }}>
+        <div className="v-divider border-t px-6 py-4" style={{ background: "#FFFFFF" }}>
           <div className="grid grid-cols-2 gap-4">
             <ResultCard
               label="צבירה צפויה בפרישה"
@@ -143,7 +143,7 @@ export function FundSimulationModal({ fund, onClose }: Props) {
           <button
             onClick={onClose}
             className="rounded-lg px-4 py-2 text-[12px] font-bold"
-            style={{ background: "#A8E040", color: "#131C2E" }}
+            style={{ background: "#2C7A5A", color: "#FFFFFF" }}
           >
             סגור
           </button>
@@ -187,7 +187,7 @@ function SliderRow({
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="h-1.5 w-full accent-[#A8E040]"
+        className="h-1.5 w-full accent-[#2C7A5A]"
       />
     </div>
   );
@@ -208,16 +208,16 @@ function ResultCard({
 }) {
   const positive = delta > 0;
   const negative = delta < 0;
-  const color = positive ? "#A8E040" : negative ? "#8B2E2E" : "#94A3B8";
+  const color = positive ? "#2C7A5A" : negative ? "#DC2626" : "#6B7280";
   const sign = positive ? "+" : "";
   return (
-    <div className="rounded-xl bg-[#131C2E] p-4" style={{ border: "1px solid #1F2A3F" }}>
+    <div className="rounded-xl bg-[#FFFFFF] p-4" style={{ border: "1px solid #E5E7EB" }}>
       <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
         {label}
       </div>
       <div
         className="text-2xl font-extrabold tabular-nums text-verdant-ink"
-        style={{ fontFamily: "Manrope, Assistant, system-ui, sans-serif" }}
+        style={{ fontFamily: "inherit" }}
       >
         {value}
       </div>

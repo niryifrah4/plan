@@ -14,7 +14,9 @@ const CGT_RATE = 0.25;
 
 export function RsuCalc() {
   const [totalUnits, setTotalUnits] = useState(1000);
-  const [grantPrice, setGrantPrice] = useState(150);
+  // Default 0 matches RSU (the common case for Israeli tech workers under §102 capital track).
+  // For options, the user enters the strike price.
+  const [grantPrice, setGrantPrice] = useState(0);
   const [currentPrice, setCurrentPrice] = useState(220);
   const [vestingMonths, setVestingMonths] = useState(48);
   const [cliffMonths, setCliffMonths] = useState(12);
@@ -86,8 +88,8 @@ export function RsuCalc() {
             onClick={() => setShowNominal(!showNominal)}
             className="flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold"
             style={{
-              background: showNominal ? "#A8E04012" : "#A8E04012",
-              color: showNominal ? "#A8E040" : "#A8E040",
+              background: showNominal ? "#2C7A5A12" : "#2C7A5A12",
+              color: showNominal ? "#2C7A5A" : "#2C7A5A",
             }}
           >
             <span className="material-symbols-outlined text-[12px]">swap_horiz</span>
@@ -96,11 +98,20 @@ export function RsuCalc() {
         </div>
         <p className="mb-5 text-xs leading-relaxed text-verdant-muted">
           סעיף 102 מסלול רווח הון — מס 25% על הרווח במועד המכירה. הזן את פרטי ה-RSU/Options שלך.
+          <br />
+          <span className="text-[11px]">
+            <strong>מחיר הענקה:</strong> ל-RSU השאר 0 · לאופציות הזן את מחיר המימוש (Strike).
+          </span>
         </p>
 
         <div className="mb-5 grid grid-cols-2 gap-4 md:grid-cols-3">
           <Field label="סה״כ יחידות" value={totalUnits} onChange={setTotalUnits} />
-          <Field label="מחיר הענקה ($)" value={grantPrice} onChange={setGrantPrice} suffix="$" />
+          <Field
+            label="מחיר הענקה ($) — RSU=0"
+            value={grantPrice}
+            onChange={setGrantPrice}
+            suffix="$"
+          />
           <Field
             label="מחיר נוכחי ($)"
             value={currentPrice}
@@ -116,14 +127,14 @@ export function RsuCalc() {
         <div className="mb-5">
           <div className="mb-1 flex items-center justify-between text-[10px] font-bold">
             <span className="text-verdant-muted">התקדמות הבשלה</span>
-            <span style={{ color: "#A8E040" }}>{Math.round(analysis.vestedPct)}% הבשילו</span>
+            <span style={{ color: "#2C7A5A" }}>{Math.round(analysis.vestedPct)}% הבשילו</span>
           </div>
-          <div className="h-3 overflow-hidden rounded-full" style={{ background: "#1F2A3F" }}>
+          <div className="h-3 overflow-hidden rounded-full" style={{ background: "#E5E7EB" }}>
             <div
               className="h-full rounded-full transition-all duration-500"
               style={{
                 width: `${analysis.vestedPct}%`,
-                background: "linear-gradient(90deg, #F8FAFC, #A8E040)",
+                background: "linear-gradient(90deg, #FFFFFF, #2C7A5A)",
               }}
             />
           </div>
@@ -137,7 +148,7 @@ export function RsuCalc() {
         <div className="mb-4 grid grid-cols-2 gap-3">
           <div
             className="rounded-xl p-4"
-            style={{ background: "#1A2438", border: "1px solid #A8E04022" }}
+            style={{ background: "#FAFAF7", border: "1px solid #2C7A5A22" }}
           >
             <div className="mb-1 text-[9px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
               יחידות שהבשילו
@@ -147,18 +158,18 @@ export function RsuCalc() {
                 ? fmtILS(Math.round(analysis.grossValueVested))
                 : fmtILS(Math.round(analysis.netVested))}
             </div>
-            <div className="mt-1 text-[9px] font-bold" style={{ color: "#A8E040" }}>
+            <div className="mt-1 text-[9px] font-bold" style={{ color: "#2C7A5A" }}>
               {analysis.vestedUnits} יחידות × ${currentPrice}
             </div>
             {!showNominal && analysis.taxVested > 0 && (
-              <div className="mt-0.5 text-[9px] font-bold" style={{ color: "#F87171" }}>
+              <div className="mt-0.5 text-[9px] font-bold" style={{ color: "#DC2626" }}>
                 מס: {fmtILS(Math.round(analysis.taxVested))}
               </div>
             )}
           </div>
           <div
             className="rounded-xl p-4"
-            style={{ background: "#F8FAFC", border: "1px solid #1F2A3F22" }}
+            style={{ background: "#FFFFFF", border: "1px solid #E5E7EB22" }}
           >
             <div className="mb-1 text-[9px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
               סה״כ (כולל לא מובשל)
@@ -172,7 +183,7 @@ export function RsuCalc() {
               {totalUnits} יחידות × ${currentPrice}
             </div>
             {!showNominal && analysis.taxTotal > 0 && (
-              <div className="mt-0.5 text-[9px] font-bold" style={{ color: "#F87171" }}>
+              <div className="mt-0.5 text-[9px] font-bold" style={{ color: "#DC2626" }}>
                 מס: {fmtILS(Math.round(analysis.taxTotal))}
               </div>
             )}
@@ -180,7 +191,7 @@ export function RsuCalc() {
         </div>
 
         {/* Breakdown */}
-        <div className="space-y-2 rounded-xl p-3" style={{ background: "#F8FAFC" }}>
+        <div className="space-y-2 rounded-xl p-3" style={{ background: "#FFFFFF" }}>
           <div className="text-[9px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
             פירוט מס (סעיף 102)
           </div>
@@ -189,18 +200,18 @@ export function RsuCalc() {
           <Row
             label="רווח חייב במס"
             value={fmtILS(Math.round(analysis.gainVested))}
-            color="#f59e0b"
+            color="#D97706"
           />
           <Row
             label={`מס רווח הון (${CGT_RATE * 100}%)`}
             value={fmtILS(Math.round(analysis.taxVested))}
-            color="#F87171"
+            color="#DC2626"
           />
           <div className="v-divider border-t pt-2">
             <Row
               label="נטו בכיס"
               value={fmtILS(Math.round(analysis.netVested))}
-              color="#A8E040"
+              color="#2C7A5A"
               bold
             />
           </div>
@@ -217,9 +228,9 @@ export function RsuCalc() {
                 key={i}
                 className="rounded-lg p-2 text-center text-[9px] font-bold transition-all"
                 style={{
-                  background: t.vested ? "#A8E04015" : "#1A2438",
-                  color: t.vested ? "#A8E040" : "#999",
-                  border: t.vested ? "1px solid #A8E04030" : "1px solid transparent",
+                  background: t.vested ? "#2C7A5A15" : "#FAFAF7",
+                  color: t.vested ? "#2C7A5A" : "#999",
+                  border: t.vested ? "1px solid #2C7A5A30" : "1px solid transparent",
                 }}
               >
                 <div>{t.date}</div>
@@ -251,7 +262,7 @@ function Field({
       </label>
       <div
         className="flex items-center rounded-lg border px-3 py-2"
-        style={{ borderColor: "#1F2A3F", background: "#F8FAFC" }}
+        style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
       >
         <input
           type="number"
@@ -284,7 +295,7 @@ function Row({
       </span>
       <span
         className={`text-[11px] ${bold ? "font-extrabold" : "font-bold"} tabular`}
-        style={{ color: color || "#F8FAFC" }}
+        style={{ color: color || "#FFFFFF" }}
       >
         {value}
       </span>

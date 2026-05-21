@@ -11,7 +11,7 @@
 
 import { loadAssumptions } from "./assumptions";
 import { loadBuckets } from "./buckets-store";
-import { loadDebtData } from "./debt-store";
+import { loadDebtData, getAllMortgageTracks, effectiveTrackRate } from "./debt-store";
 import { loadAccounts, totalBankBalance } from "./accounts-store";
 import { loadPensionFunds } from "./pension-store";
 import { loadSecurities, totalSecuritiesValue } from "./securities-store";
@@ -172,13 +172,17 @@ export function buildFamilyRoadmap(): FamilyRoadmap {
   }
 
   // ── Mortgage payoff ──
-  const mortgageTracks = debt.mortgage?.tracks || [];
+  const mortgageTracks = getAllMortgageTracks(debt);
   const totalMortgageBalance = mortgageTracks.reduce((s, t) => s + (t.remainingBalance || 0), 0);
   const totalMortgageMonthly = mortgageTracks.reduce((s, t) => s + (t.monthlyPayment || 0), 0);
   if (totalMortgageBalance > 0 && totalMortgageMonthly > 0) {
+    // 2026-05-19 Phase 1: effectiveTrackRate handles Prime-margin tracks
+    // correctly (interestRate=0 + margin set). Rates are DECIMAL throughout.
     const avgRate =
-      mortgageTracks.reduce((s, t) => s + (t.interestRate || 0.05) * (t.remainingBalance || 0), 0) /
-      totalMortgageBalance;
+      mortgageTracks.reduce(
+        (s, t) => s + (effectiveTrackRate(t, a.primeRate) || 0.05) * (t.remainingBalance || 0),
+        0
+      ) / totalMortgageBalance;
     const r = avgRate / 12;
     const ratio = (totalMortgageBalance * r) / totalMortgageMonthly;
     const monthsLeft =

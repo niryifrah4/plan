@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { NAV_SECTIONS, type NavGroup, type NavItem } from "@/lib/nav";
 import { manualFactoryResetAsync } from "@/lib/factory-reset";
+import { useConfirm } from "@/components/ui/ConfirmModal";
 
 interface SidebarProps {
   familyName: string;
@@ -19,7 +20,6 @@ interface SidebarProps {
 
 const GROUPS_STORAGE_KEY = "verdant:nav:groups";
 
-/** Read open/closed state per group id from localStorage. */
 function loadGroupState(): Record<string, boolean> {
   if (typeof window === "undefined") return {};
   try {
@@ -47,8 +47,8 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { confirm, modal } = useConfirm();
 
-  // Group open/closed state, hydrated from localStorage after mount
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const defaults: Record<string, boolean> = {};
     for (const g of NAV_SECTIONS) {
@@ -68,7 +68,6 @@ export function Sidebar({
     });
   }, []);
 
-  // Auto-open a group if the active route is inside it (so user doesn't land on a collapsed group)
   useEffect(() => {
     if (!pathname) return;
     for (const g of NAV_SECTIONS) {
@@ -87,21 +86,15 @@ export function Sidebar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
-  const [resetStage, setResetStage] = useState<"idle" | "confirm">("idle");
-  useEffect(() => {
-    if (resetStage !== "confirm") return;
-    const t = setTimeout(() => setResetStage("idle"), 4000);
-    return () => clearTimeout(t);
-  }, [resetStage]);
-
   const handleReset = async () => {
-    if (resetStage === "idle") {
-      setResetStage("confirm");
-      return;
-    }
-    // 2026-04-29: await the async path so the remote-blob wipe + Supabase
-    // signOut finish BEFORE we reload. Otherwise the bootstrap re-pulls
-    // the deleted-but-not-yet-deleted state and the user sees ghost data.
+    const ok = await confirm({
+      title: "למחוק את כל הנתונים?",
+      body: "כל הנתונים של הלקוח יימחקו לצמיתות וכל הערכים יחזרו לאפס. פעולה זו אינה הפיכה.",
+      confirmLabel: "כן, מחק הכל",
+      cancelLabel: "ביטול",
+      variant: "danger",
+    });
+    if (!ok) return;
     const { wiped, remoteDeleted } = await manualFactoryResetAsync();
     try {
       // eslint-disable-next-line no-console
@@ -128,40 +121,39 @@ export function Sidebar({
       <li key={item.id}>
         <Link
           href={item.href as any}
-          className="relative flex items-center justify-between gap-3 rounded-2xl transition-all"
+          className="relative flex items-center justify-between gap-3 rounded-xl transition-all"
           style={{
-            height: "46px",
+            height: "42px",
             paddingInline: indent ? "14px" : "12px",
             paddingInlineStart: indent ? "28px" : "12px",
-            background: active ? "rgba(168, 224, 64, 0.12)" : "transparent",
-            color: active ? "#A8E040" : "#94A3B8",
+            background: active ? "var(--morning-leaf-tint)" : "transparent",
+            color: active ? "var(--morning-forest)" : "var(--morning-muted)",
           }}
           onMouseEnter={(e) => {
-            if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+            if (!active) e.currentTarget.style.background = "var(--morning-surface-2)";
           }}
           onMouseLeave={(e) => {
             if (!active) e.currentTarget.style.background = "transparent";
           }}
         >
-          {/* Active right-side bar (RTL: right edge) — Eclipse lime */}
           {active && (
             <span
               aria-hidden
               className="absolute"
               style={{
                 right: 0,
-                top: 10,
-                bottom: 10,
+                top: 8,
+                bottom: 8,
                 width: 3,
                 borderRadius: 3,
-                background: "#A8E040",
+                background: "var(--morning-forest)",
               }}
             />
           )}
           <span
             className="material-symbols-outlined text-[20px]"
             style={{
-              color: active ? "#A8E040" : "#94A3B8",
+              color: active ? "var(--morning-forest)" : "var(--morning-muted)",
               fontVariationSettings: active ? "'FILL' 1, 'wght' 500" : "'FILL' 0, 'wght' 400",
             }}
           >
@@ -170,18 +162,18 @@ export function Sidebar({
           <span
             className="flex-1 text-right text-[14px]"
             style={{
-              fontWeight: active ? 700 : 500,
-              color: active ? "#F8FAFC" : "#94A3B8",
+              fontWeight: active ? 600 : 500,
+              color: active ? "var(--morning-ink)" : "var(--morning-muted)",
             }}
           >
             {item.label}
           </span>
           {item.badge && (
             <span
-              className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+              className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
               style={{
-                background: active ? "#A8E040" : "rgba(168, 224, 64, 0.12)",
-                color: active ? "#0A1929" : "#A8E040",
+                background: active ? "var(--morning-forest)" : "var(--morning-leaf-tint)",
+                color: active ? "#fff" : "var(--morning-forest)",
               }}
             >
               {item.badge}
@@ -193,28 +185,24 @@ export function Sidebar({
   };
 
   const renderGroup = (group: NavGroup) => {
-    // Flat group (no header) — just render items
-    // 2026-04-28: visual separator above + same indent as items in
-    // collapsible groups so the row aligns with the rest of the rail.
     if (!group.label) {
       return (
         <div
           key={group.id}
           className="mt-3 pt-3"
-          style={{ borderTop: "1px solid #1F2A3F" }}
+          style={{ borderTop: "1px solid var(--morning-border)" }}
         >
           <ul className="space-y-1">{group.items.map((it) => renderItem(it, false))}</ul>
         </div>
       );
     }
 
-    // Non-collapsible labeled group (legacy fallback)
     if (!group.collapsible) {
       return (
         <div key={group.id} className="mt-5">
           <div
-            className="mb-2 px-3 text-right text-[11px] font-bold uppercase tracking-[0.18em]"
-            style={{ color: "#64748B" }}
+            className="mb-2 px-3 text-right text-[11px] font-semibold uppercase tracking-[0.14em]"
+            style={{ color: "var(--morning-subtle)" }}
           >
             {group.label}
           </div>
@@ -223,46 +211,47 @@ export function Sidebar({
       );
     }
 
-    // Collapsible group
     const open = openGroups[group.id] ?? true;
     const hasActiveChild = group.items.some((it) => isActive(it.href));
     return (
       <div key={group.id} className="mt-4">
         <button
           onClick={() => toggleGroup(group.id)}
-          className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 transition-all"
+          className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 transition-all"
           style={{
-            color: hasActiveChild ? "#F8FAFC" : "#94A3B8",
+            color: hasActiveChild ? "var(--morning-ink)" : "var(--morning-muted)",
             background: "transparent",
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.background = "var(--morning-surface-2)")
+          }
           onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           aria-expanded={open}
         >
+          {/* Category icon on the right (RTL leading edge) */}
+          {group.icon && (
+            <span
+              className="material-symbols-outlined text-[18px]"
+              style={{ color: hasActiveChild ? "var(--morning-forest)" : "var(--morning-subtle)" }}
+            >
+              {group.icon}
+            </span>
+          )}
+          <span
+            className="flex-1 text-right text-[12px] font-semibold uppercase tracking-[0.12em]"
+            style={{ color: hasActiveChild ? "var(--morning-ink)" : "var(--morning-subtle)" }}
+          >
+            {group.label}
+          </span>
+          {/* Chevron on the left (trailing edge) */}
           <span
             className="material-symbols-outlined text-[18px] transition-transform"
             style={{
-              color: "#64748B",
+              color: "var(--morning-subtle)",
               transform: open ? "rotate(0deg)" : "rotate(90deg)",
             }}
           >
             expand_more
-          </span>
-          <span className="flex flex-1 items-center justify-end gap-2">
-            <span
-              className="text-right text-[12px] font-bold uppercase tracking-[0.14em]"
-              style={{ color: hasActiveChild ? "#F8FAFC" : "#64748B" }}
-            >
-              {group.label}
-            </span>
-            {group.icon && (
-              <span
-                className="material-symbols-outlined text-[18px]"
-                style={{ color: hasActiveChild ? "#A8E040" : "#64748B" }}
-              >
-                {group.icon}
-              </span>
-            )}
           </span>
         </button>
         <div
@@ -281,180 +270,235 @@ export function Sidebar({
   };
 
   return (
-    <aside
-      className="fixed inset-y-0 right-0 z-40 flex w-[280px] flex-col"
-      style={{
-        background: "#0F1A2E",
-        borderLeft: "1px solid #1F2A3F",
-        color: "#94A3B8",
-      }}
-    >
-      {/* Brand */}
-      <div className="px-6 pb-5 pt-7">
-        <div className="flex items-center justify-start gap-3">
-          <div className="text-right">
+    <>
+      {modal}
+      <aside
+        className="fixed inset-y-0 right-0 z-40 flex w-[280px] flex-col"
+        style={{
+          background: "var(--morning-surface)",
+          borderLeft: "1px solid var(--morning-border)",
+          color: "var(--morning-muted)",
+          boxShadow: "var(--morning-shadow-card)",
+        }}
+      >
+        {/* Brand */}
+        <div className="px-6 pb-5 pt-7">
+          {/* Brand — text on the right (RTL leading), leaf icon pushed to the
+              left edge with justify-between so it gets breathing room and
+              doesn't feel pinned to the text. */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-right">
+              <div
+                className="text-[26px] font-bold leading-tight tracking-tight lowercase"
+                style={{
+                  color: "var(--morning-ink)",
+                  fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif",
+                }}
+              >
+                plan
+              </div>
+              <div
+                className="mt-0.5 text-[11px] font-medium"
+                style={{ color: "var(--morning-muted)" }}
+              >
+                מערכת לתכנון פיננסי
+              </div>
+            </div>
             <div
-              className="text-[22px] font-extrabold leading-tight tracking-tight"
-              style={{ color: "#F8FAFC", fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif" }}
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg"
+              style={{
+                background: "var(--morning-leaf-tint)",
+                border: "1px solid var(--morning-leaf-soft)",
+              }}
             >
-              פלאן
+              <span
+                className="material-symbols-outlined text-[20px]"
+                style={{ color: "var(--morning-forest)" }}
+              >
+                eco
+              </span>
             </div>
-            <div className="mt-0.5 text-[11px] font-bold" style={{ color: "#64748B" }}>
-              מערכת לתכנון פיננסי
-            </div>
-          </div>
-          <div
-            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl"
-            style={{
-              background: "rgba(168, 224, 64, 0.12)",
-              border: "1px solid rgba(168, 224, 64, 0.25)",
-            }}
-          >
-            <span className="material-symbols-outlined text-[22px]" style={{ color: "#A8E040" }}>
-              eco
-            </span>
           </div>
         </div>
-      </div>
 
-      {/* Active household */}
-      <div className="px-6 pb-3">
+        {/* Active household */}
+        <div className="px-5 pb-3">
+          <div
+            className="rounded-xl px-4 py-3"
+            style={{
+              background: "var(--morning-surface-2)",
+              border: "1px solid var(--morning-border)",
+            }}
+          >
+            <div
+              className="text-right text-[10px] font-semibold uppercase tracking-[0.14em]"
+              style={{ color: "var(--morning-muted)" }}
+            >
+              תיק פעיל
+            </div>
+            <div
+              className="mt-1 text-right text-[15px] font-bold"
+              style={{ color: "var(--morning-ink)" }}
+            >
+              {familyName}
+            </div>
+            <div
+              className="mt-0.5 text-right text-[11px]"
+              style={{ color: "var(--morning-muted)" }}
+            >
+              {membersCount} בני משפחה
+            </div>
+          </div>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto px-4 pb-2">
+          {NAV_SECTIONS.map((g) => {
+            const items = isAdvisor ? g.items : g.items.filter((it) => !it.advisorOnly);
+            if (items.length === 0) return null;
+            return renderGroup({ ...g, items });
+          })}
+        </nav>
+
+        {/* Footer */}
         <div
-          className="rounded-2xl px-4 py-3"
-          style={{
-            background: "#1A2438",
-            border: "1px solid #1F2A3F",
-          }}
+          className="px-5 py-4"
+          style={{ borderTop: "1px solid var(--morning-border)" }}
         >
-          <div
-            className="text-right text-[10px] font-bold uppercase tracking-[0.18em]"
-            style={{ color: "#64748B" }}
-          >
-            תיק פעיל
-          </div>
-          <div className="mt-1 text-right text-[15px] font-extrabold" style={{ color: "#F8FAFC" }}>
-            {familyName}
-          </div>
-          <div className="mt-0.5 text-right text-[11px]" style={{ color: "#94A3B8" }}>
-            {membersCount} בני משפחה
-          </div>
-        </div>
-      </div>
-
-      {/* Nav — strip advisor-only items for self-serve clients so they
-           don't see CRM affordances they have no use for. */}
-      <nav className="flex-1 overflow-y-auto px-4 pb-2">
-        {NAV_SECTIONS.map((g) => {
-          const items = isAdvisor ? g.items : g.items.filter((it) => !it.advisorOnly);
-          if (items.length === 0) return null;
-          return renderGroup({ ...g, items });
-        })}
-      </nav>
-
-      {/* Footer */}
-      <div className="px-6 py-4" style={{ borderTop: "1px solid #1F2A3F" }}>
-        <div className="flex items-center gap-3">
-          <div
-            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-[14px] font-extrabold"
-            style={{ background: "#A8E040", color: "#0A1929" }}
-          >
-            {advisorName.charAt(0)}
-          </div>
-          <div className="min-w-0 flex-1 text-right">
-            <div className="truncate text-[14px] font-bold" style={{ color: "#F8FAFC" }}>
-              {advisorName}
-            </div>
-            <div className="text-[11px]" style={{ color: "#94A3B8" }}>
-              מתכנן אחראי
-            </div>
-          </div>
-        </div>
-
-        {saveStatus !== "idle" && (
-          <div
-            className="mt-3 flex items-center justify-center gap-2 rounded-xl py-1.5 text-[11px] font-bold"
-            style={{
-              background:
-                saveStatus === "saving"
-                  ? "rgba(148,163,184,0.10)"
-                  : saveStatus === "saved"
-                    ? "rgba(168,224,64,0.12)"
-                    : "rgba(248,113,113,0.12)",
-              color:
-                saveStatus === "saving"
-                  ? "#94A3B8"
-                  : saveStatus === "saved"
-                    ? "#A8E040"
-                    : "#F87171",
-            }}
-          >
-            <span
-              className={`material-symbols-outlined text-[14px] ${
-                saveStatus === "saving" ? "animate-pulse" : ""
-              }`}
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-[14px] font-bold"
+              style={{
+                background: "var(--morning-forest)",
+                color: "#fff",
+              }}
             >
-              {saveStatus === "saving"
-                ? "cloud_sync"
-                : saveStatus === "saved"
-                  ? "cloud_done"
-                  : "cloud_off"}
-            </span>
-            {saveStatus === "saving" ? "שומר..." : saveStatus === "saved" ? "נשמר" : "שגיאה"}
+              {advisorName.charAt(0)}
+            </div>
+            <div className="min-w-0 flex-1 text-right">
+              <div
+                className="truncate text-[14px] font-semibold"
+                style={{ color: "var(--morning-ink)" }}
+              >
+                {advisorName}
+              </div>
+            </div>
           </div>
-        )}
 
-        <button
-          onClick={handleReset}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-[13px] font-bold transition-all"
-          style={{
-            background: resetStage === "confirm" ? "#F87171" : "rgba(248,113,113,0.10)",
-            color: resetStage === "confirm" ? "#0A1929" : "#F87171",
-            border:
-              resetStage === "confirm" ? "1px solid #F87171" : "1px solid rgba(248,113,113,0.25)",
-          }}
-          title="מוחק את כל הנתונים של הלקוח ומחזיר את כל הערכים לאפס"
-        >
-          <span className="material-symbols-outlined text-[16px]">
-            {resetStage === "confirm" ? "warning" : "restart_alt"}
-          </span>
-          {resetStage === "confirm" ? "לחץ שוב לאישור סופי" : "איפוס מלא לאפס"}
-        </button>
+          {saveStatus !== "idle" && (
+            <div
+              className="mt-3 flex items-center justify-center gap-2 rounded-xl py-1.5 text-[11px] font-semibold"
+              style={{
+                background:
+                  saveStatus === "saving"
+                    ? "var(--morning-surface-2)"
+                    : saveStatus === "saved"
+                      ? "var(--morning-success-soft)"
+                      : "var(--morning-danger-soft)",
+                color:
+                  saveStatus === "saving"
+                    ? "var(--morning-muted)"
+                    : saveStatus === "saved"
+                      ? "var(--morning-success)"
+                      : "var(--morning-danger)",
+              }}
+            >
+              <span
+                className={`material-symbols-outlined text-[14px] ${
+                  saveStatus === "saving" ? "animate-pulse" : ""
+                }`}
+              >
+                {saveStatus === "saving"
+                  ? "cloud_sync"
+                  : saveStatus === "saved"
+                    ? "cloud_done"
+                    : "cloud_off"}
+              </span>
+              {saveStatus === "saving" ? "שומר..." : saveStatus === "saved" ? "נשמר" : "שגיאה"}
+            </div>
+          )}
 
-        {/* "חזרה ל-CRM" — advisor-only. Clients never see this affordance. */}
-        {isAdvisor && (
+          {/* Reset — advisor only. Clients never see this dangerous affordance. */}
+          {isAdvisor && (
+            <button
+              onClick={handleReset}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[12px] font-semibold transition-all"
+              style={{
+                background: "transparent",
+                color: "var(--morning-muted)",
+                border: "1px solid var(--morning-border)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--morning-danger-soft)";
+                e.currentTarget.style.color = "var(--morning-danger)";
+                e.currentTarget.style.borderColor = "rgba(220,38,38,0.2)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = "var(--morning-muted)";
+                e.currentTarget.style.borderColor = "var(--morning-border)";
+              }}
+              title="מוחק את כל הנתונים של הלקוח ומחזיר את כל הערכים לאפס"
+            >
+              <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+              איפוס נתוני לקוח
+            </button>
+          )}
+
+          {isAdvisor && (
+            <button
+              onClick={async () => {
+                // 1. Clear the impersonation cookie so the advisor truly exits the
+                //    client's portfolio (instead of staying impersonated in the
+                //    background — which makes /dashboard bounce them straight back).
+                // 2. Use a hard navigation (window.location) so the (client) RSC
+                //    layout re-runs with a fresh cookie state.
+                try {
+                  await fetch("/api/crm/impersonate", { method: "DELETE" });
+                } catch {
+                  /* even if the network call fails, fall through to navigation */
+                }
+                window.location.href = "/crm";
+              }}
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-[13px] font-semibold transition-all"
+              style={{
+                background: "var(--morning-leaf-tint)",
+                color: "var(--morning-forest)",
+                border: "1px solid var(--morning-leaf-soft)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--morning-leaf-soft)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "var(--morning-leaf-tint)";
+              }}
+            >
+              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+              חזרה ל-CRM
+            </button>
+          )}
+
           <button
-            onClick={() => router.push("/crm")}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-[13px] font-bold transition-all"
+            onClick={onExit ?? (() => router.push("/login"))}
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all"
             style={{
-              background: "#1A2438",
-              color: "#F8FAFC",
-              border: "1px solid #1F2A3F",
+              background: "transparent",
+              color: "var(--morning-muted)",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#1F2A3F")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "#1A2438")}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--morning-surface-2)";
+              e.currentTarget.style.color = "var(--morning-ink)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "var(--morning-muted)";
+            }}
           >
-            <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-            חזרה ל-CRM
+            <span className="material-symbols-outlined text-[16px]">logout</span>
+            התנתקות
           </button>
-        )}
-
-        <button
-          onClick={onExit ?? (() => router.push("/login"))}
-          className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-[13px] font-bold transition-all"
-          style={{ background: "transparent", color: "#94A3B8" }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(248,113,113,0.10)";
-            e.currentTarget.style.color = "#F87171";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "#94A3B8";
-          }}
-        >
-          <span className="material-symbols-outlined text-[16px]">logout</span>
-          התנתקות
-        </button>
-      </div>
-    </aside>
+        </div>
+      </aside>
+    </>
   );
 }

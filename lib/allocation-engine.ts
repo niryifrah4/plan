@@ -18,6 +18,15 @@ export interface AssetWithAllocation {
   value: number;
   sector: "pension" | "investment" | "realestate" | "cash" | "insurance" | "debt";
   allocation: FundAllocation;
+  /**
+   * True when `allocation` is a fallback estimate (no registry match, hardcoded
+   * default, etc.) rather than data sourced from the canonical fund registry.
+   * Surfaced in `AllocationBreakdown.estimatedValue` so the UI can tell the
+   * user "X% of your wealth uses estimated allocations".
+   */
+  isEstimated?: boolean;
+  /** Management fee % (only meaningful for pension/gemel/hishtalmut). */
+  mgmtFeePct?: number;
 }
 
 export interface BreakdownSlice {
@@ -33,6 +42,12 @@ export interface AllocationBreakdown {
   assetClass: BreakdownSlice[];
   liquidity: BreakdownSlice[];
   totalValue: number;
+  /** ₪ sum of assets whose allocation is a fallback estimate (see `isEstimated`). */
+  estimatedValue: number;
+  /** Avg weighted mgmt fee % across pension assets that carried a `mgmtFee` hint. */
+  pensionMgmtFeePct?: number;
+  /** ₪ pension balance that contributed to the avg mgmt fee calc. */
+  pensionMgmtFeeBase?: number;
 }
 
 /* ── Label & Color Maps ── */
@@ -108,6 +123,10 @@ export function computeAllocation(assets: AssetWithAllocation[]): AllocationBrea
   };
   const liquidity: Record<string, number> = { immediate: 0, conditional: 0, locked: 0 };
 
+  let estimatedValue = 0;
+  let mgmtFeeWeighted = 0; // sum of (pct × balance)
+  let mgmtFeeBase = 0; // sum of balances that contributed a fee
+
   for (const asset of assets) {
     const weight = asset.value / totalValue;
 
@@ -121,6 +140,12 @@ export function computeAllocation(assets: AssetWithAllocation[]): AllocationBrea
       assetClass[key] = (assetClass[key] || 0) + (pct as number) * weight;
     }
     liquidity[asset.allocation.liquidity] += asset.value;
+
+    if (asset.isEstimated) estimatedValue += asset.value;
+    if (asset.sector === "pension" && typeof asset.mgmtFeePct === "number" && asset.value > 0) {
+      mgmtFeeWeighted += asset.mgmtFeePct * asset.value;
+      mgmtFeeBase += asset.value;
+    }
   }
 
   return {
@@ -137,6 +162,9 @@ export function computeAllocation(assets: AssetWithAllocation[]): AllocationBrea
         color: LIQ_COLORS[k] || "#999",
       })),
     totalValue,
+    estimatedValue,
+    pensionMgmtFeePct: mgmtFeeBase > 0 ? mgmtFeeWeighted / mgmtFeeBase : undefined,
+    pensionMgmtFeeBase: mgmtFeeBase > 0 ? mgmtFeeBase : undefined,
   };
 }
 
@@ -161,7 +189,34 @@ function toSlices(
 
 export function generateInsights(breakdown: AllocationBreakdown): string[] {
   const insights: string[] = [];
-  const { currency, geography, assetClass, liquidity, totalValue } = breakdown;
+  const {
+    currency,
+    geography,
+    assetClass,
+    liquidity,
+    totalValue,
+    estimatedValue,
+    pensionMgmtFeePct,
+    pensionMgmtFeeBase,
+  } = breakdown;
+
+  // Data-quality warning: how much of the chart is based on a guess vs. real data
+  if (totalValue > 0 && estimatedValue > 0) {
+    const pct = Math.round((estimatedValue / totalValue) * 100);
+    if (pct >= 5) {
+      insights.push(
+        `${pct}% מהתיק (${Math.round(estimatedValue).toLocaleString("he-IL")}₪) מבוסס על אומדן — קישור הקרנות למאגר יחזק את הדיוק`
+      );
+    }
+  }
+
+  // Mgmt-fee insight: weighted avg across pension funds + annual cost in ₪
+  if (typeof pensionMgmtFeePct === "number" && pensionMgmtFeePct > 0 && pensionMgmtFeeBase) {
+    const annualCost = Math.round((pensionMgmtFeePct / 100) * pensionMgmtFeeBase);
+    insights.push(
+      `דמי ניהול ממוצעים בפנסיה: ${pensionMgmtFeePct.toFixed(2)}% (~${annualCost.toLocaleString("he-IL")}₪/שנה)`
+    );
+  }
 
   // Currency concentration
   const usd = currency.find((c) => c.label.includes("דולר"));
@@ -202,5 +257,5 @@ export function generateInsights(breakdown: AllocationBreakdown): string[] {
 /* ── Empty breakdown ── */
 
 function emptyBreakdown(): AllocationBreakdown {
-  return { currency: [], geography: [], assetClass: [], liquidity: [], totalValue: 0 };
+  return { currency: [], geography: [], assetClass: [], liquidity: [], totalValue: 0, estimatedValue: 0 };
 }

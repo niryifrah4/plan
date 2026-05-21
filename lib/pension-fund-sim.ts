@@ -103,12 +103,12 @@ export function defaultFactorByType(type: PensionFund["type"]): number {
     case "bituach":
       return 175; // ביטוח מנהלים
     case "pension":
-      return 200; // קרן פנסיה (DC, Israeli market average)
+      return 220; // קרן פנסיה (DC) — מקדם תוחלת חיים 2026, גיל פרישה 67
     case "gemel":
       return 200; // קופת גמל לקצבה
     case "hishtalmut":
       return 200; // השתלמות נמשכת בד״כ הונית, factor פחות רלוונטי
     default:
-      return 200;
+      return 220;
   }
 }

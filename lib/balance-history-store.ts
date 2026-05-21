@@ -13,7 +13,7 @@
 import { loadAccounts, totalBankBalance, totalCreditCharges } from "./accounts-store";
 import { loadPensionFunds } from "./pension-store";
 import { loadProperties } from "./realestate-store";
-import { getTotalLiabilities, loadDebtData } from "./debt-store";
+import { getTotalLiabilities, loadDebtData, getAllMortgageTracks } from "./debt-store";
 import { loadBuckets, totalBucketBalance } from "./buckets-store";
 import { totalSecuritiesValue } from "./securities-store";
 import { scopedKey } from "./client-scope";
@@ -105,7 +105,7 @@ export function computeCurrentNetWorth(): NetWorthBreakdown {
   let mortgages = 0;
   try {
     const d = loadDebtData();
-    mortgages = (d.mortgage?.tracks || []).reduce((s, t) => s + (t.remainingBalance || 0), 0);
+    mortgages = getAllMortgageTracks(d).reduce((s, t) => s + (t.remainingBalance || 0), 0);
     const totalAll = getTotalLiabilities();
     debt = Math.max(0, totalAll - mortgages);
   } catch {}

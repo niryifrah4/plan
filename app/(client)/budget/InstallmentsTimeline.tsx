@@ -67,7 +67,7 @@ export function InstallmentsTimeline() {
   return (
     <section
       className="mb-6 rounded-2xl p-5"
-      style={{ background: "#131C2E", border: "1px solid #1F2A3F" }}
+      style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}
     >
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <div>
@@ -91,7 +91,7 @@ export function InstallmentsTimeline() {
             <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
               סה״כ נותר לשלם
             </div>
-            <div className="text-[16px] font-extrabold tabular-nums" style={{ color: "#FCA5A5" }}>
+            <div className="text-[16px] font-extrabold tabular-nums" style={{ color: "#B91C1C" }}>
               {fmtILS(totalRemaining)}
             </div>
           </div>
@@ -115,12 +115,12 @@ export function InstallmentsTimeline() {
             <div
               key={source}
               className="overflow-hidden rounded-xl"
-              style={{ border: "1px solid #1F2A3F" }}
+              style={{ border: "1px solid #E5E7EB" }}
             >
               {/* Source header */}
               <div
                 className="flex items-center justify-between px-4 py-2 text-[12px] font-extrabold"
-                style={{ background: "#1A2438", color: "#F8FAFC" }}
+                style={{ background: "#FAFAF7", color: "#1A1A1A" }}
               >
                 <span className="inline-flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-[14px]">credit_card</span>
@@ -135,8 +135,8 @@ export function InstallmentsTimeline() {
                 className="grid items-center px-4 py-2 text-[10px] font-extrabold uppercase tracking-[0.08em]"
                 style={{
                   gridTemplateColumns: "minmax(120px,1fr) 90px 90px 110px",
-                  color: "#94A3B8",
-                  borderBottom: "1px solid #1F2A3F",
+                  color: "#6B7280",
+                  borderBottom: "1px solid #E5E7EB",
                   columnGap: "10px",
                 }}
               >
@@ -165,7 +165,7 @@ export function InstallmentsTimeline() {
                     className="grid items-center px-4 py-2.5 text-[12px]"
                     style={{
                       gridTemplateColumns: "minmax(120px,1fr) 90px 90px 110px",
-                      borderBottom: "1px solid #1F2A3F",
+                      borderBottom: "1px solid #E5E7EB",
                       columnGap: "10px",
                     }}
                   >
@@ -176,23 +176,23 @@ export function InstallmentsTimeline() {
                       {/* Slim progress bar */}
                       <div
                         className="mt-1 h-1 w-full overflow-hidden rounded-full"
-                        style={{ background: "#1F2A3F" }}
+                        style={{ background: "#E5E7EB" }}
                       >
                         <div
                           className="h-full rounded-full"
-                          style={{ width: `${progressPct}%`, background: "#A8E040" }}
+                          style={{ width: `${progressPct}%`, background: "#2C7A5A" }}
                         />
                       </div>
                     </div>
-                    <div className="text-left font-bold tabular-nums" style={{ color: "#F8FAFC" }}>
+                    <div className="text-left font-bold tabular-nums" style={{ color: "#1A1A1A" }}>
                       {inst.currentPayment}/{inst.totalPayments}
                     </div>
-                    <div className="text-left font-bold tabular-nums" style={{ color: "#A8E040" }}>
+                    <div className="text-left font-bold tabular-nums" style={{ color: "#2C7A5A" }}>
                       {fmtILS(inst.monthlyAmount || 0)}
                     </div>
                     <div
                       className="text-left font-extrabold tabular-nums"
-                      style={{ color: "#FCA5A5" }}
+                      style={{ color: "#B91C1C" }}
                     >
                       {fmtILS(remainingMoney)}
                     </div>

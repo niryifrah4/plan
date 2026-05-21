@@ -45,14 +45,14 @@ export function SaleSimulator({ property, allProperties, onClose }: Props) {
 
   const taxColor =
     result.taxStatus === "exempt"
-      ? "#A8E040"
+      ? "#2C7A5A"
       : result.taxStatus === "exempt_partial"
         ? "#B45309"
         : result.taxStatus === "overlap"
           ? "#B45309"
           : result.taxStatus === "taxable"
-            ? "#8B2E2E"
-            : "#94A3B8";
+            ? "#DC2626"
+            : "#6B7280";
 
   return (
     <div
@@ -60,12 +60,12 @@ export function SaleSimulator({ property, allProperties, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-[#131C2E] shadow-soft"
+        className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-[#FFFFFF] shadow-soft"
         onClick={(e) => e.stopPropagation()}
         dir="rtl"
       >
         {/* Header */}
-        <div className="v-divider sticky top-0 z-10 flex items-center justify-between border-b bg-[#131C2E] px-6 py-4">
+        <div className="v-divider sticky top-0 z-10 flex items-center justify-between border-b bg-[#FFFFFF] px-6 py-4">
           <div>
             <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
               סימולציית מכירה
@@ -124,13 +124,14 @@ export function SaleSimulator({ property, allProperties, onClose }: Props) {
         </div>
 
         {/* Results */}
-        <div className="v-divider space-y-3 border-t px-6 py-5" style={{ background: "#F8FAFC" }}>
+        <div className="v-divider space-y-3 border-t px-6 py-5" style={{ background: "#FFFFFF" }}>
           {/* The big number */}
           <div
             className="rounded-2xl py-4 text-center"
             style={{
-              background: "linear-gradient(135deg, #A8E040 0%, #F8FAFC 100%)",
-              color: "#F8FAFC",
+              background: "linear-gradient(135deg, #2C7A5A 0%, #1F5A42 100%)",
+              color: "#FFFFFF",
+              boxShadow: "0 8px 24px rgba(44, 122, 90, 0.18)",
             }}
           >
             <div
@@ -141,7 +142,7 @@ export function SaleSimulator({ property, allProperties, onClose }: Props) {
             </div>
             <div
               className="mt-2 text-[42px] font-extrabold tabular-nums leading-none"
-              style={{ fontFamily: "Manrope, Assistant, sans-serif" }}
+              style={{ fontFamily: "inherit" }}
             >
               {fmtILS(result.netCashProceeds)}
             </div>
@@ -156,12 +157,12 @@ export function SaleSimulator({ property, allProperties, onClose }: Props) {
           </div>
 
           {/* Breakdown */}
-          <div className="rounded-xl bg-[#131C2E] p-4" style={{ border: "1px solid #1F2A3F" }}>
+          <div className="rounded-xl bg-[#FFFFFF] p-4" style={{ border: "1px solid #E5E7EB" }}>
             <Row label="מחיר מכירה צפוי" value={result.projectedSalePrice} />
             <Row label="עמלות מכירה" value={-result.sellingFees} negative />
             <Row label="יתרת משכנתא לתשלום" value={-result.mortgageBalanceAtSale} negative />
             <Row label={result.taxLabel} value={-result.estimatedTax} negative color={taxColor} />
-            <hr className="my-2" style={{ borderColor: "#1F2A3F" }} />
+            <hr className="my-2" style={{ borderColor: "#E5E7EB" }} />
             <Row label="נטו ביד" value={result.netCashProceeds} bold />
           </div>
 
@@ -177,7 +178,7 @@ export function SaleSimulator({ property, allProperties, onClose }: Props) {
           <button
             onClick={onClose}
             className="rounded-lg px-4 py-2 text-[13px] font-bold"
-            style={{ background: "#A8E040", color: "#131C2E" }}
+            style={{ background: "#2C7A5A", color: "#FFFFFF" }}
           >
             סגור
           </button>
@@ -219,7 +220,7 @@ function SliderField({
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="h-1.5 w-full accent-[#A8E040]"
+        className="h-1.5 w-full accent-[#2C7A5A]"
       />
     </div>
   );
@@ -238,7 +239,7 @@ function Row({
   bold?: boolean;
   color?: string;
 }) {
-  const textColor = color || (bold ? "#F8FAFC" : negative ? "#94A3B8" : "#A8E040");
+  const textColor = color || (bold ? "#FFFFFF" : negative ? "#6B7280" : "#2C7A5A");
   return (
     <div className="flex items-center justify-between py-1.5">
       <span className="text-[12px]" style={{ color: textColor, fontWeight: bold ? 800 : 500 }}>

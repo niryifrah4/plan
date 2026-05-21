@@ -60,7 +60,7 @@ export function AlternativesCompare({ title, horizonYears, current, proposed, no
         <div className="flex items-baseline justify-between">
           <span
             className="tabular text-2xl font-extrabold"
-            style={{ color: delta >= 0 ? "#A8E040" : "#F87171" }}
+            style={{ color: delta >= 0 ? "#2C7A5A" : "#DC2626" }}
           >
             {delta >= 0 ? "+" : ""}
             {fmtILS(delta)} ({pct >= 0 ? "+" : ""}
@@ -81,8 +81,8 @@ export function AlternativesCompare({ title, horizonYears, current, proposed, no
 }
 
 function Leg({ leg, fv, tone }: { leg: AlternativeLeg; fv: number; tone: "muted" | "accent" }) {
-  const bg = tone === "accent" ? "#A8E04011" : "#f4f6f1";
-  const border = tone === "accent" ? "#A8E040" : "#1F2A3F";
+  const bg = tone === "accent" ? "#2C7A5A11" : "#f4f6f1";
+  const border = tone === "accent" ? "#2C7A5A" : "#E5E7EB";
   return (
     <div className="rounded-lg border p-3" style={{ background: bg, borderColor: border }}>
       <div className="mb-1 text-right text-[10px] font-bold uppercase tracking-[0.15em] text-verdant-muted">
