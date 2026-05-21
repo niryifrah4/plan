@@ -366,7 +366,7 @@ export default function LoginPage() {
             </Field>
 
             {mode === "login" && !isDemoMode && (
-              <div style={{ marginTop: "10px", textAlign: "left" }}>
+              <div style={{ marginTop: "10px", textAlign: "right" }}>
                 <a
                   href="/login/forgot-password"
                   className="morning-link"
