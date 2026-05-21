@@ -315,6 +315,26 @@ export async function POST(req: NextRequest) {
     }
 
     const buf = Buffer.from(await file.arrayBuffer());
+
+    // Defense-in-depth against CVE-2023-30533 (xlsx prototype pollution):
+    // verify magic bytes match the declared extension. Without this, an attacker
+    // could rename a crafted file to .xlsx to bypass MIME checks. CSV is
+    // plain text so we skip the magic-bytes check for it.
+    const isXlsx = /\.xlsx$/i.test(name);
+    const isXls = /\.xls$/i.test(name) && !isXlsx;
+    if (isXlsx && !(buf[0] === 0x50 && buf[1] === 0x4b)) {
+      return NextResponse.json(
+        { error: "הקובץ אינו קובץ Excel תקין (.xlsx)", code: "BAD_MAGIC" },
+        { status: 415 }
+      );
+    }
+    if (isXls && !(buf[0] === 0xd0 && buf[1] === 0xcf && buf[2] === 0x11 && buf[3] === 0xe0)) {
+      return NextResponse.json(
+        { error: "הקובץ אינו קובץ Excel תקין (.xls)", code: "BAD_MAGIC" },
+        { status: 415 }
+      );
+    }
+
     let wb: XLSX.WorkBook;
     try {
       wb = XLSX.read(buf, { type: "buffer", cellDates: false });

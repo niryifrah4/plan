@@ -33,6 +33,34 @@ import { SaleSimulator } from "@/components/realestate/SaleSimulator";
 import { RefinanceAlerts } from "@/components/debt/RefinanceAlerts";
 import { GoalLinker } from "@/components/GoalLinker";
 import { removeLinksForAsset } from "@/lib/asset-goal-linking";
+import { useConfirm } from "@/components/ui/ConfirmModal";
+
+/**
+ * Project remaining mortgage balance after `yearsAhead` years.
+ * Solves for remaining months from (balance, monthly, rate), then forwards
+ * the standard amortization formula B(t) = B₀·(1+r)^t − M·((1+r)^t − 1)/r.
+ *
+ * Why this matters: a linear approximation (balance − balance/years × y)
+ * overstates the equity in the early years of a קל"צ mortgage by 15–25% —
+ * for a couple with 2 apartments this skews their forecast significantly.
+ */
+function projectedMortgageBalance(
+  balance: number,
+  monthly: number,
+  annualRate: number,
+  yearsAhead: number
+): number {
+  if (balance <= 0 || monthly <= 0 || yearsAhead <= 0) return Math.max(0, balance);
+  const r = annualRate / 12;
+  if (r <= 0) return Math.max(0, balance - monthly * yearsAhead * 12);
+  // Payment must cover at least the monthly interest, otherwise balance grows.
+  if (monthly <= balance * r) return balance;
+  const remainingMonths = -Math.log(1 - (balance * r) / monthly) / Math.log(1 + r);
+  if (!isFinite(remainingMonths) || remainingMonths <= 0) return 0;
+  const monthsForward = Math.min(yearsAhead * 12, remainingMonths);
+  const growth = Math.pow(1 + r, monthsForward);
+  return Math.max(0, balance * growth - (monthly * (growth - 1)) / r);
+}
 
 /* ═══════════════════════════════════════════════════════════
    Helper: PropertyMortgagePanel
@@ -801,6 +829,7 @@ export default function RealEstatePage() {
   // 2026-05-19. Pass primeRate as decimal (0.06 = 6%) and convert to percent
   // only at display time.
   const primeRate = assumptions.primeRate;
+  const { confirm, modal: confirmModal } = useConfirm();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingPropId, setEditingPropId] = useState<string | null>(null);
   const [salePropId, setSalePropId] = useState<string | null>(null);
@@ -933,14 +962,19 @@ export default function RealEstatePage() {
       const yearlyMortgage = totalMonthlyMortgage * 12;
       cumulativeCF += yearlyRent - yearlyExpenses - yearlyMortgage;
 
+      // Per-property remaining balance — true amortization, not linear.
+      // Fallback rate: assumptions.avgMortgageRate (BoI quarterly publication).
+      const projectedTotalMortgage = properties.reduce((sum, p) => {
+        const bal = p.mortgageBalance ?? 0;
+        const m = p.monthlyMortgage ?? 0;
+        return sum + projectedMortgageBalance(bal, m, assumptions.avgMortgageRate, y);
+      }, 0);
+
       years.push({
         year: y,
         value: Math.round(runningValue),
         cumulativeCashflow: Math.round(cumulativeCF),
-        equity: Math.round(
-          runningValue -
-            Math.max(0, totalMortgageBalance - (totalMortgageBalance / forecastYears) * y)
-        ),
+        equity: Math.round(runningValue - projectedTotalMortgage),
       });
     }
     return years;
@@ -953,6 +987,7 @@ export default function RealEstatePage() {
     totalMonthlyMortgage,
     totalMortgageBalance,
     properties,
+    assumptions.avgMortgageRate,
   ]);
 
   const finalValue = forecast[forecast.length - 1]?.value ?? totalValue;
@@ -979,7 +1014,19 @@ export default function RealEstatePage() {
     setEditingPropId(null);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    const prop = properties.find((p) => p.id === id);
+    const valueText = prop?.currentValue
+      ? ` בשווי ${fmtILS(prop.currentValue)}`
+      : "";
+    const ok = await confirm({
+      title: "למחוק את הנכס?",
+      body: `הנכס "${prop?.name ?? "ללא שם"}"${valueText} יימחק יחד עם הקישורים שלו ליעדים. הפעולה בלתי הפיכה.`,
+      confirmLabel: "כן, מחק",
+      cancelLabel: "ביטול",
+      variant: "danger",
+    });
+    if (!ok) return;
     deleteProperty(id);
     removeLinksForAsset("realestate", id);
     pulse();
@@ -1009,33 +1056,33 @@ export default function RealEstatePage() {
       color: netCashflow >= 0 ? "#2C7A5A" : "#DC2626",
     },
     {
-      label: "ROI כולל",
+      label: "תשואה שנתית",
       value: totalEquityInvested > 0 ? `${roi.toFixed(1)}%` : "—",
       sub:
         totalEquityInvested > 0
-          ? `תשואה על הון עצמי מושקע של ${fmtILS(totalEquityInvested)}`
+          ? `על הון עצמי של ${fmtILS(totalEquityInvested)}`
           : undefined,
       icon: "monitoring",
       color: roi > 10 ? "#2C7A5A" : roi > 0 ? "#D97706" : "#DC2626",
     },
     {
-      label: "DSCR",
+      label: "כיסוי החזר",
       value: totalMonthlyMortgage > 0 ? dscr.toFixed(2) : "—",
       sub:
         totalMonthlyMortgage > 0
           ? dscr >= 1.25
-            ? "בריא — הכנסות מכסות חוב"
+            ? "השכ\"ד מכסה את החוב"
             : dscr >= 1.0
-              ? "גבולי — כיסוי מינימלי"
-              : "שלילי — ההכנסות לא מכסות"
+              ? "השכ\"ד בקושי מכסה"
+              : "השכ\"ד לא מספיק"
           : "אין משכנתא",
       icon: "shield",
       color: dscr >= 1.25 ? "#2C7A5A" : dscr >= 1.0 ? "#D97706" : "#DC2626",
     },
     {
-      label: "LTV",
+      label: "מימון מהבנק",
       value: `${ltv.toFixed(0)}%`,
-      sub: ltv <= 60 ? "יחס בריא" : ltv <= 75 ? "סביר" : "גבוה — סיכון",
+      sub: ltv <= 60 ? "רמת מינוף בריאה" : ltv <= 75 ? "מינוף סביר" : "מינוף גבוה",
       icon: "percent",
       color: ltv <= 60 ? "#2C7A5A" : ltv <= 75 ? "#D97706" : "#DC2626",
     },
@@ -1048,6 +1095,7 @@ export default function RealEstatePage() {
      ═══════════════════════════════════════════════════════════ */
   return (
     <div className="mx-auto max-w-5xl" dir="rtl">
+      {confirmModal}
       {/* ── 1. PageHeader ── */}
       <PageHeader
         subtitle="שלב 6"
@@ -1152,7 +1200,7 @@ export default function RealEstatePage() {
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <div className="text-left">
+                <div className="text-right">
                   <div className="text-[10px] font-bold text-verdant-muted">שווי נוכחי</div>
                   <div className="tabular text-base font-extrabold text-verdant-ink">
                     {fmtILS(prop.currentValue)}
@@ -1193,17 +1241,21 @@ export default function RealEstatePage() {
                   </button>
                   <button
                     onClick={() => setEditingPropId(prop.id)}
-                    className="rounded p-1 hover:bg-[#FAFAF7]"
+                    title="עריכה"
+                    aria-label="עריכת נכס"
+                    className="rounded-lg p-2.5 hover:bg-[#FAFAF7] min-h-[44px] min-w-[44px] flex items-center justify-center"
                   >
-                    <span className="material-symbols-outlined text-[14px] text-verdant-muted">
+                    <span className="material-symbols-outlined text-[18px] text-verdant-muted">
                       edit
                     </span>
                   </button>
                   <button
                     onClick={() => handleDelete(prop.id)}
-                    className="rounded p-1 hover:bg-red-50"
+                    title="מחיקה"
+                    aria-label="מחיקת נכס"
+                    className="rounded-lg p-2.5 hover:bg-red-50 min-h-[44px] min-w-[44px] flex items-center justify-center"
                   >
-                    <span className="material-symbols-outlined text-[14px] text-red-400">
+                    <span className="material-symbols-outlined text-[18px] text-red-400">
                       delete
                     </span>
                   </button>

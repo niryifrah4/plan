@@ -1125,7 +1125,16 @@ export default function DashboardPage() {
               </div>
             </div>
             <div>
-              <div className="caption mb-1.5">אחוז חיסכון</div>
+              <div
+                className="caption mb-1.5"
+                title={
+                  salaryRealRate !== null
+                    ? "חיסכון פנסיוני בלבד (פנסיה + השתלמות) מתוך השכר ברוטו. חיסכון פנוי לא נכלל."
+                    : "חיסכון מתוך התקציב החודשי — (הכנסות פחות הוצאות) חלקי הכנסות."
+                }
+              >
+                אחוז חיסכון
+              </div>
               <div className="flex items-baseline gap-2">
                 {hasIncomeData ? (
                   <>
@@ -1334,9 +1343,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <div className="caption mb-1">
-                  {viewMode === "capital"
-                    ? "Wealth Mountain · הר העושר"
-                    : "Retirement Income · הכנסה חודשית בפרישה"}
+                  {viewMode === "capital" ? "הר העושר" : "הכנסה חודשית בפרישה"}
                 </div>
                 <h3 className="t-lg font-extrabold" style={{ color: "var(--botanical-forest)" }}>
                   {viewMode === "capital" ? "תחזית צמיחה הוליסטית" : "הכנסה חודשית בפרישה"}
@@ -1354,7 +1361,7 @@ export default function DashboardPage() {
                       >
                         explore
                       </span>
-                      FIRE · חופש כלכלי בגיל {fireResult.fireAge} ({fireResult.fireYear}) · עוד{" "}
+                      חופש כלכלי בגיל {fireResult.fireAge} ({fireResult.fireYear}) · עוד{" "}
                       {fireResult.yearsToFire} שנה
                     </div>
                   )}
@@ -1364,7 +1371,7 @@ export default function DashboardPage() {
                     style={{ background: "rgba(217,119,6,0.12)", color: "#92400E" }}
                   >
                     <span className="material-symbols-outlined text-[14px]">explore_off</span>
-                    FIRE · חסרים {fmtILS(Math.round(fireResult.gapToFireCapital))} הון להון עצמאי
+                    עוד {fmtILS(Math.round(fireResult.gapToFireCapital))} כדי להגיע לחופש כלכלי
                   </div>
                 )}
                 {/* Plan Score + Missing/Surplus — 3 compact badges */}
@@ -1863,7 +1870,7 @@ export default function DashboardPage() {
                       fontWeight="800"
                       fontFamily="Assistant, sans-serif"
                     >
-                      FIRE
+                      חופש כלכלי
                     </text>
                   </g>
                 );

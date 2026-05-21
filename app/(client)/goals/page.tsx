@@ -312,7 +312,7 @@ export default function GoalsPage() {
     >
       {modal}
       <PageHeader
-        subtitle="Plan · מטרות ויעדים"
+        subtitle="שלב 5"
         title="המטרות והיעדים שלי"
         description="הגדרת מטרות חיים וצביעת הכסף אליהן — כדי לדעת לאן אנחנו הולכים"
       />
