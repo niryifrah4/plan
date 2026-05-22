@@ -12,8 +12,10 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "plan · מערכת לתכנון פיננסי",
     short_name: "plan",
     description: "תכנון פיננסי, תזרים מזומנים, השקעות וחובות במקום אחד",
-    // Installed PWA → mobile shell. Desktop visitors keep using /dashboard via direct URL.
-    start_url: "/m",
+    // Installed PWA opens the root → middleware sends signed-out users to /login,
+    // signed-in clients/advisors to /dashboard or /crm via the (client) layout.
+    // (Previously `/m` was planned as a mobile shell — never built; pointed to 404.)
+    start_url: "/",
     scope: "/",
     display: "standalone",
     orientation: "portrait-primary",

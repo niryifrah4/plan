@@ -116,8 +116,7 @@ export default function RiskManagementPage() {
           label="אחוז כיסוי"
           value={`${pct}%`}
           icon="verified"
-          tone="forest"
-          bg={pct >= 80 ? "#FFFFFF" : pct >= 50 ? "#B45309" : "#DC2626"}
+          tone={pct >= 80 ? "forest" : pct >= 50 ? "amber" : "red"}
           sub={pct >= 80 ? "כיסוי מלא" : pct >= 50 ? "פערים חלקיים" : "פערים מהותיים"}
         />
         <SolidKpi label="מכוסים" value={String(stats.covered)} icon="check_circle" tone="emerald" />

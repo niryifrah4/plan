@@ -6,16 +6,19 @@ import {
   loadDebtData as loadDebt,
   saveDebtData as saveDebt,
   effectiveTrackRate,
+  trackCpiRate,
   type DebtData,
   type Loan,
   type Installment,
   type MortgageData,
   type MortgageTrack,
 } from "@/lib/debt-store";
+import { projectIndexedLoan, effectiveNominalRate } from "@shared/financial-math";
 import { RefinanceSimulator } from "@/components/debt/RefinanceSimulator";
 import { RefinanceAlerts } from "@/components/debt/RefinanceAlerts";
 import { FullRefinanceSimulator } from "@/components/debt/FullRefinanceSimulator";
 import { PayoffSimulator } from "@/components/debt/PayoffSimulator";
+import { AmortizationUpload } from "@/components/debt/AmortizationUpload";
 import { type IndexationType, type RepaymentMethod } from "@/lib/debt-store";
 import { useAssumptions } from "@/lib/hooks/useAssumptions";
 import { getMonthlyNetIncome } from "@/lib/income";
@@ -374,6 +377,31 @@ export default function DebtPage() {
     [update]
   );
 
+  /** Merge parsed-from-PDF tracks into a specific mortgage. Phase 4: the
+   *  upload UI delivers a confirmed list; we append to existing tracks so the
+   *  planner can run multiple uploads (e.g. two separate mortgage statements).
+   *  Empty IDs get a fresh one defensively. */
+  const addParsedTracksToMortgage = useCallback(
+    (mortgageId: string, parsed: MortgageTrack[]) => {
+      if (!parsed.length) return;
+      update((prev) => ({
+        ...prev,
+        mortgages: prev.mortgages.map((m) =>
+          m.id !== mortgageId
+            ? m
+            : {
+                ...m,
+                tracks: [
+                  ...m.tracks,
+                  ...parsed.map((t) => ({ ...t, id: t.id || uid() })),
+                ],
+              }
+        ),
+      }));
+    },
+    [update]
+  );
+
   /* ── Derived ── */
   const loanTotals = useMemo(() => {
     const monthlyTotal = data.loans.reduce((s, l) => s + (l.monthlyPayment || 0), 0);
@@ -403,29 +431,24 @@ export default function DebtPage() {
 
     // Total interest the family will still pay across the remaining life
     // of all tracks. 2026-05-05 per finance-agent: shows the "true cost" of
-    // the mortgage and motivates accelerated payoff. Formula per track:
-    //   monthsRemaining = solve(balance, monthly, rate) — same closed-form as
-    //   in cashflow-forecast.
-    //   interestRemaining = monthly × monthsRemaining − balance
-    // 2026-05-19 Phase 1: rate is now DECIMAL across the module, so r=rate/12
-    // is the correct monthly rate. Uses effectiveTrackRate so Prime tracks
-    // (interestRate=0 with margin set) get their true rate, not 0%.
+    // the mortgage and motivates accelerated payoff.
+    // 2026-05-19 Phase 1: decimal rate standard, effectiveTrackRate so Prime
+    // tracks count.
+    // 2026-05-21 Phase 3: indexation-aware via projectIndexedLoan — CPI-linked
+    // ("מדד") tracks now compound the balance + payment monthly with the
+    // user's inflation assumption. Non-indexed tracks fall back to the
+    // closed-form solver. Result: an indexed mortgage of ₪600k @ 2.5% real
+    // for 25 yrs no longer reports ~₪215k interest; it correctly reports
+    // ~₪440k nominal cost (with 2.5% CPI).
     let interestRemaining = 0;
     for (const t of tracks) {
       const balance = t.remainingBalance || 0;
       const monthly = t.monthlyPayment || 0;
       if (!balance || !monthly) continue;
       const rate = effectiveTrackRate(t, primeRate) || 0.05;
-      const r = rate / 12;
-      let monthsLeft: number;
-      if (r === 0) {
-        monthsLeft = Math.ceil(balance / monthly);
-      } else {
-        const ratio = (balance * r) / monthly;
-        monthsLeft = ratio >= 1 || ratio <= 0 ? 360 : Math.ceil(-Math.log(1 - ratio) / Math.log(1 + r));
-      }
-      const totalCost = monthly * monthsLeft;
-      interestRemaining += Math.max(0, totalCost - balance);
+      const cpi = trackCpiRate(t, assumptions.inflationRate);
+      const projection = projectIndexedLoan(balance, monthly, rate, cpi);
+      interestRemaining += projection.totalInterestNominal;
     }
 
     return {
@@ -524,6 +547,12 @@ export default function DebtPage() {
           icon="balance"
           tone={dtiTone}
           sub={dtiSub}
+          title={
+            "DTI = סך החזר חודשי על חובות ÷ הכנסה חודשית נטו.\n" +
+            "פחות מ-30% — מצב בריא.\n" +
+            "30%-40% — זהירות, פחות מקום לאירועים בלתי-צפויים.\n" +
+            "מעל 40% — מצב לחוץ; בנקים יסרבו אשראי נוסף."
+          }
         />
         <SolidKpi
           label="יתרת משכנתא"
@@ -740,14 +769,18 @@ export default function DebtPage() {
                       const valueForLtv = linkedProperty?.currentValue || mortgage.propertyValue;
                       if (!valueForLtv || !m_balance) return null;
                       const ltv = (m_balance / valueForLtv) * 100;
+                      const source = linkedProperty
+                        ? "מבוסס על שווי הנכס המקושר"
+                        : 'מבוסס על שדה "שווי נכס" מקומי';
                       return (
                         <div
                           className="rounded-full px-3 py-1.5 text-[11px] font-extrabold"
                           style={{ background: "#FAFAF7", color: "#2C7A5A" }}
                           title={
-                            linkedProperty
-                              ? `יחס חוב לערך נכס — מבוסס על שווי הנכס המקושר`
-                              : `יחס חוב לערך נכס — מבוסס על שדה "שווי נכס" מקומי`
+                            `LTV = יתרת המשכנתא ÷ שווי הנכס × 100. ${source}.\n` +
+                            "פחות מ-60% — מצב טוב, יותר מקום למשכנתא נוספת.\n" +
+                            "60%-75% — נורמלי לרוב משקי הבית.\n" +
+                            "מעל 75% — מקסימום במשכנתא ראשונה, עלולה להוריד את התנאים."
                           }
                         >
                           LTV {ltv.toFixed(0)}%
@@ -927,14 +960,32 @@ export default function DebtPage() {
                           />
                           {/* Interest rate — 14px, prominent.
                               Rates are stored as DECIMAL (0.048) in the model
-                              but typed/displayed as PERCENT (4.8) in the UI. */}
+                              but typed/displayed as PERCENT (4.8) in the UI.
+                              2026-05-21 Phase 3: tooltip surfaces effective
+                              nominal rate for CPI-linked tracks so a "low"
+                              stated 2.5% indexed rate is shown alongside its
+                              real-world ~5% nominal equivalent. */}
                           <div
                             className="flex items-center gap-0.5"
-                            title={
-                              typeof track.margin === "number"
-                                ? `פריים (${(primeRate * 100).toFixed(2)}%) + ${(track.margin * 100).toFixed(2)}%`
-                                : ""
-                            }
+                            title={(() => {
+                              const realRate = effectiveTrackRate(track, primeRate);
+                              const cpi = trackCpiRate(track, assumptions.inflationRate);
+                              const effNominal = effectiveNominalRate(realRate, cpi);
+                              const lines: string[] = [];
+                              if (typeof track.margin === "number") {
+                                lines.push(
+                                  `פריים (${(primeRate * 100).toFixed(2)}%) + ${(track.margin * 100).toFixed(2)}%`
+                                );
+                              }
+                              if (cpi > 0) {
+                                lines.push(
+                                  `ריבית נקובה: ${(realRate * 100).toFixed(2)}%`,
+                                  `מדד צפוי: ${(cpi * 100).toFixed(1)}%`,
+                                  `ריבית אפקטיבית (כולל מדד): ${(effNominal * 100).toFixed(2)}%`
+                                );
+                              }
+                              return lines.join("\n");
+                            })()}
                           >
                             <input
                               type="number"
@@ -1097,8 +1148,8 @@ export default function DebtPage() {
                     );
                   })}
 
-                  {/* Add track */}
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  {/* Add track manually OR auto-import from PDF amortization */}
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
                     <button
                       onClick={() => addMortgageTrack(mortgage.id)}
                       className="btn btn-secondary btn-sm"
@@ -1106,6 +1157,11 @@ export default function DebtPage() {
                       <span className="material-symbols-outlined text-[14px]">add</span>
                       הוסף מסלול
                     </button>
+                    <AmortizationUpload
+                      onTracksParsed={(tracks) =>
+                        addParsedTracksToMortgage(mortgage.id, tracks)
+                      }
+                    />
                   </div>
                 </div>
               )}
@@ -1113,7 +1169,10 @@ export default function DebtPage() {
           );
         })}
 
-        {/* Add another mortgage + global actions */}
+        {/* Add another mortgage. Per-mortgage "טען לוח סילוקין" lives inside
+            each card so the parsed tracks land in the right mortgage. The old
+            global link to /balance#amortization (a static promise card with
+            no upload handler) was removed 2026-05-21 in Phase 4. */}
         {mortgages.length > 0 && (
           <div
             className="flex flex-wrap items-center gap-2 px-5 py-4 md:px-7"
@@ -1123,14 +1182,6 @@ export default function DebtPage() {
               <span className="material-symbols-outlined text-[14px]">add_home</span>
               הוסף משכנתא נוספת
             </button>
-            <a
-              href="/balance?tab=documents#amortization"
-              className="btn btn-secondary btn-sm"
-              title="העלה PDF של לוח סילוקין מהבנק — המערכת תקלוט מסלולים, ריביות ויתרות"
-            >
-              <span className="material-symbols-outlined text-[14px]">upload_file</span>
-              טען לוח סילוקין
-            </a>
           </div>
         )}
       </section>

@@ -37,14 +37,18 @@ export interface SolidKpiProps {
   tone?: KpiTone;
   /** Legacy override — used by /insurance for the dynamic coverage tile. */
   bg?: string;
+  /** Native browser tooltip — used to explain jargon-y KPIs (DTI, LTV, etc.)
+   *  to a non-technical couple without crowding the tile with copy. */
+  title?: string;
 }
 
-export function SolidKpi({ label, value, icon, sub, tone = "forest", bg }: SolidKpiProps) {
+export function SolidKpi({ label, value, icon, sub, tone = "forest", bg, title }: SolidKpiProps) {
   // Legacy colored-bg branch (kept for /insurance coverage tile).
   if (bg) {
     return (
       <div
         className="relative overflow-hidden p-4 transition-all duration-200"
+        title={title}
         style={{
           background: bg,
           color: "#fff",
@@ -90,6 +94,7 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg }: Solid
   return (
     <div
       className="relative overflow-hidden px-5 py-4 duration-200"
+      title={title}
       style={{
         borderRadius: "0.75rem",
         background: "var(--morning-surface)",

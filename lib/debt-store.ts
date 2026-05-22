@@ -49,13 +49,34 @@ export interface MortgageTrack {
 /**
  * Returns the effective interest rate for a track. If `margin` is set,
  * returns `primeRate + margin` (for Prime-linked tracks). Otherwise returns
- * the absolute `interestRate`.
+ * the absolute `interestRate`. Result is a DECIMAL fraction.
+ *
+ * For CPI-linked tracks this is the REAL rate — the user-stated 2.5% on a
+ * "מדד" track. Use `effectiveNominalRate(realRate, cpiRate)` from
+ * financial-math when you need the nominal-equivalent (≈ 5% for 2.5% +
+ * 2.5% CPI). Use `trackCpiRate(track, cpiAssumption)` to know which CPI
+ * to feed forward in projections.
  */
 export function effectiveTrackRate(track: MortgageTrack, primeRate: number): number {
   if (typeof track.margin === "number") {
     return primeRate + track.margin;
   }
   return track.interestRate || 0;
+}
+
+/**
+ * Returns the CPI rate that applies to a track's forward projection.
+ *
+ * - `indexation === "מדד"` → returns `cpiAssumption` (typically 0.025 from
+ *   `assumptions.inflationRate`). Forward balance + payments grow with CPI.
+ * - any other indexation → returns 0 (no CPI compounding in projection).
+ *
+ * "דולר" tracks are intentionally treated as 0 — a separate FX projection
+ * would be needed and is not in scope. Pages should surface a disclaimer
+ * for dollar tracks rather than relying on CPI math.
+ */
+export function trackCpiRate(track: MortgageTrack, cpiAssumption: number): number {
+  return track.indexation === "מדד" ? cpiAssumption : 0;
 }
 
 export interface MortgageData {

@@ -3,9 +3,17 @@ node_modules/
 .env
 .env.local
 .env.*.local
+# 2026-05-21: explicit guard for ad-hoc env backups that don't match the
+# patterns above (e.g. `.env.local.prod-backup`). These can contain real
+# SERVICE_ROLE_KEY / ANON_KEY and must never reach git.
+.env.*backup*
+.env.local.prod-backup
 *.tsbuildinfo
 .DS_Store
 uploads/
+
+# Legacy `*.bak` rescue copies — never commit, keep local for safety only.
+*.bak
 
 # Playwright artifacts
 test-results/

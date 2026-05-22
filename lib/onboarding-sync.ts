@@ -827,7 +827,18 @@ function syncChildLifeEventsFromOnb(): void {
     ONB_CHILDREN_KEY,
     []
   );
-  syncChildLifeEvents(children);
+  // Dedupe by (name, dob) so a stuttering onboarding save (which has happened
+  // when the children array gets written twice on rapid focus/blur) can't
+  // fan out into N×M auto-generated buckets in life-events.
+  const seen = new Set<string>();
+  const unique = children.filter((c) => {
+    const key = `${(c.name || "").trim().toLowerCase()}|${(c.dob || "").trim()}`;
+    if (!key.trim() || key === "|") return false;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  syncChildLifeEvents(unique);
 }
 
 /* ── 5. Children → Kids Savings Store ── */

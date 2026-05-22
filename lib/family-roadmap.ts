@@ -11,7 +11,13 @@
 
 import { loadAssumptions } from "./assumptions";
 import { loadBuckets } from "./buckets-store";
-import { loadDebtData, getAllMortgageTracks, effectiveTrackRate } from "./debt-store";
+import {
+  loadDebtData,
+  getAllMortgageTracks,
+  effectiveTrackRate,
+  trackCpiRate,
+} from "./debt-store";
+import { projectIndexedLoan } from "@shared/financial-math";
 import { loadAccounts, totalBankBalance } from "./accounts-store";
 import { loadPensionFunds } from "./pension-store";
 import { loadSecurities, totalSecuritiesValue } from "./securities-store";
@@ -176,17 +182,21 @@ export function buildFamilyRoadmap(): FamilyRoadmap {
   const totalMortgageBalance = mortgageTracks.reduce((s, t) => s + (t.remainingBalance || 0), 0);
   const totalMortgageMonthly = mortgageTracks.reduce((s, t) => s + (t.monthlyPayment || 0), 0);
   if (totalMortgageBalance > 0 && totalMortgageMonthly > 0) {
-    // 2026-05-19 Phase 1: effectiveTrackRate handles Prime-margin tracks
-    // correctly (interestRate=0 + margin set). Rates are DECIMAL throughout.
-    const avgRate =
-      mortgageTracks.reduce(
-        (s, t) => s + (effectiveTrackRate(t, a.primeRate) || 0.05) * (t.remainingBalance || 0),
-        0
-      ) / totalMortgageBalance;
-    const r = avgRate / 12;
-    const ratio = (totalMortgageBalance * r) / totalMortgageMonthly;
-    const monthsLeft =
-      ratio > 0 && ratio < 1 ? Math.ceil(-Math.log(1 - ratio) / Math.log(1 + r)) : 360;
+    // 2026-05-21 Phase 3: project each track independently so CPI-linked
+    // ("מדד") tracks compound forward correctly. The roadmap "mortgage ends"
+    // milestone fires when the LAST track is paid off — the longest months
+    // remaining across all tracks. Non-indexed tracks use the closed form.
+    let monthsLeft = 0;
+    for (const t of mortgageTracks) {
+      const balance = t.remainingBalance || 0;
+      const monthly = t.monthlyPayment || 0;
+      if (!balance || !monthly) continue;
+      const rate = effectiveTrackRate(t, a.primeRate) || 0.05;
+      const cpi = trackCpiRate(t, a.inflationRate);
+      const trackMonths = projectIndexedLoan(balance, monthly, rate, cpi).monthsRemaining;
+      if (trackMonths > monthsLeft) monthsLeft = trackMonths;
+    }
+    if (monthsLeft === 0) monthsLeft = 360; // defensive
     const payoffYear = currentYear + Math.ceil(monthsLeft / 12);
     if (payoffYear <= horizonYear) {
       events.push({

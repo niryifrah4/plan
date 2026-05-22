@@ -18,7 +18,13 @@
  */
 
 import { loadAssumptions } from "./assumptions";
-import { loadDebtData, getAllMortgageTracks, effectiveTrackRate } from "./debt-store";
+import {
+  loadDebtData,
+  getAllMortgageTracks,
+  effectiveTrackRate,
+  trackCpiRate,
+} from "./debt-store";
+import { projectIndexedLoan } from "@shared/financial-math";
 import { buildBudgetLines, totalBudget, deriveMonthlyExpensesFromBudget } from "./budget-store";
 import { getMonthlyNetIncome } from "./income";
 import { loadSpecialEvents } from "./special-events-store";
@@ -114,29 +120,29 @@ export function buildForecast(): ForecastMonth[] {
       remainingPays: Math.max(0, (inst.totalPayments || 0) - (inst.currentPayment || 0) + 1),
     }));
 
-  // Mortgage: aggregate from tracks. Estimate end based on weighted balance
-  // + monthly payment + average rate.
+  // Mortgage: aggregate from tracks.
+  // 2026-05-21 Phase 3: project each track separately so CPI-linked tracks
+  // ("מדד") use their real-rate + inflation projection while fixed tracks use
+  // the closed form. The forecast's "mortgage ends" event fires when the
+  // LONGEST-running track finishes — approximation, but accurate enough for
+  // the 12-month cashflow horizon this engine targets.
   const mortgageTracks = getAllMortgageTracks(debt);
   let mortgageMonthly = mortgageTracks.reduce((s, t) => s + (t.monthlyPayment || 0), 0);
   const mortgageBalance = mortgageTracks.reduce((s, t) => s + (t.remainingBalance || 0), 0);
-  // 2026-05-19 Phase 1: use effectiveTrackRate so Prime-margin tracks
-  // contribute their real rate (prime + margin) instead of the 0.05 fallback.
-  // Rates are DECIMAL across the module.
-  const mortgageRate =
-    mortgageTracks.length > 0
-      ? mortgageTracks.reduce(
-          (s, t) =>
-            s + (effectiveTrackRate(t, a.primeRate) || 0.05) * (t.remainingBalance || 0),
-          0
-        ) / Math.max(1, mortgageBalance)
-      : 0.05;
   const originalMortgageMonthly = mortgageMonthly;
   const mortgageMonthsLeft = (() => {
     if (!mortgageMonthly || !mortgageBalance) return 0;
-    const r = mortgageRate / 12;
-    const ratio = (mortgageBalance * r) / mortgageMonthly;
-    if (ratio >= 1 || ratio <= 0) return 360;
-    return Math.ceil(-Math.log(1 - ratio) / Math.log(1 + r));
+    let maxMonths = 0;
+    for (const t of mortgageTracks) {
+      const balance = t.remainingBalance || 0;
+      const monthly = t.monthlyPayment || 0;
+      if (!balance || !monthly) continue;
+      const rate = effectiveTrackRate(t, a.primeRate) || 0.05;
+      const cpi = trackCpiRate(t, a.inflationRate);
+      const months = projectIndexedLoan(balance, monthly, rate, cpi).monthsRemaining;
+      if (months > maxMonths) maxMonths = months;
+    }
+    return maxMonths;
   })();
 
   // User-defined special events (annual bonus, tax refund, planned car

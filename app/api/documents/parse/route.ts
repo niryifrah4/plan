@@ -67,18 +67,42 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Validate PDF magic bytes for PDF files
+    // Validate magic bytes per declared extension.
+    // PDFs: %PDF header. XLSX: ZIP (PK\x03\x04). XLS: OLE2 (D0 CF 11 E0).
+    // Defense-in-depth against CVE-2023-30533 (xlsx prototype pollution):
+    // ensures a crafted file can't pretend to be Excel by extension only.
     for (const file of files) {
       const ext = file.name.toLowerCase().split(".").pop();
+      const header = Buffer.from(await file.slice(0, 8).arrayBuffer());
       if (ext === "pdf") {
-        const header = Buffer.from(await file.slice(0, 4).arrayBuffer());
-        if (header.length < 4 || !header.equals(PDF_MAGIC)) {
+        if (header.length < 4 || !header.slice(0, 4).equals(PDF_MAGIC)) {
           return NextResponse.json(
             { error: `הקובץ ${file.name} אינו PDF תקין — בדוק את המקור`, code: "INVALID_PDF" },
             { status: 400 }
           );
         }
+      } else if (ext === "xlsx") {
+        if (header.length < 4 || header[0] !== 0x50 || header[1] !== 0x4b) {
+          return NextResponse.json(
+            { error: `הקובץ ${file.name} אינו Excel תקין (.xlsx)`, code: "INVALID_XLSX" },
+            { status: 400 }
+          );
+        }
+      } else if (ext === "xls") {
+        if (
+          header.length < 4 ||
+          header[0] !== 0xd0 ||
+          header[1] !== 0xcf ||
+          header[2] !== 0x11 ||
+          header[3] !== 0xe0
+        ) {
+          return NextResponse.json(
+            { error: `הקובץ ${file.name} אינו Excel תקין (.xls)`, code: "INVALID_XLS" },
+            { status: 400 }
+          );
+        }
       }
+      // CSV is plain text — no magic bytes; size + extension guard is sufficient.
     }
 
     // Parse all files

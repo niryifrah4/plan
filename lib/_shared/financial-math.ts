@@ -104,6 +104,132 @@ export function amortSchedule(principal: number, annualRate: number, months: num
   return rows;
 }
 
+// ---------- CPI-aware mortgage projection (Israeli "צמוד מדד") ----------
+//
+// In an Israeli CPI-linked mortgage, the principal balance is reindexed to
+// the consumer price index every month, and the payment grows in lockstep so
+// the loan is still amortized over its original term in real terms. The
+// stated rate is the REAL rate — the nominal cost is higher because the
+// balance and the payments both grow with CPI over the loan's life.
+//
+// The Fisher equation captures the relation:
+//   (1 + nominal) = (1 + real) × (1 + cpi)
+//
+// Use `effectiveNominalRate` to show couples why a "low" 2.5% indexed rate
+// can cost more than a 5% fixed rate over 25 years. Use `projectIndexedLoan`
+// for forward simulations (interestRemaining KPI, cashflow forecast, refi
+// break-even).
+
+/**
+ * Effective nominal annual rate, given a real rate and CPI assumption.
+ * Both inputs are decimal fractions (0.025 = 2.5%). For non-indexed tracks
+ * pass `cpiRate = 0` and the function returns `realRate` unchanged.
+ */
+export function effectiveNominalRate(realRate: number, cpiRate: number = 0): number {
+  return (1 + realRate) * (1 + cpiRate) - 1;
+}
+
+export interface IndexedProjection {
+  /** Months until the balance reaches zero (capped at maxMonths). */
+  monthsRemaining: number;
+  /** Sum of all future payments in nominal shekels. */
+  totalCostNominal: number;
+  /** Nominal interest paid over remaining life = totalCost − currentBalance. */
+  totalInterestNominal: number;
+  /** True if the simulator hit `maxMonths` without amortizing — a "stuck" loan
+   *  whose payment doesn't even cover monthly interest at the given rate. */
+  cappedAtMax: boolean;
+}
+
+/**
+ * Forward-project a (possibly CPI-linked) mortgage track.
+ *
+ * Non-indexed track: pass `annualCpi = 0` and the function uses the standard
+ * closed-form solver. Identical to the legacy `interestRemaining` math.
+ *
+ * Indexed track: pass the assumed annual CPI. The function simulates month
+ * by month — balance grows by CPI before interest accrues, and the monthly
+ * payment grows with CPI too (Israeli "תשלום צמוד" convention). The total
+ * cost is nominal (what the family will actually pay in future shekels).
+ *
+ * @param balance        Current outstanding principal (₪).
+ * @param monthlyPayment Current monthly payment (₪, already CPI-adjusted to today).
+ * @param annualRate     Real annual rate as a DECIMAL fraction (0.025 = 2.5%).
+ * @param annualCpi      Assumed annual CPI as a DECIMAL fraction (0.025 = 2.5%).
+ *                       Pass 0 for non-indexed tracks.
+ * @param maxMonths      Safety cap to avoid infinite loops (default 600 = 50 yrs).
+ */
+export function projectIndexedLoan(
+  balance: number,
+  monthlyPayment: number,
+  annualRate: number,
+  annualCpi: number = 0,
+  maxMonths: number = 600
+): IndexedProjection {
+  if (balance <= 0 || monthlyPayment <= 0) {
+    return { monthsRemaining: 0, totalCostNominal: 0, totalInterestNominal: 0, cappedAtMax: false };
+  }
+  const r = annualRate / 12;
+  const c = annualCpi / 12;
+
+  // Closed-form for the non-indexed case — fast and exact.
+  if (c === 0) {
+    if (r === 0) {
+      const months = Math.ceil(balance / monthlyPayment);
+      const cost = months * monthlyPayment;
+      return {
+        monthsRemaining: months,
+        totalCostNominal: cost,
+        totalInterestNominal: Math.max(0, cost - balance),
+        cappedAtMax: false,
+      };
+    }
+    const ratio = (balance * r) / monthlyPayment;
+    if (ratio >= 1) {
+      // Payment doesn't cover monthly interest — loan never amortizes.
+      const cost = maxMonths * monthlyPayment;
+      return {
+        monthsRemaining: maxMonths,
+        totalCostNominal: cost,
+        totalInterestNominal: Math.max(0, cost - balance),
+        cappedAtMax: true,
+      };
+    }
+    const months = Math.ceil(-Math.log(1 - ratio) / Math.log(1 + r));
+    const cost = months * monthlyPayment;
+    return {
+      monthsRemaining: months,
+      totalCostNominal: cost,
+      totalInterestNominal: Math.max(0, cost - balance),
+      cappedAtMax: false,
+    };
+  }
+
+  // CPI-linked: month-by-month simulation. Balance is reindexed up by CPI,
+  // interest accrues on the reindexed balance, payment subtracted, and the
+  // payment itself grows by CPI for next month.
+  let bal = balance;
+  let pmtNow = monthlyPayment;
+  let totalCost = 0;
+  let months = 0;
+  for (let m = 1; m <= maxMonths; m++) {
+    bal = bal * (1 + c);
+    const interest = bal * r;
+    bal = bal + interest - pmtNow;
+    totalCost += pmtNow;
+    months = m;
+    if (bal <= 0) break;
+    pmtNow = pmtNow * (1 + c);
+  }
+  const cappedAtMax = months >= maxMonths && bal > 0;
+  return {
+    monthsRemaining: months,
+    totalCostNominal: totalCost,
+    totalInterestNominal: Math.max(0, totalCost - balance),
+    cappedAtMax,
+  };
+}
+
 // ---------- Real-estate investment ----------------------------------------
 
 export interface RealEstateInputs {

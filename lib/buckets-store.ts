@@ -45,6 +45,40 @@ import { scopedKey } from "./client-scope";
 
 const ONBOARDING_GOALS_KEY = "verdant:onboarding:goals";
 
+/**
+ * Collapse duplicate buckets that share the same (name, targetDate).
+ * Background: in May 2026 we saw a household with 4,745 auto-generated kids
+ * goals — and even after the safety cap was added, some households still load
+ * with 10+ identical "בר מצווה לX" entries when onboarding fan-out runs more
+ * than once before refId dedup catches up. This collapses them on every load
+ * so the UI never shows the duplicates, regardless of what's in storage.
+ *
+ * Dedupe rule: same `name.trim().toLowerCase()` + same `targetDate` → keep
+ * the one with the highest `currentAmount` (preserves user progress), then
+ * the most recent `updatedAt`. Other entries are dropped.
+ */
+function dedupeBuckets(buckets: Bucket[]): Bucket[] {
+  const byKey = new Map<string, Bucket>();
+  for (const b of buckets) {
+    const key = `${(b.name || "").trim().toLowerCase()}|${b.targetDate || ""}`;
+    const existing = byKey.get(key);
+    if (!existing) {
+      byKey.set(key, b);
+      continue;
+    }
+    const a = existing.currentAmount ?? 0;
+    const c = b.currentAmount ?? 0;
+    if (c > a) {
+      byKey.set(key, b);
+    } else if (c === a) {
+      const aT = existing.updatedAt || existing.createdAt || "";
+      const bT = b.updatedAt || b.createdAt || "";
+      if (bT > aT) byKey.set(key, b);
+    }
+  }
+  return Array.from(byKey.values());
+}
+
 /* ─── Re-export everything so existing `@/lib/buckets-store` imports keep working ─── */
 export {
   BUCKET_COLORS,
@@ -82,7 +116,19 @@ export function loadBuckets(): Bucket[] {
     const raw = localStorage.getItem(scopedKey(BUCKETS_STORAGE_KEY));
     if (raw) {
       const parsed = JSON.parse(raw) as Bucket[];
-      if (Array.isArray(parsed)) return parsed.filter((b) => !b.archived);
+      if (Array.isArray(parsed)) {
+        const active = parsed.filter((b) => !b.archived);
+        const deduped = dedupeBuckets(active);
+        // Self-heal: if dedup removed entries, re-save the clean list so
+        // future reads (and downstream consumers like dashboard / forecast)
+        // see the truth, not the dirty copy.
+        if (deduped.length < active.length) {
+          try {
+            localStorage.setItem(scopedKey(BUCKETS_STORAGE_KEY), JSON.stringify(deduped));
+          } catch {}
+        }
+        return deduped;
+      }
     }
   } catch {}
 
@@ -119,7 +165,11 @@ export function loadBuckets(): Bucket[] {
 export function saveBuckets(buckets: Bucket[]): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(scopedKey(BUCKETS_STORAGE_KEY), JSON.stringify(buckets));
+    // Defense in depth: never persist duplicates, even if a caller passes a
+    // dirty list. Paired with the dedup in `loadBuckets`, this guarantees the
+    // storage never accumulates duplicate goals across sync runs.
+    const clean = dedupeBuckets(buckets);
+    localStorage.setItem(scopedKey(BUCKETS_STORAGE_KEY), JSON.stringify(clean));
     fireSync(BUCKETS_EVENT_NAME);
   } catch (err) {
     console.error("[buckets-store] save failed:", err);

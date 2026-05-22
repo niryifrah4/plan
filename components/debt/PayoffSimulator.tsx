@@ -27,7 +27,7 @@
 
 import { useMemo, useState } from "react";
 import { fmtILS } from "@/lib/format";
-import type { DebtData, Loan, Installment } from "@/lib/debt-store";
+import type { DebtData, Loan } from "@/lib/debt-store";
 
 interface PayoffOption {
   kind: "loan" | "installment";
@@ -36,8 +36,15 @@ interface PayoffOption {
   subtitle: string;
   monthlyRelief: number;
   monthsRemaining: number;
+  /** True cost to settle today — PV of remaining payments at the loan's rate
+   *  when known, else nominal sum. */
   costToClose: number;
-  annualizedRoi: number; // monthly × 12 / cost — assumes relief is redeployed
+  /** Annualized return implied by avoiding the future interest. */
+  annualizedRoi: number;
+  /** Future interest saved by closing now (nominal − PV). 0 for no-interest installments. */
+  interestSaved: number;
+  /** True when the loan has no stored rate and the cost is an approximation. */
+  rateUnknown: boolean;
   withinBudget: boolean;
 }
 
@@ -47,6 +54,14 @@ function loanMonthsLeft(loan: Loan): number {
   const now = new Date();
   const elapsed = (now.getFullYear() - y) * 12 + (now.getMonth() + 1 - m);
   return Math.max(0, loan.totalPayments - elapsed);
+}
+
+/** PV of `months` equal monthly payments at annual `rate` (decimal fraction). */
+function pvOfPayments(monthly: number, months: number, annualRate: number): number {
+  if (monthly <= 0 || months <= 0) return 0;
+  const r = annualRate / 12;
+  if (r === 0) return monthly * months;
+  return (monthly * (1 - Math.pow(1 + r, -months))) / r;
 }
 
 export function PayoffSimulator({ data }: { data: DebtData }) {
@@ -60,17 +75,36 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
     for (const loan of data.loans || []) {
       const remaining = loanMonthsLeft(loan);
       if (remaining <= 0 || !loan.monthlyPayment) continue;
-      const costToClose = Math.round(loan.monthlyPayment * remaining);
-      const annualizedRoi = costToClose > 0 ? (loan.monthlyPayment * 12) / costToClose : 0;
+      // 2026-05-21 Phase 5: NPV-aware cost-to-close. When the loan stores its
+      // rate, cost-to-close = present value of remaining payments at that
+      // rate. Otherwise fall back to the nominal sum (and tag the option as
+      // an approximation). Annualized ROI now reflects the interest you avoid
+      // by closing now: (nominal − PV) / PV / years. A 9% loan with 5 years
+      // left now ranks ABOVE a 12-month 0% installment plan — Phase 1 finance-
+      // agent's biggest open finding.
+      const nominal = Math.round(loan.monthlyPayment * remaining);
+      const rate = loan.interestRate;
+      const rateUnknown = typeof rate !== "number";
+      const costToClose = rateUnknown
+        ? nominal
+        : Math.round(pvOfPayments(loan.monthlyPayment, remaining, rate));
+      const interestSaved = Math.max(0, nominal - costToClose);
+      const years = remaining / 12;
+      const annualizedRoi =
+        costToClose > 0 && years > 0
+          ? interestSaved / costToClose / years
+          : 0;
       opts.push({
         kind: "loan",
         id: loan.id,
         name: loan.lender || "הלוואה",
-        subtitle: `${remaining} תשלומים נותרו`,
+        subtitle: `${remaining} תשלומים נותרו${rateUnknown ? " · ריבית לא ידועה" : ""}`,
         monthlyRelief: Math.round(loan.monthlyPayment),
         monthsRemaining: remaining,
         costToClose,
         annualizedRoi,
+        interestSaved,
+        rateUnknown,
         withinBudget: capital >= costToClose,
       });
     }
@@ -78,8 +112,10 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
     for (const inst of data.installments || []) {
       const remaining = Math.max(0, (inst.totalPayments || 0) - (inst.currentPayment || 0) + 1);
       if (remaining <= 0 || !inst.monthlyAmount) continue;
+      // Installments in Israel are typically 0% interest (the merchant absorbs
+      // it via a higher base price). cost-to-close = nominal sum, interestSaved
+      // = 0, ROI = 0. This ranks them BELOW interest-bearing loans.
       const costToClose = Math.round(inst.monthlyAmount * remaining);
-      const annualizedRoi = costToClose > 0 ? (inst.monthlyAmount * 12) / costToClose : 0;
       opts.push({
         kind: "installment",
         id: inst.id,
@@ -91,15 +127,22 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
         monthlyRelief: Math.round(inst.monthlyAmount),
         monthsRemaining: remaining,
         costToClose,
-        annualizedRoi,
+        annualizedRoi: 0,
+        interestSaved: 0,
+        rateUnknown: false,
         withinBudget: capital >= costToClose,
       });
     }
 
-    // Rank: within-budget first (highest ROI), then over-budget (closest first).
+    // Rank within-budget first (highest ROI = highest interest saved per
+    // shekel deployed), then over-budget by closest cost-to-close.
     opts.sort((a, b) => {
       if (a.withinBudget !== b.withinBudget) return a.withinBudget ? -1 : 1;
-      if (a.withinBudget) return b.annualizedRoi - a.annualizedRoi;
+      if (a.withinBudget) {
+        if (a.annualizedRoi !== b.annualizedRoi) return b.annualizedRoi - a.annualizedRoi;
+        // Tiebreaker: smaller cost-to-close wins (faster relief).
+        return a.costToClose - b.costToClose;
+      }
       return a.costToClose - b.costToClose;
     });
     return opts;
@@ -227,9 +270,16 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
                     style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}
                   >
                     <ScenarioStat
-                      label="עלות סגירה"
+                      label="עלות סגירה (היום)"
                       value={fmtILS(opt.costToClose)}
-                      color="#FFFFFF"
+                      color="#1A1A1A"
+                      sub={
+                        opt.rateUnknown
+                          ? "מוערך — אין ריבית רשומה"
+                          : opt.interestSaved > 0
+                            ? `חוסך ${fmtILS(opt.interestSaved)} ריבית עתידית`
+                            : "ללא ריבית — סכום נומינלי"
+                      }
                     />
                     <ScenarioStat
                       label="הקלה חודשית"
@@ -237,16 +287,28 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
                       color="#2C7A5A"
                     />
                     <ScenarioStat
-                      label="זמן עד שמחזירים"
-                      value={`${Math.ceil(opt.costToClose / Math.max(1, opt.monthlyRelief))} חודשים`}
+                      label="חודשים נותרים"
+                      value={`${opt.monthsRemaining}`}
                       color="#2C7A5A"
-                      sub="אם מפנים את ההקלה לחזרה לחיסכון"
+                      sub="מספר התשלומים שמתפנים"
                     />
                     <ScenarioStat
-                      label="תשואה שנתית מוערכת"
-                      value={`${(opt.annualizedRoi * 100).toFixed(1)}%`}
+                      label="תשואה שנתית"
+                      value={
+                        opt.rateUnknown
+                          ? "—"
+                          : opt.annualizedRoi > 0
+                            ? `${(opt.annualizedRoi * 100).toFixed(1)}%`
+                            : "0%"
+                      }
                       color="#2C7A5A"
-                      sub="הקלה × 12 ÷ עלות סגירה"
+                      sub={
+                        opt.rateUnknown
+                          ? "נדרשת ריבית להלוואה"
+                          : opt.annualizedRoi > 0
+                            ? "ריבית שנחסכת ÷ עלות סגירה"
+                            : "ללא ריבית — אין חיסכון בריבית"
+                      }
                     />
                     <div
                       className="col-span-2 md:col-span-4 mt-1 border-t pt-2 text-[12px] leading-relaxed text-verdant-ink"

@@ -23,6 +23,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { randomBytes } from "crypto";
+import { sendEmail } from "@/lib/email/resend";
+import { inviteEmail } from "@/lib/email/templates";
 
 export async function POST(req: NextRequest) {
   try {
@@ -149,6 +151,8 @@ export async function POST(req: NextRequest) {
         }
       } else {
         // Email-invite flow.
+        // First try Supabase's inviteUserByEmail — it both creates the auth
+        // user AND sends the welcome email through Supabase's email provider.
         const { error: mailErr } = await admin.auth.admin.inviteUserByEmail(email, {
           data: {
             invite_token: token,
@@ -159,19 +163,29 @@ export async function POST(req: NextRequest) {
           redirectTo: `${origin}/auth/callback`,
         });
         if (mailErr) {
-          emailError = mailErr.message;
+          // "Already registered" is the common case (re-invite, or returning
+          // user). Supabase's `generateLink` only returns the URL — it does
+          // NOT send mail. We send our own Hebrew invite email via Resend so
+          // the advisor doesn't have to copy/paste the link manually.
           if (/already been registered|already registered/i.test(mailErr.message)) {
-            const { error: linkErr } = await admin.auth.admin.generateLink({
-              type: "magiclink",
-              email,
-              options: { redirectTo: `${origin}/auth/callback` },
+            const tpl = inviteEmail({
+              clientName: body.fullName || undefined,
+              advisorName: advisor.full_name || "המתכנן שלך",
+              inviteUrl,
             });
-            if (!linkErr) {
+            const res = await sendEmail({
+              to: email,
+              subject: tpl.subject,
+              text: tpl.text,
+              html: tpl.html,
+            });
+            if (res.ok) {
               emailSent = true;
-              emailError = undefined;
             } else {
-              emailError = `user_exists: ${linkErr.message}`;
+              emailError = `user_exists: ${res.error || "resend_failed"}`;
             }
+          } else {
+            emailError = mailErr.message;
           }
         } else {
           emailSent = true;

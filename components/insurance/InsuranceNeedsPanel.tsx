@@ -38,18 +38,22 @@ const SEV: Record<
   NeedSeverity,
   { fill: string; text: string; border: string; label: string; icon: string }
 > = {
-  ok: { fill: "#A7F3D0", text: "#065F46", border: "#6EE7B7", label: "תקין", icon: "check_circle" },
+  ok: { fill: "#D1FAE5", text: "#065F46", border: "#A7F3D0", label: "תקין", icon: "check_circle" },
   warning: {
-    fill: "#FED7AA",
+    fill: "#FEF3C7",
     text: "#92400E",
-    border: "#FDBA74",
+    border: "#FDE68A",
     label: "לבדוק",
     icon: "warning",
   },
+  // Critical = soft coral background with bold dark-red text. Aggressive
+  // full-red fills (#B91C1C) felt alarmist for a financial-planning
+  // surface; the dark text on coral already signals urgency without
+  // shouting.
   critical: {
-    fill: "#B91C1C",
-    text: "#7F1D1D",
-    border: "#DC2626",
+    fill: "#FEE2E2",
+    text: "#991B1B",
+    border: "#FCA5A5",
     label: "פער מהותי",
     icon: "error",
   },

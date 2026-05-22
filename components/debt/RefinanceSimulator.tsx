@@ -20,27 +20,15 @@ import {
   pmt,
   calcEarlyRepaymentFee,
   inferRepaymentFeeIndexation,
+  projectIndexedLoan,
 } from "@shared/financial-math";
 import type { MortgageTrack } from "@/lib/debt-store";
-import { effectiveTrackRate } from "@/lib/debt-store";
+import { effectiveTrackRate, trackCpiRate } from "@/lib/debt-store";
 import { useAssumptions } from "@/lib/hooks/useAssumptions";
 
 interface Props {
   track: MortgageTrack;
   onClose: () => void;
-}
-
-function totalCost(monthlyPayment: number, months: number): number {
-  return Math.round(monthlyPayment * months);
-}
-
-function remainingMonths(balance: number, monthly: number, annualRate: number): number {
-  if (!balance || !monthly) return 0;
-  const r = annualRate / 12;
-  if (r === 0) return Math.ceil(balance / monthly);
-  const ratio = (balance * r) / monthly;
-  if (ratio >= 1 || ratio <= 0) return 360;
-  return Math.ceil(-Math.log(1 - ratio) / Math.log(1 + r));
 }
 
 export function RefinanceSimulator({ track, onClose }: Props) {
@@ -55,8 +43,14 @@ export function RefinanceSimulator({ track, onClose }: Props) {
   const baseRatePct = baseRate * 100;
   const baseBalance = track.remainingBalance || 0;
   const baseMonthly = track.monthlyPayment || 0;
-  const baseMonths = remainingMonths(baseBalance, baseMonthly, baseRate);
-  const baseTotal = totalCost(baseMonthly, baseMonths);
+  // 2026-05-21 Phase 3: baseline projection is indexation-aware. CPI-linked
+  // ("מדד") tracks compound balance + payment monthly with the user's
+  // inflation assumption — so the "do nothing" total cost reflects the
+  // family's true nominal future spend, not the under-counted real spend.
+  const baseCpi = trackCpiRate(track, assumptions.inflationRate);
+  const baseProjection = projectIndexedLoan(baseBalance, baseMonthly, baseRate, baseCpi);
+  const baseMonths = baseProjection.monthsRemaining;
+  const baseTotal = Math.round(baseProjection.totalCostNominal);
 
   // Scenario inputs
   const [newRate, setNewRate] = useState(Math.max(2, baseRatePct - 1));
@@ -90,7 +84,15 @@ export function RefinanceSimulator({ track, onClose }: Props) {
   const refiFee = feeOverride ?? repaymentFee.total;
 
   const result = useMemo(() => {
-    // Refinance only — uses new rate and (possibly) new term
+    // 2026-05-21 Phase 3: scenarios are projected with `projectIndexedLoan`
+    // so an indexed baseline is compared fairly against a refinance into a
+    // fixed track. The new-rate input is assumed nominal (no CPI applied to
+    // refi scenarios — that's the standard "what would my fixed-rate track
+    // cost" comparison). Prepay keeps the original track's CPI behavior.
+
+    // Refinance only — new nominal rate, possibly new term. No CPI applied
+    // (the new track is assumed fixed; for indexed-to-indexed refi the user
+    // can enter the EFFECTIVE nominal rate manually).
     const refiRate = newRate / 100;
     const refiMonthly = pmt(baseBalance, refiRate, newMonths);
     const refiTotal = Math.round(refiMonthly * newMonths) + refiFee;
@@ -99,23 +101,24 @@ export function RefinanceSimulator({ track, onClose }: Props) {
     const breakEvenMonth = monthlyDelta > 0 ? Math.ceil(refiFee / monthlyDelta) : null;
     const termDeltaMonths = newMonths - baseMonths;
 
-    // Prepay only — reduce balance, keep monthly + rate, fewer months.
+    // Prepay only — reduce balance, keep monthly + rate + indexation.
     // 2026-05-18 per finance-agent: prepayment also incurs an early-repayment
     // fee proportional to the prepaid amount. We scale the discount-component
     // by the prepay ratio (a reasonable approximation for partial prepay).
     const prepayBalance = Math.max(0, baseBalance - prepay);
-    const prepayMonths = remainingMonths(prepayBalance, baseMonthly, baseRate);
+    const prepayProjection = projectIndexedLoan(prepayBalance, baseMonthly, baseRate, baseCpi);
+    const prepayMonths = prepayProjection.monthsRemaining;
     const prepayFeeRatio = baseBalance > 0 ? prepay / baseBalance : 0;
     const prepayFee = Math.round(
       repaymentFee.discountFee * prepayFeeRatio +
         repaymentFee.operationalFee * (prepay > 0 ? 1 : 0)
     );
-    const prepayTotal = Math.round(baseMonthly * prepayMonths) + prepay + prepayFee;
+    const prepayTotal = Math.round(prepayProjection.totalCostNominal) + prepay + prepayFee;
     const prepaySaving = baseTotal - prepayTotal;
     const monthsSaved = baseMonths - prepayMonths;
 
     // Combined — refinance + prepay (uses new term too). Pays the FULL refi
-    // fee since the track is being fully refinanced.
+    // fee since the track is being fully refinanced. New track assumed fixed.
     const combinedBalance = Math.max(0, baseBalance - prepay);
     const combinedMonthly = pmt(combinedBalance, refiRate, newMonths);
     const combinedTotal = Math.round(combinedMonthly * newMonths) + prepay + refiFee;
@@ -148,6 +151,7 @@ export function RefinanceSimulator({ track, onClose }: Props) {
     baseMonths,
     baseMonthly,
     baseRate,
+    baseCpi,
     baseTotal,
     repaymentFee.discountFee,
     repaymentFee.operationalFee,
