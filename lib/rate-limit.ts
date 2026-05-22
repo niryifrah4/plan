@@ -75,6 +75,11 @@ export const RATE_LIMITS = {
   PARSE: { limit: 20, windowMs: 60_000 }, // 20/min
   // Auth endpoints (future)
   AUTH: { limit: 5, windowMs: 60_000 }, // 5/min — brute force defense
+  // CRM client invites — each invite triggers a Supabase admin call +
+  // Resend email. Unbounded = burns Supabase free-tier quota (3/h) and
+  // Resend quota (100/day on starter). 10/hour per advisor is enough
+  // for normal use, hard cap on abuse.
+  INVITE: { limit: 10, windowMs: 60 * 60_000 }, // 10/hour
   // Generic API
   GENERIC: { limit: 60, windowMs: 60_000 }, // 60/min
 } as const;

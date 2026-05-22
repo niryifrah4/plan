@@ -25,6 +25,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { randomBytes } from "crypto";
 import { sendEmail } from "@/lib/email/resend";
 import { inviteEmail } from "@/lib/email/templates";
+import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
@@ -41,6 +42,25 @@ export async function POST(req: NextRequest) {
       .eq("id", user.id)
       .maybeSingle();
     if (!advisor) return NextResponse.json({ error: "not_advisor" }, { status: 403 });
+
+    // Rate limit per advisor — 10 invites/hour. Prevents accidental loops
+    // (a faulty client retry) and bounded abuse from burning Supabase
+    // free-tier invite quota or Resend daily quota.
+    const rl = rateLimit({ key: `invite:${user.id}`, ...RATE_LIMITS.INVITE });
+    if (!rl.allowed) {
+      const retryAfterSec = Math.max(1, Math.ceil((rl.resetAt - Date.now()) / 1000));
+      return NextResponse.json(
+        { error: "rate_limited", retryAfter: retryAfterSec },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(retryAfterSec),
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": String(Math.ceil(rl.resetAt / 1000)),
+          },
+        },
+      );
+    }
 
     let body: {
       email?: string;
