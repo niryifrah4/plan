@@ -27,6 +27,10 @@ export interface SaleSimInputs {
   sellingFeesPct?: number;
   /** Effective mortgage interest rate for amortization. Default 5%. */
   mortgageRateOverride?: number;
+  /** Annual CPI inflation rate (decimal, e.g. 0.025). Used to index the
+   *  purchase basis for the real-gain calculation. Israeli mas-shevach is
+   *  charged on REAL (inflation-adjusted) gain, not nominal. Default 2.5%. */
+  inflationRate?: number;
 }
 
 export interface SaleSimOutputs {
@@ -65,6 +69,18 @@ export function simulatePropertySale(
   const appreciation = inputs.annualAppreciationOverride ?? prop.annualAppreciation ?? 0.03;
   const sellingFeesPct = inputs.sellingFeesPct ?? 0.05;
   const mortgageRate = inputs.mortgageRateOverride ?? 0.05;
+  const inflationRate = inputs.inflationRate ?? 0.025;
+
+  // yearsHeld = period from purchase to sale (purchase → today → +yearsToSale).
+  // Computed up front because both tax (real-gain indexing) and ROI use it.
+  const yearsHeld = (() => {
+    if (!prop.purchaseDate) return yearsToSale;
+    const ms = new Date(
+      prop.purchaseDate.length === 7 ? prop.purchaseDate + "-01" : prop.purchaseDate
+    ).getTime();
+    const years = (Date.now() - ms) / (1000 * 60 * 60 * 24 * 365.25) + yearsToSale;
+    return Math.max(0.1, years);
+  })();
 
   // ── 1. Sale price projection ──
   const projectedSalePrice = Math.round(
@@ -113,19 +129,32 @@ export function simulatePropertySale(
   let taxStatus: SaleSimOutputs["taxStatus"] = taxInfo.status;
   let taxLabel = taxInfo.message;
 
-  // Capital gain (nominal — conservative since we don't index for inflation)
+  // Capital gain — real (inflation-indexed), not nominal.
+  // Israeli mas-shevach: tax base = nominal gain − inflation component on basis.
+  // inflationComponent = purchasePrice × ((1+inflation)^yearsHeld − 1).
+  // Without this, the simulator overstates tax dramatically over long holds
+  // (e.g. 2M property held 10 years @ 2.5% CPI → tax was ~140K too high).
   const purchasePrice = prop.purchasePrice || 0;
   const capitalGain = Math.max(0, projectedSalePrice - purchasePrice);
+  const inflationComponent = Math.max(
+    0,
+    purchasePrice * (Math.pow(1 + inflationRate, yearsHeld) - 1)
+  );
+  const realCapitalGain = Math.max(0, capitalGain - inflationComponent);
 
-  if (taxInfo.status === "taxable" && capitalGain > 0) {
-    estimatedTax = Math.round(capitalGain * CAPITAL_GAINS_RATE_NON_PRIMARY);
-  } else if (taxInfo.status === "exempt" && projectedSalePrice > 4_500_000) {
-    // Partial exemption above ceiling — simplified: tax the portion above ₪4.5M
-    // at the standard rate, attributed proportionally to the gain.
-    const taxablePortion = (projectedSalePrice - 4_500_000) / projectedSalePrice;
-    estimatedTax = Math.round(capitalGain * taxablePortion * CAPITAL_GAINS_RATE_NON_PRIMARY);
+  // Partial-exemption ceiling 2026 — דירת מגורים מזכה (single-residence exemption)
+  // capped at ₪4,870,000 (was ₪4.5M before 2026 inflation indexation).
+  const EXEMPTION_CEILING_2026 = 4_870_000;
+
+  if (taxInfo.status === "taxable" && realCapitalGain > 0) {
+    estimatedTax = Math.round(realCapitalGain * CAPITAL_GAINS_RATE_NON_PRIMARY);
+  } else if (taxInfo.status === "exempt" && projectedSalePrice > EXEMPTION_CEILING_2026) {
+    // Partial exemption above ceiling — tax the portion above the cap at the
+    // standard rate, attributed proportionally to the REAL gain.
+    const taxablePortion = (projectedSalePrice - EXEMPTION_CEILING_2026) / projectedSalePrice;
+    estimatedTax = Math.round(realCapitalGain * taxablePortion * CAPITAL_GAINS_RATE_NON_PRIMARY);
     taxStatus = "exempt_partial";
-    taxLabel = `פטור חלקי — חייב על הסכום מעל ₪4.5M`;
+    taxLabel = `פטור חלקי — חייב על הסכום מעל ₪4.87M`;
   }
 
   // ── 5. Net cash ──
@@ -141,14 +170,7 @@ export function simulatePropertySale(
   // didn't enter originalLoanAmount, we cannot compute ROI honestly — return
   // 0 so the UI hides the misleading line.
   const originalLoanAmount = prop.originalLoanAmount;
-  const yearsHeld = (() => {
-    if (!prop.purchaseDate) return yearsToSale;
-    const ms = new Date(
-      prop.purchaseDate.length === 7 ? prop.purchaseDate + "-01" : prop.purchaseDate
-    ).getTime();
-    const years = (Date.now() - ms) / (1000 * 60 * 60 * 24 * 365.25) + yearsToSale;
-    return Math.max(0.1, years);
-  })();
+  // yearsHeld already computed above (used by inflation indexing).
   let originalEquity = 0;
   let estimatedROI = 0;
   if (

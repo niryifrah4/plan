@@ -121,7 +121,7 @@ export function AccountsTab() {
           icon="account_balance_wallet"
           label="סה״כ מסגרות"
           value={fmtILS(totalLimit)}
-          color="#6366f1"
+          color="#4a9b7a"
         />
       </div>
 
@@ -252,7 +252,7 @@ export function AccountsTab() {
                           background:
                             bank.balance < 0 && Math.abs(bank.balance) / bank.creditLimit! > 0.8
                               ? "#DC2626"
-                              : "#6366f1",
+                              : "#4a9b7a",
                         }}
                       />
                     </div>

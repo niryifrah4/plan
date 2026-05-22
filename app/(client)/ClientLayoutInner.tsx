@@ -70,8 +70,11 @@ export default function ClientLayoutInner({
       <ClientProvider>
         {/* `impersonation !== null` ↔ logged-in user is the advisor. Pass
             it through so the sidebar can hide CRM-only affordances for
-            actual clients. (2026-04-29 per Nir.) */}
-        <ClientShell isAdvisor={impersonation !== null}>{children}</ClientShell>
+            actual clients, and so the impersonation banner can render with
+            the actual family name. (2026-04-29 per Nir.) */}
+        <ClientShell isAdvisor={impersonation !== null} impersonation={impersonation}>
+          {children}
+        </ClientShell>
       </ClientProvider>
     </Suspense>
   );

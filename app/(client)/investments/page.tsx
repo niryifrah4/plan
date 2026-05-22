@@ -101,7 +101,7 @@ const KIND_COLORS: Record<AssetKind, string> = {
   fund: "#059669",
   rsu: "#059669",
   espp: "#10b981",
-  option: "#2563EB",
+  option: "#3b82f6",
 };
 
 const TRADEABLE_KINDS: AssetKind[] = ["stock", "etf", "crypto", "bond", "fund"];

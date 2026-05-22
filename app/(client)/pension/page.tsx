@@ -64,7 +64,7 @@ const FUND_TYPE_COLORS: Record<string, string> = {
   pension: "#2C7A5A",
   gemel: "#059669",
   hishtalmut: "#0EA5E9",
-  bituach: "#8B5CF6",
+  bituach: "#4A9B7A",
 };
 
 const SUBTYPE_LABELS: Record<string, string> = {

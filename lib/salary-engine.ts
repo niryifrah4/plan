@@ -53,6 +53,7 @@ export const DEFAULT_SALARY_PROFILE: SalaryProfile = {
 };
 
 const STORAGE_KEY = "verdant:salary_profile";
+const SPOUSE_STORAGE_KEY = "verdant:salary_profile_spouse";
 export const SALARY_PROFILE_EVENT = "verdant:salary_profile:updated";
 
 /* ═══════════════════════════════════════════════════════════
@@ -163,14 +164,14 @@ export function computeSalaryBreakdown(profile: SalaryProfile): SalaryBreakdown 
   const annualIncomeTax = Math.max(0, rawTax.tax - annualCredit - peripheryRelief);
   const incomeTaxMonthly = annualIncomeTax / 12;
 
-  // Bituach Leumi (reuse existing helper; applied on monthly gross).
+  // Bituach Leumi + מס בריאות — split so the UI can display each line.
+  // bl.monthly returns NI + health combined; we expose them separately
+  // so totalDeductionsMonthly doesn't double-count the health portion.
+  // (Pre-2026-05-22: bituachLeumiMonthly was bl.monthly AND healthTaxMonthly
+  // was recomputed → ~1,000 ₪/month per person of phantom deductions.)
   const bl = bituachLeumiEstimate(gross);
-  const bituachLeumiMonthly = bl.monthly;
-
-  // Health tax — separate from BL in Israel; applied on gross with two-tier rate.
-  const lowBase = Math.min(gross, AVG_WAGE_MONTHLY * 0.6);
-  const highBase = Math.max(0, gross - AVG_WAGE_MONTHLY * 0.6);
-  const healthTaxMonthly = lowBase * HEALTH_TAX_LOW_RATE + highBase * HEALTH_TAX_HIGH_RATE;
+  const bituachLeumiMonthly = bl.nationalInsuranceMonthly;
+  const healthTaxMonthly = bl.healthMonthly;
 
   const totalDeductionsMonthly =
     incomeTaxMonthly +
@@ -264,4 +265,60 @@ export function hasSavedSalaryProfile(): boolean {
   } catch {
     return false;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Spouse profile — second earner support (per finance-agent
+   audit 2026-05-22). Israeli households are overwhelmingly
+   dual-income for Nir's client base, and assuming a single
+   salary was producing income figures off by 30–100%.
+
+   Same shape as SalaryProfile so we reuse computeSalaryBreakdown
+   verbatim. Separate storage key so existing single-earner data
+   stays valid.
+   ═══════════════════════════════════════════════════════════ */
+
+export function loadSpouseSalaryProfile(): SalaryProfile | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(scopedKey(SPOUSE_STORAGE_KEY));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<SalaryProfile>;
+    if (!parsed.savedAt || !(Number(parsed.monthlyGross) || 0)) return null;
+    return { ...DEFAULT_SALARY_PROFILE, ...parsed };
+  } catch {
+    return null;
+  }
+}
+
+export function saveSpouseSalaryProfile(profile: SalaryProfile | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (profile === null) {
+      localStorage.removeItem(scopedKey(SPOUSE_STORAGE_KEY));
+    } else {
+      const toSave = { ...profile, savedAt: new Date().toISOString() };
+      localStorage.setItem(scopedKey(SPOUSE_STORAGE_KEY), JSON.stringify(toSave));
+    }
+    window.dispatchEvent(new Event(SALARY_PROFILE_EVENT));
+  } catch {}
+}
+
+export function hasSavedSpouseSalaryProfile(): boolean {
+  return loadSpouseSalaryProfile() !== null;
+}
+
+/** Combined household monthly net from both earners. Used by the mobile
+ *  cashflow HERO and any other surface that wants "total household salary
+ *  after deductions". Returns 0 if no profile is set. */
+export function householdNetSalary(): number {
+  let net = 0;
+  if (hasSavedSalaryProfile()) {
+    net += computeSalaryBreakdown(loadSalaryProfile()).netMonthly;
+  }
+  const spouse = loadSpouseSalaryProfile();
+  if (spouse) {
+    net += computeSalaryBreakdown(spouse).netMonthly;
+  }
+  return net;
 }

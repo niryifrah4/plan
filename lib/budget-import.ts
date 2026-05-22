@@ -19,8 +19,10 @@ import type { ParsedTransaction } from "@/lib/doc-parser/types";
 import type { Scope } from "@/lib/scope-types";
 import { CATEGORY_TO_BUDGET, type BudgetSection } from "@/lib/category-to-budget-map";
 import { scopedKey } from "@/lib/client-scope";
+import { pushBlobInBackground, pullBlob } from "@/lib/sync/blob-sync";
 
 const TX_KEY = "verdant:parsed_transactions";
+const TX_BLOB_KEY = "parsed_transactions";
 
 /* ──────────────────────────────────────────────────────────
    Local structural types — mirror the budget page shape so we
@@ -98,6 +100,128 @@ export function filterByMonth(
 }
 
 const uid = () => "r" + Math.random().toString(36).slice(2, 9);
+
+/* ──────────────────────────────────────────────────────────
+   Add a single manual transaction (used by the mobile PWA
+   to log expenses on the go).
+
+   The dashboard's /budget page reads from the same scoped
+   localStorage key + listens to "verdant:parsed_transactions:updated",
+   so a row added here lights up the ביצוע column instantly.
+   ────────────────────────────────────────────────────────── */
+
+export interface ManualExpenseInput {
+  /** Positive number in ILS. */
+  amount: number;
+  /** BudgetCategory.key, e.g. "food", "transport". */
+  category: string;
+  /** Hebrew display name shown on /budget, e.g. "מזון וצריכה". */
+  categoryLabel: string;
+  /** Optional description / merchant name. */
+  description?: string;
+  /** ISO yyyy-mm-dd. Defaults to today. */
+  date?: string;
+}
+
+export function addManualTransaction(input: ManualExpenseInput): ParsedTransaction {
+  if (typeof window === "undefined") {
+    throw new Error("addManualTransaction must run in the browser");
+  }
+  const amount = Math.abs(Number(input.amount) || 0);
+  if (amount === 0) {
+    throw new Error("Expense amount must be greater than 0");
+  }
+
+  const today = new Date();
+  const date =
+    input.date ||
+    `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(
+      today.getDate()
+    ).padStart(2, "0")}`;
+
+  const tx: ParsedTransaction = {
+    date,
+    description: input.description?.trim() || input.categoryLabel,
+    amount, // positive = expense (debit) — matches doc-parser convention
+    category: input.category,
+    categoryLabel: input.categoryLabel,
+    sourceFile: "mobile",
+    addedAt: new Date().toISOString(),
+    confidence: 1, // user-entered → highest trust
+  };
+
+  const existing = loadParsedTransactions();
+  const updated = [...existing, tx];
+  persistTransactions(updated);
+  return tx;
+}
+
+/* ──────────────────────────────────────────────────────────
+   Edit / delete a single transaction by its storage index.
+   The mobile category-detail sheet uses these to fix mis-
+   categorised or accidentally-doubled entries.
+
+   persistTransactions() is the single write path for the
+   `verdant:parsed_transactions` store. It guarantees:
+     1. localStorage is updated (per-tab visibility)
+     2. window event is dispatched (same-tab listeners refresh)
+     3. blob is pushed to Supabase (cross-device + dashboard sync)
+   This is the fix for the mobile-to-desktop sync gap — before
+   this, the doc-parser desktop flow + the mobile expense flow
+   both wrote to localStorage only and were invisible to the
+   advisor's dashboard until the next manual page reload on the
+   same device.
+   ────────────────────────────────────────────────────────── */
+
+function persistTransactions(txs: ParsedTransaction[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(scopedKey(TX_KEY), JSON.stringify(txs));
+    window.dispatchEvent(new Event("verdant:parsed_transactions:updated"));
+    pushBlobInBackground(TX_BLOB_KEY, txs);
+  } catch (err) {
+    throw new Error("Failed to update transaction — storage write rejected");
+  }
+}
+
+/** Bootstrap pull. Called once per session by bootstrap.ts so the
+ *  advisor's dashboard hydrates the mobile-logged transactions
+ *  before the budget page renders its first frame. */
+export async function hydrateTransactionsFromRemote(): Promise<boolean> {
+  const remote = await pullBlob<ParsedTransaction[]>(TX_BLOB_KEY);
+  if (!remote || !Array.isArray(remote)) return false;
+  try {
+    localStorage.setItem(scopedKey(TX_KEY), JSON.stringify(remote));
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("verdant:parsed_transactions:updated"));
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function deleteTransactionAt(storageIndex: number): void {
+  const txs = loadParsedTransactions();
+  if (storageIndex < 0 || storageIndex >= txs.length) return;
+  const next = txs.filter((_, i) => i !== storageIndex);
+  persistTransactions(next);
+}
+
+export function updateTransactionCategoryAt(
+  storageIndex: number,
+  newCategory: string,
+  newCategoryLabel: string
+): void {
+  const txs = loadParsedTransactions();
+  if (storageIndex < 0 || storageIndex >= txs.length) return;
+  const next = txs.map((t, i) =>
+    i === storageIndex
+      ? { ...t, category: newCategory, categoryLabel: newCategoryLabel }
+      : t
+  );
+  persistTransactions(next);
+}
 
 /* ──────────────────────────────────────────────────────────
    Core: merge transactions into budget (pure function)

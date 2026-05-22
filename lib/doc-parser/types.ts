@@ -18,6 +18,10 @@ export interface ParsedTransaction {
   sourceDocId?: string;
   /** Original filename of the source document — for quick display in cashflow. */
   sourceFile?: string;
+  /** ISO timestamp when this transaction entered the store (mobile-logged
+   *  or document-parsed). Distinct from `date` (the transaction event date)
+   *  — used by the mobile home "what changed since last visit" banner. */
+  addedAt?: string;
   /**
    * Categorization confidence 0..1.
    *   1.00 — user-learned override

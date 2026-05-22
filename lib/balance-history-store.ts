@@ -119,15 +119,28 @@ export function computeCurrentNetWorth(): NetWorthBreakdown {
   return { cash, investments, pension, realestate, goals, debt, mortgages };
 }
 
+/**
+ * Sum a NetWorthBreakdown into a single total-assets number.
+ *
+ * IMPORTANT (finance-agent audit 2026-05-22): `goals` is NOT included.
+ * Buckets are an earmark / tracking layer over money that already lives
+ * in one of the underlying asset pools (cash, investments, pension).
+ * Adding `goals` here double-counts that money. We keep `goals` in the
+ * breakdown for UI display so users can still see "₪50k earmarked for
+ * X", but the wealth aggregate uses only the underlying pools.
+ */
+export function sumAssetPools(b: NetWorthBreakdown): number {
+  return b.cash + b.investments + b.pension + b.realestate;
+}
+
+export function sumLiabilityPools(b: NetWorthBreakdown): number {
+  return b.debt + b.mortgages;
+}
+
 export function buildSnapshotFromCurrent(note?: string): NetWorthSnapshot {
   const breakdown = computeCurrentNetWorth();
-  const totalAssets =
-    breakdown.cash +
-    breakdown.investments +
-    breakdown.pension +
-    breakdown.realestate +
-    breakdown.goals;
-  const totalLiabilities = breakdown.debt + breakdown.mortgages;
+  const totalAssets = sumAssetPools(breakdown);
+  const totalLiabilities = sumLiabilityPools(breakdown);
   const netWorth = totalAssets - totalLiabilities;
 
   return {

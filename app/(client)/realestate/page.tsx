@@ -564,24 +564,9 @@ function PropertyForm({ initial, onSave, onCancel }: PropertyFormProps) {
               placeholder="500,000"
             />
           </div>
-          {/* לוח סילוקין — Upload placeholder (parser coming) */}
-          <div className="md:col-span-2">
-            <label className={labelCls}>לוח סילוקין (PDF מהבנק)</label>
-            <button
-              type="button"
-              disabled
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2 text-[12px] font-bold"
-              style={{
-                background: "#FAFAF7",
-                color: "#6B7280",
-                border: "1px dashed #E5E7EB",
-                cursor: "not-allowed",
-              }}
-            >
-              <span className="material-symbols-outlined text-[16px]">upload_file</span>
-              פרסור PDF — בקרוב
-            </button>
-          </div>
+          {/* לוח סילוקין PDF — parser still pending; hidden from clients so the
+              "בקרוב" placeholder doesn't undermine trust in a half-built feature.
+              Restore when /api/documents/parse handles mortgage schedules. */}
           {/* הוצאות */}
           <div>
             <label className={labelCls}>הוצאות חודשיות (₪)</label>
@@ -1313,14 +1298,14 @@ export default function RealEstatePage() {
                   )}
                   {isInvestment && mtg > 0 && rent > 0 && (
                     <MiniStat
-                      label="DSCR"
+                      label="כיסוי החזר"
                       value={propDscr.toFixed(2)}
                       color={propDscr >= 1.25 ? "#2C7A5A" : propDscr >= 1.0 ? "#D97706" : "#DC2626"}
                     />
                   )}
                   {isInvestment && rent > 0 && (
                     <MiniStat
-                      label="Cash-on-Cash"
+                      label="תשואה על הון"
                       value={`${coc.toFixed(1)}%`}
                       color={coc > 5 ? "#2C7A5A" : coc > 0 ? "#D97706" : "#DC2626"}
                     />
@@ -1442,7 +1427,7 @@ export default function RealEstatePage() {
                         : "—",
                   },
                   {
-                    label: "DSCR",
+                    label: "כיסוי החזר",
                     fn: (p: Property) => {
                       const mtg = p.monthlyMortgage ?? 0;
                       if (!mtg || !p.monthlyRent) return "—";
@@ -1592,7 +1577,12 @@ export default function RealEstatePage() {
               </div>
             </div>
             <div className="text-center">
-              <div className="text-[10px] font-bold text-verdant-muted">IRR משוער</div>
+              <div
+                className="text-[10px] font-bold text-verdant-muted"
+                title="IRR — תשואה פנימית: הריבית האפקטיבית שהשקעה זו מייצרת לאורך זמן"
+              >
+                תשואה פנימית
+              </div>
               <div className="text-sm font-extrabold text-verdant-emerald">
                 {irrEstimate.toFixed(1)}%
               </div>
@@ -1704,7 +1694,7 @@ export default function RealEstatePage() {
       <section className="card mb-6 overflow-hidden">
         <div
           className="flex items-center justify-between px-5 py-4"
-          style={{ background: "var(--botanical-deep)" }}
+          style={{ background: "var(--morning-ink)" }}
         >
           <div className="flex items-center gap-3">
             <div

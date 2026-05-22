@@ -504,7 +504,7 @@ export default function GoalsPage() {
               <span className="material-symbols-outlined text-[26px]">palette</span>
             </div>
             <div className="min-w-0 flex-1">
-              <div className="t-lg mb-2 font-extrabold" style={{ color: "var(--botanical-deep)" }}>
+              <div className="t-lg mb-2 font-extrabold" style={{ color: "var(--morning-ink)" }}>
                 לא הוגדרו מטרות ויעדים
               </div>
               <div

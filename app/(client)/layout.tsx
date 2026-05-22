@@ -22,7 +22,12 @@ const IMPERSONATE_COOKIE = "plan_impersonate_hh";
 
 export default async function ClientLayout({ children }: { children: React.ReactNode }) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const isConfigured = !!url && !url.includes("YOUR-PROJECT");
+  // Dev bypass — same triple-guard as middleware. Treats the layout as if
+  // Supabase isn't configured so the auth-required redirects below are skipped.
+  // Production is unaffected: NODE_ENV !== 'development' there.
+  const devBypass =
+    process.env.NODE_ENV === "development" && process.env.DEV_AUTH_BYPASS === "1";
+  const isConfigured = !!url && !url.includes("YOUR-PROJECT") && !devBypass;
 
   let impersonation: { householdId: string; familyName: string } | null = null;
 
@@ -71,10 +76,15 @@ export default async function ClientLayout({ children }: { children: React.React
       const path = headers().get("x-pathname") || headers().get("x-invoke-path") || "";
       const onOnboarding = path.startsWith("/onboarding");
 
-      // Onboarding gate disabled 2026-04-28 per Nir: land on dashboard always.
-      // Users can still reach /onboarding via the sidebar when they want.
-      void household;
-      void onOnboarding;
+      // 2026-05-22 per Nir: restore onboarding redirect for FRESH households.
+      // A new client who hasn't completed onboarding lands on an empty dashboard
+      // (13 sidebar items + zero data) and doesn't know to click "אפיון לקוח".
+      // We funnel them to /onboarding once; after they finish, household.stage
+      // flips out of 'onboarding' and they get the dashboard like everyone else.
+      // Advisors are unaffected (handled in the impersonation branch above).
+      if (household?.stage === "onboarding" && !onOnboarding) {
+        redirect("/onboarding");
+      }
     }
   }
 

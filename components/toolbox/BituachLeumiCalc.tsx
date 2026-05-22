@@ -18,8 +18,19 @@ export function BituachLeumiCalc() {
   const seniorityBonus = Math.min(50, Math.max(0, (age - 22) * 2)); // 2% per insurance year, max 50%
   const estimatedMonthly = estimatedPensionBase * (1 + seniorityBonus / 100);
 
-  // Child allowance (₪212 per child, 2026)
-  const childAllowance = childrenUnder18 * 212;
+  // Child allowance — official 2026 (btl.gov.il/About/news/Pages/hadasaidkonkitzva2026.aspx):
+  //   child #1     → ₪173
+  //   children #2-4 → ₪219 each
+  //   child #5+    → ₪173 each
+  // Previous code used a flat ₪212/child which over-stated 2-kid families and
+  // under-stated 5+. Stays an estimate (BTL applies adjustments per case).
+  const childAllowance = (() => {
+    if (childrenUnder18 <= 0) return 0;
+    if (childrenUnder18 === 1) return 173;
+    const fives = Math.max(0, childrenUnder18 - 4);
+    const middle = Math.min(3, childrenUnder18 - 1); // kids 2,3,4
+    return 173 + middle * 219 + fives * 173;
+  })();
 
   return (
     <div className="space-y-6">

@@ -54,7 +54,7 @@ const ASSET_GROUPS: Record<string, { label: string; icon: string; color: string;
   },
   pension: { label: "פנסיוני ארוך טווח", icon: "elderly", color: "#059669", href: "/pension" },
   realestate: { label: "נדל״ן", icon: "home", color: "#059669", href: "/realestate" },
-  kids: { label: "חיסכון לכל ילד", icon: "child_care", color: "#6366f1", href: "" },
+  kids: { label: "חיסכון לכל ילד", icon: "child_care", color: "#4a9b7a", href: "" },
   other: { label: "רכב ונכסים נוספים", icon: "directions_car", color: "#059669", href: "" },
 };
 const LIAB_GROUPS: Record<string, { label: string; icon: string; color: string; href: string }> = {

@@ -1,20 +1,38 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { useClient } from "@/lib/client-context";
 import { startSessionWatcher } from "@/lib/session-security";
 import { isSupabaseConfigured } from "@/lib/supabase/browser";
 import { getCurrentUser } from "@/lib/auth";
 
+interface ImpersonationInfo {
+  householdId: string;
+  familyName: string;
+}
+
 export function ClientShell({
   children,
   isAdvisor = false,
+  impersonation = null,
 }: {
   children: React.ReactNode;
   isAdvisor?: boolean;
+  impersonation?: ImpersonationInfo | null;
 }) {
+  const router = useRouter();
+  // Impersonation banner — visible only when an advisor is viewing a client's
+  // tab via the CRM impersonation cookie. Without this strip the advisor can
+  // edit the wrong household by accident (memory: advisor_flow_pitfalls).
+  const handleExitImpersonation = async () => {
+    try {
+      await fetch("/api/crm/impersonate", { method: "DELETE" }).catch(() => {});
+    } finally {
+      router.push("/crm");
+    }
+  };
   const { familyName, membersCount, loading } = useClient();
   // Pull the logged-in advisor's name from the auth session so the sidebar
   // footer reflects whoever is signed in (not a hardcoded value).
@@ -103,10 +121,43 @@ export function ClientShell({
 
   return (
     <>
+      {/* Impersonation banner — full-width strip that ALWAYS shows when an
+          advisor is viewing a client's tab. Sits above the mobile header and
+          the sidebar so it's unmissable on every screen, every device. */}
+      {impersonation && (
+        <div
+          dir="rtl"
+          className="fixed inset-x-0 top-0 z-50 flex items-center justify-between gap-3 px-4 py-2 text-[12px] font-extrabold shadow-sm md:text-[13px]"
+          style={{
+            background: "#FED7AA",
+            color: "#92400E",
+            borderBottom: "1px solid #FB923C",
+            minHeight: 36,
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[16px]">visibility</span>
+            <span>
+              צפייה כיועץ בתיק <strong className="font-black">{impersonation.familyName}</strong>
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleExitImpersonation}
+            className="rounded-md px-2.5 py-1 text-[11px] font-extrabold transition-colors md:text-[12px]"
+            style={{ background: "#92400E", color: "#FED7AA" }}
+          >
+            יציאה לרשימת לקוחות
+          </button>
+        </div>
+      )}
       {/* Mobile top bar — hamburger + brand. Hidden on md+ where the sidebar
           is permanently visible. */}
       <header
-        className="fixed inset-x-0 top-0 z-20 flex h-14 items-center justify-between px-4 md:hidden"
+        className={
+          "fixed inset-x-0 z-20 flex h-14 items-center justify-between px-4 md:hidden " +
+          (impersonation ? "top-9" : "top-0")
+        }
         style={{
           background: "#FFFFFF",
           color: "#1A1A1A",
@@ -159,10 +210,17 @@ export function ClientShell({
       </div>
 
       {/* Main content — pad-top on mobile to clear the fixed header,
-          right-margin on md+ to clear the fixed sidebar.
+          right-margin on md+ to clear the fixed sidebar. When the
+          impersonation banner is shown, mobile pad-top grows so the
+          first content row isn't hidden behind the banner+header stack.
           2026-05-19 per Nir: removed the inline ClientSwitcher — advisors
           switch clients from /crm instead, freeing up screen real estate. */}
-      <main className="min-h-screen px-3 pb-8 pt-16 sm:px-6 md:mr-[280px] md:px-10 md:pt-8">
+      <main
+        className={
+          "min-h-screen px-3 pb-8 sm:px-6 md:mr-[280px] md:px-10 " +
+          (impersonation ? "pt-24 md:pt-16" : "pt-16 md:pt-8")
+        }
+      >
         {children}
       </main>
     </>

@@ -13,9 +13,11 @@ type IncomeType = "employment" | "passive";
  * In practice we replace the 10%/14%/20% brackets with a flat 31% floor up to the 31% bracket ceiling.
  */
 function passiveIncomeTaxUnder60(annualIncome: number) {
+  // 35% ceiling 560,280 — synced with TAX_BRACKETS_2026 in lib/assumptions.ts.
+  // Was 565,920 (legacy draft); the official 2026 indexation uses 560,280.
   const brackets = [
     { limit: 301_200, rate: 0.31 },
-    { limit: 565_920, rate: 0.35 },
+    { limit: 560_280, rate: 0.35 },
     { limit: 721_560, rate: 0.47 },
     { limit: Infinity, rate: 0.5 },
   ];

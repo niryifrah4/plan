@@ -50,6 +50,7 @@ import { Step3Risk } from "./page-files/Step3Risk";
 import { Step4Goals } from "./page-files/Step4Goals";
 import { Step5Retirement } from "./page-files/Step5Retirement";
 import { Navigation } from "./page-files/Navigation";
+import { Step0Welcome, shouldShowWelcome } from "./page-files/Step0Welcome";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -58,6 +59,12 @@ export default function OnboardingPage() {
    * Prevents usePersistedState from initializing with a stale empty state
    * when the user re-opens the page on a different browser. */
   const [hydrated, setHydrated] = useState(false);
+  // Welcome screen — shown once per household before Step 1. Defer the
+  // localStorage read to post-mount so the SSR/CSR render trees match.
+  const [showWelcome, setShowWelcome] = useState(false);
+  useEffect(() => {
+    setShowWelcome(shouldShowWelcome());
+  }, []);
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -248,7 +255,7 @@ export default function OnboardingPage() {
     [setStep]
   );
 
-  const handleFinish = useCallback(() => {
+  const handleFinish = useCallback(async () => {
     // Flush all persisted state to localStorage immediately before sync.
     // Must use scopedKey() so the sync engine and store migrations read
     // from the same client-scoped namespace (verdant:c:{id}:...).
@@ -265,6 +272,10 @@ export default function OnboardingPage() {
       localStorage.setItem(scopedKey("verdant:onboarding:incomes"), JSON.stringify(incomes));
     } catch {}
     syncOnboardingToStores();
+    // Flip household.stage from 'onboarding' → 'active' so the (client)
+    // layout stops redirecting back here on next navigation. Fire-and-forget:
+    // a failure shouldn't block the user from reaching their dashboard.
+    fetch("/api/onboarding/complete", { method: "POST" }).catch(() => {});
     router.push("/dashboard");
   }, [router, fields, children, assets, liabilities, insurance, goals, incomes]);
 
@@ -282,6 +293,10 @@ export default function OnboardingPage() {
         </div>
       </div>
     );
+  }
+
+  if (showWelcome) {
+    return <Step0Welcome onStart={() => setShowWelcome(false)} />;
   }
 
   return (

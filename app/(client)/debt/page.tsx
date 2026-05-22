@@ -19,6 +19,7 @@ import { RefinanceAlerts } from "@/components/debt/RefinanceAlerts";
 import { FullRefinanceSimulator } from "@/components/debt/FullRefinanceSimulator";
 import { PayoffSimulator } from "@/components/debt/PayoffSimulator";
 import { AmortizationUpload } from "@/components/debt/AmortizationUpload";
+import { MortgageHealthCard } from "@/components/debt/MortgageHealthCard";
 import { type IndexationType, type RepaymentMethod } from "@/lib/debt-store";
 import { useAssumptions } from "@/lib/hooks/useAssumptions";
 import { getMonthlyNetIncome } from "@/lib/income";
@@ -493,7 +494,7 @@ export default function DebtPage() {
         <div className="mb-1 flex flex-wrap items-end justify-between gap-3">
           <div>
             <div
-              className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.18em]"
+              className="mb-1 text-[11px] font-semibold"
               style={{ color: "#6B7280" }}
             >
               ניהול חובות
@@ -582,6 +583,20 @@ export default function DebtPage() {
           Proactive signals: variable-rate change points, prime-margin gaps,
           and market-rate gaps with payback < 18 months. Hidden when empty. */}
       <RefinanceAlerts onOpenSimulator={(trackId) => setRefiTrackId(trackId)} />
+
+      {/* ═══ Mortgage Health Score + Diagnostics (Phase 6, 2026-05-21) ═══
+          The "what a CFP would say about this mortgage" card. Pulls from
+          mortgage-diagnostics + mortgage-health-score. Hidden when there
+          are no mortgages. */}
+      <MortgageHealthCard
+        debt={data}
+        assumptions={assumptions}
+        properties={properties}
+        monthlyNetIncome={monthlyNetIncome}
+        onOpenRefi={({ trackId }) => {
+          if (trackId) setRefiTrackId(trackId);
+        }}
+      />
 
       {/* ═══ Mortgages Section (multi-mortgage, since 2026-05-18) ═══
           Each mortgage = its own card, with a property dropdown so the user
@@ -751,7 +766,7 @@ export default function DebtPage() {
                         }
                         className="cursor-pointer border-none bg-transparent text-[12px] font-bold focus:outline-none"
                         style={{
-                          color: linkedProperty ? "#FFFFFF" : "#B45309",
+                          color: linkedProperty ? "#1A1A1A" : "#B45309",
                         }}
                         title="שייך משכנתא זו לנכס מ-/realestate"
                       >
@@ -1371,7 +1386,7 @@ export default function DebtPage() {
                     }
                     className="w-full border-none bg-transparent text-left text-[12px] font-semibold tabular-nums focus:outline-none"
                     style={{
-                      color: loan.interestRate === undefined ? "#9ca3af" : "#FFFFFF",
+                      color: loan.interestRate === undefined ? "#9ca3af" : "#1A1A1A",
                       borderBottom: "1px dotted transparent",
                     }}
                     onFocus={(e) => {

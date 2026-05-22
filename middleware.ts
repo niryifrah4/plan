@@ -18,6 +18,10 @@ const PUBLIC_ROUTES = [
   "/auth/callback",
   "/privacy",
   "/terms",
+  // Local-storage / cookie wipe page — useful when switching dev Supabase
+  // projects so the browser doesn't keep stale household IDs from a previous
+  // DB. Must be public; user is not logged in when they need it.
+  "/clear-storage",
   // PWA assets — must be reachable without auth so the browser can render
   // the installable-app icon and read the manifest before login.
   "/manifest.webmanifest",
@@ -43,6 +47,27 @@ export async function middleware(request: NextRequest) {
 
   // Allow static assets first (cheap check)
   if (pathname.startsWith("/_next") || pathname.includes(".")) {
+    return NextResponse.next();
+  }
+
+  // Dev-only convenience: /m mobile shell is open in local dev so we can
+  // iterate on the PWA UI without logging in on every reload. Production
+  // still goes through the normal Supabase auth gate below.
+  if (process.env.NODE_ENV === "development" && pathname.startsWith("/m")) {
+    return NextResponse.next();
+  }
+
+  // Dev-only full auth bypass — set DEV_AUTH_BYPASS=1 in .env.local to skip
+  // all auth checks locally. Triple-guarded: must be NODE_ENV=development,
+  // env var must equal "1", and the flag is server-only (no NEXT_PUBLIC).
+  // If anyone tries to set this in Render, NODE_ENV=production blocks it.
+  if (
+    process.env.NODE_ENV === "development" &&
+    process.env.DEV_AUTH_BYPASS === "1"
+  ) {
+    console.warn(
+      "[middleware] ⚠️ DEV_AUTH_BYPASS=1 — auth disabled. Remove from .env.local before relying on the system."
+    );
     return NextResponse.next();
   }
 

@@ -211,11 +211,13 @@ export function realReturn(nominal: number, inflation: number, fees: number): nu
  * ⚠️ מדרגות אלו מתעדכנות ב-1 בינואר בכל שנה. לעדכן לכשתצא טבלה חדשה.
  */
 export const TAX_BRACKETS_2026 = [
-  { limit: 84_960, rate: 0.1 },
-  { limit: 121_800, rate: 0.14 },
+  // Bracket widths per the official 2026 indexation (tikkun 288, January 2026).
+  // Verified against multiple sources — was 84,960 / 121,800 in an earlier draft.
+  { limit: 84_120, rate: 0.1 },
+  { limit: 120_720, rate: 0.14 },
   { limit: 228_000, rate: 0.2 },
   { limit: 301_200, rate: 0.31 },
-  { limit: 565_920, rate: 0.35 },
+  { limit: 560_280, rate: 0.35 },
   { limit: 721_560, rate: 0.47 },
   { limit: Infinity, rate: 0.5 },
 ] as const;

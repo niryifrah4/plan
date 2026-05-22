@@ -544,16 +544,16 @@ export default function DashboardPage() {
         ? "#2C7A5A"
         : savingsRate >= 5
           ? "#b45309"
-          : "#FFFFFF";
+          : "#DC2626";
 
   // Allocation slices for donut
   const allocationSlices = useMemo(() => {
     const groups: Record<string, { label: string; color: string; total: number }> = {
       liquid: { label: "נזיל", color: "#2C7A5A", total: 0 },
-      investments: { label: "השקעות", color: "#1A1A1A", total: 0 },
+      investments: { label: "השקעות", color: "#4a9b7a", total: 0 },
       pension: { label: "פנסיוני", color: "#059669", total: 0 },
       realestate: { label: "נדל״ן", color: "#059669", total: 0 },
-      kids: { label: "חיסכון ילדים", color: "#6366f1", total: 0 },
+      kids: { label: "חיסכון ילדים", color: "#4a9b7a", total: 0 },
     };
     assets.forEach((a) => {
       if (groups[a.asset_group]) groups[a.asset_group].total += a.balance;
@@ -793,7 +793,7 @@ export default function DashboardPage() {
     return (
       <div
         className="mx-auto max-w-3xl py-8 md:py-16"
-        style={{ fontFamily: "'Assistant', sans-serif" }}
+        style={{ fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif" }}
       >
         <div className="card-pad text-center">
           <div
@@ -867,7 +867,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl py-4 md:py-8" style={{ fontFamily: "'Assistant', sans-serif" }}>
+    <div className="mx-auto max-w-5xl py-4 md:py-8" style={{ fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif" }}>
       {/* ═══════ Monthly Check-in Popup ═══════ */}
       {showCheckin && (
         <div
@@ -1358,7 +1358,7 @@ export default function DashboardPage() {
                 <div className="caption mb-1">
                   {viewMode === "capital" ? "הר העושר" : "הכנסה חודשית בפרישה"}
                 </div>
-                <h3 className="t-lg font-extrabold" style={{ color: "var(--botanical-forest)" }}>
+                <h3 className="t-lg font-extrabold" style={{ color: "var(--morning-forest)" }}>
                   {viewMode === "capital" ? "תחזית צמיחה הוליסטית" : "הכנסה חודשית בפרישה"}
                 </h3>
                 {fireResult.fireAge !== null &&
@@ -2091,7 +2091,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <div className="caption mb-1">מטרות ויעדים</div>
-              <h3 className="t-lg font-extrabold" style={{ color: "var(--botanical-forest)" }}>
+              <h3 className="t-lg font-extrabold" style={{ color: "var(--morning-forest)" }}>
                 מטרות ויעדים
               </h3>
               {buckets.length > 0 && (
@@ -2112,11 +2112,11 @@ export default function DashboardPage() {
           <div className="card-mint py-10 text-center">
             <div
               className="icon-lg mx-auto mb-3"
-              style={{ background: "rgba(0,0,0,0.35)", color: "var(--botanical-forest)" }}
+              style={{ background: "rgba(0,0,0,0.35)", color: "var(--morning-forest)" }}
             >
               <span className="material-symbols-outlined text-[26px]">tips_and_updates</span>
             </div>
-            <div className="t-lg font-extrabold" style={{ color: "var(--botanical-deep)" }}>
+            <div className="t-lg font-extrabold" style={{ color: "var(--morning-ink)" }}>
               כל שקל חייב לדעת לאן הוא הולך
             </div>
             <div className="t-sm mt-2 font-bold" style={{ color: "rgba(10,25,41,0.7)" }}>

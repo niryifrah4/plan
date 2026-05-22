@@ -13,6 +13,7 @@ import { useMemo, useState } from "react";
 import { fmtILS } from "@/lib/format";
 import { simulatePropertySale, type SaleSimInputs } from "@/lib/realestate-sale-sim";
 import type { Property } from "@/lib/realestate-store";
+import { useAssumptions } from "@/lib/hooks/useAssumptions";
 
 interface Props {
   property: Property;
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export function SaleSimulator({ property, allProperties, onClose }: Props) {
+  const assumptions = useAssumptions();
   const [yearsToSale, setYearsToSale] = useState(2);
   const [appreciation, setAppreciation] = useState(
     Math.round((property.annualAppreciation ?? 0.03) * 100)
@@ -34,8 +36,11 @@ export function SaleSimulator({ property, allProperties, onClose }: Props) {
       annualAppreciationOverride: appreciation / 100,
       sellingFeesPct: feesPct / 100,
       mortgageRateOverride: rate / 100,
+      // Pass live CPI assumption so mas-shevach uses the real (indexed) gain,
+      // not nominal — otherwise tax is overstated by tens of percent on long holds.
+      inflationRate: assumptions.inflationRate,
     }),
-    [yearsToSale, appreciation, feesPct, rate]
+    [yearsToSale, appreciation, feesPct, rate, assumptions.inflationRate]
   );
 
   const result = useMemo(

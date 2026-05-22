@@ -174,7 +174,7 @@ export default function LoginPage() {
                 fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif",
               }}
             >
-              {mode === "login" ? "היי, שמחים לראות אותך 👋" : "ברוכים הבאים"}
+              {mode === "login" ? "היי, שמחים לראות אותך" : "ברוכים הבאים"}
             </h1>
             <p
               style={{

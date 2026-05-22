@@ -177,22 +177,11 @@ export function InsuranceNeedsPanel() {
 
   return (
     <section className="mb-10">
-      {/* ── Header row ── */}
-      <header className="mb-5 flex items-end justify-between gap-3">
-        <div>
-          <div
-            className="mb-1 text-[11px] font-semibold tracking-[0.15em]"
-            style={{ color: "var(--morning-muted)" }}
-          >
-            INSURANCE NEEDS · צרכי כיסוי
-          </div>
-          <h2
-            className="text-2xl font-extrabold md:text-3xl"
-            style={{ color: "var(--morning-ink)", letterSpacing: "-0.01em" }}
-          >
-            כמה ביטוח באמת צריך
-          </h2>
-        </div>
+      {/* Header text removed 2026-05-21 per Nir — title was redundant with the
+          page-level "ניהול סיכונים" headline. The "הנחות חישוב" button stays
+          aligned to the end (left in RTL) so users can still open the
+          assumption editor. */}
+      <div className="mb-5 flex justify-end">
         <button
           type="button"
           onClick={() => setShowProfile((s) => !s)}
@@ -206,7 +195,21 @@ export function InsuranceNeedsPanel() {
           <span className="material-symbols-outlined ml-1 align-middle text-[14px]">tune</span>
           {showProfile ? "סגור הנחות" : "הנחות חישוב"}
         </button>
-      </header>
+      </div>
+
+      {/* ── Profile editor (collapsible) — sits directly under the button so
+          clicking the toggle shows the panel where the user's eye already is,
+          instead of scrolling them past 4 cards to find it. (2026-05-21) ── */}
+      {showProfile && (
+        <div className="mb-5">
+          <ProfileEditor
+            profile={profile}
+            ctx={ctx}
+            onChange={handleProfileChange}
+            onClose={() => setShowProfile(false)}
+          />
+        </div>
+      )}
 
       {/* ── Missing-context banner ── */}
       {missingContext && (
@@ -275,15 +278,6 @@ export function InsuranceNeedsPanel() {
         ))}
       </div>
 
-      {/* ── Profile editor (collapsible) ── */}
-      {showProfile && (
-        <ProfileEditor
-          profile={profile}
-          ctx={ctx}
-          onChange={handleProfileChange}
-          onClose={() => setShowProfile(false)}
-        />
-      )}
     </section>
   );
 }
