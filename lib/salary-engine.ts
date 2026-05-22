@@ -10,7 +10,11 @@
  */
 
 import { scopedKey } from "@/lib/client-scope";
-import { israeliIncomeTax, bituachLeumiEstimate, AVG_WAGE_2026 } from "@/lib/assumptions";
+import {
+  israeliIncomeTax,
+  bituachLeumiEstimate,
+  AVG_WAGE_SECTION1_2026,
+} from "@/lib/assumptions";
 
 /* ═══════════════════════════════════════════════════════════
    Profile shape
@@ -121,8 +125,10 @@ export const STUDY_FUND_SALARY_CAP = 15712;
  */
 export const STUDY_FUND_FRINGE_BL_RATE = 0.12;
 
-/** Health tax (מס בריאות): 3.1% up to 60% of avg wage, 5% above. Applied on full gross. */
-const AVG_WAGE_MONTHLY = AVG_WAGE_2026;
+/** Health tax (מס בריאות): 3.1% up to 60% of avg wage, 5% above. Applied on full gross.
+ *  Uses SECTION 1 of the BL law (= contributions ceiling, ₪13,566 for 2026).
+ *  Section 2 (₪13,769) is for pension/benefits caps and is the wrong basis here. */
+const AVG_WAGE_MONTHLY = AVG_WAGE_SECTION1_2026;
 const HEALTH_TAX_LOW_RATE = 0.031;
 const HEALTH_TAX_HIGH_RATE = 0.05;
 

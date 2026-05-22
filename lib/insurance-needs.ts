@@ -158,14 +158,17 @@ export interface NeedsContext {
    Israeli 2026 constants
    ═══════════════════════════════════════════════════════════ */
 
-/** שכר ממוצע במשק 2026. Synced with assumptions.ts. */
-const AVG_WAGE_2026 = 13_566;
+/** שכר ממוצע במשק 2026 — סעיף 2 (₪13,769) הוא הבסיס לתקרות פנסיה.
+ *  ראו assumptions.ts לגבי ההפרדה בין סעיף 1 (BL contributions, 13,566)
+ *  לסעיף 2 (pension/benefits caps, 13,769). הקבוע הקודם 13,566 כאן היה
+ *  שגוי לקונטקסט פנסיה והוגדל ל-13,769 (תיקון finance-agent 2026-05-21). */
+const AVG_WAGE_SECTION2_2026 = 13_769;
 
 /**
- * Legal cap on pensionable salary in קרן פנסיה חדשה: 2× שכר ממוצע.
+ * Legal cap on pensionable salary in קרן פנסיה חדשה: 2× שכר ממוצע (סעיף 2).
  * Above this, pension disability cover stops — gap must be filled privately.
  */
-const PENSION_DISABILITY_SALARY_CAP = AVG_WAGE_2026 * 2; // ≈ ₪26,700
+const PENSION_DISABILITY_SALARY_CAP = AVG_WAGE_SECTION2_2026 * 2; // ≈ ₪27,538
 
 /** Legal max disability benefit in Israel: 75% of income. */
 const DISABILITY_REPLACEMENT_RATE = 0.75;

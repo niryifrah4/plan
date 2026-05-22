@@ -91,15 +91,32 @@ export interface AmortRow {
 }
 
 export function amortSchedule(principal: number, annualRate: number, months: number): AmortRow[] {
+  // Edge case guards (finance-agent 2026-05-21):
+  //   - months ≤ 0: pmt() would divide by zero / return Infinity. Return empty.
+  //   - principal ≤ 0: nothing to schedule.
+  if (!isFinite(principal) || principal <= 0) return [];
+  if (!isFinite(months) || months <= 0) return [];
+
   const m = pmt(principal, annualRate, months);
   const r = annualRate / 12;
   const rows: AmortRow[] = [];
   let bal = principal;
   for (let i = 1; i <= months; i++) {
     const interest = bal * r;
+    // Payment-below-interest guard: when the user enters an unrealistically
+    // high rate (e.g. 50%+ on a 30-year loan), `pmt` may still produce a
+    // payment that barely exceeds interest. The original Math.max(0, ...)
+    // would silently let the balance creep upward. Force termination if the
+    // payment doesn't actually reduce principal.
     const pPart = m - interest;
+    if (pPart <= 0) {
+      // Capture the bad row so the UI can show what happened, then bail.
+      rows.push({ month: i, payment: m, interest, principal: pPart, balance: bal });
+      break;
+    }
     bal = Math.max(0, bal - pPart);
     rows.push({ month: i, payment: m, interest, principal: pPart, balance: bal });
+    if (bal <= 0) break;
   }
   return rows;
 }

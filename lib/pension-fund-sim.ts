@@ -92,7 +92,11 @@ function projectScenario(
     netReturn
   );
   // Conversion factor: balance ÷ factor = monthly pension.
-  // 200 ≈ standard pension (DC), 175 ≈ ביטוח מנהלים, 180 ≈ גמל לקצבה.
+  // 2026 defaults (life-expectancy-updated, retirement age 67):
+  //   220 — קרן פנסיה (DC). Old funds in code may still show 200; updated
+  //   175 — ביטוח מנהלים (with guaranteed factor)
+  //   200 — קופת גמל לקצבה
+  // See defaultFactorByType() below for the canonical mapping.
   const monthlyPension = p.conversionFactor > 0 ? Math.round(finalBalance / p.conversionFactor) : 0;
   return { finalBalance, monthlyPension };
 }

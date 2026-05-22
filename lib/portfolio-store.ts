@@ -50,6 +50,44 @@ export function isEquityComp(kind: AssetKind): boolean {
 /** Section 102 long-term capital track + ordinary CGT — same 25% flat. */
 export const TAX_RATE_DEFAULT = 0.25;
 
+/**
+ * Section 102 "ordinary income" track — applied when an RSU/ESPP grant
+ * is sold/valued **before** completing 24 months from grant. The full
+ * marginal bracket applies; we use the top Israeli bracket (47%) as a
+ * conservative planning estimate. Real liability depends on the
+ * employee's full income.
+ */
+export const TAX_RATE_102_ORDINARY = 0.47;
+
+/** §102 minimum holding period for capital-gains-track treatment. */
+const SECTION_102_HOLDING_MONTHS = 24;
+
+/**
+ * Effective tax rate for a single position at a given date.
+ *
+ * Non-equity (stock/etf/crypto/bond/fund) — flat 25% capital gains.
+ *
+ * Equity comp (RSU/ESPP/option) with §102 trust route:
+ *   • ≥24 months from grant start → 25% capital gains track
+ *   • <24 months → ordinary income at 47% (top bracket; conservative)
+ *
+ * NOTE: this is a planning approximation. The exact §102 rule depends on
+ * the trust deposit date and whether the grant is "capital track" or
+ * "ordinary track" from inception. Real-world tax filings should always
+ * reference the employer's grant documentation.
+ */
+export function effectiveTaxRate(pos: Position, asOf: Date = new Date()): number {
+  if (!pos.grant) return TAX_RATE_DEFAULT;
+  const start = pos.grant.vesting?.startDate;
+  if (!start) return TAX_RATE_DEFAULT; // missing data → assume favorable
+  const startMs = new Date(start).getTime();
+  if (!isFinite(startMs)) return TAX_RATE_DEFAULT;
+  const monthsHeld = (asOf.getTime() - startMs) / (1000 * 60 * 60 * 24 * 30.44);
+  return monthsHeld >= SECTION_102_HOLDING_MONTHS
+    ? TAX_RATE_DEFAULT
+    : TAX_RATE_102_ORDINARY;
+}
+
 /* ─── Account ───────────────────────────────────────────────── */
 
 /**
@@ -307,7 +345,10 @@ export function valuePosition(pos: Position, asOf: Date = new Date()): PositionV
         : 0;
 
   const gain = Math.max(0, unrealizedPnlIls);
-  const taxIls = gain * TAX_RATE_DEFAULT;
+  // §102-aware: RSU/ESPP under 24 months from grant pays ordinary income
+  // (top bracket conservative estimate), ≥24 months pays 25% capital
+  // gains. Regular positions always 25%.
+  const taxIls = gain * effectiveTaxRate(pos, asOf);
   const netAfterTaxIls = marketValueIls - taxIls;
 
   return {
