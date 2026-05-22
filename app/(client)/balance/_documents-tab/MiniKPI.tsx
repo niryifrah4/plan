@@ -19,7 +19,7 @@ export function MiniKPI({
       </div>
       <div
         className="text-sm font-extrabold"
-        style={{ color: color || "#FFFFFF", fontFamily: "inherit" }}
+        style={{ color: color || "#1A1A1A", fontFamily: "inherit" }}
       >
         {value}
       </div>

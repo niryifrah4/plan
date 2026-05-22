@@ -295,7 +295,7 @@ function Row({
       </span>
       <span
         className={`text-[11px] ${bold ? "font-extrabold" : "font-bold"} tabular`}
-        style={{ color: color || "#FFFFFF" }}
+        style={{ color: color || "#1A1A1A" }}
       >
         {value}
       </span>

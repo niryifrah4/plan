@@ -323,7 +323,7 @@ function DetailRow({ label, value, color }: { label: string; value: string; colo
   return (
     <div className="flex items-center justify-between">
       <span className="text-[11px] font-bold text-verdant-muted">{label}</span>
-      <span className="tabular text-[12px] font-extrabold" style={{ color: color || "#FFFFFF" }}>
+      <span className="tabular text-[12px] font-extrabold" style={{ color: color || "#1A1A1A" }}>
         {value}
       </span>
     </div>

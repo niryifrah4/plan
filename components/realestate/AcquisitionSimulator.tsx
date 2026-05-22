@@ -260,8 +260,10 @@ function MetricCard({ label, value, color }: { label: string; value: string; col
       className="rounded-lg p-3 text-center"
       style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}
     >
-      <div className="mb-0.5 text-[9px] font-bold text-verdant-muted">{label}</div>
-      <div className="tabular text-sm font-extrabold" style={{ color: color ?? "#FFFFFF" }}>
+      <div className="mb-0.5 text-[10px] font-semibold" style={{ color: "#6B7280" }}>
+        {label}
+      </div>
+      <div className="tabular text-sm font-extrabold" style={{ color: color ?? "#1A1A1A" }}>
         {value}
       </div>
     </div>

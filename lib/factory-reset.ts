@@ -65,8 +65,13 @@ export function wipeAllVerdantKeys(): number {
  * state — sessionStorage entries, Supabase auth tokens (IndexedDB), and
  * any non-essential cookies. Per 2026-04-28 security audit: shared advisor
  * tablets must not leak a previous client's session into the next one.
+ *
+ * Pass `keepAuth: true` when an advisor resets one of their clients' data —
+ * the advisor should stay logged in afterwards (the Supabase session +
+ * IndexedDB auth cache must NOT be wiped). Default behavior (false) signs
+ * the user out, used when a client resets their own account.
  */
-async function wipeBrowserState(): Promise<void> {
+async function wipeBrowserState(opts: { keepAuth?: boolean } = {}): Promise<void> {
   if (typeof window === "undefined") return;
 
   // sessionStorage — drop everything (we don't rely on session-scoped state).
@@ -74,35 +79,39 @@ async function wipeBrowserState(): Promise<void> {
     sessionStorage.clear();
   } catch {}
 
-  // IndexedDB — Supabase auth caches its session there. Best-effort.
-  try {
-    if ("indexedDB" in window && (indexedDB as any).databases) {
-      const dbs = await (indexedDB as any).databases();
-      for (const db of dbs || []) {
-        if (db?.name) {
-          try {
-            indexedDB.deleteDatabase(db.name);
-          } catch {}
+  // IndexedDB — Supabase auth caches its session there. When the advisor
+  // is just resetting a client's data we must SKIP this, or the advisor
+  // gets logged out immediately after the operation (2026-05-22 per Nir).
+  if (!opts.keepAuth) {
+    try {
+      if ("indexedDB" in window && (indexedDB as any).databases) {
+        const dbs = await (indexedDB as any).databases();
+        for (const db of dbs || []) {
+          if (db?.name) {
+            try {
+              indexedDB.deleteDatabase(db.name);
+            } catch {}
+          }
         }
+      } else {
+        // Older browsers — known names only.
+        ["supabase-auth-token", "verdant-cache"].forEach((name) => {
+          try {
+            indexedDB.deleteDatabase(name);
+          } catch {}
+        });
       }
-    } else {
-      // Older browsers — known names only.
-      ["supabase-auth-token", "verdant-cache"].forEach((name) => {
-        try {
-          indexedDB.deleteDatabase(name);
-        } catch {}
-      });
-    }
-  } catch {}
+    } catch {}
 
-  // Supabase explicit sign-out (also kills the auth cookie).
-  try {
-    const { getSupabaseBrowser, isSupabaseConfigured } = await import("./supabase/browser");
-    if (isSupabaseConfigured()) {
-      const supabase = getSupabaseBrowser();
-      if (supabase) await supabase.auth.signOut();
-    }
-  } catch {}
+    // Supabase explicit sign-out (also kills the auth cookie).
+    try {
+      const { getSupabaseBrowser, isSupabaseConfigured } = await import("./supabase/browser");
+      if (isSupabaseConfigured()) {
+        const supabase = getSupabaseBrowser();
+        if (supabase) await supabase.auth.signOut();
+      }
+    } catch {}
+  }
 }
 
 /**
@@ -135,7 +144,9 @@ export function manualFactoryReset(): { wiped: number } {
  * Caller should `await` this and then reload the window so step 1's effect
  * (no remote rows for the household) takes hold on the next bootstrap.
  */
-export async function manualFactoryResetAsync(): Promise<{ wiped: number; remoteDeleted: number }> {
+export async function manualFactoryResetAsync(
+  opts: { keepAuth?: boolean } = {}
+): Promise<{ wiped: number; remoteDeleted: number }> {
   if (typeof window === "undefined") return { wiped: 0, remoteDeleted: 0 };
 
   // Step 1: wipe remote blobs BEFORE clearing local pointers to household.
@@ -151,8 +162,9 @@ export async function manualFactoryResetAsync(): Promise<{ wiped: number; remote
   // Step 2: wipe local
   const wiped = wipeAllVerdantKeys();
 
-  // Step 3: wipe browser state + signOut (await — must finish before reload)
-  await wipeBrowserState();
+  // Step 3: wipe browser state. When advisor is resetting a client, keep
+  // the auth session so the advisor doesn't get kicked back to /login.
+  await wipeBrowserState({ keepAuth: opts.keepAuth });
 
   // Step 4: seed a fresh empty client
   seedFreshClient();

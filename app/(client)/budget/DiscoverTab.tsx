@@ -537,7 +537,7 @@ function Stat({
       <div className="text-[10px] font-bold text-verdant-muted">{label}</div>
       <div
         className="text-[16px] font-extrabold tabular-nums leading-tight"
-        style={{ color: color || "#FFFFFF" }}
+        style={{ color: color || "#1A1A1A" }}
       >
         {value}
       </div>

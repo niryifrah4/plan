@@ -278,7 +278,7 @@ function Row({
       <span className="text-xs text-verdant-muted">{label}</span>
       <span
         className={`tabular text-xs ${bold ? "font-extrabold" : "font-bold"}`}
-        style={{ color: color || "#FFFFFF" }}
+        style={{ color: color || "#1A1A1A" }}
       >
         {value}
       </span>

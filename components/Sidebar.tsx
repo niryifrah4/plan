@@ -95,14 +95,28 @@ export function Sidebar({
       variant: "danger",
     });
     if (!ok) return;
-    const { wiped, remoteDeleted } = await manualFactoryResetAsync();
+    // 2026-05-22 per Nir: advisor reset shouldn't sign out the advisor.
+    // Pass keepAuth so Supabase session + IndexedDB auth cache survive.
+    // Also clear the impersonation cookie so the advisor truly exits the
+    // client's portfolio, then land them on /crm (not /dashboard, which
+    // would just re-bounce them through impersonation flow).
+    const { wiped, remoteDeleted } = await manualFactoryResetAsync({
+      keepAuth: isAdvisor,
+    });
+    if (isAdvisor) {
+      try {
+        await fetch("/api/crm/impersonate", { method: "DELETE" });
+      } catch {
+        /* fall through to navigation even if cookie clear failed */
+      }
+    }
     try {
       // eslint-disable-next-line no-console
       console.info(
         `[manual-reset] wiped ${wiped} local keys + ${remoteDeleted} remote rows — reloading`
       );
     } catch {}
-    window.location.href = "/dashboard";
+    window.location.href = isAdvisor ? "/crm" : "/login";
   };
 
   const toggleGroup = (id: string) => {

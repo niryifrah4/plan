@@ -1272,19 +1272,19 @@ export default function DebtPage() {
               className="mb-2 grid items-center pb-2 text-[12px] font-extrabold"
               style={{
                 gridTemplateColumns:
-                  "minmax(110px,1.2fr) 110px 88px 110px 84px 110px 110px 40px",
+                  "minmax(120px,1.4fr) 112px 88px 110px 84px 120px 116px 40px",
                 color: "#6B7280",
                 borderBottom: "1px solid #E5E7EB",
-                columnGap: "10px",
+                columnGap: "20px",
               }}
             >
               <div>שם המלווה</div>
-              <div className="text-left">תאריך התחלה</div>
-              <div className="text-left">תשלומים</div>
-              <div className="text-left">החזר חודשי</div>
-              <div className="text-left">ריבית %</div>
-              <div className="text-left">מונה</div>
-              <div className="text-left">יתרה לסילוק</div>
+              <div>תאריך התחלה</div>
+              <div>תשלומים</div>
+              <div>החזר חודשי</div>
+              <div>ריבית %</div>
+              <div>מונה</div>
+              <div>יתרה לסילוק</div>
               <div />
             </div>
 
@@ -1301,9 +1301,9 @@ export default function DebtPage() {
                   className="group grid items-center py-3"
                   style={{
                     gridTemplateColumns:
-                      "minmax(110px,1.2fr) 110px 88px 110px 84px 110px 110px 40px",
+                      "minmax(120px,1.4fr) 112px 88px 110px 84px 120px 116px 40px",
                     borderBottom: "1px solid #E5E7EB",
-                    columnGap: "10px",
+                    columnGap: "20px",
                   }}
                 >
                   {/* Lender */}
