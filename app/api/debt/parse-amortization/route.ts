@@ -78,12 +78,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Extract text via pdf-parse. Encrypted / corrupted PDFs surface a sharp
-    // Hebrew error so the user knows what to fix.
+    // Hebrew error so the user knows what to fix. Cap pages to prevent a
+    // PDF-bomb (small file → huge text expansion) from OOMing Render.
     // @ts-ignore — pdf-parse has no proper types
     const pdfParse = (await import("pdf-parse")).default;
     let text: string;
     try {
-      const result = await pdfParse(buffer);
+      const result = await pdfParse(buffer, { max: PDF_PAGE_CAP });
       text = result.text || "";
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
@@ -109,7 +110,7 @@ export async function POST(req: NextRequest) {
     const parsed = parseAmortizationText(text);
 
     return NextResponse.json({
-      filename: name,
+      filename: sanitizeFilename(name),
       ...parsed,
     });
   } catch (e) {
