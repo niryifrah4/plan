@@ -18,6 +18,14 @@ import { createClient } from "@/lib/supabase/server";
 import { MobileBootstrap } from "./MobileBootstrap";
 import { MobileTabBar } from "./MobileTabBar";
 
+// The layout reads Supabase cookies to resolve the active household —
+// that operation is per-request and cannot be statically generated, so
+// we opt the whole /m tree out of SSG. Without this Next.js attempts to
+// prerender /m, /m/budget, /m/goals, /m/balance and the production
+// export fails with "Cannot read properties of undefined" on the cookie
+// store at build time.
+export const dynamic = "force-dynamic";
+
 export default async function MobileLayout({
   children,
 }: {
