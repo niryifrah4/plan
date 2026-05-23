@@ -12,10 +12,10 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "plan · מערכת לתכנון פיננסי",
     short_name: "plan",
     description: "תכנון פיננסי, תזרים מזומנים, השקעות וחובות במקום אחד",
-    // Installed PWA opens the root → middleware sends signed-out users to /login,
-    // signed-in clients/advisors to /dashboard or /crm via the (client) layout.
-    // (Previously `/m` was planned as a mobile shell — never built; pointed to 404.)
-    start_url: "/",
+    // Installed PWA opens the mobile cashflow tool directly. Desktop users
+    // who install will also land here (480px frame, mobile-first). Scope
+    // stays "/" so the install can navigate to /dashboard / /crm too.
+    start_url: "/m",
     scope: "/",
     display: "standalone",
     orientation: "portrait-primary",
