@@ -79,12 +79,17 @@ const __dirname_ = path.dirname(__filename_);
 
 const nextConfig = {
   reactStrictMode: true,
-  // 2026-05-01: skip lint + type-check during build. We run both locally
-  // before every push (npx tsc --noEmit + npm run build), so the prod build
-  // doesn't need to redo the work. This saves ~250MB of RAM on Render's
-  // 512MB free tier where the lint phase OOMs.
+  // 2026-05-01: skip ESLint during build. The lint phase is the RAM heavy
+  // one and OOMs on Render's 512MB free tier. We run it locally instead.
   eslint: { ignoreDuringBuilds: true },
-  typescript: { ignoreBuildErrors: true },
+  // 2026-05-23: TypeScript checking is BACK ON. Disabled it for ~3 weeks
+  // because we feared the same OOM, but a real-world failure proved the
+  // opposite cost: a commit referencing a file that didn't exist (Step0Welcome)
+  // passed the build, deployed to prod, and 500'd at runtime. With
+  // ignoreBuildErrors=true Render is blind to broken imports. Re-enabling
+  // type-check at build catches missing modules + signature drift before
+  // anything reaches prod. RAM tested OK 2026-05-23.
+  // typescript: { ignoreBuildErrors: true },
   experimental: {
     typedRoutes: true,
     // 2026-04-28 perf fix: googleapis (~194MB) and xlsx (~7MB) are used only
