@@ -16,6 +16,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { MobileBootstrap } from "./MobileBootstrap";
+import { MobileTabBar } from "./MobileTabBar";
 
 export default async function MobileLayout({
   children,
@@ -76,10 +77,14 @@ export default async function MobileLayout({
           minHeight: "100vh",
           background: "var(--morning-bg)",
           paddingTop: "env(safe-area-inset-top)",
-          paddingBottom: "env(safe-area-inset-bottom)",
+          // Reserve space at the bottom for the fixed tab bar (~62px nav
+          // + safe-area inset on notched phones).
+          paddingBottom: "calc(70px + env(safe-area-inset-bottom))",
+          position: "relative",
         }}
       >
         {children}
+        <MobileTabBar />
       </div>
     </MobileBootstrap>
   );
