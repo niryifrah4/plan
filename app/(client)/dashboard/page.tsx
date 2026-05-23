@@ -1057,19 +1057,13 @@ export default function DashboardPage() {
                       </div>
                       <div
                         className="mt-0.5 text-[15px] font-bold leading-tight"
-                        style={{
-                          color: "var(--morning-ink)",
-                          fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif",
-                        }}
+                        style={{ color: "var(--morning-ink)" }}
                       >
                         {n.title}
                       </div>
                       <div
                         className="mt-1.5 text-[13px] leading-relaxed"
-                        style={{
-                          color: "var(--morning-muted)",
-                          fontFamily: "Heebo, Rubik, Assistant, system-ui, sans-serif",
-                        }}
+                        style={{ color: "var(--morning-muted)" }}
                       >
                         {n.detail}
                       </div>
@@ -1286,7 +1280,10 @@ export default function DashboardPage() {
                   >
                     נכסים
                   </span>
-                  <span className="tabular text-[13px] font-extrabold text-white">
+                  <span
+                    className="tabular text-[13px] font-extrabold text-white"
+                    style={{ fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif" }}
+                  >
                     {fmtILS(totalAssets)}
                   </span>
                 </div>
@@ -1297,7 +1294,13 @@ export default function DashboardPage() {
                   >
                     התחייבויות
                   </span>
-                  <span className="tabular text-[13px] font-extrabold" style={{ color: "#FCA5A5" }}>
+                  <span
+                    className="tabular text-[13px] font-extrabold"
+                    style={{
+                      color: "#FCA5A5",
+                      fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif",
+                    }}
+                  >
                     {fmtILS(totalLiabilities)}
                   </span>
                 </div>
@@ -1326,7 +1329,10 @@ export default function DashboardPage() {
                       </span>
                       <span
                         className="tabular text-[13px] font-extrabold"
-                        style={{ color: levColor }}
+                        style={{
+                          color: levColor,
+                          fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif",
+                        }}
                       >
                         {lev}%
                       </span>
