@@ -26,6 +26,7 @@ import {
 import { loadParsedTransactions } from "@/lib/budget-import";
 import { scopedKey } from "@/lib/client-scope";
 import { AddExpenseSheet } from "./budget/AddExpenseSheet";
+import { InsightsCard } from "./InsightsCard";
 
 type BudgetSummary = { actual: number; budget: number; remaining: number };
 type NetWorthSummary = {
@@ -153,6 +154,11 @@ export default function MobileHomePage() {
       </header>
 
       {visitDelta && <VisitDeltaBanner delta={visitDelta} />}
+
+      <InsightsCard
+        refreshKey={refreshTick}
+        onOpenQuickAdd={() => setQuickAddOpen(true)}
+      />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <BudgetCard summary={budget} hydrated={hydrated} />
