@@ -1,0 +1,45 @@
+"use client";
+
+/**
+ * /m bootstrap wrapper — runs once per session.
+ *
+ * Mirrors what `(client)/ClientLayoutInner` does for the desktop:
+ *   1. Writes the active household_id to localStorage so scopedKey() picks
+ *      up the right namespace for all subsequent reads/writes.
+ *   2. Calls `bootstrapSessionOnce()` which pulls every blob from Supabase
+ *      (budgets, debt, pension, real estate, balance history, transactions
+ *      — including the new mobile-logged ones).
+ *
+ * Without this wrapper, /m mounts with empty localStorage and the user
+ * sees zero data even when they have a fully populated household on the
+ * dashboard. This was the silent gap surfaced by Nir's question on
+ * 2026-05-23: "איך הוא יודע שהאפליקציה שלי משוייכת אליי".
+ *
+ * Phase 1 (this commit) supports the advisor logging into their own
+ * household. Impersonation flow (advisor viewing a client's data) and
+ * client-only login will plug in here in later iterations.
+ */
+
+import { useEffect } from "react";
+import { bootstrapSessionOnce } from "@/lib/sync/bootstrap";
+
+interface Props {
+  householdId: string | null;
+  children: React.ReactNode;
+}
+
+export function MobileBootstrap({ householdId, children }: Props) {
+  useEffect(() => {
+    // Match the desktop's storage key so scopedKey() + bootstrap agree.
+    if (householdId) {
+      try {
+        localStorage.setItem("verdant:active_household_id", householdId);
+      } catch {}
+    }
+    bootstrapSessionOnce().catch(() => {
+      /* sync is best-effort; offline pages still render local data */
+    });
+  }, [householdId]);
+
+  return <>{children}</>;
+}
