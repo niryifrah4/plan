@@ -46,6 +46,7 @@ import { loadParsedTransactions } from "@/lib/budget-import";
 import { CategoryDetailSheet, EditCategorySheet } from "./sheets";
 import { IncomeSheet } from "./IncomeSheet";
 import { AddExpenseSheet } from "./AddExpenseSheet";
+import { ForecastView } from "./ForecastView";
 
 const BudgetPie = dynamic(
   () => import("@/app/(client)/budget/BudgetPie").then((m) => m.default),
@@ -115,6 +116,7 @@ export default function MobileBudgetPage() {
     { mode: "create" } | { mode: "edit"; line: BudgetLine } | null
   >(null);
   const [incomeOpen, setIncomeOpen] = useState(false);
+  const [view, setView] = useState<"current" | "forecast">("current");
 
   const refresh = () => {
     try {
@@ -219,12 +221,46 @@ export default function MobileBudgetPage() {
     <main style={{ padding: "16px 14px 32px", color: "var(--morning-ink)" }} dir="rtl">
       {/* Header */}
       <h1 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em", margin: 0 }}>
-        הביצוע —{" "}
+        {view === "current" ? "הביצוע" : "תזרים עתידי"} —{" "}
         <span style={{ color: "var(--morning-muted)", fontWeight: 500 }}>
-          {monthLabel || "החודש"}
+          {view === "current" ? monthLabel || "החודש" : "12 חודשים קדימה"}
         </span>
       </h1>
 
+      {/* View toggle — current month vs forward projection */}
+      <div
+        style={{
+          marginTop: 12,
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 4,
+          padding: 4,
+          background: "var(--morning-surface-3)",
+          borderRadius: 12,
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setView("current")}
+          style={viewToggleStyle(view === "current")}
+        >
+          החודש
+        </button>
+        <button
+          type="button"
+          onClick={() => setView("forecast")}
+          style={viewToggleStyle(view === "forecast")}
+        >
+          12 חודשים קדימה
+        </button>
+      </div>
+
+      {view === "forecast" ? (
+        <div style={{ marginTop: 14 }}>
+          <ForecastView />
+        </div>
+      ) : (
+        <>
       {/* CASHFLOW HERO */}
       <CashflowHero
         snapshot={cashflow}
@@ -485,8 +521,25 @@ export default function MobileBudgetPage() {
           }}
         />
       )}
+        </>
+      )}
     </main>
   );
+}
+
+function viewToggleStyle(active: boolean): React.CSSProperties {
+  return {
+    padding: "8px 12px",
+    fontSize: 13,
+    fontWeight: 700,
+    background: active ? "var(--morning-surface)" : "transparent",
+    color: active ? "var(--morning-forest)" : "var(--morning-muted)",
+    border: "none",
+    borderRadius: 10,
+    cursor: "pointer",
+    boxShadow: active ? "0 1px 2px rgba(16, 24, 40, 0.06)" : "none",
+    transition: "background 0.15s ease, color 0.15s ease",
+  };
 }
 
 /* ─────────────────────────────────────────────── */

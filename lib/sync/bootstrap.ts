@@ -73,6 +73,7 @@ export async function hydrateAllFromRemote(): Promise<void> {
     risk,
     scenarios,
     kids,
+    annualEvents,
     blobSync,
   ] = await Promise.all([
     import("@/lib/pension-store"),
@@ -85,6 +86,7 @@ export async function hydrateAllFromRemote(): Promise<void> {
     import("@/lib/risk-store"),
     import("@/lib/scenarios-store"),
     import("@/lib/kids-savings-store"),
+    import("@/lib/annual-events-store"),
     import("@/lib/sync/blob-sync"),
   ]);
 
@@ -100,6 +102,7 @@ export async function hydrateAllFromRemote(): Promise<void> {
     risk.hydrateRiskFromRemote?.(),
     scenarios.hydrateScenariosFromRemote?.(),
     kids.hydrateKidsSavingsFromRemote?.(),
+    annualEvents.hydrateAnnualEventsFromRemote?.(),
     hydrateSecurities(blobSync),
   ]);
 }
