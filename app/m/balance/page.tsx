@@ -143,6 +143,12 @@ export default function MobileBalancePage() {
       {/* HERO */}
       <NetWorthHero live={live} delta={delta} />
 
+      {/* finance-agent fix #5: gentle nudge to refresh the snapshot when
+          25+ days passed. Auto-snapshot was explicitly anti-recommended
+          (risk of saving an empty state), so this is a one-tap shortcut
+          rather than an automated job. */}
+      <SnapshotNudge history={history} onTake={handleSnapshot} taking={taking} />
+
       {/* SNAPSHOT BUTTON */}
       <button
         type="button"
@@ -477,6 +483,72 @@ function ChartSkeleton() {
         borderRadius: 12,
       }}
     />
+  );
+}
+
+/* ─────────────────────────────────────────────── */
+/* Snapshot nudge — shown when 25+ days have passed*/
+/* since the latest snapshot. Manual one-tap, no   */
+/* automation.                                     */
+/* ─────────────────────────────────────────────── */
+
+function SnapshotNudge({
+  history,
+  onTake,
+  taking,
+}: {
+  history: NetWorthSnapshot[] | null;
+  onTake: () => void;
+  taking: boolean;
+}) {
+  if (!history || history.length === 0) return null;
+  const last = history[history.length - 1];
+  const lastDate = new Date(last.date);
+  if (Number.isNaN(lastDate.getTime())) return null;
+  const daysSince = Math.floor((Date.now() - lastDate.getTime()) / 86_400_000);
+  if (daysSince < 25) return null;
+
+  return (
+    <div
+      style={{
+        marginTop: 12,
+        padding: "10px 14px",
+        background: "var(--morning-leaf-tint)",
+        border: "1px solid var(--morning-border)",
+        borderRadius: 12,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 10,
+        fontSize: 13,
+        color: "var(--morning-forest-deep)",
+      }}
+    >
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+          schedule
+        </span>
+        עברו {daysSince} ימים מהצילום האחרון
+      </span>
+      <button
+        type="button"
+        onClick={onTake}
+        disabled={taking}
+        style={{
+          padding: "6px 12px",
+          fontSize: 12,
+          fontWeight: 700,
+          background: "var(--morning-forest)",
+          color: "#ffffff",
+          border: "none",
+          borderRadius: 999,
+          cursor: taking ? "default" : "pointer",
+          opacity: taking ? 0.6 : 1,
+        }}
+      >
+        {taking ? "שומר..." : "צלם עכשיו"}
+      </button>
+    </div>
   );
 }
 

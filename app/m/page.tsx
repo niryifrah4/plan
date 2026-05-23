@@ -25,6 +25,7 @@ import {
 } from "@/lib/balance-history-store";
 import { loadParsedTransactions } from "@/lib/budget-import";
 import { scopedKey } from "@/lib/client-scope";
+import { AddExpenseSheet } from "./budget/AddExpenseSheet";
 
 type BudgetSummary = { actual: number; budget: number; remaining: number };
 type NetWorthSummary = {
@@ -44,6 +45,9 @@ export default function MobileHomePage() {
   const [networth, setNetworth] = useState<NetWorthSummary | null>(null);
   const [visitDelta, setVisitDelta] = useState<VisitDelta | null>(null);
   const [today, setToday] = useState("");
+  const [greeting, setGreeting] = useState("שלום");
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [refreshTick, setRefreshTick] = useState(0);
 
   useEffect(() => {
     try {
@@ -68,12 +72,18 @@ export default function MobileHomePage() {
       setNetworth({ totalAssets: 0, totalLiabilities: 0, netWorth: 0 });
     }
 
+    const now = new Date();
     setToday(
-      new Date().toLocaleDateString("he-IL", {
+      now.toLocaleDateString("he-IL", {
         weekday: "long",
         day: "numeric",
         month: "long",
       })
+    );
+    // Time-of-day greeting — finance-agent visual fix #2 (2026-05-23).
+    const hour = now.getHours();
+    setGreeting(
+      hour < 12 ? "בוקר טוב" : hour < 17 ? "צהריים טובים" : "ערב טוב"
     );
 
     // Visit-delta — read previous timestamp BEFORE overwriting it.
@@ -110,7 +120,7 @@ export default function MobileHomePage() {
     }
 
     setHydrated(true);
-  }, []);
+  }, [refreshTick]);
 
   return (
     <main style={{ padding: "20px 16px 24px", color: "var(--morning-ink)" }} dir="rtl">
@@ -135,7 +145,7 @@ export default function MobileHomePage() {
             letterSpacing: "-0.02em",
           }}
         >
-          בוקר טוב 👋
+          {greeting} 👋
         </h1>
         <div style={{ fontSize: 13, color: "var(--morning-muted)", minHeight: 18 }}>
           {today}
@@ -149,6 +159,45 @@ export default function MobileHomePage() {
         <GoalCard goal={nextGoal} hydrated={hydrated} />
         <NetWorthCard summary={networth} hydrated={hydrated} />
       </div>
+
+      {/* finance-agent "ONE thing": removes friction from the daily-use
+          loop by surfacing the primary action directly from home. */}
+      <button
+        type="button"
+        onClick={() => setQuickAddOpen(true)}
+        style={{
+          marginTop: 18,
+          width: "100%",
+          padding: "16px 18px",
+          background: "var(--morning-forest)",
+          color: "#ffffff",
+          border: "none",
+          borderRadius: 14,
+          fontSize: 16,
+          fontWeight: 700,
+          cursor: "pointer",
+          boxShadow: "var(--morning-shadow-fab)",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: 22 }}>
+          add
+        </span>
+        הוצאה מהירה
+      </button>
+
+      {quickAddOpen && (
+        <AddExpenseSheet
+          onClose={() => setQuickAddOpen(false)}
+          onSaved={() => {
+            setQuickAddOpen(false);
+            setRefreshTick((t) => t + 1);
+          }}
+        />
+      )}
     </main>
   );
 }
@@ -190,7 +239,11 @@ function VisitDeltaBanner({ delta }: { delta: VisitDelta }) {
 }
 
 function relativeHebrew(d: Date): string {
+  // finance-agent visual fix #3 (2026-05-23): "אתמול" only for 20-48h —
+  // anything fresher reports actual hours so the banner stays honest.
   const diffH = (Date.now() - d.getTime()) / 3_600_000;
+  if (diffH < 1) return "לפני כמה דקות";
+  if (diffH < 20) return `לפני ${Math.round(diffH)} שעות`;
   if (diffH < 48) return "אתמול";
   const diffD = Math.round(diffH / 24);
   if (diffD < 7) return `לפני ${diffD} ימים`;

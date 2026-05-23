@@ -77,9 +77,10 @@ export default async function MobileLayout({
           minHeight: "100vh",
           background: "var(--morning-bg)",
           paddingTop: "env(safe-area-inset-top)",
-          // Reserve space at the bottom for the fixed tab bar (~62px nav
-          // + safe-area inset on notched phones).
-          paddingBottom: "calc(70px + env(safe-area-inset-bottom))",
+          // Reserve space at the bottom for the fixed tab bar + the
+          // floating FAB on /m/budget. 88px clears both per finance-agent
+          // audit visual fix #1 (2026-05-23).
+          paddingBottom: "calc(88px + env(safe-area-inset-bottom))",
           position: "relative",
         }}
       >
