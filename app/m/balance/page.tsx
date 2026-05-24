@@ -18,8 +18,6 @@ import dynamic from "next/dynamic";
 import { fmtILS } from "@/lib/format";
 import {
   computeCurrentNetWorth,
-  buildSnapshotFromCurrent,
-  addSnapshot,
   loadHistory,
   sumAssetPools,
   sumLiabilityPools,
@@ -69,7 +67,6 @@ const LIAB_GROUPS: Array<{
 export default function MobileBalancePage() {
   const [live, setLive] = useState<Live | null>(null);
   const [history, setHistory] = useState<NetWorthSnapshot[] | null>(null);
-  const [taking, setTaking] = useState(false);
 
   const refresh = () => {
     try {
@@ -120,19 +117,6 @@ export default function MobileBalancePage() {
     return { diff, pct, prevDate: previous.date };
   }, [live, history]);
 
-  const handleSnapshot = async () => {
-    setTaking(true);
-    try {
-      const snap = buildSnapshotFromCurrent();
-      addSnapshot(snap);
-      refresh();
-    } catch {
-      // swallow — UI will show no change if it failed
-    } finally {
-      setTaking(false);
-    }
-  };
-
   return (
     <main style={{ padding: "16px 14px 32px", color: "var(--morning-ink)" }} dir="rtl">
       <h1 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em", margin: 0 }}>
@@ -143,41 +127,11 @@ export default function MobileBalancePage() {
       {/* HERO */}
       <NetWorthHero live={live} delta={delta} />
 
-      {/* finance-agent fix #5: gentle nudge to refresh the snapshot when
-          25+ days passed. Auto-snapshot was explicitly anti-recommended
-          (risk of saving an empty state), so this is a one-tap shortcut
-          rather than an automated job. */}
-      <SnapshotNudge history={history} onTake={handleSnapshot} taking={taking} />
-
-      {/* SNAPSHOT BUTTON */}
-      <button
-        type="button"
-        onClick={handleSnapshot}
-        disabled={taking || !live}
-        style={{
-          marginTop: 12,
-          width: "100%",
-          padding: "12px 16px",
-          background: live && !taking ? "var(--morning-forest)" : "var(--morning-surface-3)",
-          color: live && !taking ? "#ffffff" : "var(--morning-subtle)",
-          border: "none",
-          borderRadius: 12,
-          fontSize: 14,
-          fontWeight: 700,
-          cursor: live && !taking ? "pointer" : "not-allowed",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 8,
-        }}
-      >
-        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-          photo_camera
-        </span>
-        {taking ? "שומר..." : "צילום מצב להיסטוריה"}
-      </button>
-
-      {/* CHART — always open, projection below */}
+      {/* CHART — always open, projection below.
+          Manual snapshot UI removed per Nir 2026-05-24: "אין צורך
+          בצילום מצב להיסטוריה, זה מיותר." History still renders if
+          snapshots exist from the desktop quarterly review; mobile is
+          a passive viewer for this surface. */}
       <SectionTitle title="צמיחה לאורך זמן" />
       <div
         style={{
@@ -483,72 +437,6 @@ function ChartSkeleton() {
         borderRadius: 12,
       }}
     />
-  );
-}
-
-/* ─────────────────────────────────────────────── */
-/* Snapshot nudge — shown when 25+ days have passed*/
-/* since the latest snapshot. Manual one-tap, no   */
-/* automation.                                     */
-/* ─────────────────────────────────────────────── */
-
-function SnapshotNudge({
-  history,
-  onTake,
-  taking,
-}: {
-  history: NetWorthSnapshot[] | null;
-  onTake: () => void;
-  taking: boolean;
-}) {
-  if (!history || history.length === 0) return null;
-  const last = history[history.length - 1];
-  const lastDate = new Date(last.date);
-  if (Number.isNaN(lastDate.getTime())) return null;
-  const daysSince = Math.floor((Date.now() - lastDate.getTime()) / 86_400_000);
-  if (daysSince < 25) return null;
-
-  return (
-    <div
-      style={{
-        marginTop: 12,
-        padding: "10px 14px",
-        background: "var(--morning-leaf-tint)",
-        border: "1px solid var(--morning-border)",
-        borderRadius: 12,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 10,
-        fontSize: 13,
-        color: "var(--morning-forest-deep)",
-      }}
-    >
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-          schedule
-        </span>
-        עברו {daysSince} ימים מהצילום האחרון
-      </span>
-      <button
-        type="button"
-        onClick={onTake}
-        disabled={taking}
-        style={{
-          padding: "6px 12px",
-          fontSize: 12,
-          fontWeight: 700,
-          background: "var(--morning-forest)",
-          color: "#ffffff",
-          border: "none",
-          borderRadius: 999,
-          cursor: taking ? "default" : "pointer",
-          opacity: taking ? 0.6 : 1,
-        }}
-      >
-        {taking ? "שומר..." : "צלם עכשיו"}
-      </button>
-    </div>
   );
 }
 

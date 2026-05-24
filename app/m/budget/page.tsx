@@ -345,6 +345,7 @@ export default function MobileBudgetPage() {
                     line={l}
                     divider={i < fixed.length - 1}
                     onClick={() => setDetailLine(l)}
+                    onEdit={() => setEditState({ mode: "edit", line: l })}
                   />
                 ))}
               </RoundedList>
@@ -414,6 +415,7 @@ export default function MobileBudgetPage() {
                 key={l.key}
                 line={l}
                 onClick={() => setDetailLine(l)}
+                onEdit={() => setEditState({ mode: "edit", line: l })}
               />
             ))}
             <AddCategoryTile
@@ -968,7 +970,15 @@ function PieSkeleton() {
 /* Tiles & rows                                    */
 /* ─────────────────────────────────────────────── */
 
-function CategoryTile({ line, onClick }: { line: BudgetLine; onClick?: () => void }) {
+function CategoryTile({
+  line,
+  onClick,
+  onEdit,
+}: {
+  line: BudgetLine;
+  onClick?: () => void;
+  onEdit?: () => void;
+}) {
   const pct = line.budget > 0 ? (line.actual / line.budget) * 100 : 0;
   const tone =
     line.status === "over"
@@ -976,19 +986,27 @@ function CategoryTile({ line, onClick }: { line: BudgetLine; onClick?: () => voi
       : line.status === "warning"
       ? "var(--morning-warning)"
       : "var(--morning-forest)";
-  const pctColor =
-    line.status === "over"
-      ? "var(--morning-coral)"
-      : line.status === "warning"
-      ? "var(--morning-warning)"
-      : "var(--morning-ink)";
+  const numberColor =
+    line.status === "over" ? "var(--morning-coral)" : "var(--morning-ink)";
 
-  const Tag = onClick ? ("button" as const) : ("article" as const);
-
+  // The tile renders as a div (not button) so we can host a nested
+  // pencil-edit button. Keyboard activation is preserved via tabIndex
+  // + onKeyDown.
   return (
-    <Tag
-      type={onClick ? "button" : undefined}
+    <div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
       style={{
         background: "var(--morning-surface)",
         border: "1px solid var(--morning-border)",
@@ -998,11 +1016,11 @@ function CategoryTile({ line, onClick }: { line: BudgetLine; onClick?: () => voi
         display: "flex",
         flexDirection: "column",
         gap: 6,
-        minHeight: 78,
+        minHeight: 96,
         cursor: onClick ? "pointer" : "default",
         textAlign: "start",
         color: "var(--morning-ink)",
-        font: "inherit",
+        position: "relative",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
@@ -1024,6 +1042,9 @@ function CategoryTile({ line, onClick }: { line: BudgetLine; onClick?: () => voi
             overflow: "hidden",
             textOverflow: "ellipsis",
             minWidth: 0,
+            // Reserve space for the absolutely-positioned pencil so the
+            // label doesn't get clipped by it on small screens.
+            paddingInlineStart: onEdit ? 24 : 0,
             flex: 1,
           }}
           title={line.label}
@@ -1031,38 +1052,92 @@ function CategoryTile({ line, onClick }: { line: BudgetLine; onClick?: () => voi
           {line.label}
         </div>
       </div>
+
+      {/* BIG numbers — the primary information per Nir 2026-05-24:
+          "0 / 4000 זה אמור להיות החלק הגדול, האחוזים זה הקטן." */}
       <div
         style={{
-          fontSize: 20,
+          fontSize: 18,
           fontWeight: 800,
-          color: pctColor,
+          color: numberColor,
           fontVariantNumeric: "tabular-nums",
-          lineHeight: 1,
+          letterSpacing: "-0.01em",
+          lineHeight: 1.1,
         }}
       >
-        {Math.round(pct)}%
+        {line.actual.toLocaleString("en-US")} /{" "}
+        {line.budget.toLocaleString("en-US")} ₪
       </div>
-      <div
-        style={{
-          height: 4,
-          borderRadius: 999,
-          background: "var(--morning-surface-3)",
-          overflow: "hidden",
-        }}
-      >
+
+      {/* Bar + percent as the secondary, smaller signal */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <div
           style={{
-            width: `${Math.max(0, Math.min(100, pct))}%`,
-            height: "100%",
-            background: tone,
+            flex: 1,
+            height: 4,
             borderRadius: 999,
-            transition: "width 0.4s ease",
+            background: "var(--morning-surface-3)",
+            overflow: "hidden",
           }}
-        />
+        >
+          <div
+            style={{
+              width: `${Math.max(0, Math.min(100, pct))}%`,
+              height: "100%",
+              background: tone,
+              borderRadius: 999,
+              transition: "width 0.4s ease",
+            }}
+          />
+        </div>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: "var(--morning-muted)",
+            fontVariantNumeric: "tabular-nums",
+            flexShrink: 0,
+            minWidth: 28,
+            textAlign: "end",
+          }}
+        >
+          {Math.round(pct)}%
+        </span>
       </div>
-      {/* Tile shows only the % + bar; the ₪ amounts live in the
-          CategoryDetailSheet that opens on tap (per Nir 2026-05-24). */}
-    </Tag>
+
+      {/* Pencil — direct edit without going through CategoryDetailSheet */}
+      {onEdit && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit();
+          }}
+          aria-label={`ערוך את ${line.label}`}
+          title="ערוך קטגוריה"
+          style={{
+            position: "absolute",
+            top: 6,
+            insetInlineStart: 6,
+            width: 28,
+            height: 28,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "transparent",
+            color: "var(--morning-muted)",
+            border: "none",
+            borderRadius: 8,
+            cursor: "pointer",
+            padding: 0,
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+            edit
+          </span>
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -1099,19 +1174,31 @@ function FixedRow({
   line,
   divider,
   onClick,
+  onEdit,
 }: {
   line: BudgetLine;
   divider: boolean;
   onClick?: () => void;
+  onEdit?: () => void;
 }) {
   const pct = line.budget > 0 ? (line.actual / line.budget) * 100 : 0;
   const overshoot = line.status === "over";
-  const Tag = onClick ? ("button" as const) : ("div" as const);
 
   return (
-    <Tag
-      type={onClick ? "button" : undefined}
+    <div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
       style={{
         padding: "12px 14px",
         borderBottom: divider ? "1px solid var(--morning-border)" : "none",
@@ -1120,15 +1207,13 @@ function FixedRow({
         alignItems: "center",
         gap: 10,
         background: "transparent",
-        border: divider ? undefined : "none",
         cursor: onClick ? "pointer" : "default",
         textAlign: "start",
         width: "100%",
-        font: "inherit",
         color: "var(--morning-ink)",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
         <span
           aria-hidden
           style={{
@@ -1154,18 +1239,48 @@ function FixedRow({
       <div style={{ textAlign: "end", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
         <div
           style={{
-            fontSize: 13,
-            fontWeight: 700,
+            fontSize: 15,
+            fontWeight: 800,
             color: overshoot ? "var(--morning-coral)" : "var(--morning-ink)",
           }}
         >
-          {fmtILS(line.actual)}
+          {line.actual.toLocaleString("en-US")} /{" "}
+          {line.budget.toLocaleString("en-US")} ₪
         </div>
-        <div style={{ fontSize: 11, color: "var(--morning-muted)" }}>
-          {Math.round(pct)}% / {fmtILS(line.budget)}
+        <div style={{ fontSize: 11, color: "var(--morning-muted)", marginTop: 1 }}>
+          {Math.round(pct)}%
         </div>
       </div>
-    </Tag>
+      {onEdit && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit();
+          }}
+          aria-label={`ערוך את ${line.label}`}
+          title="ערוך קטגוריה"
+          style={{
+            flexShrink: 0,
+            width: 32,
+            height: 32,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "transparent",
+            color: "var(--morning-muted)",
+            border: "none",
+            borderRadius: 8,
+            cursor: "pointer",
+            padding: 0,
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+            edit
+          </span>
+        </button>
+      )}
+    </div>
   );
 }
 
