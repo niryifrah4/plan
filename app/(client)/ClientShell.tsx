@@ -7,6 +7,7 @@ import { useClient } from "@/lib/client-context";
 import { startSessionWatcher } from "@/lib/session-security";
 import { isSupabaseConfigured } from "@/lib/supabase/browser";
 import { getCurrentUser } from "@/lib/auth";
+import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
 
 interface ImpersonationInfo {
   householdId: string;
@@ -223,6 +224,10 @@ export function ClientShell({
       >
         {children}
       </main>
+      {/* PWA install hint — auto-shows on 2nd visit or after 5s on first iOS
+          Safari visit. Hidden when running standalone (already installed)
+          or after the user dismisses. */}
+      <PwaInstallPrompt />
     </>
   );
 }
