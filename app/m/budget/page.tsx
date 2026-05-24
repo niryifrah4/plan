@@ -877,7 +877,7 @@ function SkeletonTile() {
         background: "var(--morning-surface-2)",
         border: "1px solid var(--morning-border)",
         borderRadius: 12,
-        minHeight: 96,
+        minHeight: 78,
       }}
     />
   );
@@ -955,7 +955,7 @@ function CategoryTile({ line, onClick }: { line: BudgetLine; onClick?: () => voi
         display: "flex",
         flexDirection: "column",
         gap: 6,
-        minHeight: 96,
+        minHeight: 78,
         cursor: onClick ? "pointer" : "default",
         textAlign: "start",
         color: "var(--morning-ink)",
@@ -975,7 +975,7 @@ function CategoryTile({ line, onClick }: { line: BudgetLine; onClick?: () => voi
         />
         <div
           style={{
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: 600,
             whiteSpace: "nowrap",
             overflow: "hidden",
@@ -1017,15 +1017,8 @@ function CategoryTile({ line, onClick }: { line: BudgetLine; onClick?: () => voi
           }}
         />
       </div>
-      <div
-        style={{
-          fontSize: 10,
-          color: "var(--morning-muted)",
-          fontVariantNumeric: "tabular-nums",
-        }}
-      >
-        {fmtILS(line.actual)} / {fmtILS(line.budget)}
-      </div>
+      {/* Tile shows only the % + bar; the ₪ amounts live in the
+          CategoryDetailSheet that opens on tap (per Nir 2026-05-24). */}
     </Tag>
   );
 }
@@ -1046,7 +1039,7 @@ function AddCategoryTile({ onClick }: { onClick: () => void }) {
         alignItems: "center",
         justifyContent: "center",
         gap: 6,
-        minHeight: 96,
+        minHeight: 78,
         color: "var(--morning-muted)",
         font: "inherit",
       }}
