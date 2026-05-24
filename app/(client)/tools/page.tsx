@@ -12,6 +12,7 @@ import { AffordabilityCalc } from "@/components/toolbox/AffordabilityCalc";
 import { MortgageCalc } from "@/components/toolbox/MortgageCalc";
 import { InvestmentPropertyCalc } from "@/components/toolbox/InvestmentPropertyCalc";
 import { RealEstateCalc } from "@/components/toolbox/RealEstateCalc";
+import { RentVsBuyCalc } from "@/components/toolbox/RentVsBuyCalc";
 
 type Category = "realestate" | "tax" | "investments" | "retirement";
 
@@ -47,6 +48,14 @@ const CALCULATORS: CalcDef[] = [
     icon: "home",
     category: "realestate",
     component: () => <MortgageCalc />,
+  },
+  {
+    id: "rent-vs-buy",
+    name: "שכירות מול רכישה",
+    description: "האם עדיף לקנות דירה או לשכור ולהשקיע — השוואת שווי נטו",
+    icon: "compare_arrows",
+    category: "realestate",
+    component: () => <RentVsBuyCalc />,
   },
   {
     id: "second-home",
