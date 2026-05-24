@@ -42,7 +42,10 @@ export type DiagnosticKind =
   | "ltv_headroom"
   | "ltv_too_high"
   | "dti_critical"
-  | "payment_share_high";
+  | "payment_share_high"
+  | "variable_reset_soon"
+  | "market_window_opened"
+  | "periodic_review_due";
 
 export interface MortgageDiagnostic {
   id: string;
@@ -297,6 +300,148 @@ function checkDtiCritical(
   };
 }
 
+/* ── Phase 7 — time-based / market-window diagnostics ───────────────── */
+
+/**
+ * Variable-rate track whose next reset is within 90 days. The planner has
+ * a finite window to compare market rates and either lock in via refi or
+ * accept the bank's offer. Below 30 days = warning (no time to act).
+ */
+function checkVariableResetSoon(
+  mortgage: MortgageData,
+  track: MortgageTrack
+): MortgageDiagnostic | null {
+  if (!track.nextResetDate) return null;
+  const [ry, rm] = track.nextResetDate.split("-").map(Number);
+  if (!ry || !rm) return null;
+  const now = new Date();
+  const resetDate = new Date(ry, rm - 1, 1);
+  const daysUntil = Math.floor((resetDate.getTime() - now.getTime()) / 86_400_000);
+  if (daysUntil < 0 || daysUntil > 90) return null;
+  const severity: DiagnosticSeverity = daysUntil <= 30 ? "warning" : "opportunity";
+  return {
+    id: `variable_reset_soon:${track.id}`,
+    kind: "variable_reset_soon",
+    severity,
+    title: `מסלול "${track.name}" — תאריך עדכון ריבית מתקרב`,
+    detail: `הריבית במסלול תיקבע מחדש על-ידי הבנק ${daysUntil <= 30 ? "בעוד פחות מחודש" : `בעוד כ-${daysUntil} ימים`} (${track.nextResetDate}). זה החלון לבדוק מיחזור לפני שהריבית החדשה ננעלת.`,
+    mortgageId: mortgage.id,
+    trackId: track.id,
+    cta: "פתח סימולטור מיחזור",
+  };
+}
+
+/**
+ * Market average mortgage rate dropped ≥0.5% in the last 6 months relative
+ * to a track's effective rate. Even if the absolute gap was always there,
+ * the RECENT movement creates a refi window that may close. Fires once per
+ * mortgage (uses largest track by balance).
+ */
+function checkMarketWindowOpened(
+  mortgage: MortgageData,
+  a: Assumptions
+): MortgageDiagnostic | null {
+  const history = a.marketRateHistory || [];
+  if (history.length < 2) return null;
+  const tracks = mortgage.tracks || [];
+  if (tracks.length === 0) return null;
+  // Prefer a snapshot ≥6 months old. If history is shorter than that (the
+  // planner only started updating macro recently), fall back to the OLDEST
+  // snapshot — as long as it's at least 30 days old, so we're not comparing
+  // against today. 2026-05-22 fix per finance-agent: silent miss when no
+  // snapshot is ≥6 months old.
+  const sixMonthsAgo = Date.now() - 180 * 86_400_000;
+  const thirtyDaysAgo = Date.now() - 30 * 86_400_000;
+  const sorted = [...history].sort(
+    (x, y) => new Date(x.date).getTime() - new Date(y.date).getTime()
+  );
+  let past = [...sorted].reverse().find((s) => new Date(s.date).getTime() <= sixMonthsAgo);
+  if (!past) {
+    const oldest = sorted[0];
+    if (oldest && new Date(oldest.date).getTime() <= thirtyDaysAgo) {
+      past = oldest;
+    }
+  }
+  if (!past) return null;
+  const drop = past.avgMortgageRate - a.avgMortgageRate;
+  if (drop < 0.005) return null;
+  // Largest track by balance — the one where the gap matters most.
+  const biggest = tracks.reduce((max, t) =>
+    (t.remainingBalance || 0) > (max?.remainingBalance || 0) ? t : max
+  , tracks[0]);
+  const trackRate = effectiveTrackRate(biggest, a.primeRate);
+  const gap = trackRate - a.avgMortgageRate;
+  if (gap < 0.005) return null;
+  const annualSaving = biggest.remainingBalance * gap * 0.5;
+  return {
+    id: `market_window_opened:${mortgage.id}`,
+    kind: "market_window_opened",
+    severity: "opportunity",
+    title: "השוק זז — חלון מיחזור נפתח",
+    detail: `הריבית הממוצעת על משכנתאות חדשות ירדה ב-${(drop * 100).toFixed(2)}% בששת החודשים האחרונים (מ-${(past.avgMortgageRate * 100).toFixed(2)}% ל-${(a.avgMortgageRate * 100).toFixed(2)}%). למסלול הגדול ב-${mortgage.bank || "משכנתא זו"} יש כעת פער של ${(gap * 100).toFixed(2)}% מהשוק — שווה לבדוק מיחזור.`,
+    annualImpact: Math.round(annualSaving),
+    monthlyImpact: Math.round(annualSaving / 12),
+    mortgageId: mortgage.id,
+    trackId: biggest.id,
+    cta: "פתח סימולטור מיחזור",
+  };
+}
+
+/**
+ * Periodic-review reminder. CFP best practice: revisit every 3 years; after
+ * 5 the gap to market is almost always meaningful. Based on the OLDEST
+ * track's startDate so refis don't accidentally reset the clock for
+ * fresh-but-still-old tracks.
+ */
+function checkPeriodicReviewDue(mortgage: MortgageData): MortgageDiagnostic | null {
+  const tracks = mortgage.tracks || [];
+  if (tracks.length === 0) return null;
+  const now = new Date();
+  let oldestYearsSince = 0;
+  for (const t of tracks) {
+    if (!t.startDate) continue;
+    const [sy, sm] = t.startDate.split("-").map(Number);
+    if (!sy || !sm) continue;
+    const start = new Date(sy, sm - 1, 1);
+    const years = (now.getTime() - start.getTime()) / (365.25 * 86_400_000);
+    if (years > oldestYearsSince) oldestYearsSince = years;
+  }
+  if (oldestYearsSince < 3) return null;
+  // 2026-05-22 per finance-agent: surface the early-repayment fee gotcha
+  // when a fixed track ("קל\"צ" / "ק\"צ") is among the mortgage's tracks —
+  // it's the most common surprise in a "let's refinance" conversation.
+  const hasFixedTrack = (mortgage.tracks || []).some((t) =>
+    /קל[״"']?צ|ק[״"']?צ|קבוע/i.test(t.name || "")
+  );
+  const fixedHint = hasFixedTrack
+    ? " אם יש מסלול קל\"צ — שווה לבקש מהבנק חישוב עמלת פירעון מוקדם לפני הפגישה, כדי לדעת אם המיחזור באמת משתלם."
+    : "";
+  let severity: DiagnosticSeverity;
+  let detail: string;
+  if (oldestYearsSince >= 7) {
+    severity = "warning";
+    detail =
+      `המסלול הוותיק במשכנתא ב-${mortgage.bank || "בנק זה"} בן ${oldestYearsSince.toFixed(1)} שנים. רוב הסיכויים שתנאי השוק השתנו מהותית מאז. סקירה דחויה — שווה לפתוח שיחה עם הבנק.` +
+      fixedHint;
+  } else if (oldestYearsSince >= 5) {
+    severity = "opportunity";
+    detail =
+      `המסלול הוותיק כבר ${oldestYearsSince.toFixed(1)} שנים בתוקף. הוראת CFP: סקירה כל 3-5 שנים. הזמן לבדוק אם הריבית עדיין מתחרה.` +
+      fixedHint;
+  } else {
+    severity = "info";
+    detail = `${oldestYearsSince.toFixed(1)} שנים מאז נחתמה המשכנתא ב-${mortgage.bank || "בנק זה"}. סקירה תקופתית מומלצת כל 3 שנים.`;
+  }
+  return {
+    id: `periodic_review_due:${mortgage.id}`,
+    kind: "periodic_review_due",
+    severity,
+    title: `${oldestYearsSince.toFixed(1)} שנים מאז המשכנתא — זמן לסקירה`,
+    detail,
+    mortgageId: mortgage.id,
+  };
+}
+
 function checkPaymentShare(
   debt: DebtData,
   monthlyNetIncome: number
@@ -332,6 +477,11 @@ export function generateMortgageDiagnostics(
     if (skewCheck) diagnostics.push(skewCheck);
     const ltvCheck = checkLtv(mortgage, properties);
     if (ltvCheck) diagnostics.push(ltvCheck);
+    // Phase 7 — time + market window checks
+    const marketCheck = checkMarketWindowOpened(mortgage, assumptions);
+    if (marketCheck) diagnostics.push(marketCheck);
+    const reviewCheck = checkPeriodicReviewDue(mortgage);
+    if (reviewCheck) diagnostics.push(reviewCheck);
 
     // Per-track checks
     for (const track of mortgage.tracks || []) {
@@ -341,6 +491,8 @@ export function generateMortgageDiagnostics(
       if (primeCheck) diagnostics.push(primeCheck);
       const cpiCheck = checkHighCpiExposure(mortgage, track, assumptions);
       if (cpiCheck) diagnostics.push(cpiCheck);
+      const resetCheck = checkVariableResetSoon(mortgage, track);
+      if (resetCheck) diagnostics.push(resetCheck);
     }
   }
 

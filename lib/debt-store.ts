@@ -43,6 +43,22 @@ export interface MortgageTrack {
   startDate: string; // YYYY-MM
   endDate: string;
   totalPayments: number;
+  /**
+   * Variable-rate tracks (משתנה כל X שנים, משק"ל, ל"מ): the next date on
+   * which the bank re-prices the track against its reference rate (BoI +
+   * spread or similar). Stored as YYYY-MM. Used by Phase 7 reset-soon
+   * diagnostic — fires when within 90 days of reset so the planner has time
+   * to compare with the open market before the bank locks in the new rate.
+   * Empty / undefined for fixed-rate tracks.
+   */
+  nextResetDate?: string;
+  /**
+   * Variable-rate period length in years (e.g. 5 for "משתנה כל 5"). Optional —
+   * UI uses this to suggest the next reset date forward if `nextResetDate`
+   * was missed in past edits. Pure metadata; calculations rely on
+   * `nextResetDate` directly.
+   */
+  resetPeriodYears?: number;
   [key: string]: any;
 }
 

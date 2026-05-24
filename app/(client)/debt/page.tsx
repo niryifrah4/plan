@@ -351,7 +351,8 @@ export default function DebtPage() {
                           field === "indexation" ||
                           field === "repaymentMethod" ||
                           field === "startDate" ||
-                          field === "endDate"
+                          field === "endDate" ||
+                          field === "nextResetDate"
                             ? value
                             : Number(value) || 0,
                       }
@@ -1157,6 +1158,62 @@ export default function DebtPage() {
                             >
                               {(trackProgress * 100).toFixed(0)}%
                             </span>
+                          </div>
+                        )}
+                        {/* Phase 7 — variable-rate reset metadata. Surfaces
+                            inline only for variable / משתנה tracks, or when
+                            the user has already entered a reset date. */}
+                        {(/משתנה|variable|ל[״"']?מ|משק[״"']?ל/.test(track.name) ||
+                          track.nextResetDate) && (
+                          <div
+                            className="mb-1 flex flex-wrap items-center gap-3 rounded-md px-2 py-1.5"
+                            style={{ background: "#FAFAF7" }}
+                          >
+                            <span
+                              className="text-[10px] font-bold uppercase tracking-[0.08em]"
+                              style={{ color: "#6B7280" }}
+                            >
+                              עדכון ריבית הבא
+                            </span>
+                            <input
+                              type="month"
+                              value={track.nextResetDate || ""}
+                              onChange={(e) =>
+                                updateMortgageTrack(
+                                  mortgage.id,
+                                  track.id,
+                                  "nextResetDate" as keyof MortgageTrack,
+                                  e.target.value
+                                )
+                              }
+                              className="border-none bg-transparent text-[11px] font-semibold focus:outline-none"
+                              style={{ color: "#1A1A1A" }}
+                              title="התאריך שבו הבנק יקבע מחדש את הריבית במסלול משתנה. המערכת תתריע 90 ימים לפני."
+                            />
+                            <span
+                              className="text-[10px] font-bold uppercase tracking-[0.08em]"
+                              style={{ color: "#6B7280" }}
+                            >
+                              · תקופה (שנים)
+                            </span>
+                            <input
+                              type="number"
+                              min={1}
+                              max={30}
+                              value={track.resetPeriodYears ?? ""}
+                              onChange={(e) =>
+                                updateMortgageTrack(
+                                  mortgage.id,
+                                  track.id,
+                                  "resetPeriodYears" as keyof MortgageTrack,
+                                  e.target.value
+                                )
+                              }
+                              placeholder="5"
+                              className="w-12 border-none bg-transparent text-left text-[11px] font-bold tabular-nums focus:outline-none"
+                              style={{ color: "#1A1A1A" }}
+                              title="כל כמה שנים הריבית נקבעת מחדש (לדוגמה 5 ל-משתנה כל 5)."
+                            />
                           </div>
                         )}
                       </div>

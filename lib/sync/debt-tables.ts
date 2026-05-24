@@ -54,6 +54,9 @@ interface MortgageTrackRow {
   start_date: string;
   end_date: string;
   total_payments: number;
+  /** Phase 7 — variable-rate reset metadata. Both nullable. */
+  next_reset_date: string | null;
+  reset_period_years: number | null;
 }
 
 interface LoanRow {
@@ -103,6 +106,8 @@ function trackToRow(t: MortgageTrack, mortgageId: string): MortgageTrackRow {
     start_date: t.startDate || "",
     end_date: t.endDate || "",
     total_payments: t.totalPayments || 0,
+    next_reset_date: t.nextResetDate || null,
+    reset_period_years: typeof t.resetPeriodYears === "number" ? t.resetPeriodYears : null,
   };
 }
 
@@ -154,6 +159,9 @@ function rowToTrack(row: MortgageTrackRow): MortgageTrack {
     startDate: row.start_date || "",
     endDate: row.end_date || "",
     totalPayments: row.total_payments || 0,
+    nextResetDate: row.next_reset_date || undefined,
+    resetPeriodYears:
+      row.reset_period_years == null ? undefined : Number(row.reset_period_years),
   };
 }
 

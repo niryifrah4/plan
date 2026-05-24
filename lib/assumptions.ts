@@ -8,6 +8,18 @@ import { scopedKey } from "./client-scope";
 
 const STORAGE_KEY = "verdant:assumptions";
 
+/** One row in the macro-rate history. Pushed by `updateMacroRates`. */
+export interface MarketRateSnapshot {
+  /** ISO timestamp when this snapshot was captured. */
+  date: string;
+  boiRate: number;
+  primeRate: number;
+  avgMortgageRate: number;
+  inflationRate: number;
+}
+
+const MARKET_HISTORY_CAP = 24;
+
 export interface Assumptions {
   // ── Macro rates (updated manually when BoI changes policy) ──
   boiRate: number; // ריבית בנק ישראל — e.g. 0.045 = 4.5%
@@ -22,6 +34,16 @@ export interface Assumptions {
    * Default 2026-Q1: 5.0% — adjust if real rates diverge.
    */
   avgMortgageRate: number;
+
+  /**
+   * Phase 7 (2026-05-22): rolling history of macro updates. Each entry is a
+   * snapshot pushed by `updateMacroRates` when one of the rates changes.
+   * Capped at 24 entries (~2 years of monthly updates). Used by the
+   * `market_window_opened` diagnostic — when the market drops by ≥0.5% in
+   * the last 6 months, surface a refi opportunity even if the current gap
+   * isn't extreme yet. Optional — older saves may not have it.
+   */
+  marketRateHistory?: MarketRateSnapshot[];
 
   // ── Investment + fees ──
   managementFeePension: number; // e.g. 0.005 = 0.5%
@@ -157,6 +179,29 @@ export function updateMacroRates(patch: {
     patch.riskFreeRate ?? (patch.boiRate !== undefined ? boiRate : current.riskFreeRate);
   const inflationRate = patch.inflationRate ?? current.inflationRate;
 
+  // Phase 7: snapshot the macro state into history so the diagnostic engine
+  // can detect "market window opened" — a recent drop in avg mortgage rate.
+  // Only push when SOMETHING actually changed vs. the last snapshot, to
+  // avoid filling the history with duplicates on save.
+  const newSnapshot: MarketRateSnapshot = {
+    date: new Date().toISOString(),
+    boiRate,
+    primeRate,
+    avgMortgageRate: current.avgMortgageRate,
+    inflationRate,
+  };
+  const prevHistory = current.marketRateHistory || [];
+  const last = prevHistory[prevHistory.length - 1];
+  const changed =
+    !last ||
+    last.boiRate !== newSnapshot.boiRate ||
+    last.primeRate !== newSnapshot.primeRate ||
+    last.avgMortgageRate !== newSnapshot.avgMortgageRate ||
+    last.inflationRate !== newSnapshot.inflationRate;
+  const marketRateHistory = changed
+    ? [...prevHistory, newSnapshot].slice(-MARKET_HISTORY_CAP)
+    : prevHistory;
+
   const updated: Assumptions = {
     ...current,
     boiRate,
@@ -164,6 +209,34 @@ export function updateMacroRates(patch: {
     riskFreeRate,
     inflationRate,
     macroUpdatedAt: new Date().toISOString(),
+    marketRateHistory,
+  };
+  saveAssumptions(updated);
+  return updated;
+}
+
+/**
+ * Phase 7 — push an avgMortgageRate update into the history. Same dedup-on-
+ * no-change logic as `updateMacroRates`. Use when the BoI publishes a new
+ * monthly "ריבית ממוצעת" and the planner updates that field alone.
+ */
+export function updateAvgMortgageRate(rate: number): Assumptions {
+  const current = loadAssumptions();
+  if (current.avgMortgageRate === rate) return current;
+  const newSnapshot: MarketRateSnapshot = {
+    date: new Date().toISOString(),
+    boiRate: current.boiRate,
+    primeRate: current.primeRate,
+    avgMortgageRate: rate,
+    inflationRate: current.inflationRate,
+  };
+  const prevHistory = current.marketRateHistory || [];
+  const marketRateHistory = [...prevHistory, newSnapshot].slice(-MARKET_HISTORY_CAP);
+  const updated: Assumptions = {
+    ...current,
+    avgMortgageRate: rate,
+    macroUpdatedAt: new Date().toISOString(),
+    marketRateHistory,
   };
   saveAssumptions(updated);
   return updated;
