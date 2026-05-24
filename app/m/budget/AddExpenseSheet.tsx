@@ -235,7 +235,7 @@ function NumpadAmount({
           letterSpacing: "-0.02em",
         }}
       >
-        ₪ {displayed}
+        {displayed} ₪
       </div>
       <div
         style={{
