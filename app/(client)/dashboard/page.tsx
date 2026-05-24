@@ -67,6 +67,7 @@ import {
 // DepositsWidget removed from dashboard 2026-05-19 per Nir — lives on /deposits.
 import { scopedKey } from "@/lib/client-scope";
 import { SCOPE_COLORS, effectiveScope, type Scope } from "@/lib/scope-types";
+import { MacroStrip } from "@/components/MacroStrip";
 
 const TRACK_COLOR: Record<string, string> = {
   on: "#2C7A5A",
@@ -868,6 +869,32 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-5xl py-4 md:py-8" style={{ fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif" }}>
+      {/* ═══════ Live macro strip + Wealth Report CTA ═══════ */}
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-stretch">
+        <div className="flex-1">
+          <MacroStrip />
+        </div>
+        <Link
+          href="/report"
+          className="group flex items-center justify-between gap-3 rounded-xl px-4 py-3 text-[13px] font-extrabold transition-opacity hover:opacity-90 md:min-w-[220px]"
+          style={{
+            background: "var(--morning-forest, #2c7a5a)",
+            color: "#FFFFFF",
+            border: "1px solid var(--morning-forest-deep, #1f5a42)",
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[20px]">picture_as_pdf</span>
+            <span>דוח עושר Plan</span>
+          </div>
+          <span
+            className="material-symbols-outlined text-[18px] transition-transform group-hover:-translate-x-0.5"
+            aria-hidden
+          >
+            arrow_back
+          </span>
+        </Link>
+      </div>
       {/* ═══════ Monthly Check-in Popup ═══════ */}
       {showCheckin && (
         <div

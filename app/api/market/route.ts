@@ -120,6 +120,111 @@ async function fetchBoiFX() {
   return out;
 }
 
+/* ─── Macro rates (BoI interest + inflation + USD) ─── */
+
+/** Default fallback values used when an upstream fetch fails. Kept aligned
+ *  with `lib/assumptions.ts` DEFAULT_ASSUMPTIONS so the UI never shows zeros
+ *  if an API call times out. Update manually when BoI announces a change. */
+const MACRO_FALLBACK = {
+  boiRate: 0.045, // 4.5% — last known BoI interest decision
+  inflationRate: 0.025, // 2.5% — CBS yoy inflation
+};
+
+interface MacroSnapshot {
+  /** Bank of Israel base rate (decimal). */
+  boiRate: number;
+  /** Israeli prime = BoI + 1.5% (Israeli banking standard). */
+  primeRate: number;
+  /** Year-over-year inflation (decimal). */
+  inflationRate: number;
+  /** USD→ILS exchange rate. */
+  usd: number | null;
+  /** ISO timestamp when this snapshot was assembled. */
+  updatedAt: string;
+  /** Per-field source so the UI can show "live" vs "fallback". */
+  source: {
+    boiRate: "live" | "fallback";
+    inflation: "live" | "fallback";
+    usd: "live" | "fallback";
+  };
+}
+
+async function fetchBoiInterestRate(): Promise<number | null> {
+  // BoI publishes the current interest rate via a public JSON endpoint.
+  // The endpoint occasionally moves; we try the most stable URL and fall
+  // back gracefully without breaking the rest of the macro snapshot.
+  try {
+    const res = await fetch("https://www.boi.org.il/PublicApi/GetInterest", {
+      cache: "no-store",
+      headers: { "User-Agent": "PlanApp/1.0 (server-side)" },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    // The endpoint returns { currentInterest: number } where currentInterest
+    // is the percent (e.g. 4.5). Convert to decimal.
+    const pct = typeof data?.currentInterest === "number" ? data.currentInterest : null;
+    if (pct == null || pct < 0 || pct > 30) return null;
+    return pct / 100;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchCbsInflation(): Promise<number | null> {
+  // CBS publishes the consumer price index via a data endpoint. The
+  // year-over-year change of the headline index is what people call "inflation".
+  // Endpoint is finicky and occasionally restructured; gracefully degrade.
+  try {
+    const res = await fetch(
+      "https://api.cbs.gov.il/index/data/price?id=120010&format=json&download=false",
+      {
+        cache: "no-store",
+        headers: { "User-Agent": "PlanApp/1.0 (server-side)" },
+      }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    // CBS structure: months[].currPer_lastYearPercentageChange
+    const months = data?.month || data?.months;
+    if (!Array.isArray(months) || months.length === 0) return null;
+    const latest = months[months.length - 1];
+    const yoyPct =
+      typeof latest?.currPer_lastYearPercentageChange === "number"
+        ? latest.currPer_lastYearPercentageChange
+        : null;
+    if (yoyPct == null || yoyPct < -10 || yoyPct > 50) return null;
+    return yoyPct / 100;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchMacroSnapshot(): Promise<MacroSnapshot> {
+  // Fetch all three concurrently. Any individual failure falls back gracefully.
+  const [boiRateLive, inflationLive, fx] = await Promise.all([
+    fetchBoiInterestRate(),
+    fetchCbsInflation(),
+    fetchBoiFX(),
+  ]);
+
+  const boiRate = boiRateLive ?? MACRO_FALLBACK.boiRate;
+  const inflationRate = inflationLive ?? MACRO_FALLBACK.inflationRate;
+  const usd = fx.USD ?? null;
+
+  return {
+    boiRate,
+    primeRate: boiRate + 0.015, // Israeli banking constant
+    inflationRate,
+    usd,
+    updatedAt: new Date().toISOString(),
+    source: {
+      boiRate: boiRateLive != null ? "live" : "fallback",
+      inflation: inflationLive != null ? "live" : "fallback",
+      usd: usd != null ? "live" : "fallback",
+    },
+  };
+}
+
 /* ─── Crypto (CoinGecko) ─── */
 
 async function fetchCryptoBulk(coinIds: string[]) {
@@ -184,6 +289,13 @@ export async function GET(req: NextRequest) {
     }
     if (kind === "fx") {
       const data = await cached("fx", () => fetchBoiFX());
+      return NextResponse.json(data);
+    }
+    if (kind === "macro") {
+      // Macro updates slowly (BoI decides ~8 times/year, CPI monthly), so
+      // a 60-minute cache is plenty. Reduces upstream load + dashboard
+      // load time after the first hit.
+      const data = await cached("macro", () => fetchMacroSnapshot());
       return NextResponse.json(data);
     }
     if (kind === "crypto") {
