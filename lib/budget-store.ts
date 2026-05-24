@@ -22,6 +22,28 @@ export interface BudgetCategory {
   label: string; // "פנאי ובידור"
   budget: number; // monthly budget ₪
   color: string;
+  /** Section the category belongs to. Optional for backwards compat:
+   *  legacy categories without `kind` fall back to LEGACY_FIXED_KEYS.
+   *  New categories created via /m always carry an explicit kind. */
+  kind?: "fixed" | "variable";
+}
+
+/** Hardcoded fallback set for legacy BudgetCategory rows that don't have
+ *  an explicit `kind` field yet. New categories should set `kind` directly. */
+export const LEGACY_FIXED_KEYS = new Set([
+  "housing",
+  "utilities",
+  "insurance",
+  "subscriptions",
+]);
+
+/** Source-of-truth check: is this category a "fixed" (recurring monthly)
+ *  obligation, or a "variable" line the user actively spends from? Use this
+ *  EVERYWHERE — never inline LEGACY_FIXED_KEYS.has(key) ad-hoc. */
+export function isFixedCategoryKey(key: string, kind?: "fixed" | "variable"): boolean {
+  if (kind === "fixed") return true;
+  if (kind === "variable") return false;
+  return LEGACY_FIXED_KEYS.has(key);
 }
 
 export interface BudgetLine extends BudgetCategory {

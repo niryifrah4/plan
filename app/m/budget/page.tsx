@@ -23,7 +23,11 @@
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { fmtILS } from "@/lib/format";
-import { buildBudgetLines, type BudgetLine } from "@/lib/budget-store";
+import {
+  buildBudgetLines,
+  isFixedCategoryKey,
+  type BudgetLine,
+} from "@/lib/budget-store";
 import {
   householdNetSalary,
   hasSavedSalaryProfile,
@@ -55,9 +59,12 @@ const BudgetPie = dynamic(
 
 const HEBREW_MONTH = new Intl.DateTimeFormat("he-IL", { month: "long", year: "numeric" });
 
-/** Which budget keys we treat as fixed (same amount every month).
- *  Anything else from DEFAULT_BUDGETS is "variable" and gets a tile. */
-const FIXED_KEYS = new Set(["housing", "utilities", "insurance", "subscriptions"]);
+/** Fixed/variable classification now comes from `BudgetCategory.kind` (set
+ *  when the user creates a category on /m). Legacy categories without
+ *  `kind` fall back to LEGACY_FIXED_KEYS via isFixedCategoryKey(). */
+function isLineFixed(l: BudgetLine): boolean {
+  return isFixedCategoryKey(l.key, l.kind);
+}
 
 /** Hebrew description keywords that mark a transaction as a debt payment
  *  already accounted for in `verdant:debt_data`. Used to prevent the HERO
@@ -113,7 +120,9 @@ export default function MobileBudgetPage() {
    * Null = closed.
    */
   const [editState, setEditState] = useState<
-    { mode: "create" } | { mode: "edit"; line: BudgetLine } | null
+    | { mode: "create"; defaultKind: "fixed" | "variable" }
+    | { mode: "edit"; line: BudgetLine }
+    | null
   >(null);
   const [incomeOpen, setIncomeOpen] = useState(false);
   const [view, setView] = useState<"current" | "forecast">("current");
@@ -162,7 +171,7 @@ export default function MobileBudgetPage() {
   const variable = useMemo(() => {
     if (!lines) return null;
     return lines
-      .filter((l) => !FIXED_KEYS.has(l.key))
+      .filter((l) => !isLineFixed(l))
       .sort((a, b) => {
         const order = { over: 0, warning: 1, safe: 2 } as const;
         const oa = order[a.status];
@@ -174,7 +183,7 @@ export default function MobileBudgetPage() {
 
   const fixed = useMemo(() => {
     if (!lines) return null;
-    return lines.filter((l) => FIXED_KEYS.has(l.key));
+    return lines.filter((l) => isLineFixed(l));
   }, [lines]);
 
   const cashflow: CashflowSnapshot | null = useMemo(() => {
@@ -208,7 +217,7 @@ export default function MobileBudgetPage() {
         label: l.label,
         value: l.actual,
         color: l.color,
-        section: FIXED_KEYS.has(l.key) ? ("fixed" as const) : ("variable" as const),
+        section: isLineFixed(l) ? ("fixed" as const) : ("variable" as const),
       }));
   }, [lines]);
 
@@ -324,19 +333,48 @@ export default function MobileBudgetPage() {
       >
         {!fixed ? (
           <SkeletonList rows={3} />
-        ) : fixed.length === 0 ? (
-          <EmptyBlock>לא הוגדרו הוצאות קבועות.</EmptyBlock>
         ) : (
-          <RoundedList>
-            {fixed.map((l, i) => (
-              <FixedRow
-                key={l.key}
-                line={l}
-                divider={i < fixed.length - 1}
-                onClick={() => setDetailLine(l)}
-              />
-            ))}
-          </RoundedList>
+          <>
+            {fixed.length === 0 ? (
+              <EmptyBlock>לא הוגדרו הוצאות קבועות.</EmptyBlock>
+            ) : (
+              <RoundedList>
+                {fixed.map((l, i) => (
+                  <FixedRow
+                    key={l.key}
+                    line={l}
+                    divider={i < fixed.length - 1}
+                    onClick={() => setDetailLine(l)}
+                  />
+                ))}
+              </RoundedList>
+            )}
+            <button
+              type="button"
+              onClick={() => setEditState({ mode: "create", defaultKind: "fixed" })}
+              style={{
+                marginTop: 8,
+                width: "100%",
+                padding: "10px 14px",
+                background: "transparent",
+                border: "1.5px dashed var(--morning-border-strong)",
+                borderRadius: 12,
+                color: "var(--morning-muted)",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                add
+              </span>
+              הוצאה קבועה חדשה
+            </button>
+          </>
         )}
       </Accordion>
 
@@ -378,7 +416,9 @@ export default function MobileBudgetPage() {
                 onClick={() => setDetailLine(l)}
               />
             ))}
-            <AddCategoryTile onClick={() => setEditState({ mode: "create" })} />
+            <AddCategoryTile
+              onClick={() => setEditState({ mode: "create", defaultKind: "variable" })}
+            />
           </section>
         )}
       </Accordion>
@@ -490,7 +530,7 @@ export default function MobileBudgetPage() {
         <CategoryDetailSheet
           line={detailLine}
           allCategories={lines ?? []}
-          isFixed={FIXED_KEYS.has(detailLine.key)}
+          isFixed={isLineFixed(detailLine)}
           onClose={() => setDetailLine(null)}
           onEditCategory={() => {
             // Close detail and open edit immediately for that line.
@@ -504,6 +544,9 @@ export default function MobileBudgetPage() {
       {editState && (
         <EditCategorySheet
           line={editState.mode === "edit" ? editState.line : undefined}
+          defaultKind={
+            editState.mode === "create" ? editState.defaultKind : undefined
+          }
           onClose={() => setEditState(null)}
           onSaved={() => {
             setEditState(null);

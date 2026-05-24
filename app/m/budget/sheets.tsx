@@ -24,6 +24,7 @@ import {
 import {
   loadBudgets,
   saveBudgets,
+  isFixedCategoryKey,
   type BudgetCategory,
   type BudgetLine,
 } from "@/lib/budget-store";
@@ -174,23 +175,24 @@ export function CategoryDetailSheet({
           />
           <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>{line.label}</h2>
         </div>
-        {!isFixed && (
-          <button
-            type="button"
-            onClick={onEditCategory}
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: "var(--morning-forest)",
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              padding: "2px 4px",
-            }}
-          >
-            ערוך קטגוריה
-          </button>
-        )}
+        {/* Per Nir 2026-05-24: editing is allowed for ALL categories,
+            including fixed. Mobile is the primary tool — the dashboard
+            is for periodic quarterly review, not daily category mgmt. */}
+        <button
+          type="button"
+          onClick={onEditCategory}
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: "var(--morning-forest)",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            padding: "2px 4px",
+          }}
+        >
+          ערוך קטגוריה
+        </button>
       </div>
       <div
         style={{
@@ -525,6 +527,8 @@ const COLOR_PRESETS = [
 interface EditCategoryProps {
   /** undefined = create mode; defined = edit mode. */
   line?: BudgetLine;
+  /** Used in create mode to pre-select the kind. Defaults to "variable". */
+  defaultKind?: "fixed" | "variable";
   onClose: () => void;
   onSaved: () => void;
 }
@@ -540,11 +544,24 @@ function genKey(name: string): string {
   return slug ? `${slug}_${suffix}` : `cat_${suffix}`;
 }
 
-export function EditCategorySheet({ line, onClose, onSaved }: EditCategoryProps) {
+export function EditCategorySheet({
+  line,
+  defaultKind,
+  onClose,
+  onSaved,
+}: EditCategoryProps) {
   const isEdit = !!line;
   const [name, setName] = useState(line?.label ?? "");
   const [amount, setAmount] = useState(String(line?.budget ?? ""));
   const [color, setColor] = useState(line?.color || COLOR_PRESETS[0]);
+  const [kind, setKind] = useState<"fixed" | "variable">(() => {
+    if (line) {
+      // Edit mode — derive from the line. Falls back via legacy keys if
+      // the category was created before `kind` existed.
+      return isFixedCategoryKey(line.key, line.kind) ? "fixed" : "variable";
+    }
+    return defaultKind ?? "variable";
+  });
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const numericAmount = Number(amount.replace(/[^\d.]/g, "")) || 0;
@@ -556,7 +573,7 @@ export function EditCategorySheet({ line, onClose, onSaved }: EditCategoryProps)
     if (isEdit && line) {
       const next: BudgetCategory[] = all.map((c) =>
         c.key === line.key
-          ? { ...c, label: name.trim(), budget: numericAmount, color }
+          ? { ...c, label: name.trim(), budget: numericAmount, color, kind }
           : c
       );
       saveBudgets(next);
@@ -566,6 +583,7 @@ export function EditCategorySheet({ line, onClose, onSaved }: EditCategoryProps)
         label: name.trim(),
         budget: numericAmount,
         color,
+        kind,
       };
       saveBudgets([...all, newCategory]);
     }
@@ -596,6 +614,49 @@ export function EditCategorySheet({ line, onClose, onSaved }: EditCategoryProps)
           style={textInputStyle}
         />
       </label>
+
+      {/* Kind toggle — segmented control */}
+      <div style={{ marginBottom: 14 }}>
+        <span style={fieldLabelStyle}>סוג</span>
+        <div
+          style={{
+            marginTop: 6,
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 4,
+            padding: 4,
+            background: "var(--morning-surface-3)",
+            borderRadius: 12,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setKind("variable")}
+            style={kindToggleStyle(kind === "variable")}
+          >
+            משתנה
+          </button>
+          <button
+            type="button"
+            onClick={() => setKind("fixed")}
+            style={kindToggleStyle(kind === "fixed")}
+          >
+            קבועה
+          </button>
+        </div>
+        <div
+          style={{
+            marginTop: 4,
+            fontSize: 11,
+            color: "var(--morning-muted)",
+            lineHeight: 1.4,
+          }}
+        >
+          {kind === "fixed"
+            ? "הוצאה חודשית קבועה (שכירות, מנויים, ביטוחים)."
+            : "הוצאה שמשתנה לפי השימוש (מזון, פנאי, תחבורה)."}
+        </div>
+      </div>
 
       <label style={{ display: "block", marginBottom: 14 }}>
         <span style={fieldLabelStyle}>תקציב חודשי (₪)</span>
@@ -819,6 +880,21 @@ function menuButtonStyle(
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
+  };
+}
+
+function kindToggleStyle(active: boolean): React.CSSProperties {
+  return {
+    padding: "8px 12px",
+    fontSize: 13,
+    fontWeight: 700,
+    background: active ? "var(--morning-surface)" : "transparent",
+    color: active ? "var(--morning-forest)" : "var(--morning-muted)",
+    border: "none",
+    borderRadius: 10,
+    cursor: "pointer",
+    boxShadow: active ? "0 1px 2px rgba(16, 24, 40, 0.06)" : "none",
+    transition: "background 0.15s ease, color 0.15s ease",
   };
 }
 
