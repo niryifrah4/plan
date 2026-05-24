@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { scopedKey } from "@/lib/client-scope";
 
 /**
  * useState that automatically persists to localStorage.
@@ -15,11 +16,19 @@ export function usePersistedState<T>(
   initial: T,
   debounceMs = 500
 ): [T, React.Dispatch<React.SetStateAction<T>>, boolean] {
+  // 2026-05-24 — route through scopedKey() so per-tenant isolation actually
+  // holds. Previously the hook wrote to the raw key, which meant every client
+  // on the same browser overwrote the previous client's form data in
+  // localStorage (advisor opens client A's onboarding → types → switches to
+  // client B → B sees A's data). All current callers pass unscoped base keys
+  // (verdant:onboarding:fields, etc.) so this is a behavior fix, not an API
+  // change.
+  const storageKey = scopedKey(key);
   // Lazy init from localStorage
   const [value, setValue] = useState<T>(() => {
     if (typeof window === "undefined") return initial;
     try {
-      const stored = localStorage.getItem(key);
+      const stored = localStorage.getItem(storageKey);
       return stored ? (JSON.parse(stored) as T) : initial;
     } catch {
       return initial;
@@ -44,7 +53,7 @@ export function usePersistedState<T>(
     // persistence.
     setSaving(true);
     try {
-      localStorage.setItem(key, JSON.stringify(value));
+      localStorage.setItem(storageKey, JSON.stringify(value));
     } catch (e) {
       console.warn("[usePersistedState] localStorage write failed:", e);
     }
@@ -54,7 +63,7 @@ export function usePersistedState<T>(
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [value, key, debounceMs]);
+  }, [value, storageKey, debounceMs]);
 
   return [value, setValue, saving];
 }

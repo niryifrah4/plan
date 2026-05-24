@@ -773,8 +773,10 @@ function injectOnboardingIncomeRows(budget: BudgetData): BudgetData {
 
   let list: Array<{ label?: string; value?: string }> = [];
   try {
-    const raw =
-      localStorage.getItem(scopedKey(ONB_INCOMES_KEY)) || localStorage.getItem(ONB_INCOMES_KEY);
+    // 2026-05-24 — scoped-only read. The prior fallback to the unscoped
+    // key leaked the previous client's onboarding incomes into the new
+    // client's budget. usePersistedState now writes scoped on the form side.
+    const raw = localStorage.getItem(scopedKey(ONB_INCOMES_KEY));
     if (raw) list = JSON.parse(raw);
   } catch {
     /* ignore corrupt JSON */

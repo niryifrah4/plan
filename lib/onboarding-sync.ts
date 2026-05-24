@@ -81,8 +81,12 @@ const SALARY_SEEDED = "verdant:onboarding:salary_seeded";
 /* ── Helpers ── */
 function readJSON<T>(key: string, fallback: T): T {
   try {
-    // Try scoped key first, then raw key (usePersistedState saves without scope)
-    const raw = localStorage.getItem(scopedKey(key)) || localStorage.getItem(key);
+    // 2026-05-24 — scoped-only read. The prior fallback to the raw key
+    // leaked the previous client's onboarding data when an advisor opened
+    // a new household. usePersistedState was also fixed the same day to
+    // route through scopedKey on write, so this read no longer needs the
+    // fallback.
+    const raw = localStorage.getItem(scopedKey(key));
     return raw ? JSON.parse(raw) : fallback;
   } catch {
     return fallback;

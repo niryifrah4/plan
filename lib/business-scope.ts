@@ -32,11 +32,12 @@ export function isBusinessScopeEnabled(): boolean {
     if (override === "true") return true;
     if (override === "false") return false;
 
-    // 2. Derive from onboarding employment type. 2026-04-29 fix: read via
-    //    scopedKey so the answer is per-client (was global, leaking between
-    //    clients in the same advisor's session).
-    const raw =
-      localStorage.getItem(scopedKey(ONBOARDING_KEY)) || localStorage.getItem(ONBOARDING_KEY);
+    // 2. Derive from onboarding employment type. Scoped-only read since
+    //    2026-05-24 — the prior fallback to the unscoped key leaked the
+    //    previous client's "self_employed" status to a new advisor session,
+    //    flipping the business-scope toggle for a household that's purely
+    //    salaried.
+    const raw = localStorage.getItem(scopedKey(ONBOARDING_KEY));
     if (raw) {
       const fields = JSON.parse(raw) as Record<string, string>;
       const isSelfOrMixed = (v?: string) =>

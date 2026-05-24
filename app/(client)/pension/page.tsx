@@ -129,12 +129,11 @@ const EMPTY_FUND: Omit<PensionFund, "id"> = {
 function loadSpouseNames(): { a: string; b: string; hasB: boolean } {
   if (typeof window === "undefined") return { a: "בן זוג א'", b: "בן זוג ב'", hasB: false };
   try {
-    // Scoped read — when an advisor impersonates a household, the global key
-    // belongs to the previous client/session. scopedKey first, then legacy
-    // fallback for households that haven't re-saved onboarding after scoping.
-    const raw =
-      localStorage.getItem(scopedKey("verdant:onboarding:fields")) ||
-      localStorage.getItem("verdant:onboarding:fields");
+    // 2026-05-24 — scoped-only. The legacy unscoped fallback leaked the
+    // previous client's spouse names into a freshly-opened household's
+    // pension view. usePersistedState now scopes onboarding writes, so the
+    // scoped key is populated on the form side too.
+    const raw = localStorage.getItem(scopedKey("verdant:onboarding:fields"));
     if (!raw) return { a: "בן זוג א'", b: "בן זוג ב'", hasB: false };
     const f = JSON.parse(raw) as Record<string, string>;
     const a = (f.p1_name || "").trim() || "בן זוג א'";
