@@ -26,6 +26,7 @@ import "server-only";
 
 import Anthropic from "@anthropic-ai/sdk";
 import { CATEGORIES } from "./categorizer";
+import { groupOptionsByParent } from "./category-tree";
 
 /** Haiku is plenty for this — categorization isn't a reasoning task. */
 const MODEL = "claude-haiku-4-5";
@@ -37,7 +38,9 @@ Return ONLY a JSON array. Each item must have:
 
 Rules:
 - "index" matches the input order (use the [N] number we provide)
-- "category" must be one of the provided category keys EXACTLY (lower-case, snake_case)
+- "category" must be one of the provided LEAF category keys EXACTLY (lower-case, snake_case)
+- The category list is grouped under parent headers for context (דיור, מזון, עסקי, …).
+  Parent headers are NOT valid category values — always pick a leaf under one of them.
 - "confidence": 1 = guessing, 3 = reasonable, 5 = certain
 - Hebrew merchant names are common — recognize Israeli brands (שופרסל, רמי לוי, מקדונלדס, אלקטרה, etc.)
 - "transfers" is ONLY for movements between own accounts (Bit between people IS transfers; Bit to a merchant is NOT)
@@ -82,9 +85,18 @@ export async function categorizeWithAI(
   if (txs.length === 0) return [];
 
   const client = new Anthropic();
-  const categoriesList = CATEGORIES.map((c) => `- ${c.key}: ${c.label}`).join("\n");
+  // Group categories under their parent so Haiku sees the same hierarchy a
+  // human picker sees in the UI. Parent headers are labels only — Haiku is
+  // instructed (in SYSTEM_PROMPT) to only ever return a LEAF key as `category`.
+  const grouped = groupOptionsByParent(CATEGORIES.map((c) => ({ key: c.key, label: c.label })));
+  const groupedList = grouped
+    .map(
+      (g) =>
+        `▶ ${g.parent.label}\n${g.options.map((o) => `   - ${o.key}: ${o.label}`).join("\n")}`
+    )
+    .join("\n");
   // "other" isn't in CATEGORIES but is a valid response — let Haiku use it.
-  const categoriesBlock = `${categoriesList}\n- other: אחר (use when truly unable to classify)`;
+  const categoriesBlock = `${groupedList}\n\n▶ שונות\n   - other: אחר (use when truly unable to classify)`;
 
   const correctionsBlock =
     pastCorrections.length > 0

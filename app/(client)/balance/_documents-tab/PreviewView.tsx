@@ -16,6 +16,7 @@
 import { useRef } from "react";
 import type { ParsedDocument, ParsedTransaction } from "@/lib/doc-parser/types";
 import { CAT_OPTIONS } from "@/lib/documents-categories";
+import { groupOptionsByParent } from "@/lib/doc-parser/category-tree";
 import { fmtILS } from "@/lib/format";
 import { getBankIcon } from "./banks";
 import { MiniKPI } from "./MiniKPI";
@@ -352,10 +353,14 @@ function ReviewRow({
             color: "#2C7A5A",
           }}
         >
-          {CAT_OPTIONS.map((c) => (
-            <option key={c.key} value={c.key}>
-              {c.label}
-            </option>
+          {groupOptionsByParent(CAT_OPTIONS).map((group) => (
+            <optgroup key={group.parent.key} label={group.parent.label}>
+              {group.options.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.label}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
       </td>
@@ -546,10 +551,14 @@ function MappedRow({
           className="w-full cursor-pointer rounded-lg border px-2 py-1.5 text-[11px] font-bold outline-none transition-all focus:ring-2 focus:ring-verdant-accent/30"
           style={{ borderColor: "#E5E7EB", background: "#FFFFFF", color: "#2C7A5A" }}
         >
-          {CAT_OPTIONS.map((c) => (
-            <option key={c.key} value={c.key}>
-              {c.label}
-            </option>
+          {groupOptionsByParent(CAT_OPTIONS).map((group) => (
+            <optgroup key={group.parent.key} label={group.parent.label}>
+              {group.options.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.label}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
       </td>

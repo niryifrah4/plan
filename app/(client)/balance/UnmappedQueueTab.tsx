@@ -27,6 +27,7 @@ import { CAT_OPTIONS, UNMAPPED_KEYS, CONFIDENCE_THRESHOLD } from "@/lib/document
 import { STORAGE_KEY } from "@/lib/documents-store";
 import { isBusinessScopeEnabled, BUSINESS_SCOPE_EVENT } from "@/lib/business-scope";
 import { recordCorrection } from "@/lib/doc-parser/correction-history";
+import { groupOptionsByParent } from "@/lib/doc-parser/category-tree";
 import {
   excludeMerchant,
   buildExcludedSet,
@@ -761,10 +762,16 @@ function QueueRow({
           <option value="" disabled>
             מפה ל…
           </option>
-          {CAT_OPTIONS.filter((c) => c.key !== "other" && c.key !== "transfers").map((c) => (
-            <option key={c.key} value={c.key}>
-              {c.label}
-            </option>
+          {groupOptionsByParent(
+            CAT_OPTIONS.filter((c) => c.key !== "other" && c.key !== "transfers")
+          ).map((group) => (
+            <optgroup key={group.parent.key} label={group.parent.label}>
+              {group.options.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.label}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
         <button

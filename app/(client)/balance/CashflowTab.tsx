@@ -125,6 +125,57 @@ export function CashflowTab() {
         />
       </div>
 
+      {/* Parent groups — high-level "where did the money go" view */}
+      {bd.byParent.length > 0 && (
+        <div className="card-pad">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="material-symbols-outlined text-[18px] text-verdant-emerald">
+              donut_large
+            </span>
+            <h3 className="text-sm font-extrabold text-verdant-ink">פיזור לפי קבוצות הוצאה</h3>
+            <span className="mr-auto text-[10px] font-bold text-verdant-muted">
+              סה״כ הוצאה לחודש: {fmtILS(bd.monthlyBurn)}
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            {bd.byParent
+              .filter((g) => g.expense > 0)
+              .map((g) => {
+                const monthly = g.expense / bd.monthsCovered;
+                const pct = bd.totalExpense > 0 ? (g.expense / bd.totalExpense) * 100 : 0;
+                return (
+                  <div key={g.parent.key} className="flex items-center gap-3">
+                    <span
+                      className="material-symbols-outlined text-[16px]"
+                      style={{ color: g.parent.color }}
+                    >
+                      {g.parent.icon}
+                    </span>
+                    <span className="w-32 truncate text-xs font-bold text-verdant-ink">
+                      {g.parent.label}
+                    </span>
+                    <div
+                      className="h-2 flex-1 overflow-hidden rounded-full"
+                      style={{ background: "#FAFAF7" }}
+                    >
+                      <div
+                        className="h-full transition-all"
+                        style={{ width: `${pct}%`, background: g.parent.color }}
+                      />
+                    </div>
+                    <span className="tabular w-20 text-left text-xs font-bold text-verdant-muted">
+                      {fmtILS(monthly)}/ח׳
+                    </span>
+                    <span className="tabular w-10 text-left text-[10px] text-verdant-muted">
+                      {Math.round(pct)}%
+                    </span>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
       {/* Fixed/Variable summary row */}
       <div className="grid grid-cols-2 gap-3">
         <SummaryStrip

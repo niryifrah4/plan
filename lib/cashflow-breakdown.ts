@@ -26,6 +26,7 @@
  */
 
 import type { ParsedTransaction } from "./doc-parser/types";
+import { PARENT_CATEGORIES, getParentKey, type ParentCategory } from "./doc-parser/category-tree";
 
 export type CashflowBucket = "fixed" | "variable";
 export type CashflowScope = "personal" | "business";
@@ -139,6 +140,13 @@ export interface CashflowBreakdown {
   monthlyBurn: number;
   /** 0..1 — saving rate (income − expense) / income. */
   savingRate: number;
+  /** Per-parent-group expense rollup, sorted by amount descending. */
+  byParent: Array<{
+    parent: ParentCategory;
+    expense: number;
+    income: number;
+    txCount: number;
+  }>;
 }
 
 function emptyBucket(bucket: CashflowBucket, scope: CashflowScope): BucketBreakdown {
@@ -182,6 +190,7 @@ export function buildCashflowBreakdown(transactions: ParsedTransaction[]): Cashf
     monthlyNet: 0,
     monthlyBurn: 0,
     savingRate: 0,
+    byParent: [],
   });
 
   if (!transactions.length) return empty();
@@ -246,6 +255,23 @@ export function buildCashflowBreakdown(transactions: ParsedTransaction[]): Cashf
   const monthlyBurn = totalExpense / monthsCovered;
   const savingRate = totalIncome > 0 ? Math.max(0, (totalIncome - totalExpense) / totalIncome) : 0;
 
+  /* ── Parent-level rollup (10 high-level groups for "the big picture") ── */
+  const parentAcc = new Map<string, { expense: number; income: number; txCount: number }>();
+  for (const t of transactions) {
+    const pKey = getParentKey(t.category);
+    const slot = parentAcc.get(pKey) || { expense: 0, income: 0, txCount: 0 };
+    if (t.amount > 0) slot.expense += t.amount;
+    else if (t.amount < 0) slot.income += Math.abs(t.amount);
+    slot.txCount += 1;
+    parentAcc.set(pKey, slot);
+  }
+  const byParent = PARENT_CATEGORIES.map((parent) => {
+    const acc = parentAcc.get(parent.key) || { expense: 0, income: 0, txCount: 0 };
+    return { parent, ...acc };
+  })
+    .filter((g) => g.expense > 0 || g.income > 0)
+    .sort((a, b) => b.expense - a.expense);
+
   return {
     monthsCovered,
     periodFrom,
@@ -261,5 +287,6 @@ export function buildCashflowBreakdown(transactions: ParsedTransaction[]): Cashf
     monthlyNet,
     monthlyBurn,
     savingRate,
+    byParent,
   };
 }
