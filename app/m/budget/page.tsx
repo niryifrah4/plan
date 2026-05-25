@@ -227,55 +227,70 @@ export default function MobileBudgetPage() {
   const mortgageTracks = debt ? getAllMortgageTracks(debt) : [];
 
   return (
-    <main style={{ padding: "16px 14px 32px", color: "var(--morning-ink)" }} dir="rtl">
-      {/* Header */}
-      <h1 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em", margin: 0 }}>
-        {view === "current" ? "הביצוע" : "תזרים עתידי"} —{" "}
-        <span style={{ color: "var(--morning-muted)", fontWeight: 500 }}>
-          {view === "current" ? monthLabel || "החודש" : "12 חודשים קדימה"}
-        </span>
-      </h1>
-
-      {/* View toggle — current month vs forward projection */}
-      <div
+    <main style={{ color: "var(--morning-ink)" }} dir="rtl">
+      {/* GRADIENT BANNER — header + view toggle + cashflow numbers */}
+      <section
         style={{
-          marginTop: 12,
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 4,
-          padding: 4,
-          background: "var(--morning-surface-3)",
-          borderRadius: 12,
+          background:
+            "linear-gradient(135deg, var(--morning-forest) 0%, var(--morning-forest-deep) 100%)",
+          color: "#ffffff",
+          padding: "20px 18px 22px",
+          borderRadius: "0 0 20px 20px",
+          boxShadow: "0 6px 20px rgba(31, 90, 66, 0.18)",
         }}
       >
-        <button
-          type="button"
-          onClick={() => setView("current")}
-          style={viewToggleStyle(view === "current")}
-        >
-          החודש
-        </button>
-        <button
-          type="button"
-          onClick={() => setView("forecast")}
-          style={viewToggleStyle(view === "forecast")}
-        >
-          12 חודשים קדימה
-        </button>
-      </div>
-
-      {view === "forecast" ? (
-        <div style={{ marginTop: 14 }}>
-          <ForecastView />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <h1 style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.01em", margin: 0 }}>
+            {view === "current" ? "הביצוע" : "תזרים עתידי"}
+          </h1>
+          <span style={{ fontSize: 12, opacity: 0.78 }}>
+            {view === "current" ? monthLabel || "החודש" : "12 חודשים קדימה"}
+          </span>
         </div>
+
+        {/* View toggle */}
+        <div
+          style={{
+            marginTop: 12,
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 4,
+            padding: 4,
+            background: "rgba(255,255,255,0.12)",
+            borderRadius: 12,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setView("current")}
+            style={viewToggleStyleDark(view === "current")}
+          >
+            החודש
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("forecast")}
+            style={viewToggleStyleDark(view === "forecast")}
+          >
+            12 חודשים קדימה
+          </button>
+        </div>
+
+        {view === "current" && (
+          <div style={{ marginTop: 16 }}>
+            <CashflowHero
+              snapshot={cashflow}
+              onIncomeClick={() => setIncomeOpen(true)}
+            />
+          </div>
+        )}
+      </section>
+
+      <div style={{ padding: "16px 14px 32px" }}>
+      {view === "forecast" ? (
+        <ForecastView />
       ) : (
         <>
-      {/* CASHFLOW HERO */}
-      <CashflowHero
-        snapshot={cashflow}
-        onIncomeClick={() => setIncomeOpen(true)}
-      />
-
       {/* PIE TOGGLE */}
       <button
         type="button"
@@ -568,21 +583,22 @@ export default function MobileBudgetPage() {
       )}
         </>
       )}
+      </div>
     </main>
   );
 }
 
-function viewToggleStyle(active: boolean): React.CSSProperties {
+function viewToggleStyleDark(active: boolean): React.CSSProperties {
   return {
     padding: "8px 12px",
     fontSize: 13,
     fontWeight: 700,
-    background: active ? "var(--morning-surface)" : "transparent",
-    color: active ? "var(--morning-forest)" : "var(--morning-muted)",
+    background: active ? "#ffffff" : "transparent",
+    color: active ? "var(--morning-forest)" : "rgba(255,255,255,0.85)",
     border: "none",
     borderRadius: 10,
     cursor: "pointer",
-    boxShadow: active ? "0 1px 2px rgba(16, 24, 40, 0.06)" : "none",
+    boxShadow: active ? "0 1px 2px rgba(16, 24, 40, 0.12)" : "none",
     transition: "background 0.15s ease, color 0.15s ease",
   };
 }
@@ -603,10 +619,8 @@ function CashflowHero({
       <div
         aria-hidden
         style={{
-          marginTop: 12,
-          height: 110,
-          background: "var(--morning-surface-2)",
-          border: "1px solid var(--morning-border)",
+          height: 96,
+          background: "rgba(255,255,255,0.08)",
           borderRadius: 16,
         }}
       />
@@ -614,50 +628,49 @@ function CashflowHero({
   }
 
   const isPositive = snapshot.net >= 0;
-  const netColor = isPositive ? "var(--morning-forest)" : "var(--morning-coral)";
-  const netBg = isPositive ? "var(--morning-leaf-tint)" : "var(--morning-coral-soft)";
 
   return (
-    <div
-      style={{
-        marginTop: 12,
-        background: "var(--morning-surface)",
-        border: "1px solid var(--morning-border)",
-        borderRadius: 16,
-        padding: 14,
-        boxShadow: "var(--morning-shadow-card)",
-      }}
-    >
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+    <div>
+      {/* Two-column income / expenses summary */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 12,
+          color: "#ffffff",
+        }}
+      >
         <HeroCell
           label="הכנסות"
           value={snapshot.income}
-          tone="forest"
           muted={!snapshot.hasIncome}
           onClick={onIncomeClick}
           subline={snapshot.hasIncome ? "לחץ לעדכון ✎" : "להוספה ←"}
         />
-        <HeroCell label="הוצאות" value={snapshot.expensesActual} tone="coral" />
+        <HeroCell label="הוצאות" value={snapshot.expensesActual} />
       </div>
+
+      {/* Net pill */}
       <div
         style={{
           marginTop: 12,
           padding: "10px 14px",
-          background: netBg,
+          background: "rgba(255,255,255,0.16)",
+          backdropFilter: "blur(6px)",
           borderRadius: 12,
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          color: "#ffffff",
         }}
       >
-        <span style={{ fontSize: 12, fontWeight: 700, color: netColor, letterSpacing: "0.04em" }}>
-          {isPositive ? "נטו לחיסכון / הפקדה" : "חריגה מהתזרים"}
+        <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.04em" }}>
+          {isPositive ? "נטו לחיסכון" : "חריגה מהתזרים"}
         </span>
         <span
           style={{
             fontSize: 22,
             fontWeight: 800,
-            color: netColor,
             fontVariantNumeric: "tabular-nums",
           }}
         >
@@ -665,16 +678,17 @@ function CashflowHero({
           {fmtILS(snapshot.net)}
         </span>
       </div>
+
       {!snapshot.hasIncome && (
         <div
           style={{
             marginTop: 8,
             fontSize: 11,
-            color: "var(--morning-subtle)",
+            color: "rgba(255,255,255,0.85)",
             textAlign: "center",
           }}
         >
-          הוסף משכורת בעמוד "תזרים" של הדשבורד כדי שההכנסה תיכנס לחישוב.
+          הוסף משכורת בלחיצה על "הכנסות" למעלה.
         </div>
       )}
     </div>
@@ -684,20 +698,16 @@ function CashflowHero({
 function HeroCell({
   label,
   value,
-  tone,
   muted = false,
   onClick,
   subline,
 }: {
   label: string;
   value: number;
-  tone: "forest" | "coral";
   muted?: boolean;
   onClick?: () => void;
   subline?: string;
 }) {
-  const color =
-    tone === "forest" ? "var(--morning-forest)" : "var(--morning-coral)";
   const Tag: any = onClick ? "button" : "div";
 
   return (
@@ -718,10 +728,10 @@ function HeroCell({
       <div
         style={{
           fontSize: 11,
-          color: "var(--morning-muted)",
+          color: "rgba(255,255,255,0.78)",
           letterSpacing: "0.1em",
           textTransform: "uppercase",
-          fontWeight: 600,
+          fontWeight: 700,
         }}
       >
         {label}
@@ -729,9 +739,9 @@ function HeroCell({
       <div
         style={{
           marginTop: 2,
-          fontSize: 22,
+          fontSize: 26,
           fontWeight: 800,
-          color: muted ? "var(--morning-subtle)" : color,
+          color: muted ? "rgba(255,255,255,0.55)" : "#ffffff",
           fontVariantNumeric: "tabular-nums",
           letterSpacing: "-0.02em",
         }}
@@ -743,7 +753,7 @@ function HeroCell({
           style={{
             marginTop: 2,
             fontSize: 10,
-            color: "var(--morning-forest)",
+            color: "rgba(255,255,255,0.85)",
             fontWeight: 600,
           }}
         >
