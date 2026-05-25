@@ -49,27 +49,32 @@ function getImpersonationUuid(): string | null {
 /**
  * Convert a base key (e.g. "verdant:pension_funds") to a client-scoped key.
  *
- * Scoping precedence (2026-05-24 hardened):
+ * Scoping precedence (2026-05-25 — impersonation UUID wins):
  *   1. UNSCOPED_KEYS — return baseKey verbatim
  *   2. SSR — return baseKey (no localStorage to scope to)
- *   3. Numeric current_hh present — `verdant:c:<id>:<sub>` (legacy advisor flow)
- *   4. Impersonation UUID present — `verdant:c:hh-<uuid8>:<sub>`. **Critical**:
- *      this branch existed implicitly via current_hh, but if current_hh was
- *      cleared mid-switch (which ClientLayoutInner does on impersonation
- *      change) we'd silently fall to baseKey — leaking the previous tenant's
- *      data into the new household's view.
+ *   3. **Impersonation UUID present — ALWAYS wins.** `verdant:c:hh-<uuid8>:<sub>`.
+ *      An advisor impersonating any household must see isolated data,
+ *      regardless of stale current_hh values from a single-tenant past.
+ *   4. Numeric current_hh present — `verdant:c:<id>:<sub>` (legacy single-
+ *      advisor-many-clients-via-registry flow that pre-dated impersonation).
  *   5. Pre-migration single-tenant fallback — return baseKey only when there
- *      is genuinely NO active session at all (no current_hh AND no UUID).
- *      Once an advisor session is active, we never fall back to unscoped.
+ *      is genuinely NO active session at all.
+ *
+ * **Critical lesson learned 2026-05-25:** the previous order (current_hh
+ * first) leaked data across households. If Nir's browser still had
+ * `verdant:current_hh = "1"` from when he was the system's only user, every
+ * household he later impersonated saw the same `verdant:c:1:*` scope and
+ * read each other's data. Putting the impersonation UUID first guarantees
+ * isolation even if current_hh is stale.
  */
 export function scopedKey(baseKey: string): string {
   if (UNSCOPED_KEYS.has(baseKey)) return baseKey;
   if (typeof window === "undefined") return baseKey; // SSR safe
   const sub = baseKey.startsWith("verdant:") ? baseKey.slice("verdant:".length) : baseKey;
-  const id = getActiveClientId();
-  if (id != null) return `verdant:c:${id}:${sub}`;
   const uuid = getImpersonationUuid();
   if (uuid) return `verdant:c:hh-${uuid.replace(/-/g, "").slice(0, 12)}:${sub}`;
+  const id = getActiveClientId();
+  if (id != null) return `verdant:c:${id}:${sub}`;
   return baseKey; // pre-migration single-tenant fallback
 }
 
