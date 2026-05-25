@@ -1,11 +1,29 @@
 /**
  * ═══════════════════════════════════════════════════════════
- *  Fund Registry — 76 מסלולים מ-8 גופים מוסדיים
+ *  Fund Registry — 56 מסלולים מ-8 גופים מוסדיים
  * ═══════════════════════════════════════════════════════════
  *
- * נתונים נכונים לפברואר 2026.
+ * נתונים נכונים לתאריך REGISTRY_AS_OF (פברואר 2026 נכון לכתיבת שורות אלה).
  * כל מסלול כולל אלוקציה רב-ממדית (מטבע, גיאוגרפיה, אפיק, נזילות).
+ *
+ * דמי ניהול בקרנות פנסיה ישראליות מתעדכנים רבעונית — מעדכנים את
+ * REGISTRY_AS_OF בכל ריפרש כדי שהאוקציה תדע להזהיר על נתונים ישנים.
  */
+
+/**
+ * Snapshot date of the registry data. Used to surface "data is stale"
+ * warnings in the UI when fees/allocations were last refreshed long ago.
+ */
+export const REGISTRY_AS_OF = "2026-02";
+
+/** Days since `REGISTRY_AS_OF`. Returns 0 on parse failure. */
+export function registryAgeDays(): number {
+  const [y, m] = REGISTRY_AS_OF.split("-").map(Number);
+  if (!y || !m) return 0;
+  const snapshot = new Date(y, m - 1, 1);
+  const days = (Date.now() - snapshot.getTime()) / (1000 * 60 * 60 * 24);
+  return Math.max(0, Math.floor(days));
+}
 
 /* ── Types ── */
 

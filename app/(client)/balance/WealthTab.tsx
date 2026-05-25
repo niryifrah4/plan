@@ -12,7 +12,11 @@ import { getDebtAsLiabilities, type LiabilitySummaryRow } from "@/lib/debt-store
 import { loadPensionFunds, EVENT_NAME as PENSION_EVENT } from "@/lib/pension-store";
 import { loadProperties, EVENT_NAME as RE_EVENT, type Property } from "@/lib/realestate-store";
 import { loadSecurities, type SecurityRow } from "@/lib/securities-store";
-import { getFundById, type FundAllocation } from "@/lib/fund-registry";
+import {
+  getFundById,
+  registryAgeDays,
+  type FundAllocation,
+} from "@/lib/fund-registry";
 import {
   computeAllocation,
   generateInsights,
@@ -342,26 +346,42 @@ export function WealthTab() {
       severity: "info",
     });
   }
+  // Fund-registry freshness — fees/allocations drift every quarter. Warn when
+  // the snapshot is > 120 days old so the advisor knows to refresh.
+  const registryDays = registryAgeDays();
+  if (registryDays > 120 && pensionFunds.length > 0) {
+    insights.push({
+      icon: "update",
+      title: "נתוני קרנות לא עדכניים",
+      text: `מאגר דמי הניהול והאלוקציות מעודכן לפני ${registryDays} ימים — דמי ניהול בקרנות פנסיה משתנים רבעונית.`,
+      severity: "info",
+    });
+  }
 
   // ─── Allocation Engine ───
   const allocationBreakdown = useMemo(() => {
     const assets: AssetWithAllocation[] = [];
 
-    // Add pension funds with registry-based allocation
+    // Add pension funds with registry-based allocation.
+    // When `registeredFundId` matches: real allocation + real mgmtFee.
+    // When it doesn't: balanced fallback + isEstimated:true so the UI can
+    // warn "X% of your wealth uses estimated allocations".
+    const defaultPensionAlloc: FundAllocation = {
+      currency: { ILS: 80, USD: 13, EUR: 4, OTHER: 3 },
+      geography: { IL: 55, US: 25, EU: 10, EM: 5, OTHER: 5 },
+      assetClass: { equity: 47, bonds: 38, cash: 9, alternative: 6 },
+      liquidity: "conditional",
+    };
     for (const pf of pensionFunds) {
       const reg = pf.registeredFundId ? getFundById(pf.registeredFundId) : null;
-      const defaultAlloc: FundAllocation = {
-        currency: { ILS: 80, USD: 13, EUR: 4, OTHER: 3 },
-        geography: { IL: 55, US: 25, EU: 10, EM: 5, OTHER: 5 },
-        assetClass: { equity: 47, bonds: 38, cash: 9, alternative: 6 },
-        liquidity: "conditional",
-      };
       assets.push({
         id: `pension-${pf.id}`,
         name: `${pf.company} — ${pf.track}`,
         value: pf.balance,
         sector: "pension",
-        allocation: reg ? reg.allocation : defaultAlloc,
+        allocation: reg ? reg.allocation : defaultPensionAlloc,
+        isEstimated: !reg,
+        mgmtFeePct: reg?.mgmtFee ?? pf.mgmtFeeBalance ?? undefined,
       });
     }
 
@@ -372,24 +392,16 @@ export function WealthTab() {
       let alloc = DEFAULT_ALLOCATIONS.bank_account; // fallback
       let sector: AssetWithAllocation["sector"] = "cash";
       let effectiveValue = a.balance;
+      let isEstimated = false;
       if (a.asset_group === "liquid") {
         alloc = DEFAULT_ALLOCATIONS.bank_account;
         sector = "cash";
       } else if (a.asset_group === "investments") {
-        // 2026-05-19 fix: use the security's real currency + kind instead of
-        // hardcoding us_stock (100% USD / US / equity). A TASE-listed stock
-        // is now correctly classified as ILS / IL / equity, an EUR bond as
-        // EUR / EU / bonds, etc. Falls back to us_stock when the source
-        // SecurityRow can't be located.
         const sec = securities.find((s) => s.id === a.id);
         alloc = sec ? securityToAllocation(sec) : DEFAULT_ALLOCATIONS.us_stock;
         sector = "investment";
+        isEstimated = !sec;
       } else if (a.asset_group === "realestate") {
-        // 2026-05-19 fix: use equity (currentValue − mortgageBalance) instead
-        // of gross value. Otherwise the IL geography slice gets inflated by
-        // the bank's portion of the property — which is already counted as a
-        // mortgage liability on the other side of the balance sheet. This
-        // matches the "חשיפה כוללת" pie's reAssets computation.
         const prop = reProperties.find((p) => p.id === a.id);
         const gross = prop?.currentValue || 0;
         const debt = prop?.mortgageBalance || 0;
@@ -397,15 +409,11 @@ export function WealthTab() {
         alloc = DEFAULT_ALLOCATIONS.realestate_il;
         sector = "realestate";
       } else if (a.asset_group === "kids") {
-        // 2026-05-19 fix: use the kid's actual track (low/medium/high/halacha)
-        // instead of flattening to 100% ILS cash. A "high" track is mostly
-        // global equity; a "low" track is bonds + cash. Previously every kid
-        // landed in IL/cash regardless of how the savings are actually
-        // invested. The `kids-` prefix on a.id maps back to the KidSavings row.
         const kidId = a.id.startsWith("kids-") ? a.id.slice(5) : a.id;
         const kid = kidsSavings.find((k) => k.id === kidId);
         alloc = kid ? kidsTrackToAllocation(kid.track) : DEFAULT_ALLOCATIONS.bank_account;
         sector = "investment";
+        isEstimated = !kid;
       }
 
       assets.push({
@@ -414,6 +422,7 @@ export function WealthTab() {
         value: effectiveValue,
         sector,
         allocation: alloc,
+        isEstimated,
       });
     }
 

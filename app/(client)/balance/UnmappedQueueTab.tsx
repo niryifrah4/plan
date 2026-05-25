@@ -21,10 +21,18 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import type { ParsedTransaction } from "@/lib/doc-parser/types";
 import { scopedKey } from "@/lib/client-scope";
 import { normalizeSupplier } from "@/lib/doc-parser/normalizer";
-import { learnOverride } from "@/lib/doc-parser/categorizer";
+import { learnOverride, getOverrides } from "@/lib/doc-parser/categorizer";
 import { markUpdated, triggerFullSync } from "@/lib/sync-engine";
 import { CAT_OPTIONS, UNMAPPED_KEYS, CONFIDENCE_THRESHOLD } from "@/lib/documents-categories";
 import { STORAGE_KEY } from "@/lib/documents-store";
+import { isBusinessScopeEnabled, BUSINESS_SCOPE_EVENT } from "@/lib/business-scope";
+import { recordCorrection } from "@/lib/doc-parser/correction-history";
+import {
+  excludeMerchant,
+  buildExcludedSet,
+  EXCLUDED_EVENT,
+} from "@/lib/doc-parser/excluded-merchants";
+import type { AISuggestion } from "@/lib/doc-parser/ai-categorizer";
 
 const fmtILS = (v: number) => "₪" + Math.abs(Math.round(v)).toLocaleString("he-IL");
 
@@ -58,6 +66,12 @@ export function UnmappedQueueTab() {
   const [transactions, setTransactions] = useState<ParsedTransaction[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [recentlyMapped, setRecentlyMapped] = useState<Set<string>>(new Set());
+  const [businessEnabled, setBusinessEnabled] = useState(false);
+  /** Refreshed via window event whenever the excluded list changes. */
+  const [excludedSet, setExcludedSet] = useState<Set<string>>(new Set());
+  /** AI re-categorization state. */
+  const [aiRunning, setAiRunning] = useState(false);
+  const [aiResult, setAiResult] = useState<{ added: number; skipped: number } | null>(null);
 
   useEffect(() => {
     setTransactions(loadTransactions());
@@ -66,6 +80,31 @@ export function UnmappedQueueTab() {
     window.addEventListener("storage", handler);
     return () => {
       window.removeEventListener("verdant:parsed_transactions:updated", handler);
+      window.removeEventListener("storage", handler);
+    };
+  }, []);
+
+  // Business-scope gate — same trigger as DocumentsTab. Visible only when the
+  // household has at least one עצמאי spouse (gate set in business-scope.ts).
+  useEffect(() => {
+    setBusinessEnabled(isBusinessScopeEnabled());
+    const handler = () => setBusinessEnabled(isBusinessScopeEnabled());
+    window.addEventListener(BUSINESS_SCOPE_EVENT, handler);
+    window.addEventListener("storage", handler);
+    return () => {
+      window.removeEventListener(BUSINESS_SCOPE_EVENT, handler);
+      window.removeEventListener("storage", handler);
+    };
+  }, []);
+
+  // Excluded merchants — keep an in-memory Set so per-tx lookups are O(1).
+  useEffect(() => {
+    setExcludedSet(buildExcludedSet());
+    const handler = () => setExcludedSet(buildExcludedSet());
+    window.addEventListener(EXCLUDED_EVENT, handler);
+    window.addEventListener("storage", handler);
+    return () => {
+      window.removeEventListener(EXCLUDED_EVENT, handler);
       window.removeEventListener("storage", handler);
     };
   }, []);
@@ -81,6 +120,17 @@ export function UnmappedQueueTab() {
       const isLowConf =
         typeof t.confidence === "number" && t.confidence < CONFIDENCE_THRESHOLD && !isUnmapped;
       if (!isUnmapped && !isLowConf) return;
+
+      // Excluded merchants — hide from the queue entirely. The transactions
+      // stay in storage (so totals from past uploads are reproducible) but
+      // they don't clutter triage and they're filtered out of cashflow
+      // downstream.
+      const supplierKeyForExclude = normalizeSupplier(t.description || "")
+        .toLowerCase()
+        .replace(/["\u200F\u200E]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (excludedSet.has(supplierKeyForExclude)) return;
 
       if (isUnmapped) unmappedTxCount++;
       if (isLowConf) lowConfTxCount++;
@@ -137,7 +187,7 @@ export function UnmappedQueueTab() {
         totalTransactions: transactions.length,
       },
     };
-  }, [transactions]);
+  }, [transactions, excludedSet]);
 
   const handleMap = useCallback(
     (group: MerchantGroup, newCategoryKey: string) => {
@@ -160,7 +210,12 @@ export function UnmappedQueueTab() {
       setTransactions(next);
       // Teach the categorizer so future uploads auto-map this merchant.
       const sampleDesc = next[group.txIndices[0]]?.description || group.displaySample;
-      if (sampleDesc) learnOverride(sampleDesc, cat.key);
+      if (sampleDesc) {
+        learnOverride(sampleDesc, cat.key);
+        // Also log a proper correction record (with full context) so the AI
+        // categorizer can use this as a learning example later.
+        recordCorrection(sampleDesc, group.currentCategory, cat.key, "user");
+      }
       // Visual confirmation
       setRecentlyMapped((prev) => {
         const s = new Set(prev);
@@ -181,6 +236,114 @@ export function UnmappedQueueTab() {
     [transactions]
   );
 
+  /* Exclude a merchant group entirely. Future transactions from that
+   * normalized supplier never appear in the queue OR in cashflow. The
+   * existing rows stay in storage so totals from past periods stay reproducible. */
+  const handleExcludeMerchant = useCallback((group: MerchantGroup) => {
+    excludeMerchant(group.displaySample);
+    // The buildExcludedSet event handler will refresh excludedSet → memo re-runs → group disappears.
+  }, []);
+
+  /* "סווג מחדש עם AI" — bulk-classify everything in the queue via Claude
+   * Haiku. Past corrections are fed into the prompt so the model can mirror
+   * Nir's prior choices. Only suggestions with confidence ≥ 60% are auto-applied;
+   * the rest stay in the queue so the advisor stays in control. */
+  const handleAiRecategorize = useCallback(async () => {
+    if (aiRunning) return;
+    // Gather every queue-eligible tx (unmapped or low-confidence, NOT excluded)
+    const candidates = transactions
+      .map((t, i) => ({ tx: t, idx: i }))
+      .filter(({ tx }) => {
+        const isUnmapped = UNMAPPED_KEYS.has(tx.category);
+        const isLowConf =
+          typeof tx.confidence === "number" &&
+          tx.confidence < CONFIDENCE_THRESHOLD &&
+          !isUnmapped;
+        if (!isUnmapped && !isLowConf) return false;
+        const supplierKey = normalizeSupplier(tx.description || "")
+          .toLowerCase()
+          .replace(/["\u200F\u200E]/g, "")
+          .replace(/\s+/g, " ")
+          .trim();
+        return !excludedSet.has(supplierKey);
+      })
+      .slice(0, 200); // server cap
+
+    if (candidates.length === 0) {
+      setAiResult({ added: 0, skipped: 0 });
+      return;
+    }
+
+    setAiRunning(true);
+    setAiResult(null);
+    try {
+      // Past corrections from the keyword-override store — these are the
+      // user's prior choices, perfect learning examples for Haiku.
+      const pastCorrections = getOverrides()
+        .slice(0, 30)
+        .map((o) => ({ description: o.pattern, category: o.category }));
+
+      const res = await fetch("/api/categorize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transactions: candidates.map(({ tx, idx }) => ({
+            index: idx,
+            description: tx.description,
+            currentGuess: tx.category,
+          })),
+          pastCorrections,
+        }),
+      });
+      const data = await res.json();
+      const suggestions: AISuggestion[] = Array.isArray(data?.suggestions)
+        ? data.suggestions
+        : [];
+
+      // Apply confidently — only suggestions ≥ 0.6 — and skip ones that
+      // don't actually move the category (waste a "correction" record).
+      const next = transactions.slice();
+      let added = 0;
+      let skipped = 0;
+      for (const s of suggestions) {
+        const tx = next[s.index];
+        if (!tx) continue;
+        if (s.confidence < 0.6) {
+          skipped++;
+          continue;
+        }
+        if (s.category === tx.category) {
+          skipped++;
+          continue;
+        }
+        const isRefund = s.category === "refunds";
+        const adjustedAmount = isRefund && tx.amount > 0 ? -tx.amount : tx.amount;
+        next[s.index] = {
+          ...tx,
+          category: s.category,
+          categoryLabel: s.categoryLabel,
+          amount: adjustedAmount,
+          confidence: s.confidence,
+        };
+        learnOverride(tx.description, s.category);
+        recordCorrection(tx.description, tx.category, s.category, "ai_bulk");
+        added++;
+      }
+      saveTransactions(next);
+      setTransactions(next);
+      markUpdated("docs");
+      triggerFullSync();
+      setAiResult({ added, skipped: skipped + (candidates.length - suggestions.length) });
+    } catch (err) {
+      console.error("AI recategorize failed:", err);
+      setAiResult({ added: 0, skipped: 0 });
+    } finally {
+      setAiRunning(false);
+      // Clear the toast after 4 seconds
+      setTimeout(() => setAiResult(null), 4000);
+    }
+  }, [transactions, excludedSet, aiRunning]);
+
   const toggleExpand = useCallback((key: string) => {
     setExpanded((prev) => {
       const s = new Set(prev);
@@ -189,6 +352,27 @@ export function UnmappedQueueTab() {
       return s;
     });
   }, []);
+
+  /* Toggle every transaction in a merchant group between business and personal.
+   * If any tx in the group is already business → strip the scope (back to personal).
+   * Otherwise mark them all as business. Matches the per-row pattern in
+   * DocumentsTab's PreviewView. */
+  const handleToggleBusiness = useCallback(
+    (group: MerchantGroup) => {
+      const next = transactions.slice();
+      const hasBusiness = group.txIndices.some((i) => next[i]?.scope === "business");
+      const newScope = hasBusiness ? undefined : ("business" as const);
+      for (const i of group.txIndices) {
+        if (!next[i]) continue;
+        next[i] = { ...next[i], scope: newScope };
+      }
+      saveTransactions(next);
+      setTransactions(next);
+      markUpdated("docs");
+      triggerFullSync();
+    },
+    [transactions]
+  );
 
   // Empty state
   if (transactions.length === 0) {
@@ -309,6 +493,37 @@ export function UnmappedQueueTab() {
           </span>
           <span>בחירה כאן מלמדת את הפענוח — העלאות עתידיות של אותו בית-עסק ימופו אוטומטית.</span>
         </div>
+
+        {/* AI re-categorize action bar */}
+        <div className="mt-4 flex flex-wrap items-center gap-3 border-t pt-3" style={{ borderColor: "#E5E7EB" }}>
+          <button
+            onClick={handleAiRecategorize}
+            disabled={aiRunning || stats.groupCount === 0}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-extrabold text-white transition-all disabled:opacity-40"
+            style={{ background: "#7C3AED" }}
+          >
+            <span className="material-symbols-outlined text-[16px]">
+              {aiRunning ? "progress_activity" : "auto_awesome"}
+            </span>
+            {aiRunning ? "מסווג עם AI..." : "סווג מחדש עם AI"}
+          </button>
+          <span className="text-[11px] text-verdant-muted">
+            Claude Haiku בודק את כל ה-{stats.groupCount} הקבוצות לפי הקטגוריות וההיסטוריה שלך
+          </span>
+          {aiResult && (
+            <span
+              className="rounded-md px-2 py-1 text-[11px] font-bold"
+              style={{
+                background: aiResult.added > 0 ? "#7C3AED15" : "#FAFAF7",
+                color: aiResult.added > 0 ? "#7C3AED" : "#6B7280",
+              }}
+            >
+              {aiResult.added > 0
+                ? `✓ סווגו ${aiResult.added}, ${aiResult.skipped} נשארו לבדיקה`
+                : "אף הצעה לא הייתה ברמת ביטחון מספיקה — נשאר ידני"}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Unmapped section */}
@@ -323,8 +538,11 @@ export function UnmappedQueueTab() {
           expanded={expanded}
           recentlyMapped={recentlyMapped}
           transactions={transactions}
+          businessEnabled={businessEnabled}
           onToggle={toggleExpand}
           onMap={handleMap}
+          onToggleBusiness={handleToggleBusiness}
+          onExclude={handleExcludeMerchant}
         />
       )}
 
@@ -340,8 +558,11 @@ export function UnmappedQueueTab() {
           expanded={expanded}
           recentlyMapped={recentlyMapped}
           transactions={transactions}
+          businessEnabled={businessEnabled}
           onToggle={toggleExpand}
           onMap={handleMap}
+          onToggleBusiness={handleToggleBusiness}
+          onExclude={handleExcludeMerchant}
         />
       )}
     </div>
@@ -373,8 +594,11 @@ function QueueSection({
   expanded,
   recentlyMapped,
   transactions,
+  businessEnabled,
   onToggle,
   onMap,
+  onToggleBusiness,
+  onExclude,
 }: {
   title: string;
   subtitle: string;
@@ -385,8 +609,11 @@ function QueueSection({
   expanded: Set<string>;
   recentlyMapped: Set<string>;
   transactions: ParsedTransaction[];
+  businessEnabled: boolean;
   onToggle: (key: string) => void;
   onMap: (g: MerchantGroup, cat: string) => void;
+  onToggleBusiness: (g: MerchantGroup) => void;
+  onExclude: (g: MerchantGroup) => void;
 }) {
   return (
     <div
@@ -421,8 +648,11 @@ function QueueSection({
             transactions={transactions}
             isExpanded={expanded.has(g.key)}
             isRecentlyMapped={recentlyMapped.has(g.key)}
+            businessEnabled={businessEnabled}
             onToggle={() => onToggle(g.key)}
             onMap={(cat) => onMap(g, cat)}
+            onToggleBusiness={() => onToggleBusiness(g)}
+            onExclude={() => onExclude(g)}
           />
         ))}
       </div>
@@ -435,16 +665,24 @@ function QueueRow({
   transactions,
   isExpanded,
   isRecentlyMapped,
+  businessEnabled,
   onToggle,
   onMap,
+  onToggleBusiness,
+  onExclude,
 }: {
   group: MerchantGroup;
   transactions: ParsedTransaction[];
   isExpanded: boolean;
   isRecentlyMapped: boolean;
+  businessEnabled: boolean;
   onToggle: () => void;
   onMap: (cat: string) => void;
+  onToggleBusiness: () => void;
+  onExclude: () => void;
 }) {
+  // Group is "business" if any tx in it is currently scoped business
+  const isBusiness = group.txIndices.some((i) => transactions[i]?.scope === "business");
   return (
     <div
       className="transition-all"
@@ -493,6 +731,24 @@ function QueueRow({
             </div>
           </div>
         </button>
+        {businessEnabled && (
+          <button
+            onClick={onToggleBusiness}
+            title={
+              isBusiness
+                ? "כל התנועות בקבוצה מסומנות כעסקי — לחץ להחזרה לפרטי"
+                : "סמן את כל התנועות בקבוצה כהוצאה עסקית"
+            }
+            className="rounded-lg border px-3 py-2 text-[10px] font-extrabold transition-all"
+            style={
+              isBusiness
+                ? { borderColor: "#2C7A5A", background: "#FAFAF7", color: "#2C7A5A" }
+                : { borderColor: "#E5E7EB", background: "#FFFFFF", color: "#9CA3AF" }
+            }
+          >
+            {isBusiness ? "עסקי" : "פרטי"}
+          </button>
+        )}
         <select
           defaultValue=""
           onChange={(e) => {
@@ -511,6 +767,14 @@ function QueueRow({
             </option>
           ))}
         </select>
+        <button
+          onClick={onExclude}
+          title="סנן ספק זה מהתזרים — לא יופיע בתור פענוח ולא בתזרים. עסקאות קיימות נשארות בהיסטוריה."
+          className="flex h-9 w-9 items-center justify-center rounded-lg border transition-all hover:bg-red-50"
+          style={{ borderColor: "#E5E7EB", color: "#9CA3AF" }}
+        >
+          <span className="material-symbols-outlined text-[16px]">visibility_off</span>
+        </button>
       </div>
 
       {isExpanded && (

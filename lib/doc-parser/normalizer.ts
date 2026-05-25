@@ -79,11 +79,53 @@ const TRANSFER_PATTERNS = [
 ];
 
 /**
+ * Credit-card-payment-to-bank patterns (inspired by Spent's
+ * CREDIT_CARD_PAYMENT_PATTERNS). When a charge for the user's own credit
+ * card lands in their checking account, it's an internal transfer between
+ * their own accounts — NOT an expense. Without these patterns we'd
+ * double-count: once in the credit-card file, once in the bank file.
+ *
+ * The dedup engine catches some of this when both files are uploaded
+ * together, but not when the user uploads them separately (different
+ * sessions, slightly different descriptions, etc.).
+ */
+const CC_PAYMENT_PATTERNS = [
+  // Hebrew credit card issuers — when these appear in a bank statement
+  // description, the row is almost always the monthly card debit.
+  /ישראכרט/i,
+  /ויזה\s*כא[״"']?ל/i,
+  /ויזה\s*לאומי/i,
+  /ויזה\s*בינלאומי/i,
+  /כא[״"']?ל\b/i,
+  /לאומי\s*קארד/i,
+  /אמריקן\s*אקספרס/i,
+  /אמ[״"']?קס\b/i,
+  /דיינרס/i,
+  /מקס\s*איט/i,
+  /\bmax\b/i,
+  // Explicit "payment to credit company" phrasings
+  /חיוב\s*אשראי/i,
+  /תשלום\s*כרטיס/i,
+  /סליקת\s*אשראי/i,
+  // English
+  /\bvisa\b/i,
+  /\bmastercard\b/i,
+  /\bamex\b/i,
+  /\bdiners\b/i,
+  /credit\s*card\s*payment/i,
+];
+
+/**
  * Detect if a transaction is an internal transfer (should be excluded from cashflow).
+ * Covers two flavors:
+ *   1. Explicit transfers between own accounts (העברה בין חשבונות, Bit between people)
+ *   2. Credit-card monthly debit landing in the checking account
+ *      (those are also internal — the charge already counted on the card file)
  */
 export function isInternalTransfer(description: string): boolean {
   const lower = description.toLowerCase().replace(/[\u200F\u200E"]/g, "");
-  return TRANSFER_PATTERNS.some((rx) => rx.test(lower));
+  if (TRANSFER_PATTERNS.some((rx) => rx.test(lower))) return true;
+  return CC_PAYMENT_PATTERNS.some((rx) => rx.test(lower));
 }
 
 /**

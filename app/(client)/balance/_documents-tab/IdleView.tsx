@@ -156,18 +156,13 @@ export function IdleView({
 
       {error && <ErrorBanner error={error} onRetry={onClearError} />}
 
-      {/* ═══ Mapping Progress Summary ═══ */}
+      {/* ═══ Mapping status — summary + drill-down to uploaded docs ═══ */}
       {isIdle && !error && docHistory.length > 0 && (
-        <MappingProgressSummary docHistory={docHistory} />
+        <MappingDrilldown docHistory={docHistory} onRemove={onRemoveHistory} />
       )}
 
-      {/* ═══ History of uploaded documents ═══ */}
-      {isIdle && !error && docHistory.length > 0 && (
-        <DocHistoryList docHistory={docHistory} onRemove={onRemoveHistory} />
-      )}
-
-      {/* ═══ Supported Banks ═══ */}
-      {isIdle && !error && <SupportedBanksCard />}
+      {/* ═══ Supported Banks — collapsed by default, lives at the bottom ═══ */}
+      {isIdle && !error && <SupportedBanksFoldout />}
     </>
   );
 }
@@ -303,7 +298,20 @@ function ErrorBanner({ error, onRetry }: { error: string; onRetry: () => void })
   );
 }
 
-function MappingProgressSummary({ docHistory }: { docHistory: DocHistoryEntry[] }) {
+/**
+ * Consolidated mapping panel: summary stats up top, drill-down to the per-file
+ * history below. Replaces the older `MappingProgressSummary + DocHistoryList`
+ * pair — they were two stacked cards on the landing page; now they're one
+ * with a click-to-expand details section so the screen isn't info-soup.
+ */
+function MappingDrilldown({
+  docHistory,
+  onRemove,
+}: {
+  docHistory: DocHistoryEntry[];
+  onRemove: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
   const totalTx = docHistory.reduce((s, h) => s + (h.txCount || 0), 0);
   const totalUnmapped = docHistory.reduce((s, h) => s + (h.unmappedCount ?? 0), 0);
   const totalMapped = totalTx - totalUnmapped;
@@ -320,64 +328,106 @@ function MappingProgressSummary({ docHistory }: { docHistory: DocHistoryEntry[] 
 
   return (
     <div
-      className="mb-4 mt-6 rounded-2xl p-5"
+      className="mb-4 mt-6 overflow-hidden rounded-2xl"
       style={{
         background: "linear-gradient(135deg,#FAFAF7 0%,#FFFFFF 100%)",
         border: "1px solid #E5E7EB",
       }}
     >
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px]" style={{ color: "#2C7A5A" }}>
-            fact_check
-          </span>
-          <h3
-            className="text-sm font-extrabold text-verdant-ink"
-            style={{ fontFamily: "inherit" }}
-          >
-            מצב המיפוי
-          </h3>
+      <div className="p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[18px]" style={{ color: "#2C7A5A" }}>
+              fact_check
+            </span>
+            <h3
+              className="text-sm font-extrabold text-verdant-ink"
+              style={{ fontFamily: "inherit" }}
+            >
+              מצב המיפוי
+            </h3>
+          </div>
+          {rangeFrom && rangeTo && (
+            <span className="text-[10px] font-bold text-verdant-muted">
+              {fmtDate(rangeFrom)} → {fmtDate(rangeTo)}
+            </span>
+          )}
         </div>
-        {rangeFrom && rangeTo && (
-          <span className="text-[10px] font-bold text-verdant-muted">
-            {fmtDate(rangeFrom)} → {fmtDate(rangeTo)}
-          </span>
+        <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <SummaryStat label="קבצים" value={docHistory.length} />
+          <SummaryStat label="תנועות" value={totalTx} />
+          <SummaryStat
+            label="אחוז ממופה"
+            value={`${pct}%`}
+            color={pct >= 95 ? "#059669" : pct >= 80 ? "#B45309" : "#DC2626"}
+          />
+          <SummaryStat
+            label="לא ממופה"
+            value={totalUnmapped}
+            color={totalUnmapped > 0 ? "#DC2626" : "#059669"}
+            suffix={filesWithGaps > 0 ? ` · ב-${filesWithGaps} קבצים` : undefined}
+          />
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-[#FFFFFF]">
+          <div
+            className="h-full"
+            style={{
+              width: `${pct}%`,
+              background: pct >= 95 ? "#059669" : pct >= 80 ? "#B45309" : "#DC2626",
+              transition: "width 0.3s",
+            }}
+          />
+        </div>
+        {totalUnmapped > 0 && (
+          <div className="mt-3 flex items-center gap-1.5 text-[11px] font-bold text-verdant-muted">
+            <span className="material-symbols-outlined text-[14px]" style={{ color: "#B45309" }}>
+              pending
+            </span>
+            <span>
+              יש {totalUnmapped.toLocaleString("he-IL")} תנועות שסווגו כ״אחר״ או ״העברות״ —
+              לחץ "פירוט מסמכים" לראות אילו קבצים דורשים טיפול
+            </span>
+          </div>
         )}
       </div>
-      <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <SummaryStat label="קבצים" value={docHistory.length} />
-        <SummaryStat label="תנועות" value={totalTx} />
-        <SummaryStat
-          label="אחוז ממופה"
-          value={`${pct}%`}
-          color={pct >= 95 ? "#059669" : pct >= 80 ? "#B45309" : "#DC2626"}
-        />
-        <SummaryStat
-          label="לא ממופה"
-          value={totalUnmapped}
-          color={totalUnmapped > 0 ? "#DC2626" : "#059669"}
-          suffix={filesWithGaps > 0 ? ` · ב-${filesWithGaps} קבצים` : undefined}
-        />
-      </div>
-      <div className="h-2 overflow-hidden rounded-full bg-[#FFFFFF]">
-        <div
-          className="h-full"
-          style={{
-            width: `${pct}%`,
-            background: pct >= 95 ? "#059669" : pct >= 80 ? "#B45309" : "#DC2626",
-            transition: "width 0.3s",
-          }}
-        />
-      </div>
-      {totalUnmapped > 0 && (
-        <div className="mt-3 flex items-center gap-1.5 text-[11px] font-bold text-verdant-muted">
-          <span className="material-symbols-outlined text-[14px]" style={{ color: "#B45309" }}>
-            pending
+
+      {/* Drill-down toggle + expanding doc list */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between border-t px-5 py-3 text-right transition-colors hover:bg-[#FAFAF7]/60"
+        style={{ borderColor: "#E5E7EB" }}
+      >
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-[16px] text-verdant-muted">
+            description
           </span>
-          <span>
-            יש {totalUnmapped.toLocaleString("he-IL")} תנועות שסווגו כ״אחר״ או ״העברות״ — הקבצים
-            המודגשים למטה דורשים טיפול נוסף
+          <span className="text-[12px] font-extrabold text-verdant-ink">
+            {open ? "הסתר פירוט מסמכים" : `פירוט מסמכים (${docHistory.length})`}
           </span>
+        </div>
+        <span
+          className="material-symbols-outlined text-[18px] text-verdant-muted transition-transform"
+          style={{ transform: open ? "rotate(180deg)" : "rotate(0)" }}
+        >
+          expand_more
+        </span>
+      </button>
+
+      {open && (
+        <div className="border-t bg-[#FFFFFF]" style={{ borderColor: "#E5E7EB" }}>
+          <div className="divide-y" style={{ borderColor: "#FAFAF7" }}>
+            {docHistory.map((h) => (
+              <DocHistoryRow key={h.id} entry={h} onRemove={() => onRemove(h.id)} />
+            ))}
+          </div>
+          <div
+            className="px-5 py-2.5 text-[10px] font-bold text-verdant-muted"
+            style={{ background: "#FAFAF7" }}
+          >
+            <span className="material-symbols-outlined ml-1 align-middle text-[11px]">info</span>
+            הסרה מההיסטוריה לא מוחקת את התנועות עצמן מהתזרים
+          </div>
         </div>
       )}
     </div>
@@ -413,47 +463,6 @@ function SummaryStat({
   );
 }
 
-function DocHistoryList({
-  docHistory,
-  onRemove,
-}: {
-  docHistory: DocHistoryEntry[];
-  onRemove: (id: string) => void;
-}) {
-  return (
-    <div
-      className="mt-6 overflow-hidden rounded-2xl"
-      style={{ background: "#FFFFFF", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
-    >
-      <div
-        className="flex items-center justify-between px-5 py-3"
-        style={{ background: "linear-gradient(135deg,#2C7A5A 0%,#1F5A42 100%)" }}
-      >
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px] text-white">history</span>
-          <h3 className="text-sm font-extrabold text-white" style={{ fontFamily: "inherit" }}>
-            מסמכים שנטענו ({docHistory.length})
-          </h3>
-        </div>
-        <span className="text-[10px] font-bold text-white/70">
-          היסטוריית העלאות · רשומות אחרונות למעלה
-        </span>
-      </div>
-      <div className="divide-y" style={{ borderColor: "#FAFAF7" }}>
-        {docHistory.map((h) => (
-          <DocHistoryRow key={h.id} entry={h} onRemove={() => onRemove(h.id)} />
-        ))}
-      </div>
-      <div
-        className="px-5 py-2.5 text-[10px] font-bold text-verdant-muted"
-        style={{ background: "#FFFFFF" }}
-      >
-        <span className="material-symbols-outlined ml-1 align-middle text-[11px]">info</span>
-        הסרה מההיסטוריה לא מוחקת את התנועות עצמן מהתזרים
-      </div>
-    </div>
-  );
-}
 
 function DocHistoryRow({ entry: h, onRemove }: { entry: DocHistoryEntry; onRemove: () => void }) {
   const bankIcon = getBankIcon(h.bankHint);
@@ -584,63 +593,62 @@ function DocHistoryRow({ entry: h, onRemove }: { entry: DocHistoryEntry; onRemov
   );
 }
 
-function SupportedBanksCard() {
+/**
+ * Reference card listing the banks and credit-card issuers the parser knows
+ * about. It's the lowest-priority element on the page — collapsed by default
+ * so it doesn't compete with the upload zones or the mapping summary, but
+ * still discoverable when a user wonders "is my bank supported?".
+ */
+function SupportedBanksFoldout() {
   return (
-    <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-      <div
-        className="rounded-2xl p-5"
-        style={{ background: "#FFFFFF", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
-      >
-        <div className="mb-3 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px] text-verdant-emerald">
-            account_balance
-          </span>
-          <h3
-            className="text-sm font-extrabold text-verdant-ink"
-            style={{ fontFamily: "inherit" }}
-          >
-            בנקים נתמכים
-          </h3>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {["הפועלים", "לאומי", "דיסקונט", "מזרחי-טפחות", "הבינלאומי"].map((b) => (
-            <span
-              key={b}
-              className="rounded-lg px-2.5 py-1 text-[11px] font-bold"
-              style={{ background: "#FAFAF7", color: "#2C7A5A" }}
-            >
-              {b}
+    <details
+      className="mt-8 rounded-xl border bg-[#FFFFFF] open:shadow-sm"
+      style={{ borderColor: "#E5E7EB" }}
+    >
+      <summary className="flex cursor-pointer select-none items-center gap-2 px-4 py-2.5 text-[11px] font-bold text-verdant-muted">
+        <span className="material-symbols-outlined text-[14px]">help_outline</span>
+        בנקים וחברות אשראי נתמכים
+      </summary>
+      <div className="grid grid-cols-1 gap-3 border-t p-4 md:grid-cols-2" style={{ borderColor: "#E5E7EB" }}>
+        <div>
+          <div className="mb-2 flex items-center gap-2 text-[11px] font-extrabold text-verdant-ink">
+            <span className="material-symbols-outlined text-[14px] text-verdant-emerald">
+              account_balance
             </span>
-          ))}
+            בנקים
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {["הפועלים", "לאומי", "דיסקונט", "מזרחי-טפחות", "הבינלאומי"].map((b) => (
+              <span
+                key={b}
+                className="rounded-md px-2 py-0.5 text-[10px] font-bold"
+                style={{ background: "#FAFAF7", color: "#2C7A5A" }}
+              >
+                {b}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
-      <div
-        className="rounded-2xl p-5"
-        style={{ background: "#FFFFFF", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
-      >
-        <div className="mb-3 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px] text-verdant-emerald">
-            credit_card
-          </span>
-          <h3
-            className="text-sm font-extrabold text-verdant-ink"
-            style={{ fontFamily: "inherit" }}
-          >
+        <div>
+          <div className="mb-2 flex items-center gap-2 text-[11px] font-extrabold text-verdant-ink">
+            <span className="material-symbols-outlined text-[14px] text-verdant-emerald">
+              credit_card
+            </span>
             חברות אשראי
-          </h3>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {["ישראכרט", "כאל", "מקס", "ויזה", "אמריקן אקספרס"].map((c) => (
-            <span
-              key={c}
-              className="rounded-lg px-2.5 py-1 text-[11px] font-bold"
-              style={{ background: "#FAFAF7", color: "#2C7A5A" }}
-            >
-              {c}
-            </span>
-          ))}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {["ישראכרט", "כאל", "מקס", "ויזה", "אמריקן אקספרס"].map((c) => (
+              <span
+                key={c}
+                className="rounded-md px-2 py-0.5 text-[10px] font-bold"
+                style={{ background: "#FAFAF7", color: "#2C7A5A" }}
+              >
+                {c}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
+    </details>
   );
 }

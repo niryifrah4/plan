@@ -2,24 +2,29 @@
 
 /**
  * /balance — 2026-04-28: page split per Nir.
+ * 2026-05-25: added "תזרים" (CashflowTab) — fixed/variable × personal/business
+ *             breakdown of saved transactions.
  *
- * BEFORE: 4 tabs (מאזן/חשבונות/מסמכים/תור פענוח).
- * AFTER:  /balance has only 2 tabs (מאזן + חשבונות). The other 2 moved to
- *         /files where they live as 2 stacked sections under the new title
- *         "קבצים במיפוי". Old `?tab=documents`/`?tab=queue` URLs auto-
- *         redirect to /files for back-compat.
+ * Tabs:
+ *   wealth    — מאזן נכסים (allocation, KPIs)
+ *   accounts  — חשבונות בנק וכרטיסי אשראי (auto-synced from mapping)
+ *   cashflow  — מה הגיע ולאן הלך (fixed/variable × personal/business matrix)
+ *
+ * Old `?tab=documents`/`?tab=queue` URLs auto-redirect to /files.
  */
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { WealthTab } from "./WealthTab";
 import { AccountsTab } from "./AccountsTab";
+import { CashflowTab } from "./CashflowTab";
 
-type Tab = "wealth" | "accounts";
+type Tab = "wealth" | "accounts" | "cashflow";
 
 const TABS: { key: Tab; label: string; icon: string }[] = [
   { key: "wealth", label: "מאזן נכסים", icon: "insights" },
   { key: "accounts", label: "חשבונות", icon: "credit_card" },
+  { key: "cashflow", label: "תזרים", icon: "swap_vert" },
 ];
 
 export default function BalancePage() {
@@ -42,12 +47,11 @@ export default function BalancePage() {
       router.replace("/budget?tab=daily");
       return;
     }
-    if (t === "wealth" || t === "accounts") setTab(t);
+    if (t === "wealth" || t === "accounts" || t === "cashflow") setTab(t);
   }, [router]);
 
   return (
     <div className="mx-auto max-w-6xl" dir="rtl">
-      {/* Tab bar — only 2 tabs now. */}
       <div className="mb-6 flex gap-1 rounded-xl p-1" style={{ background: "rgba(44,122,90,0.06)" }}>
         {TABS.map((t) => (
           <button
@@ -68,6 +72,7 @@ export default function BalancePage() {
 
       {tab === "wealth" && <WealthTab />}
       {tab === "accounts" && <AccountsTab />}
+      {tab === "cashflow" && <CashflowTab />}
     </div>
   );
 }

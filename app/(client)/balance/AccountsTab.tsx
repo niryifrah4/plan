@@ -19,6 +19,7 @@ import {
   type CreditCard,
   type AccountsData,
 } from "@/lib/accounts-store";
+import { syncInstrumentsToAccounts, AUTO_SYNC_BADGE } from "@/lib/accounts-sync";
 
 const fmtILS = (n: number) => `₪${n.toLocaleString("he-IL")}`;
 const today = () => new Date().toISOString().split("T")[0];
@@ -57,9 +58,23 @@ export function AccountsTab() {
 
   const reload = useCallback(() => setData(loadAccounts()), []);
   useEffect(() => {
+    // Auto-pull every instrument the doc-parser has detected so far. Idempotent
+    // — only inserts cards/accounts that aren't already here. The user never
+    // adds a card manually; uploading the statement does it.
+    syncInstrumentsToAccounts();
     reload();
+    const onParsedTx = () => {
+      // When new transactions land (i.e. a new statement was just saved),
+      // re-run the sync — the upload pipeline may have added new instruments.
+      syncInstrumentsToAccounts();
+      reload();
+    };
     window.addEventListener(ACCOUNTS_EVENT, reload);
-    return () => window.removeEventListener(ACCOUNTS_EVENT, reload);
+    window.addEventListener("verdant:parsed_transactions:updated", onParsedTx);
+    return () => {
+      window.removeEventListener(ACCOUNTS_EVENT, reload);
+      window.removeEventListener("verdant:parsed_transactions:updated", onParsedTx);
+    };
   }, [reload]);
 
   const bankTotal = useMemo(() => totalBankBalance(data), [data]);
@@ -209,6 +224,16 @@ export function AccountsTab() {
                     >
                       {bank.bankName}
                     </span>
+                    {(bank.notes || "").includes(AUTO_SYNC_BADGE) && (
+                      <span
+                        className="flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+                        style={{ background: "#7C3AED15", color: "#7C3AED" }}
+                        title="נוצר אוטומטית מתוך מסמך שהועלה במיפוי"
+                      >
+                        <span className="material-symbols-outlined text-[11px]">auto_awesome</span>
+                        מהמיפוי
+                      </span>
+                    )}
                     {bank.isMain && (
                       <span
                         className="rounded-full px-1.5 py-0.5 text-[9px] font-bold"
@@ -369,8 +394,23 @@ export function AccountsTab() {
                   className="min-w-0 flex-1 cursor-pointer"
                   onClick={() => setEditingId(card.id)}
                 >
-                  <div className="text-sm font-extrabold" style={{ color: "var(--verdant-ink)" }}>
-                    {card.company}
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="text-sm font-extrabold"
+                      style={{ color: "var(--verdant-ink)" }}
+                    >
+                      {card.company}
+                    </span>
+                    {(card.notes || "").includes(AUTO_SYNC_BADGE) && (
+                      <span
+                        className="flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+                        style={{ background: "#7C3AED15", color: "#7C3AED" }}
+                        title="נוצר אוטומטית מתוך מסמך שהועלה במיפוי — מלא יום חיוב ומסגרת כדי להשלים"
+                      >
+                        <span className="material-symbols-outlined text-[11px]">auto_awesome</span>
+                        מהמיפוי
+                      </span>
+                    )}
                   </div>
                   <div className="text-xs" style={{ color: "var(--verdant-muted)" }}>
                     •••• {card.lastFourDigits} · יום חיוב: {card.billingDay} ·{" "}

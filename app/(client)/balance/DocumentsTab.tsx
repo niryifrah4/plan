@@ -193,8 +193,15 @@ export function DocumentsTab() {
         }
         return next;
       });
-      const desc = doc.transactions[idx]?.description;
-      if (desc) learnOverride(desc, newKey);
+      const tx = doc.transactions[idx];
+      const desc = tx?.description;
+      if (desc) {
+        learnOverride(desc, newKey);
+        // Full audit trail — old category + when + source. Feeds the AI
+        // categorizer as a learning example later.
+        const { recordCorrection } = await import("@/lib/doc-parser/correction-history");
+        recordCorrection(desc, tx.category, newKey, "user");
+      }
     },
     [doc, deletedIndices]
   );
@@ -261,10 +268,14 @@ export function DocumentsTab() {
       const parsed = data as ParsedDocument & { duplicatesRemoved?: number };
       setDoc(parsed);
       setDuplicatesRemoved(parsed.duplicatesRemoved || 0);
-      // Merge detected financial instruments into persistent storage
+      // Merge detected financial instruments into persistent storage AND
+      // auto-link them into AccountsTab so the user never has to add a
+      // bank/credit card by hand — uploading is enough.
       if (parsed.instruments && parsed.instruments.length > 0) {
         const { mergeAndSaveInstruments } = await import("@/lib/doc-parser/instruments");
         mergeAndSaveInstruments(parsed.instruments);
+        const { syncInstrumentsToAccounts } = await import("@/lib/accounts-sync");
+        syncInstrumentsToAccounts();
       }
       setPhase("preview");
     } catch {
@@ -369,10 +380,12 @@ export function DocumentsTab() {
           // Reconciliation no longer meaningful after merging multiple sources
           reconciliation: undefined,
         });
-        // Persist detected instruments from the new file as well
+        // Persist detected instruments from the new file as well + auto-link
         if (added.instruments && added.instruments.length > 0) {
           const { mergeAndSaveInstruments } = await import("@/lib/doc-parser/instruments");
           mergeAndSaveInstruments(added.instruments);
+          const { syncInstrumentsToAccounts } = await import("@/lib/accounts-sync");
+          syncInstrumentsToAccounts();
         }
         setDuplicatesRemoved((d) => d + (added.duplicatesRemoved || 0) + newDups);
         setPhase("preview");
