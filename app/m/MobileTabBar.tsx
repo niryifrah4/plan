@@ -62,7 +62,7 @@ export function MobileTabBar() {
           const active = isActive(pathname, t.href);
           const color = active ? "var(--morning-forest)" : "var(--morning-muted)";
           return (
-            <li key={t.href} style={{ textAlign: "center" }}>
+            <li key={t.href} style={{ textAlign: "center", padding: "0 2px" }}>
               <Link
                 href={t.href as any}
                 aria-current={active ? "page" : undefined}
@@ -71,14 +71,17 @@ export function MobileTabBar() {
                   flexDirection: "column",
                   alignItems: "center",
                   gap: 2,
-                  padding: "8px 4px",
+                  padding: "6px 4px",
                   textDecoration: "none",
+                  background: active ? "var(--morning-leaf-tint)" : "transparent",
+                  borderRadius: 12,
+                  transition: "background 0.15s ease",
                 }}
               >
                 <span
                   className="material-symbols-outlined"
                   style={{
-                    fontSize: 24,
+                    fontSize: 22,
                     color,
                     fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0",
                     transition: "color 0.15s ease",

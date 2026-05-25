@@ -434,16 +434,47 @@ function EmptyState() {
   return (
     <div
       style={{
-        padding: 24,
+        padding: "32px 20px",
         textAlign: "center",
-        fontSize: 13,
-        color: "var(--morning-muted)",
         background: "var(--morning-surface)",
-        border: "1px dashed var(--morning-border-strong)",
-        borderRadius: 14,
+        border: "1px solid var(--morning-border)",
+        borderRadius: 16,
+        boxShadow: "var(--morning-shadow-card)",
       }}
     >
-      עוד לא הוגדרו יעדים. פתח את עמוד היעדים בדשבורד והגדר את היעדים שלך.
+      <div
+        aria-hidden
+        style={{
+          width: 72,
+          height: 72,
+          borderRadius: 999,
+          background: "var(--morning-violet-soft)",
+          color: "var(--morning-violet)",
+          margin: "0 auto 14px",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: 36 }}>
+          flag
+        </span>
+      </div>
+      <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>
+        עוד לא הגדרת יעדים
+      </div>
+      <div
+        style={{
+          fontSize: 13,
+          color: "var(--morning-muted)",
+          lineHeight: 1.5,
+          maxWidth: 280,
+          margin: "0 auto",
+        }}
+      >
+        פתח/י את עמוד היעדים בדשבורד כדי לקבוע יעדי חיסכון —
+        קופת חירום, חופשה, החלפת רכב, או טיול לילדים.
+      </div>
     </div>
   );
 }

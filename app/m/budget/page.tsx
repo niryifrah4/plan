@@ -900,16 +900,32 @@ function EmptyBlock({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
-        padding: 16,
+        padding: "20px 16px",
         textAlign: "center",
-        fontSize: 12,
-        color: "var(--morning-muted)",
         background: "var(--morning-surface)",
-        border: "1px dashed var(--morning-border-strong)",
+        border: "1px solid var(--morning-border)",
         borderRadius: 14,
       }}
     >
-      {children}
+      <div
+        aria-hidden
+        style={{
+          width: 48,
+          height: 48,
+          borderRadius: 999,
+          background: "var(--morning-leaf-tint)",
+          color: "var(--morning-forest)",
+          margin: "0 auto 10px",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: 24 }}>
+          inbox
+        </span>
+      </div>
+      <div style={{ fontSize: 13, color: "var(--morning-muted)" }}>{children}</div>
     </div>
   );
 }

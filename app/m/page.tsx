@@ -124,76 +124,119 @@ export default function MobileHomePage() {
   }, [refreshTick]);
 
   return (
-    <main style={{ padding: "20px 16px 24px", color: "var(--morning-ink)" }} dir="rtl">
-      {/* Header */}
-      <header style={{ marginBottom: 18 }}>
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: "0.18em",
-            textTransform: "uppercase",
-            color: "var(--morning-forest)",
-          }}
-        >
-          plan
-        </div>
-        <h1
-          style={{
-            fontSize: 24,
-            fontWeight: 800,
-            margin: "4px 0 2px",
-            letterSpacing: "-0.02em",
-          }}
-        >
-          {greeting} 👋
-        </h1>
-        <div style={{ fontSize: 13, color: "var(--morning-muted)", minHeight: 18 }}>
-          {today}
-        </div>
-      </header>
-
-      {visitDelta && <VisitDeltaBanner delta={visitDelta} />}
-
-      <InsightsCard
-        refreshKey={refreshTick}
-        onOpenQuickAdd={() => setQuickAddOpen(true)}
-      />
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <BudgetCard summary={budget} hydrated={hydrated} />
-        <GoalCard goal={nextGoal} hydrated={hydrated} />
-        <NetWorthCard summary={networth} hydrated={hydrated} />
-      </div>
-
-      {/* finance-agent "ONE thing": removes friction from the daily-use
-          loop by surfacing the primary action directly from home. */}
-      <button
-        type="button"
-        onClick={() => setQuickAddOpen(true)}
+    <main style={{ color: "var(--morning-ink)" }} dir="rtl">
+      {/* HERO — forest gradient with the headline net-worth number.
+          Bleeds the column edges of the 480px frame for a true app feel. */}
+      <section
         style={{
-          marginTop: 18,
-          width: "100%",
-          padding: "16px 18px",
-          background: "var(--morning-forest)",
+          background:
+            "linear-gradient(135deg, var(--morning-forest) 0%, var(--morning-forest-deep) 100%)",
           color: "#ffffff",
-          border: "none",
-          borderRadius: 14,
-          fontSize: 16,
-          fontWeight: 700,
-          cursor: "pointer",
-          boxShadow: "var(--morning-shadow-fab)",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 8,
+          padding: "24px 20px 28px",
+          borderRadius: "0 0 20px 20px",
+          boxShadow: "0 6px 20px rgba(31, 90, 66, 0.18)",
         }}
       >
-        <span className="material-symbols-outlined" style={{ fontSize: 22 }}>
-          add
-        </span>
-        הוצאה מהירה
-      </button>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 14, opacity: 0.92, fontWeight: 600 }}>
+              {greeting} 👋
+            </div>
+            <div style={{ fontSize: 11, opacity: 0.72, marginTop: 2 }}>
+              {today}
+            </div>
+          </div>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "0.22em",
+              textTransform: "uppercase",
+              opacity: 0.72,
+            }}
+          >
+            plan
+          </div>
+        </div>
+
+        <div style={{ marginTop: 22 }}>
+          <div style={{ fontSize: 11, opacity: 0.8, letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700 }}>
+            השווי הנקי שלך
+          </div>
+          <div
+            style={{
+              fontSize: 38,
+              fontWeight: 800,
+              letterSpacing: "-0.02em",
+              fontVariantNumeric: "tabular-nums",
+              marginTop: 4,
+            }}
+          >
+            {hydrated && networth ? fmtILS(networth.netWorth) : "—"}
+          </div>
+          {hydrated && networth && (
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 12,
+                opacity: 0.85,
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              נכסים {fmtILS(networth.totalAssets)} · חובות {fmtILS(networth.totalLiabilities)}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Content area below the hero */}
+      <div style={{ padding: "16px 16px 24px" }}>
+        {visitDelta && <VisitDeltaBanner delta={visitDelta} />}
+
+        <InsightsCard
+          refreshKey={refreshTick}
+          onOpenQuickAdd={() => setQuickAddOpen(true)}
+        />
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <BudgetCard summary={budget} hydrated={hydrated} />
+          <GoalCard goal={nextGoal} hydrated={hydrated} />
+        </div>
+
+        {/* Quick-expense — the daily-use loop opener */}
+        <button
+          type="button"
+          onClick={() => setQuickAddOpen(true)}
+          style={{
+            marginTop: 18,
+            width: "100%",
+            padding: "16px 18px",
+            background: "var(--morning-forest)",
+            color: "#ffffff",
+            border: "none",
+            borderRadius: 14,
+            fontSize: 16,
+            fontWeight: 700,
+            cursor: "pointer",
+            boxShadow: "var(--morning-shadow-fab)",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 22 }}>
+            add
+          </span>
+          הוצאה מהירה
+        </button>
+      </div>
 
       {quickAddOpen && (
         <AddExpenseSheet
@@ -279,13 +322,74 @@ const EYEBROW: React.CSSProperties = {
 };
 
 const BIG_NUMBER: React.CSSProperties = {
-  fontSize: 28,
+  fontSize: 34,
   fontWeight: 800,
   letterSpacing: "-0.02em",
   fontVariantNumeric: "tabular-nums",
   marginTop: 6,
   color: "var(--morning-ink)",
+  lineHeight: 1.1,
 };
+
+/** Pastel-circle icon + eyebrow header for the home cards. */
+function CardHeader({
+  icon,
+  label,
+  tint = "forest",
+}: {
+  icon: string;
+  label: string;
+  tint?: "forest" | "coral" | "amber" | "violet";
+}) {
+  const bg =
+    tint === "coral"
+      ? "var(--morning-coral-soft)"
+      : tint === "amber"
+      ? "var(--morning-warning-soft)"
+      : tint === "violet"
+      ? "var(--morning-violet-soft)"
+      : "var(--morning-leaf-tint)";
+  const fg =
+    tint === "coral"
+      ? "var(--morning-coral)"
+      : tint === "amber"
+      ? "var(--morning-warning)"
+      : tint === "violet"
+      ? "var(--morning-violet)"
+      : "var(--morning-forest)";
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <span
+        aria-hidden
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 999,
+          background: bg,
+          color: fg,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+          {icon}
+        </span>
+      </span>
+      <span
+        style={{
+          fontSize: 12,
+          fontWeight: 700,
+          color: "var(--morning-muted)",
+          letterSpacing: "0.08em",
+        }}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
 
 const META: React.CSSProperties = {
   fontSize: 13,
@@ -347,7 +451,7 @@ function BudgetCard({
   if (!hydrated || !summary) {
     return (
       <div style={CARD}>
-        <div style={EYEBROW}>💰 תקציב החודש</div>
+        <CardHeader icon="savings" label="תקציב החודש" tint="forest" />
         <Skeleton />
       </div>
     );
@@ -364,15 +468,26 @@ function BudgetCard({
 
   return (
     <div style={CARD}>
-      <div style={EYEBROW}>💰 תקציב החודש</div>
+      <CardHeader
+        icon="savings"
+        label="תקציב החודש"
+        tint={overspent ? "coral" : "forest"}
+      />
 
       {!hasBudget ? (
-        <div style={{ fontSize: 15, marginTop: 10, color: "var(--morning-muted)" }}>
+        <div style={{ fontSize: 14, marginTop: 12, color: "var(--morning-muted)" }}>
           עוד לא הגדרת תקציב חודשי בדשבורד.
         </div>
       ) : (
         <>
-          <div style={BIG_NUMBER}>{fmtILS(Math.abs(summary.remaining))}</div>
+          <div
+            style={{
+              ...BIG_NUMBER,
+              color: overspent ? "var(--morning-coral)" : "var(--morning-ink)",
+            }}
+          >
+            {fmtILS(Math.abs(summary.remaining))}
+          </div>
           <div style={META}>
             {overspent ? "חריגה מהתקציב" : "נותרו לחודש"} · מתוך{" "}
             {fmtILS(summary.budget)}
@@ -425,7 +540,7 @@ function GoalCard({ goal, hydrated }: { goal: Bucket | null; hydrated: boolean }
   if (!hydrated) {
     return (
       <div style={CARD}>
-        <div style={EYEBROW}>🎯 היעד הבא</div>
+        <CardHeader icon="flag" label="היעד הבא" tint="violet" />
         <Skeleton />
       </div>
     );
@@ -434,8 +549,8 @@ function GoalCard({ goal, hydrated }: { goal: Bucket | null; hydrated: boolean }
   if (!goal) {
     return (
       <div style={CARD}>
-        <div style={EYEBROW}>🎯 היעד הבא</div>
-        <div style={{ fontSize: 15, marginTop: 10, color: "var(--morning-muted)" }}>
+        <CardHeader icon="flag" label="היעד הבא" tint="violet" />
+        <div style={{ fontSize: 14, marginTop: 12, color: "var(--morning-muted)" }}>
           עוד לא הוגדרו יעדים בדשבורד.
         </div>
       </div>
@@ -446,45 +561,13 @@ function GoalCard({ goal, hydrated }: { goal: Bucket | null; hydrated: boolean }
 
   return (
     <div style={CARD}>
-      <div style={EYEBROW}>🎯 היעד הבא</div>
-      <div style={{ fontSize: 17, fontWeight: 700, marginTop: 8 }}>{goal.name}</div>
+      <CardHeader icon="flag" label="היעד הבא" tint="violet" />
+      <div style={{ fontSize: 16, fontWeight: 700, marginTop: 10 }}>{goal.name}</div>
       <div style={BIG_NUMBER}>{fmtILS(goal.currentAmount)}</div>
       <div style={META}>
         מתוך {fmtILS(goal.targetAmount)} · {Math.round(pct)}%
       </div>
       <ProgressBar pct={pct} color={goal.color || "var(--morning-forest)"} />
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────── */
-/* Card 3: Net Worth                               */
-/* ─────────────────────────────────────────────── */
-
-function NetWorthCard({
-  summary,
-  hydrated,
-}: {
-  summary: NetWorthSummary | null;
-  hydrated: boolean;
-}) {
-  if (!hydrated || !summary) {
-    return (
-      <div style={CARD}>
-        <div style={EYEBROW}>📊 שווי נטו</div>
-        <Skeleton />
-      </div>
-    );
-  }
-
-  return (
-    <div style={CARD}>
-      <div style={EYEBROW}>📊 שווי נטו</div>
-      <div style={BIG_NUMBER}>{fmtILS(summary.netWorth)}</div>
-      <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-        <Chip label="נכסים" value={fmtILS(summary.totalAssets)} tone="forest" />
-        <Chip label="חובות" value={fmtILS(summary.totalLiabilities)} tone="coral" />
-      </div>
     </div>
   );
 }
