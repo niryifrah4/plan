@@ -10,7 +10,23 @@
  * Pure presentation; data comes from useLiveMacro().
  */
 
-import { useLiveMacro } from "@/lib/hooks/useLiveMacro";
+import { useLiveMacro, type LiveMacro } from "@/lib/hooks/useLiveMacro";
+
+/** Last-known-good fallback for when the live endpoint is unreachable
+ *  (e.g. unauth'd page hit, BoI timeout). Kept aligned with
+ *  lib/assumptions.ts DEFAULT_ASSUMPTIONS. */
+const STATIC_FALLBACK: LiveMacro = {
+  boiRate: 0.045,
+  primeRate: 0.06,
+  inflationRate: 0.025,
+  usd: null,
+  updatedAt: new Date(0).toISOString(),
+  source: {
+    boiRate: "fallback",
+    inflation: "fallback",
+    usd: "fallback",
+  },
+};
 
 function fmtPct(decimal: number): string {
   return `${(decimal * 100).toFixed(2)}%`;
@@ -23,6 +39,8 @@ function fmtIls(n: number): string {
 function fmtUpdatedAt(iso: string): string {
   try {
     const d = new Date(iso);
+    // Epoch sentinel = static fallback; don't pretend it was just updated.
+    if (d.getFullYear() < 2020) return "—";
     const now = new Date();
     const sameDay =
       d.getFullYear() === now.getFullYear() &&
@@ -38,9 +56,12 @@ function fmtUpdatedAt(iso: string): string {
 }
 
 export function MacroStrip() {
-  const { data, loading } = useLiveMacro();
+  const { data: live, loading } = useLiveMacro();
 
-  if (loading && !data) {
+  // Show a slim loading skeleton on first paint only — once we have any
+  // data (live OR static fallback) we render the strip so the user always
+  // sees something concrete instead of a placeholder that flickers away.
+  if (loading && !live) {
     return (
       <div
         dir="rtl"
@@ -56,7 +77,10 @@ export function MacroStrip() {
     );
   }
 
-  if (!data) return null;
+  // When the live endpoint fails (401 on unauthed page, network error, etc.)
+  // fall back to static defaults so the strip never disappears mid-flight.
+  // Source tags will show "ידני" so the user knows it's not fresh.
+  const data: LiveMacro = live ?? STATIC_FALLBACK;
 
   const items: Array<{ label: string; value: string; live: boolean }> = [
     {

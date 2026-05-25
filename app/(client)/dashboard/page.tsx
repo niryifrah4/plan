@@ -796,6 +796,11 @@ export default function DashboardPage() {
         className="mx-auto max-w-3xl py-8 md:py-16"
         style={{ fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif" }}
       >
+        {/* MacroStrip belongs in the empty state too — it's a trust signal
+            that the system has live data, even before the family has entered
+            anything of their own. The Wealth Report CTA is intentionally
+            omitted here (a report of zeros isn't useful). */}
+        <MacroStrip />
         <div className="card-pad text-center">
           <div
             className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-organic"
