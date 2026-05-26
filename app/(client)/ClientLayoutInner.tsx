@@ -5,7 +5,11 @@ import { ClientProvider } from "@/lib/client-context";
 import { ClientShell } from "./ClientShell";
 import { runFactoryResetIfNeeded } from "@/lib/factory-reset";
 import { bootstrapSessionOnce } from "@/lib/sync/bootstrap";
-import { CURRENT_HH_KEY, dispatchAllRefreshEvents } from "@/lib/client-scope";
+import {
+  CURRENT_HH_KEY,
+  dispatchAllRefreshEvents,
+  purgeLegacyScopedKeys,
+} from "@/lib/client-scope";
 
 interface Impersonation {
   householdId: string;
@@ -26,6 +30,24 @@ export default function ClientLayoutInner({
 }) {
   useEffect(() => {
     runFactoryResetIfNeeded();
+    // One-time legacy purge per browser tab. Catches the case where the
+    // user lands on the dashboard with active_household_id already set
+    // (e.g. via a deep link) — the impersonation-switch effect below
+    // would skip its purge because last === current, leaving legacy
+    // `verdant:c:<digit>:*` keys in place.
+    try {
+      const PURGE_FLAG = "verdant:legacy_purge_done";
+      if (sessionStorage.getItem(PURGE_FLAG) !== "1") {
+        const removed = purgeLegacyScopedKeys();
+        if (removed > 0) {
+          // eslint-disable-next-line no-console
+          console.info(`[bootstrap] purged ${removed} legacy-scope keys on mount`);
+          // Tell every store to re-read in case it cached the stale data.
+          dispatchAllRefreshEvents();
+        }
+        sessionStorage.setItem(PURGE_FLAG, "1");
+      }
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -53,6 +75,17 @@ export default function ClientLayoutInner({
         sessionStorage.setItem("verdant:last_impersonated", impersonation.householdId);
         // Force scope alignment + cascade refresh on every household switch.
         localStorage.removeItem(CURRENT_HH_KEY);
+        // Purge legacy numeric-scope keys (`verdant:c:<digit>:*`) so the
+        // previous tenant's data — written under the old current_hh scope
+        // before UUID-based scoping existed — can't leak into the new view.
+        // hydrate*FromRemote early-returns on empty Supabase rows, so without
+        // this purge the legacy paths sit there indefinitely and the
+        // dashboard's net-worth aggregator picks them up.
+        const purged = purgeLegacyScopedKeys();
+        if (purged > 0) {
+          // eslint-disable-next-line no-console
+          console.info(`[impersonation] purged ${purged} legacy-scope keys`);
+        }
         dispatchAllRefreshEvents();
       }
     }

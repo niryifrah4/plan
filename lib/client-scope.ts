@@ -90,6 +90,48 @@ export function setActiveClientId(id: number): void {
   dispatchAllRefreshEvents();
 }
 
+/**
+ * Purge legacy localStorage keys that pre-date UUID-based scoping.
+ *
+ * Why: before the impersonation flow existed, scopedKey() used a numeric
+ * `verdant:current_hh` and stores wrote under `verdant:c:<number>:*`.
+ * When Nir was the only user, that number was almost always "1". Once
+ * multiple households entered the system, every household ALIASED to the
+ * same legacy `verdant:c:1:*` namespace and saw each other's data.
+ *
+ * The current scopedKey() ignores those legacy paths (it uses
+ * `verdant:c:hh-<uuid8>:*` when impersonation is active), so the data
+ * sitting under `verdant:c:<number>:*` is invisible to reads — UNTIL a
+ * code path falls back through the precedence chain and finds it.
+ *
+ * This purge guarantees the legacy paths are gone for good. Safe to call
+ * any time: it never touches UUID-scoped paths (which are the source of
+ * truth in the new world) or the global keys in UNSCOPED_KEYS.
+ *
+ * Returns the number of keys removed (for logging / debugging).
+ */
+export function purgeLegacyScopedKeys(): number {
+  if (typeof window === "undefined") return 0;
+  let removed = 0;
+  try {
+    const keysToDelete: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      // Match `verdant:c:<digits>:*` only. `verdant:c:hh-<uuid>:*` is the
+      // current-era namespace and stays untouched.
+      if (/^verdant:c:\d+:/.test(k)) {
+        keysToDelete.push(k);
+      }
+    }
+    for (const k of keysToDelete) {
+      localStorage.removeItem(k);
+      removed++;
+    }
+  } catch {}
+  return removed;
+}
+
 /** Fires every known store event so pages re-read from new namespace. */
 export function dispatchAllRefreshEvents(): void {
   if (typeof window === "undefined") return;
