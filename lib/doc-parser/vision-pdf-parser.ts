@@ -18,7 +18,7 @@
  * returned `ParsedDocument` so the upload UI can surface them.
  */
 
-import Anthropic from "@anthropic-ai/sdk";
+import { createAnthropicClient, getAnthropicKey } from "@/lib/anthropic-client";
 import type { ParsedDocument, ParsedTransaction } from "./types";
 import { categorize } from "./categorizer";
 
@@ -115,11 +115,14 @@ export async function parsePDFWithVision(
   buffer: Buffer,
   filename: string
 ): Promise<ParsedDocument> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return errorDoc(filename, "זיהוי ויזואלי לא זמין — ANTHROPIC_API_KEY חסר בסביבת השרת");
+  if (!getAnthropicKey()) {
+    return errorDoc(filename, "זיהוי ויזואלי לא זמין — מפתח Anthropic חסר בסביבת השרת");
   }
 
-  const client = new Anthropic();
+  const client = createAnthropicClient();
+  if (!client) {
+    return errorDoc(filename, "זיהוי ויזואלי לא זמין — מפתח Anthropic חסר בסביבת השרת");
+  }
   const pdfBase64 = buffer.toString("base64");
 
   try {

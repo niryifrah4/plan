@@ -24,7 +24,7 @@
 
 import "server-only";
 
-import Anthropic from "@anthropic-ai/sdk";
+import { createAnthropicClient, getAnthropicKey } from "@/lib/anthropic-client";
 import { CATEGORIES } from "./categorizer";
 import { groupOptionsByParent } from "./category-tree";
 
@@ -81,10 +81,11 @@ export async function categorizeWithAI(
   txs: TxToClassify[],
   pastCorrections: PastCorrection[] = []
 ): Promise<AISuggestion[]> {
-  if (!process.env.ANTHROPIC_API_KEY) return [];
+  if (!getAnthropicKey()) return [];
   if (txs.length === 0) return [];
 
-  const client = new Anthropic();
+  const client = createAnthropicClient();
+  if (!client) return [];
   // Group categories under their parent so Haiku sees the same hierarchy a
   // human picker sees in the UI. Parent headers are labels only — Haiku is
   // instructed (in SYSTEM_PROMPT) to only ever return a LEAF key as `category`.
