@@ -64,6 +64,49 @@ export function normalizeSupplier(description: string): string {
   return description; // return original if no match
 }
 
+/**
+ * Bit / PayBox / Pepper transactions typically have descriptions like:
+ *   "ביט - שלמה גואטה"            → recipient: "שלמה גואטה"
+ *   "PAYBOX 12345 הילה תשלום"      → recipient: "הילה"
+ *   "POALIM PAYBOX רננה כהן"      → recipient: "רננה כהן"
+ *   "ביט 0521234567"               → recipient: phone (no name)
+ *
+ * The bank-level description usually buries the actual person/business
+ * after the platform prefix. This helper extracts the substring that
+ * matters for the user, so the merchant group in the queue says "שלמה
+ * גואטה" instead of "ביט" (which would cluster every Bit ever into one
+ * useless group).
+ *
+ * Returns null if the description doesn't look like a Bit/PayBox row.
+ */
+export function extractBitRecipient(description: string): string | null {
+  const cleaned = description.replace(/[\u200F\u200E"]/g, "").trim();
+  const platformRx = /^(?:ביט|bit|paybox|pay\s*box|pepper|פפר)\b[\s\-:,/]*/i;
+  // Also catch "POALIM PAYBOX" / "BIT POALIM" prefixes used by Hapoalim
+  const bankPlatformRx = /^(?:poalim|hapoalim|הפועלים|leumi|לאומי)\s*(?:bit|paybox|ביט|פייבוקס)\s*[\s\-:,/]*/i;
+
+  let rest = cleaned;
+  if (bankPlatformRx.test(rest)) {
+    rest = rest.replace(bankPlatformRx, "");
+  } else if (platformRx.test(rest)) {
+    rest = rest.replace(platformRx, "");
+  } else {
+    return null;
+  }
+
+  // Strip leading reference number / transaction id (8+ digits)
+  rest = rest.replace(/^\d{6,}[\s\-:,/]*/, "").trim();
+  // Strip trailing reference number
+  rest = rest.replace(/\s+\d{6,}\s*$/, "").trim();
+  // Strip generic words that aren't part of the name
+  rest = rest.replace(/^(?:תשלום|העברה|מ-?|ל-?)\s*/i, "").trim();
+
+  // What's left should be the recipient (name or phone)
+  if (!rest) return null;
+  if (rest.length < 2) return null;
+  return rest;
+}
+
 /* ─── Internal Transfer Detection ─── */
 const TRANSFER_PATTERNS = [
   /העברה\s*(בין|ל)?\s*חשבו(נות|ן)/i,

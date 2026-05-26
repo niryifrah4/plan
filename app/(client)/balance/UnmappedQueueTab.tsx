@@ -20,7 +20,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import type { ParsedTransaction } from "@/lib/doc-parser/types";
 import { scopedKey } from "@/lib/client-scope";
-import { normalizeSupplier } from "@/lib/doc-parser/normalizer";
+import { normalizeSupplier, extractBitRecipient } from "@/lib/doc-parser/normalizer";
 import { learnOverride, getOverrides } from "@/lib/doc-parser/categorizer";
 import { markUpdated, triggerFullSync } from "@/lib/sync-engine";
 import { CAT_OPTIONS, UNMAPPED_KEYS, CONFIDENCE_THRESHOLD } from "@/lib/documents-categories";
@@ -73,6 +73,8 @@ export function UnmappedQueueTab() {
   /** AI re-categorization state. */
   const [aiRunning, setAiRunning] = useState(false);
   const [aiResult, setAiResult] = useState<{ added: number; skipped: number } | null>(null);
+  /** When ON, hide non-business groups. Only meaningful when business scope is enabled. */
+  const [filterBusinessOnly, setFilterBusinessOnly] = useState(false);
 
   useEffect(() => {
     setTransactions(loadTransactions());
@@ -114,6 +116,7 @@ export function UnmappedQueueTab() {
     const groupMap = new Map<string, MerchantGroup>();
     let unmappedTxCount = 0;
     let lowConfTxCount = 0;
+    let businessTxCount = 0;
     let totalAmount = 0;
 
     transactions.forEach((t, idx) => {
@@ -135,9 +138,20 @@ export function UnmappedQueueTab() {
 
       if (isUnmapped) unmappedTxCount++;
       if (isLowConf) lowConfTxCount++;
+      if (t.scope === "business") businessTxCount++;
 
+      // Group by Bit/PayBox recipient when applicable — otherwise every Bit
+      // row collapses into one useless "ביט" mega-group of dozens of
+      // unrelated people. With recipient extraction, "ביט - שלמה גואטה"
+      // becomes its own group keyed by "שלמה גואטה", which the user can
+      // then map confidently (e.g. "ילדים" for a child's allowance) without
+      // accidentally mass-mapping every Bit transfer they've ever made.
+      const bitRecipient = extractBitRecipient(t.description || "");
+      const baseKey = bitRecipient
+        ? `bit:${bitRecipient}`
+        : normalizeSupplier(t.description || "");
       const supplierKey =
-        normalizeSupplier(t.description || "")
+        baseKey
           .toLowerCase()
           .replace(/["\u200F\u200E]/g, "")
           .replace(/\s+/g, " ")
@@ -184,11 +198,19 @@ export function UnmappedQueueTab() {
         groupCount: groups.length,
         unmappedTxCount,
         lowConfTxCount,
+        businessTxCount,
         totalAmount,
         totalTransactions: transactions.length,
       },
     };
   }, [transactions, excludedSet]);
+
+  /* If the "business only" filter is on, hide groups with no business tx. A
+   * group qualifies if any tx in it currently has scope='business'. */
+  const visibleGroups = useMemo(() => {
+    if (!filterBusinessOnly) return groups;
+    return groups.filter((g) => g.txIndices.some((i) => transactions[i]?.scope === "business"));
+  }, [groups, filterBusinessOnly, transactions]);
 
   const handleMap = useCallback(
     (group: MerchantGroup, newCategoryKey: string) => {
@@ -231,6 +253,58 @@ export function UnmappedQueueTab() {
         });
       }, 1500);
       // Fan out to dependent stores (budget, cashflow, savings rate)
+      markUpdated("docs");
+      triggerFullSync();
+    },
+    [transactions]
+  );
+
+  /* Map a single transaction (not the whole group). Used in the drill-down
+   * when a merchant group is mixed — e.g. some shufersal rows are personal
+   * groceries, one is a business gift. The user expands the row and maps the
+   * outlier line by line. We still learn the override on the per-tx
+   * description, but it's a narrower signal than mass-mapping the group. */
+  const handleMapSingle = useCallback(
+    (txIndex: number, newCategoryKey: string) => {
+      const cat = CAT_OPTIONS.find((c) => c.key === newCategoryKey);
+      if (!cat) return;
+      const next = transactions.slice();
+      const tx = next[txIndex];
+      if (!tx) return;
+      const isRefund = cat.key === "refunds";
+      const adjustedAmount = isRefund && tx.amount > 0 ? -tx.amount : tx.amount;
+      next[txIndex] = {
+        ...tx,
+        category: cat.key,
+        categoryLabel: cat.label,
+        amount: adjustedAmount,
+        confidence: 1.0,
+      };
+      saveTransactions(next);
+      setTransactions(next);
+      if (tx.description) {
+        learnOverride(tx.description, cat.key);
+        recordCorrection(tx.description, tx.category, cat.key, "user");
+      }
+      markUpdated("docs");
+      triggerFullSync();
+    },
+    [transactions]
+  );
+
+  /* Toggle scope on a single transaction in the drill-down. Lets the user
+   * fix a mixed group one row at a time without overriding everyone. */
+  const handleToggleBusinessSingle = useCallback(
+    (txIndex: number) => {
+      const next = transactions.slice();
+      const tx = next[txIndex];
+      if (!tx) return;
+      next[txIndex] = {
+        ...tx,
+        scope: tx.scope === "business" ? undefined : ("business" as const),
+      };
+      saveTransactions(next);
+      setTransactions(next);
       markUpdated("docs");
       triggerFullSync();
     },
@@ -441,8 +515,8 @@ export function UnmappedQueueTab() {
     );
   }
 
-  const unmappedGroups = groups.filter((g) => g.reason === "unmapped");
-  const lowConfGroups = groups.filter((g) => g.reason === "low-confidence");
+  const unmappedGroups = visibleGroups.filter((g) => g.reason === "unmapped");
+  const lowConfGroups = visibleGroups.filter((g) => g.reason === "low-confidence");
 
   return (
     <div className="mx-auto max-w-5xl space-y-4" dir="rtl">
@@ -525,6 +599,41 @@ export function UnmappedQueueTab() {
             </span>
           )}
         </div>
+
+        {/* Business filter — only when business scope is enabled for the household. */}
+        {businessEnabled && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3" style={{ borderColor: "#E5E7EB" }}>
+            <span className="text-[11px] font-bold text-verdant-muted">סנן:</span>
+            <button
+              onClick={() => setFilterBusinessOnly(false)}
+              className="rounded-full px-3 py-1 text-[11px] font-extrabold transition-all"
+              style={
+                !filterBusinessOnly
+                  ? { background: "#2C7A5A", color: "#FFFFFF" }
+                  : { background: "#FAFAF7", color: "#6B7280", border: "1px solid #E5E7EB" }
+              }
+            >
+              הכל ({stats.unmappedTxCount + stats.lowConfTxCount})
+            </button>
+            <button
+              onClick={() => setFilterBusinessOnly(true)}
+              className="flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-extrabold transition-all"
+              style={
+                filterBusinessOnly
+                  ? { background: "#2C7A5A", color: "#FFFFFF" }
+                  : { background: "#FAFAF7", color: "#6B7280", border: "1px solid #E5E7EB" }
+              }
+            >
+              <span className="material-symbols-outlined text-[13px]">work</span>
+              עסקי ({stats.businessTxCount})
+            </button>
+            {filterBusinessOnly && stats.businessTxCount === 0 && (
+              <span className="text-[11px] text-verdant-muted">
+                אין תנועות מסומנות עסקי בתור הפענוח. לחץ "פרטי/עסקי" על קבוצה כדי לסמן.
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Unmapped section */}
@@ -542,7 +651,9 @@ export function UnmappedQueueTab() {
           businessEnabled={businessEnabled}
           onToggle={toggleExpand}
           onMap={handleMap}
+          onMapSingle={handleMapSingle}
           onToggleBusiness={handleToggleBusiness}
+          onToggleBusinessSingle={handleToggleBusinessSingle}
           onExclude={handleExcludeMerchant}
         />
       )}
@@ -562,7 +673,9 @@ export function UnmappedQueueTab() {
           businessEnabled={businessEnabled}
           onToggle={toggleExpand}
           onMap={handleMap}
+          onMapSingle={handleMapSingle}
           onToggleBusiness={handleToggleBusiness}
+          onToggleBusinessSingle={handleToggleBusinessSingle}
           onExclude={handleExcludeMerchant}
         />
       )}
@@ -598,7 +711,9 @@ function QueueSection({
   businessEnabled,
   onToggle,
   onMap,
+  onMapSingle,
   onToggleBusiness,
+  onToggleBusinessSingle,
   onExclude,
 }: {
   title: string;
@@ -613,7 +728,9 @@ function QueueSection({
   businessEnabled: boolean;
   onToggle: (key: string) => void;
   onMap: (g: MerchantGroup, cat: string) => void;
+  onMapSingle: (txIndex: number, cat: string) => void;
   onToggleBusiness: (g: MerchantGroup) => void;
+  onToggleBusinessSingle: (txIndex: number) => void;
   onExclude: (g: MerchantGroup) => void;
 }) {
   return (
@@ -652,7 +769,9 @@ function QueueSection({
             businessEnabled={businessEnabled}
             onToggle={() => onToggle(g.key)}
             onMap={(cat) => onMap(g, cat)}
+            onMapSingle={onMapSingle}
             onToggleBusiness={() => onToggleBusiness(g)}
+            onToggleBusinessSingle={onToggleBusinessSingle}
             onExclude={() => onExclude(g)}
           />
         ))}
@@ -669,7 +788,9 @@ function QueueRow({
   businessEnabled,
   onToggle,
   onMap,
+  onMapSingle,
   onToggleBusiness,
+  onToggleBusinessSingle,
   onExclude,
 }: {
   group: MerchantGroup;
@@ -679,7 +800,9 @@ function QueueRow({
   businessEnabled: boolean;
   onToggle: () => void;
   onMap: (cat: string) => void;
+  onMapSingle: (txIndex: number, cat: string) => void;
   onToggleBusiness: () => void;
+  onToggleBusinessSingle: (txIndex: number) => void;
   onExclude: () => void;
 }) {
   // Group is "business" if any tx in it is currently scoped business
@@ -790,25 +913,78 @@ function QueueRow({
             className="overflow-hidden rounded-xl"
             style={{ background: "#FAFAF7", border: "1px solid #FAFAF7" }}
           >
+            <div className="flex items-center gap-2 border-b px-3 py-2 text-[10px] font-bold text-verdant-muted" style={{ borderColor: "#E5E7EB" }}>
+              <span className="material-symbols-outlined text-[12px]" style={{ color: "#2C7A5A" }}>
+                edit
+              </span>
+              ניתן למפות כל תנועה בנפרד — לדוגמה כשבתוך אותו ספק יש גם פרטי וגם עסקי
+            </div>
             <table className="w-full text-xs">
               <tbody>
                 {group.txIndices.slice(0, 25).map((i) => {
                   const t = transactions[i];
                   if (!t) return null;
+                  const isBusiness = t.scope === "business";
                   return (
-                    <tr key={i} className="border-b" style={{ borderColor: "#FAFAF7" }}>
-                      <td className="tabular w-20 px-3 py-1.5 text-verdant-muted" dir="ltr">
+                    <tr key={i} className="border-b align-middle" style={{ borderColor: "#FFFFFF" }}>
+                      <td className="tabular w-20 px-3 py-2 text-verdant-muted" dir="ltr">
                         {t.date}
                       </td>
-                      <td className="max-w-[300px] truncate px-3 py-1.5 text-verdant-ink">
+                      <td className="max-w-[260px] truncate px-3 py-2 text-verdant-ink" title={t.description}>
                         {t.description}
                       </td>
                       <td
-                        className="tabular w-24 px-3 py-1.5 text-left font-extrabold"
+                        className="tabular w-20 px-3 py-2 text-left font-extrabold"
                         style={{ color: t.amount > 0 ? "#DC2626" : "#059669" }}
                       >
                         {t.amount > 0 ? "-" : "+"}
                         {fmtILS(t.amount)}
+                      </td>
+                      {businessEnabled && (
+                        <td className="px-2 py-2">
+                          <button
+                            onClick={() => onToggleBusinessSingle(i)}
+                            title={
+                              isBusiness
+                                ? "מסומן עסקי — לחץ להחזרה לפרטי"
+                                : "סמן את התנועה הספציפית כעסקית"
+                            }
+                            className="rounded-md border px-2 py-1 text-[10px] font-extrabold transition-all"
+                            style={
+                              isBusiness
+                                ? { borderColor: "#2C7A5A", background: "#FFFFFF", color: "#2C7A5A" }
+                                : { borderColor: "#E5E7EB", background: "#FFFFFF", color: "#9CA3AF" }
+                            }
+                          >
+                            {isBusiness ? "עסקי" : "פרטי"}
+                          </button>
+                        </td>
+                      )}
+                      <td className="px-2 py-2">
+                        <select
+                          defaultValue=""
+                          onChange={(e) => {
+                            if (e.target.value) onMapSingle(i, e.target.value);
+                            e.target.value = "";
+                          }}
+                          className="cursor-pointer rounded-md border px-2 py-1 text-[10px] font-bold outline-none transition-all focus:ring-2 focus:ring-verdant-accent/30"
+                          style={{ borderColor: "#E5E7EB", background: "#FFFFFF", color: "#2C7A5A" }}
+                        >
+                          <option value="" disabled>
+                            מפה תנועה…
+                          </option>
+                          {groupOptionsByParent(
+                            CAT_OPTIONS.filter((c) => c.key !== "other" && c.key !== "transfers")
+                          ).map((g2) => (
+                            <optgroup key={g2.parent.key} label={g2.parent.label}>
+                              {g2.options.map((o) => (
+                                <option key={o.key} value={o.key}>
+                                  {o.label}
+                                </option>
+                              ))}
+                            </optgroup>
+                          ))}
+                        </select>
                       </td>
                     </tr>
                   );

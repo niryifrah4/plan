@@ -68,6 +68,7 @@ import {
 import { scopedKey } from "@/lib/client-scope";
 import { SCOPE_COLORS, effectiveScope, type Scope } from "@/lib/scope-types";
 import { MacroStrip } from "@/components/MacroStrip";
+import { UnmappedNudge } from "@/components/UnmappedNudge";
 
 const TRACK_COLOR: Record<string, string> = {
   on: "#2C7A5A",
@@ -874,6 +875,8 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-5xl py-4 md:py-8" style={{ fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif" }}>
+      {/* ═══════ AI categorization nudge — only visible when there's work ═══════ */}
+      <UnmappedNudge />
       {/* ═══════ Live macro strip + Wealth Report CTA ═══════ */}
       <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-stretch">
         <div className="flex-1">
