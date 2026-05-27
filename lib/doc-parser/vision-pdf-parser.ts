@@ -18,6 +18,7 @@
  * returned `ParsedDocument` so the upload UI can surface them.
  */
 
+import Anthropic from "@anthropic-ai/sdk";
 import { createAnthropicClient, getAnthropicKey } from "@/lib/anthropic-client";
 import type { ParsedDocument, ParsedTransaction } from "./types";
 import { categorize } from "./categorizer";
