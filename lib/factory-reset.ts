@@ -13,9 +13,15 @@ const VERSION_KEY = "verdant:factory_reset_version";
 /**
  * Bump this string to trigger a clean wipe on every browser on next load.
  * Previous: 2026-04-15-launch-clean → initial launch-readiness wipe.
- * Current:  2026-04-19-fresh-client → full wipe + seed one empty client.
+ *           2026-04-19-zero-defaults → full wipe + seed one empty client.
+ * Current:  2026-05-27-tenant-leak-fix → forces every existing browser to
+ *           drop a stale `verdant:*` localStorage cache from before the
+ *           tenant-switch wipe in client-scope.ts shipped. Symptom: family
+ *           בסר was seeing family יפרח's mortgage and questionnaire kids
+ *           because hydrate*FromRemote silently kept the previous tenant's
+ *           data when the new tenant's Supabase rows were empty.
  */
-export const FACTORY_RESET_VERSION = "2026-04-19-zero-defaults";
+export const FACTORY_RESET_VERSION = "2026-05-27-tenant-leak-fix";
 
 export const FACTORY_RESET_EVENT = "verdant:factory-reset";
 
@@ -207,11 +213,22 @@ export function runFactoryResetIfNeeded(): void {
       return;
     }
     wipeAllVerdantKeys();
+    // Clear sessionStorage-level flags so the next mount's bootstrap re-runs
+    // against the now-empty localStorage cache and re-hydrates from Supabase.
+    // Without this, `bootstrap_done` survives the wipe and bootstrapSessionOnce
+    // returns early — leaving every store with empty local data until the user
+    // closes the tab. `last_impersonated` is cleared so the impersonation
+    // useEffect treats the current cookie as a fresh tenant switch.
+    try {
+      sessionStorage.removeItem("verdant:bootstrap_done");
+      sessionStorage.removeItem("verdant:last_impersonated");
+      sessionStorage.removeItem("verdant:legacy_purge_done");
+    } catch {}
     seedFreshClient();
     localStorage.setItem(VERSION_KEY, FACTORY_RESET_VERSION);
     // eslint-disable-next-line no-console
     console.info(
-      "[factory-reset] wiped all verdant:* keys + seeded fresh client →",
+      "[factory-reset] wiped all verdant:* keys + cleared session flags + seeded fresh client →",
       FACTORY_RESET_VERSION
     );
   } catch {}

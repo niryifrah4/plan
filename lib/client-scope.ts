@@ -132,6 +132,83 @@ export function purgeLegacyScopedKeys(): number {
   return removed;
 }
 
+/**
+ * Keys preserved across a tenant switch. Everything else under `verdant:*`
+ * is wiped so the next bootstrap re-hydrates clean from Supabase.
+ *
+ * - `verdant:clients`            — CRM's local snapshot of the household
+ *                                  list. Re-fetched from Supabase when the
+ *                                  user navigates back to /crm.
+ * - `verdant:factory_reset_version` — keeps runFactoryResetIfNeeded from
+ *                                  firing another full wipe on the next mount.
+ * - `verdant:last_activity`      — session-watcher idle timestamp.
+ *
+ * `verdant:active_household_id` is intentionally NOT preserved — the caller
+ * MUST re-plant it post-wipe with the new tenant's UUID.
+ */
+const TENANT_SWITCH_PRESERVE = new Set<string>([
+  CLIENTS_REGISTRY_KEY,
+  "verdant:factory_reset_version",
+  "verdant:last_activity",
+]);
+
+/**
+ * Wipe every `verdant:*` localStorage key from the previous tenant, then
+ * re-plant the new tenant's `active_household_id`.
+ *
+ * Why this is needed: `hydrate*FromRemote` functions across the stores
+ * (debt-store, accounts-store, onboarding-remote, etc.) silently return
+ * `false` when the remote blob/table is empty for the active household —
+ * they don't clear the existing local cache. Combined with legacy unscoped
+ * writes (`verdant:debt_data`, `verdant:onboarding:children` written before
+ * scopedKey() existed), this caused a data leak where freshly-impersonated
+ * household בסר saw the previous household יפרח's mortgage, kids, etc.
+ *
+ * The only correct architecture is: on tenant switch, nuke local, let
+ * bootstrap pull authoritative data per the new tenant's Supabase rows.
+ *
+ * Pass `null` for `newHouseholdUuid` when exiting impersonation (back to
+ * the advisor's own dashboard) — the function will still wipe local data
+ * but won't re-plant the UUID pointer.
+ *
+ * Returns the number of keys removed.
+ */
+export function wipeForTenantSwitch(newHouseholdUuid: string | null): number {
+  if (typeof window === "undefined") return 0;
+  let removed = 0;
+  try {
+    const preserved: Record<string, string> = {};
+    for (const k of TENANT_SWITCH_PRESERVE) {
+      try {
+        const v = localStorage.getItem(k);
+        if (v != null) preserved[k] = v;
+      } catch {}
+    }
+    const toDelete: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith("verdant:")) toDelete.push(k);
+    }
+    for (const k of toDelete) {
+      try {
+        localStorage.removeItem(k);
+        removed++;
+      } catch {}
+    }
+    for (const [k, v] of Object.entries(preserved)) {
+      try {
+        localStorage.setItem(k, v);
+      } catch {}
+    }
+    if (newHouseholdUuid) {
+      try {
+        localStorage.setItem(ACTIVE_HOUSEHOLD_UUID_KEY, newHouseholdUuid);
+      } catch {}
+    }
+  } catch {}
+  return removed;
+}
+
 /** Fires every known store event so pages re-read from new namespace. */
 export function dispatchAllRefreshEvents(): void {
   if (typeof window === "undefined") return;

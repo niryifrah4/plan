@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect } from "react";
 import { ClientProvider } from "@/lib/client-context";
+import { ImpersonationProvider } from "@/lib/impersonation-context";
 import { ClientShell } from "./ClientShell";
 import { runFactoryResetIfNeeded } from "@/lib/factory-reset";
 import { bootstrapSessionOnce } from "@/lib/sync/bootstrap";
@@ -9,6 +10,7 @@ import {
   CURRENT_HH_KEY,
   dispatchAllRefreshEvents,
   purgeLegacyScopedKeys,
+  wipeForTenantSwitch,
 } from "@/lib/client-scope";
 
 interface Impersonation {
@@ -51,41 +53,53 @@ export default function ClientLayoutInner({
   }, []);
 
   useEffect(() => {
-    // When impersonating, override the active-household cache with the target
-    // household BEFORE bootstrap hydrates stores. Also clear the bootstrap
-    // flag so hydrate re-runs for the new household.
+    // Tenant isolation. The previous "purge legacy + clear current_hh" fix
+    // turned out to be a partial mitigation: hydrate*FromRemote functions
+    // (debt-store, accounts-store, onboarding-remote, etc.) silently skip
+    // when the new tenant's Supabase blob/table is empty, so the prior
+    // tenant's data sat in localStorage and leaked into the new view
+    // (symptom 2026-05-26: household בסר saw household יפרח's mortgage and
+    // children-from-questionnaire). Half-measures kept reproducing the bug.
     //
-    // 2026-05-20: dual-key bug fix. The codebase has TWO active-household
-    // keys: `verdant:active_household_id` (UUID, written by bootstrap/remote-
-    // sync) and `verdant:current_hh` (numeric, read by scopedKey()). If a
-    // numeric current_hh is left over from a prior multi-client local session,
-    // scopedKey returns scoped paths like `verdant:c:5:pension_funds` — but
-    // hydrate writes to UNSCOPED `verdant:pension_funds`. Pages then read the
-    // wrong (stale) data. Symptom: advisor enters client's tab and sees their
-    // own/previous household data.
-    //
-    // Fix: clear current_hh whenever impersonating so scopedKey falls back to
-    // the unscoped paths where bootstrap actually writes. Then fire the
-    // global ACTIVE_CLIENT_CHANGED event chain so every open store re-reads.
+    // The only safe architecture: on every tenant switch, wipe ALL local
+    // `verdant:*` keys (preserving CRM cache + factory-reset version), then
+    // re-plant the new household UUID and let bootstrap re-hydrate from
+    // Supabase. Supabase is source of truth — every write path already pushes
+    // there in the background, so local is purely a cache.
     if (impersonation) {
-      localStorage.setItem("verdant:active_household_id", impersonation.householdId);
       const last = sessionStorage.getItem("verdant:last_impersonated");
       if (last !== impersonation.householdId) {
+        const removed = wipeForTenantSwitch(impersonation.householdId);
+        // eslint-disable-next-line no-console
+        console.info(
+          `[impersonation] tenant switch → ${impersonation.householdId.slice(0, 8)}…, wiped ${removed} keys`
+        );
         sessionStorage.removeItem("verdant:bootstrap_done");
         sessionStorage.setItem("verdant:last_impersonated", impersonation.householdId);
-        // Force scope alignment + cascade refresh on every household switch.
+        // Defensive: scopedKey checks UUID first now, but if a stale numeric
+        // current_hh somehow reappears it would route reads to the legacy
+        // namespace. Force it gone on every switch.
         localStorage.removeItem(CURRENT_HH_KEY);
-        // Purge legacy numeric-scope keys (`verdant:c:<digit>:*`) so the
-        // previous tenant's data — written under the old current_hh scope
-        // before UUID-based scoping existed — can't leak into the new view.
-        // hydrate*FromRemote early-returns on empty Supabase rows, so without
-        // this purge the legacy paths sit there indefinitely and the
-        // dashboard's net-worth aggregator picks them up.
-        const purged = purgeLegacyScopedKeys();
-        if (purged > 0) {
-          // eslint-disable-next-line no-console
-          console.info(`[impersonation] purged ${purged} legacy-scope keys`);
-        }
+        dispatchAllRefreshEvents();
+      } else {
+        // Same tenant as last mount (page reload / client-side nav) — just
+        // keep the active-household pointer current. No wipe needed.
+        try {
+          localStorage.setItem("verdant:active_household_id", impersonation.householdId);
+        } catch {}
+      }
+    } else {
+      // Exiting impersonation (advisor went back to /crm and re-entered a
+      // session without a client cookie). If we were impersonating, wipe so
+      // the next bootstrap resolves the advisor's own household from scratch.
+      const last = sessionStorage.getItem("verdant:last_impersonated");
+      if (last) {
+        const removed = wipeForTenantSwitch(null);
+        // eslint-disable-next-line no-console
+        console.info(`[impersonation] exited impersonation, wiped ${removed} keys`);
+        sessionStorage.removeItem("verdant:last_impersonated");
+        sessionStorage.removeItem("verdant:bootstrap_done");
+        localStorage.removeItem(CURRENT_HH_KEY);
         dispatchAllRefreshEvents();
       }
     }
@@ -100,15 +114,20 @@ export default function ClientLayoutInner({
         </div>
       }
     >
-      <ClientProvider>
-        {/* `impersonation !== null` ↔ logged-in user is the advisor. Pass
-            it through so the sidebar can hide CRM-only affordances for
-            actual clients, and so the impersonation banner can render with
-            the actual family name. (2026-04-29 per Nir.) */}
-        <ClientShell isAdvisor={impersonation !== null} impersonation={impersonation}>
-          {children}
-        </ClientShell>
-      </ClientProvider>
+      <ImpersonationProvider value={impersonation}>
+        <ClientProvider>
+          {/* `impersonation !== null` ↔ logged-in user is the advisor. Pass
+              it through so the sidebar can hide CRM-only affordances for
+              actual clients, and so the impersonation banner can render with
+              the actual family name. (2026-04-29 per Nir.)
+              ImpersonationProvider above gives any descendant component
+              access to the same { householdId, familyName } via
+              useImpersonation() — no more prop-drilling. */}
+          <ClientShell isAdvisor={impersonation !== null} impersonation={impersonation}>
+            {children}
+          </ClientShell>
+        </ClientProvider>
+      </ImpersonationProvider>
     </Suspense>
   );
 }
