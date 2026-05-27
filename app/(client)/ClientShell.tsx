@@ -34,7 +34,19 @@ export function ClientShell({
       router.push("/crm");
     }
   };
-  const { familyName, membersCount, loading } = useClient();
+  const {
+    familyName: localFamilyName,
+    membersCount,
+    loading,
+  } = useClient();
+  // When the advisor is impersonating, the (client)/layout passes the
+  // authoritative family name straight from the impersonation cookie + DB
+  // lookup. Prefer that over useClient()'s local-client registry — the two
+  // systems used to disagree (banner showed "יפרח" while sidebar showed
+  // "בסר") because useClient reads from a separate per-numeric-id local
+  // store that's not invalidated when the impersonation cookie flips.
+  // The impersonation prop IS the single source of truth.
+  const familyName = impersonation?.familyName ?? localFamilyName;
   // Pull the logged-in advisor's name from the auth session so the sidebar
   // footer reflects whoever is signed in (not a hardcoded value).
   const [advisorName, setAdvisorName] = useState<string>("מתכנן");
