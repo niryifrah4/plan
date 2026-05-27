@@ -14,7 +14,7 @@
  */
 
 import { redirect } from "next/navigation";
-import { headers, cookies } from "next/headers";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import ClientLayoutInner from "./ClientLayoutInner";
 
@@ -73,18 +73,13 @@ export default async function ClientLayout({ children }: { children: React.React
         .eq("id", client.household_id)
         .maybeSingle();
 
-      const path = headers().get("x-pathname") || headers().get("x-invoke-path") || "";
-      const onOnboarding = path.startsWith("/onboarding");
-
-      // 2026-05-22 per Nir: restore onboarding redirect for FRESH households.
-      // A new client who hasn't completed onboarding lands on an empty dashboard
-      // (13 sidebar items + zero data) and doesn't know to click "אפיון לקוח".
-      // We funnel them to /onboarding once; after they finish, household.stage
-      // flips out of 'onboarding' and they get the dashboard like everyone else.
-      // Advisors are unaffected (handled in the impersonation branch above).
-      if (household?.stage === "onboarding" && !onOnboarding) {
-        redirect("/onboarding");
-      }
+      // 2026-05-27 per Nir's structural brief §2: the auto-redirect to
+      // /onboarding is OFF. Dashboard is ALWAYS the landing surface, even for
+      // fresh households. The questionnaire is on-demand only — clients reach
+      // it via the sidebar "אפיון לקוח" entry or via the empty-state CTA on
+      // the dashboard. This makes the questionnaire a tool, not a forced gate.
+      // Stage is still computed so empty-state copy on dashboard can adapt.
+      void household?.stage;
     }
   }
 
