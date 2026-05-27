@@ -23,11 +23,7 @@ export default function FilesPage() {
           UnmappedQueueTab handles row-level triage of imported transactions. */}
       <DocumentsTab />
 
-      <div className="v-divider mt-10 border-t pt-6">
-        <div className="mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[20px] text-verdant-emerald">inbox</span>
-          <h2 className="text-base font-extrabold text-verdant-ink">תור פענוח — לא מופה</h2>
-        </div>
+      <div className="mt-10 border-t pt-6">
         <UnmappedQueueTab />
       </div>
     </div>

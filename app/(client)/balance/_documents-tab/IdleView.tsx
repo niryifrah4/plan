@@ -161,8 +161,6 @@ export function IdleView({
         <MappingDrilldown docHistory={docHistory} onRemove={onRemoveHistory} />
       )}
 
-      {/* ═══ Supported Banks — collapsed by default, lives at the bottom ═══ */}
-      {isIdle && !error && <SupportedBanksFoldout />}
     </>
   );
 }
@@ -593,62 +591,3 @@ function DocHistoryRow({ entry: h, onRemove }: { entry: DocHistoryEntry; onRemov
   );
 }
 
-/**
- * Reference card listing the banks and credit-card issuers the parser knows
- * about. It's the lowest-priority element on the page — collapsed by default
- * so it doesn't compete with the upload zones or the mapping summary, but
- * still discoverable when a user wonders "is my bank supported?".
- */
-function SupportedBanksFoldout() {
-  return (
-    <details
-      className="mt-8 rounded-xl border bg-[#FFFFFF] open:shadow-sm"
-      style={{ borderColor: "#E5E7EB" }}
-    >
-      <summary className="flex cursor-pointer select-none items-center gap-2 px-4 py-2.5 text-[11px] font-bold text-verdant-muted">
-        <span className="material-symbols-outlined text-[14px]">help_outline</span>
-        בנקים וחברות אשראי נתמכים
-      </summary>
-      <div className="grid grid-cols-1 gap-3 border-t p-4 md:grid-cols-2" style={{ borderColor: "#E5E7EB" }}>
-        <div>
-          <div className="mb-2 flex items-center gap-2 text-[11px] font-extrabold text-verdant-ink">
-            <span className="material-symbols-outlined text-[14px] text-verdant-emerald">
-              account_balance
-            </span>
-            בנקים
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {["הפועלים", "לאומי", "דיסקונט", "מזרחי-טפחות", "הבינלאומי"].map((b) => (
-              <span
-                key={b}
-                className="rounded-md px-2 py-0.5 text-[10px] font-bold"
-                style={{ background: "#FAFAF7", color: "#2C7A5A" }}
-              >
-                {b}
-              </span>
-            ))}
-          </div>
-        </div>
-        <div>
-          <div className="mb-2 flex items-center gap-2 text-[11px] font-extrabold text-verdant-ink">
-            <span className="material-symbols-outlined text-[14px] text-verdant-emerald">
-              credit_card
-            </span>
-            חברות אשראי
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {["ישראכרט", "כאל", "מקס", "ויזה", "אמריקן אקספרס"].map((c) => (
-              <span
-                key={c}
-                className="rounded-md px-2 py-0.5 text-[10px] font-bold"
-                style={{ background: "#FAFAF7", color: "#2C7A5A" }}
-              >
-                {c}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-    </details>
-  );
-}

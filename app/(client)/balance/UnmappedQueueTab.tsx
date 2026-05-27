@@ -520,90 +520,38 @@ export function UnmappedQueueTab() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-4" dir="rtl">
-      {/* Summary */}
-      <div
-        className="rounded-2xl p-5"
-        style={{
-          background: "linear-gradient(135deg,#FAFAF7 0%,#FFFFFF 100%)",
-          border: "1px solid #E5E7EB",
-        }}
-      >
-        <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[20px]" style={{ color: "#2C7A5A" }}>
-              inbox
-            </span>
-            <h3
-              className="text-base font-extrabold text-verdant-ink"
-              style={{ fontFamily: "inherit" }}
-            >
-              תור פענוח
-            </h3>
-          </div>
-          <span className="text-[10px] font-bold text-verdant-muted">
-            ממיין לפי סכום · גדול למעלה
+      {/* Action bar — AI button + hint + optional business filter */}
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          onClick={handleAiRecategorize}
+          disabled={aiRunning || stats.groupCount === 0}
+          className="flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-[13px] font-extrabold text-white transition-all disabled:opacity-40"
+          style={{ background: "#7C3AED", minHeight: 44 }}
+        >
+          <span className="material-symbols-outlined text-[18px]">
+            {aiRunning ? "progress_activity" : "auto_awesome"}
           </span>
-        </div>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <StatCard
-            label="קבוצות לטיפול"
-            value={stats.groupCount.toLocaleString("he-IL")}
-            color="#2C7A5A"
-          />
-          <StatCard
-            label="תנועות לא ממופות"
-            value={stats.unmappedTxCount.toLocaleString("he-IL")}
-            color={stats.unmappedTxCount > 0 ? "#DC2626" : "#2C7A5A"}
-          />
-          <StatCard
-            label="תנועות לבדיקה"
-            value={stats.lowConfTxCount.toLocaleString("he-IL")}
-            color={stats.lowConfTxCount > 0 ? "#B45309" : "#2C7A5A"}
-          />
-          <StatCard label="סכום לטיפול" value={fmtILS(stats.totalAmount)} color="#FFFFFF" />
-        </div>
-        <div className="mt-3 flex items-center gap-1.5 text-[11px] font-bold text-verdant-muted">
-          <span className="material-symbols-outlined text-[14px]" style={{ color: "#2C7A5A" }}>
-            auto_fix_high
-          </span>
-          <span>בחירה כאן מלמדת את הפענוח — העלאות עתידיות של אותו בית-עסק ימופו אוטומטית.</span>
-        </div>
-
-        {/* AI re-categorize action bar */}
-        <div className="mt-4 flex flex-wrap items-center gap-3 border-t pt-3" style={{ borderColor: "#E5E7EB" }}>
-          <button
-            onClick={handleAiRecategorize}
-            disabled={aiRunning || stats.groupCount === 0}
-            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-extrabold text-white transition-all disabled:opacity-40"
-            style={{ background: "#7C3AED" }}
+          {aiRunning ? "מסווג עם AI..." : "סווג מחדש עם AI"}
+        </button>
+        <span className="text-[11px] text-verdant-muted">
+          Claude Haiku בודק את כל ה-{stats.groupCount} הקבוצות לפי הקטגוריות וההיסטוריה שלך
+        </span>
+        {aiResult && (
+          <span
+            className="rounded-md px-2 py-1 text-[11px] font-bold"
+            style={{
+              background: aiResult.added > 0 ? "#7C3AED15" : "#FAFAF7",
+              color: aiResult.added > 0 ? "#7C3AED" : "#6B7280",
+            }}
           >
-            <span className="material-symbols-outlined text-[16px]">
-              {aiRunning ? "progress_activity" : "auto_awesome"}
-            </span>
-            {aiRunning ? "מסווג עם AI..." : "סווג מחדש עם AI"}
-          </button>
-          <span className="text-[11px] text-verdant-muted">
-            Claude Haiku בודק את כל ה-{stats.groupCount} הקבוצות לפי הקטגוריות וההיסטוריה שלך
+            {aiResult.added > 0
+              ? `✓ סווגו ${aiResult.added}, ${aiResult.skipped} נשארו לבדיקה`
+              : "אף הצעה לא הייתה ברמת ביטחון מספיקה — נשאר ידני"}
           </span>
-          {aiResult && (
-            <span
-              className="rounded-md px-2 py-1 text-[11px] font-bold"
-              style={{
-                background: aiResult.added > 0 ? "#7C3AED15" : "#FAFAF7",
-                color: aiResult.added > 0 ? "#7C3AED" : "#6B7280",
-              }}
-            >
-              {aiResult.added > 0
-                ? `✓ סווגו ${aiResult.added}, ${aiResult.skipped} נשארו לבדיקה`
-                : "אף הצעה לא הייתה ברמת ביטחון מספיקה — נשאר ידני"}
-            </span>
-          )}
-        </div>
-
-        {/* Business filter — only when business scope is enabled for the household. */}
+        )}
         {businessEnabled && (
-          <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3" style={{ borderColor: "#E5E7EB" }}>
-            <span className="text-[11px] font-bold text-verdant-muted">סנן:</span>
+          <>
+            <span className="mr-auto text-[11px] font-bold text-verdant-muted">סנן:</span>
             <button
               onClick={() => setFilterBusinessOnly(false)}
               className="rounded-full px-3 py-1 text-[11px] font-extrabold transition-all"
@@ -632,9 +580,15 @@ export function UnmappedQueueTab() {
                 אין תנועות מסומנות עסקי בתור הפענוח. לחץ "פרטי/עסקי" על קבוצה כדי לסמן.
               </span>
             )}
-          </div>
+          </>
         )}
       </div>
+      <p className="flex items-center gap-1.5 text-[11px] font-bold text-verdant-muted">
+        <span className="material-symbols-outlined text-[14px]" style={{ color: "#2C7A5A" }}>
+          auto_fix_high
+        </span>
+        בחירה כאן מלמדת את הפענוח — העלאות עתידיות של אותו בית-עסק ימופו אוטומטית.
+      </p>
 
       {/* Unmapped section */}
       {unmappedGroups.length > 0 && (
@@ -684,19 +638,6 @@ export function UnmappedQueueTab() {
 }
 
 /* ═══════════════════ Sub-components ═══════════════════ */
-
-function StatCard({ label, value, color }: { label: string; value: string; color: string }) {
-  return (
-    <div className="rounded-xl bg-[#FFFFFF] p-3">
-      <div className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
-        {label}
-      </div>
-      <div className="tabular text-lg font-extrabold" style={{ color }}>
-        {value}
-      </div>
-    </div>
-  );
-}
 
 function QueueSection({
   title,
