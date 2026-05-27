@@ -937,8 +937,15 @@ export const CATEGORIES: Category[] = [
 
 /* ──────── User Override Storage (Persistent ML) ──────── */
 import { scopedKey } from "../client-scope";
+import { extractBitRecipient } from "./normalizer";
 
 const OVERRIDES_KEY = "verdant:category_overrides";
+
+/** Sentinel prefix stored in CategoryOverride.pattern for Bit/PayBox recipient
+ * learning. A pattern like "__bit__:שלמה גואטה" means "if the next description
+ * is itself a Bit row AND its recipient is שלמה גואטה, apply this category".
+ * Anything else MUST NOT use this prefix — it's reserved for that one lateral. */
+const BIT_PATTERN_PREFIX = "__bit__:";
 
 export interface CategoryOverride {
   pattern: string;
@@ -975,6 +982,26 @@ export function learnOverride(description: string, categoryKey: string) {
   const patternsToLearn = [fullPattern];
   if (root && root !== fullPattern && root.length >= 3) {
     patternsToLearn.push(root);
+  }
+
+  // Bit/PayBox lateral learning: store the recipient with the BIT_PATTERN_PREFIX
+  // sentinel so it ONLY matches when the future description is itself a
+  // Bit/PayBox row. Without the sentinel, mapping "ביט - שלמה גואטה" once
+  // would falsely auto-categorize any unrelated row that happens to contain
+  // "שלמה גואטה" (e.g. invoice to a business with that name). The categorize()
+  // function strips the sentinel and gates the match on extractBitRecipient
+  // returning non-null for the candidate description.
+  const bitRecipient = extractBitRecipient(description);
+  if (bitRecipient) {
+    const recipientPattern = bitRecipient
+      .toLowerCase()
+      .replace(/["\u200F\u200E]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (recipientPattern.length >= 3) {
+      const tagged = BIT_PATTERN_PREFIX + recipientPattern;
+      if (!patternsToLearn.includes(tagged)) patternsToLearn.push(tagged);
+    }
   }
 
   for (const pattern of patternsToLearn) {
@@ -1068,7 +1095,22 @@ export function categorize(description: string): {
   const sorted = [...overrides].sort(
     (a, b) => b.pattern.length - a.pattern.length || b.count - a.count
   );
+  // Cache the Bit recipient (if any) once per call so we don't re-extract per
+  // override iteration. null means the candidate isn't a Bit/PayBox row.
+  const candidateBitRecipient = extractBitRecipient(description);
   for (const ov of sorted) {
+    // Bit-tagged patterns: only apply when the candidate is itself a Bit row
+    // and its recipient name contains the learned recipient (case-insensitive).
+    if (ov.pattern.startsWith(BIT_PATTERN_PREFIX)) {
+      if (!candidateBitRecipient) continue;
+      const learnedRecipient = ov.pattern.slice(BIT_PATTERN_PREFIX.length);
+      const candidateLow = candidateBitRecipient.toLowerCase();
+      if (!candidateLow.includes(learnedRecipient)) continue;
+      const cat = CATEGORIES.find((c) => c.key === ov.category);
+      if (cat) return { key: cat.key, label: cat.label, confidence: 1.0 };
+      continue;
+    }
+    // Plain pattern: substring match against the (raw or stripped) description.
     for (const text of searchTexts) {
       if (text.includes(ov.pattern)) {
         const cat = CATEGORIES.find((c) => c.key === ov.category);
