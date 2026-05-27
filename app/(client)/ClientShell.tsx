@@ -134,42 +134,42 @@ export function ClientShell({
 
   return (
     <>
-      {/* Impersonation banner — full-width strip that ALWAYS shows when an
-          advisor is viewing a client's tab. Sits above the mobile header and
-          the sidebar so it's unmissable on every screen, every device. */}
+      {/* Impersonation safety strip — 2026-05-27 per Nir: the full row
+          "צפייה כיועץ בתיק X" plus exit button was eating screen height on
+          every page. Shrunk to a 4px orange band at the very top + a small
+          floating exit button in the top-left corner. The colored band IS
+          the safety cue (advisor is editing a CLIENT's tab, not their own
+          household) — DO NOT remove. Family name is in the button tooltip. */}
       {impersonation && (
-        <div
-          dir="rtl"
-          className="fixed inset-x-0 top-0 z-50 flex items-center justify-between gap-3 px-4 py-2 text-[12px] font-extrabold shadow-sm md:text-[13px]"
-          style={{
-            background: "#FED7AA",
-            color: "#92400E",
-            borderBottom: "1px solid #FB923C",
-            minHeight: 36,
-          }}
-        >
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[16px]">visibility</span>
-            <span>
-              צפייה כיועץ בתיק <strong className="font-black">{impersonation.familyName}</strong>
-            </span>
-          </div>
+        <>
+          <div
+            aria-label={`צופה כיועץ בתיק ${impersonation.familyName}`}
+            dir="rtl"
+            className="fixed inset-x-0 top-0 z-50"
+            style={{ background: "#FB923C", height: 4 }}
+          />
           <button
             type="button"
             onClick={handleExitImpersonation}
-            className="rounded-md px-2.5 py-1 text-[11px] font-extrabold transition-colors md:text-[12px]"
-            style={{ background: "#92400E", color: "#FED7AA" }}
+            title={`יוצא מתיק ${impersonation.familyName} → לרשימת לקוחות`}
+            className="fixed left-2 top-2 z-50 flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-extrabold shadow-sm transition-opacity hover:opacity-100 opacity-80"
+            style={{
+              background: "#92400E",
+              color: "#FED7AA",
+              fontFamily: "Rubik, Heebo, Assistant, sans-serif",
+            }}
           >
-            יציאה לרשימת לקוחות
+            <span className="material-symbols-outlined text-[12px]">logout</span>
+            יציאה
           </button>
-        </div>
+        </>
       )}
       {/* Mobile top bar — hamburger + brand. Hidden on md+ where the sidebar
           is permanently visible. */}
       <header
         className={
           "fixed inset-x-0 z-20 flex h-14 items-center justify-between px-4 md:hidden " +
-          (impersonation ? "top-9" : "top-0")
+          (impersonation ? "top-1" : "top-0")
         }
         style={{
           background: "#FFFFFF",
@@ -231,7 +231,10 @@ export function ClientShell({
       <main
         className={
           "min-h-screen px-3 pb-8 sm:px-6 md:mr-[280px] md:px-10 " +
-          (impersonation ? "pt-24 md:pt-16" : "pt-16 md:pt-8")
+          // 2026-05-27: impersonation strip is now 4px, so mobile/desktop
+          // padding goes back to the no-banner values (the 4px band fits
+          // inside the existing top margin).
+          "pt-16 md:pt-8"
         }
       >
         {children}
