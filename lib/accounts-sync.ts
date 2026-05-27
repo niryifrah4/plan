@@ -26,6 +26,7 @@ import {
   loadAccounts,
   addBankAccount,
   addCreditCard,
+  updateCreditCard,
   ACCOUNTS_EVENT,
 } from "./accounts-store";
 
@@ -96,8 +97,20 @@ export function syncInstrumentsToAccounts(): { added: number; skipped: number } 
         (c) => c.lastFourDigits === inst.identifier
       );
       if (existing) {
-        // User had it manually — don't overwrite, just mark as synced so we
-        // don't keep reprocessing on every mount.
+        // Card exists. Two flavors:
+        //  1. The user added it manually (notes !== AUTO_SYNC_BADGE) — leave
+        //     untouched, just mark synced. They picked their own billingDay.
+        //  2. WE auto-synced it earlier (notes === AUTO_SYNC_BADGE). If we
+        //     fell back to billingDay=10 last time but THIS statement parsed
+        //     a real value, upgrade in place so the dashboard shows the right
+        //     debit date instead of the default.
+        if (
+          existing.notes === AUTO_SYNC_BADGE &&
+          inst.billingDay != null &&
+          existing.billingDay !== inst.billingDay
+        ) {
+          updateCreditCard(existing.id, { billingDay: inst.billingDay });
+        }
         alreadySynced.add(key);
         skipped++;
         continue;
@@ -107,7 +120,9 @@ export function syncInstrumentsToAccounts(): { added: number; skipped: number } 
         lastFourDigits: inst.identifier,
         creditLimit: 0,
         currentCharge: 0,
-        billingDay: 10, // sensible default; user can edit
+        // Use the billing day extracted from the statement when present.
+        // Fallback 10 is the median across Israeli issuers; user can edit.
+        billingDay: inst.billingDay ?? 10,
         linkedBankId: "", // future: guess from cross-account dedup matches
         lastUpdated: today(),
         notes: AUTO_SYNC_BADGE,

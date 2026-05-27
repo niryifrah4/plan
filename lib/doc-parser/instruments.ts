@@ -15,6 +15,10 @@ export interface FinancialInstrument {
   institution: string; // e.g. "בנק הפועלים", "ישראכרט"
   identifier: string; // account number or last 4 digits
   label: string; // display string, e.g. "בנק הפועלים (חשבון 351141)"
+  /** Day-of-month the monthly debit hits the bank (1-28). Extracted from
+   * credit-card statements that print "תאריך חיוב בחשבון: 5". Optional —
+   * absent for bank accounts and for cards whose statement omits the date. */
+  billingDay?: number;
 }
 
 /**
@@ -34,6 +38,52 @@ const CREDIT_CARD_INSTITUTIONS = [
 
 function isCreditCardInstitution(bank: string): boolean {
   return CREDIT_CARD_INSTITUTIONS.some((cc) => bank.includes(cc));
+}
+
+/**
+ * Pull the day-of-month the card debits the bank account.
+ *
+ * Israeli credit-card statements consistently print this near the top of
+ * the document with phrasing like:
+ *   "תאריך החיוב בחשבון: 05/06/2026"
+ *   "מועד חיוב: 05.06.2026"
+ *   "חיוב חודשי ביום ה-5 לכל חודש"
+ *   "billing date: 05/06/2026"
+ *
+ * The DAY-of-month is the useful bit (the year and month change every
+ * statement; the day is the predictable signal). We strip the date back
+ * to its day component and validate 1-28 (excluding 29-31 to avoid
+ * month-edge cases where the bank actually charges on the previous workday).
+ *
+ * Returns null when no recognizable pattern is found.
+ */
+function extractBillingDay(text: string): number | null {
+  // Pattern 1: "תאריך החיוב בחשבון: DD/MM/YYYY" or "DD.MM.YYYY" or "DD-MM-YYYY"
+  // Also catches "מועד חיוב", "תאריך חיוב", "חיוב הכרטיס"
+  const datedRx = /(?:תאריך\s*ה?חיוב(?:\s*בחשבון)?|מועד\s*ה?חיוב|חיוב\s*ה?כרטיס|billing\s*date)\s*[:.\-]?\s*(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/i;
+  const datedMatch = text.match(datedRx);
+  if (datedMatch) {
+    const day = parseInt(datedMatch[1], 10);
+    if (day >= 1 && day <= 28) return day;
+  }
+
+  // Pattern 2: "חיוב ביום ה-5 לכל חודש" / "חיוב ביום 5 בחודש" — explicit day-of-month
+  const dayOfMonthRx = /חיוב(?:\s*חודשי)?\s*ביום\s*ה?[-\s]?(\d{1,2})\b/i;
+  const domMatch = text.match(dayOfMonthRx);
+  if (domMatch) {
+    const day = parseInt(domMatch[1], 10);
+    if (day >= 1 && day <= 28) return day;
+  }
+
+  // Pattern 3: "ליום ה-5 בכל חודש" / "ה-5 לחודש"
+  const literalDomRx = /(?:ליום|ל[-\s]?חודש)\s*ה?[-\s]?(\d{1,2})\b/i;
+  const litMatch = text.match(literalDomRx);
+  if (litMatch) {
+    const day = parseInt(litMatch[1], 10);
+    if (day >= 1 && day <= 28) return day;
+  }
+
+  return null;
 }
 
 /**
@@ -59,6 +109,13 @@ export function extractInstruments(text: string, bankHint: string): FinancialIns
 
   const isCreditCard = isCreditCardInstitution(bankHint);
   const cleaned = text.replace(/[\u200F\u200E]/g, "");
+
+  // Compute billing day ONCE for the whole doc. Every credit-card instrument
+  // found in this statement gets the same day stamped on it — the statement
+  // covers a single card, the day is a card-level (actually card-account
+  // level) attribute, not per-transaction. Falls back to null when the
+  // statement doesn't print the date in a recognized format.
+  const billingDay = isCreditCard ? extractBillingDay(cleaned) : null;
 
   // Skip bank-account detection when the document is a credit card statement
   // (prevents e.g. "לאומי לישראל 806-33562048" header on a Leumi Visa statement
@@ -121,6 +178,7 @@ export function extractInstruments(text: string, bankHint: string): FinancialIns
         institution: isCreditCard && bankHint !== "לא זוהה" ? bankHint : "כרטיס אשראי",
         identifier: last4,
         label: `${isCreditCard && bankHint !== "לא זוהה" ? bankHint : "כרטיס אשראי"} (סיומת ${last4})`,
+        ...(billingDay != null ? { billingDay } : {}),
       });
     }
   }
@@ -136,6 +194,7 @@ export function extractInstruments(text: string, bankHint: string): FinancialIns
       institution: isCreditCard && bankHint !== "לא זוהה" ? bankHint : "כרטיס אשראי",
       identifier: last4,
       label: `${isCreditCard && bankHint !== "לא זוהה" ? bankHint : "כרטיס אשראי"} (סיומת ${last4})`,
+      ...(billingDay != null ? { billingDay } : {}),
     });
   }
 
@@ -163,6 +222,7 @@ export function extractInstruments(text: string, bankHint: string): FinancialIns
         institution: bankHint,
         identifier: last4,
         label: `${bankHint} (סיומת ${last4})`,
+        ...(billingDay != null ? { billingDay } : {}),
       });
     }
   }
@@ -194,19 +254,36 @@ export function loadInstruments(): FinancialInstrument[] {
 
 /**
  * Merge newly detected instruments into the stored list (dedup by key).
+ * When the same instrument is re-detected with NEW metadata (e.g. a
+ * later statement finally prints the billingDay that earlier ones omitted),
+ * the existing record is upgraded in-place so the user keeps the better info.
  */
 export function mergeAndSaveInstruments(
   newInstruments: FinancialInstrument[]
 ): FinancialInstrument[] {
   const existing = loadInstruments();
-  const seen = new Set(existing.map((i) => `${i.type}::${i.institution}::${i.identifier}`));
+  const indexByKey = new Map<string, number>();
+  existing.forEach((i, idx) =>
+    indexByKey.set(`${i.type}::${i.institution}::${i.identifier}`, idx)
+  );
   const merged = [...existing];
 
   for (const inst of newInstruments) {
     const key = `${inst.type}::${inst.institution}::${inst.identifier}`;
-    if (!seen.has(key)) {
-      seen.add(key);
+    const existingIdx = indexByKey.get(key);
+    if (existingIdx == null) {
+      indexByKey.set(key, merged.length);
       merged.push(inst);
+    } else {
+      // Upgrade: fill in any field the existing record was missing. Never
+      // overwrite a non-empty existing value (the older statement might be
+      // more accurate, or the user might have edited it later).
+      const old = merged[existingIdx];
+      const upgraded: FinancialInstrument = { ...old };
+      if (old.billingDay == null && inst.billingDay != null) {
+        upgraded.billingDay = inst.billingDay;
+      }
+      merged[existingIdx] = upgraded;
     }
   }
 
