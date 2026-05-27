@@ -79,7 +79,14 @@ function readLocalSnapshot(): OnboardingBlob | null {
   const data: Record<string, string> = {};
   let hasAny = false;
   for (const k of KEYS) {
-    const raw = localStorage.getItem(scopedKey(k)) ?? localStorage.getItem(k);
+    // SECURITY: read STRICTLY from the tenant-scoped key. The previous
+    // `?? localStorage.getItem(k)` fallback to the unscoped key was the
+    // 2026-05-27 leak path: questionnaire data written under the unscoped
+    // `verdant:onboarding:*` from pre-scoping code surfaced into every
+    // tenant's view (family בסר saw family יפרח's children + assets).
+    // Falling back to the unscoped key in any read path on a multi-tenant
+    // surface is structurally a cross-tenant leak — never reintroduce it.
+    const raw = localStorage.getItem(scopedKey(k));
     if (raw !== null) {
       data[k] = raw;
       hasAny = true;
