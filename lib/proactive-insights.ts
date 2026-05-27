@@ -114,7 +114,7 @@ function checkHighMortgageRate(): ProactiveInsight | null {
   const tracks = getAllMortgageTracks(debt);
   if (tracks.length === 0) return null;
   const a = loadAssumptions();
-  const cheapRate = (a.boiRate ?? 0.045) + 0.015; // prime
+  const cheapRate = (a.boiRate ?? 0.0425) + 0.015; // prime (BoI 4.25% post-2026-05-27)
   let worstGap = 0;
   let worstPrincipal = 0;
   for (const t of tracks) {

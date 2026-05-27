@@ -126,7 +126,7 @@ async function fetchBoiFX() {
  *  with `lib/assumptions.ts` DEFAULT_ASSUMPTIONS so the UI never shows zeros
  *  if an API call times out. Update manually when BoI announces a change. */
 const MACRO_FALLBACK = {
-  boiRate: 0.045, // 4.5% — last known BoI interest decision
+  boiRate: 0.0425, // 4.25% — post 2026-05-27 BoI cut of 0.25%
   inflationRate: 0.025, // 2.5% — CBS yoy inflation
 };
 

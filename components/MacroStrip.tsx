@@ -16,8 +16,8 @@ import { useLiveMacro, type LiveMacro } from "@/lib/hooks/useLiveMacro";
  *  (e.g. unauth'd page hit, BoI timeout). Kept aligned with
  *  lib/assumptions.ts DEFAULT_ASSUMPTIONS. */
 const STATIC_FALLBACK: LiveMacro = {
-  boiRate: 0.045,
-  primeRate: 0.06,
+  boiRate: 0.0425, // post 2026-05-27 cut
+  primeRate: 0.0575, // BoI + 1.5%
   inflationRate: 0.025,
   usd: null,
   updatedAt: new Date(0).toISOString(),

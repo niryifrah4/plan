@@ -80,8 +80,8 @@ export interface Assumptions {
 
 export const DEFAULT_ASSUMPTIONS: Assumptions = {
   // Macro
-  boiRate: 0.045, // 4.5% — בנק ישראל נכון לתחילת 2026 (ידני)
-  primeRate: 0.06, // 6% = boiRate + 1.5%
+  boiRate: 0.0425, // 4.25% — בנק ישראל אחרי הורדה של 0.25% (2026-05-27)
+  primeRate: 0.0575, // 5.75% = boiRate + 1.5%
   inflationRate: 0.025, // 2.5%
   macroUpdatedAt: undefined,
   avgMortgageRate: 0.05, // 5.0% — ריבית ממוצעת על משכנתאות חדשות (BoI, מוקדם 2026)
