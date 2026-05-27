@@ -36,6 +36,7 @@ import {
 import { loadAssumptions, type Assumptions } from "@/lib/assumptions";
 import { buildBudgetLines, totalBudget, type BudgetLine } from "@/lib/budget-store";
 import { SCOPE_COLORS, effectiveScope, type Scope } from "@/lib/scope-types";
+import { exportFullPlanToExcel } from "@/lib/excel-export";
 
 /* ── localStorage keys for form persistence ── */
 const LS_NAME_KEY = "verdant:report_client_name";
@@ -175,6 +176,16 @@ export default function ReportPage() {
               style={{ borderColor: "#E5E7EB" }}
             />
           </div>
+          <button
+            type="button"
+            onClick={() => exportFullPlanToExcel(clientName)}
+            className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-extrabold transition-colors hover:bg-[#FAFAF7]"
+            style={{ borderColor: "#2C7A5A", color: "#2C7A5A" }}
+            title="ייצוא של כל נתוני התיק לקובץ Excel — 7 גיליונות (תקציר/תקציב/נכסים/חובות/פנסיה/נדל״ן/מטרות)"
+          >
+            <span className="material-symbols-outlined text-[16px]">table_view</span>
+            ייצוא לאקסל
+          </button>
           <button
             type="button"
             onClick={() => window.print()}
