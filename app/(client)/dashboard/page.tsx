@@ -173,7 +173,7 @@ export default function DashboardPage() {
     }
 
     if (securitiesTotal > 0) {
-      result.push({ asset_group: "investments", name: "תיק השקעות", balance: securitiesTotal });
+      result.push({ asset_group: "investments", name: "תיק השקעות עצמאי", balance: securitiesTotal });
     }
 
     if (pensionFunds.length > 0) {

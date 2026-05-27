@@ -51,7 +51,7 @@ import { QuickUpdateModal } from "@/components/balance/QuickUpdateModal";
 // are still included in net worth via mergedAssets.
 const ASSET_GROUPS: Record<string, { label: string; icon: string; color: string; href: string }> = {
   investments: {
-    label: "ניירות ערך ותיק השקעות",
+    label: "תיק השקעות עצמאי",
     icon: "candlestick_chart",
     color: "#2C7A5A",
     href: "/investments",

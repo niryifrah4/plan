@@ -240,7 +240,7 @@ function TabBar({
   counts: { portfolio: number; equity: number };
 }) {
   const tabs: { id: TabId; label: string; icon: string; count?: number }[] = [
-    { id: "portfolio", label: "תיק השקעות", icon: "candlestick_chart", count: counts.portfolio },
+    { id: "portfolio", label: "תיק השקעות עצמאי", icon: "candlestick_chart", count: counts.portfolio },
     { id: "equity", label: "RSU / ESPP", icon: "stacked_bar_chart", count: counts.equity },
     { id: "deposits", label: "הפקדות חודשיות", icon: "savings" },
   ];
