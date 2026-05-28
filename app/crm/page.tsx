@@ -1373,6 +1373,15 @@ export default function CrmPage() {
                                   );
                                   return;
                                 }
+                                // DIAGNOSTIC (2026-05-28) — surface the
+                                // exact UUID being sent so we can see if
+                                // the click handler is mis-binding to the
+                                // wrong row. Temporary debug; remove after
+                                // the "click yifrah, get beser" report is
+                                // fully resolved.
+                                setToast(
+                                  `→ ${c.family} · ${c.householdId.slice(0, 8)}`
+                                );
                                 try {
                                   const res = await fetch("/api/crm/impersonate", {
                                     method: "POST",
@@ -1383,6 +1392,30 @@ export default function CrmPage() {
                                     setToast("❌ לא ניתן להיכנס לתיק — בדוק הרשאות");
                                     return;
                                   }
+                                  // Confirm the server actually set the
+                                  // cookie to the UUID we asked for —
+                                  // catches any server-side re-binding.
+                                  let serverFamily = c.family;
+                                  try {
+                                    const echo = (await res.json()) as {
+                                      householdId?: string;
+                                      familyName?: string;
+                                    };
+                                    if (echo.householdId !== c.householdId) {
+                                      setToast(
+                                        `⚠ שרת החזיר UUID שונה: ${echo.householdId?.slice(0, 8)} (ביקשנו ${c.householdId.slice(0, 8)})`
+                                      );
+                                      return;
+                                    }
+                                    if (echo.familyName) serverFamily = echo.familyName;
+                                  } catch {}
+                                  // Final confirmation toast — visible for
+                                  // ~1.2s before navigation fires so we
+                                  // can SEE which family we're entering.
+                                  setToast(
+                                    `✓ נכנס לתיק ${serverFamily} (${c.householdId.slice(0, 8)})`
+                                  );
+                                  await new Promise((r) => setTimeout(r, 1200));
                                   // Always land on /dashboard. Earlier we sent
                                   // step=0 clients straight to /onboarding;
                                   // now /dashboard's empty state already
