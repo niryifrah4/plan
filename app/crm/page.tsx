@@ -555,10 +555,20 @@ export default function CrmPage() {
     // beser" leak Nir reported 2026-05-28.
     fetch("/api/crm/impersonate", { method: "DELETE" }).catch(() => {});
 
-    // Defensive: prune persisted client rows that lack a householdId —
-    // these are pre-API legacy entries from before /api/crm/clients
-    // existed. They render fine but break the click-into-tab handler.
-    setClients((prev) => prev.filter((c) => !!c.householdId));
+    // 2026-05-28 (round 2): the persisted `verdant:clients` localStorage
+    // was the source of the secondary "click yifrah, get beser" symptom.
+    // The cache could hold rows where the displayed family name was
+    // bound to a WRONG householdId (from a prior session before API
+    // ordering stabilized). Prune-by-presence wasn't enough — a row
+    // with a stale-but-present UUID still rendered and routed to the
+    // wrong tenant on click. Wipe the cache outright on every /crm
+    // mount; fetchClients re-populates it from authoritative Supabase
+    // a tick later. Net cost: a brief empty-table flash; net benefit:
+    // the click→tenant binding can NEVER be stale.
+    try {
+      localStorage.removeItem("verdant:clients");
+    } catch {}
+    setClients([]);
 
     return () => {
       window.removeEventListener("verdant:clients:refetch", fetchClients);
