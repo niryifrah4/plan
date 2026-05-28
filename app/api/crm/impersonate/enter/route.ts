@@ -33,6 +33,14 @@ import { createClient } from "@/lib/supabase/server";
 const COOKIE = "plan_impersonate_hh";
 const MAX_AGE_SECONDS = 60 * 60 * 8; // 8 hours
 
+// Belt-and-suspenders: Next.js already treats this route as dynamic
+// because it reads cookies/headers, but Render's CDN occasionally caches
+// 3xx responses for the same URL across users. force-dynamic + zero
+// revalidate makes that impossible.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 export async function GET(req: NextRequest) {
   const householdId = req.nextUrl.searchParams.get("household_id")?.trim() || "";
   if (!householdId) {

@@ -20,6 +20,16 @@ import ClientLayoutInner from "./ClientLayoutInner";
 
 const IMPERSONATE_COOKIE = "plan_impersonate_hh";
 
+// Belt-and-suspenders: this layout reads cookies, so Next.js already
+// treats it as dynamic. But Render's edge proxy and Next's RSC payload
+// cache have both shipped responses with stale tenant data when the user
+// switched households fast. force-dynamic guarantees the layout re-runs
+// for every request and the impersonation prop is always derived from
+// THIS request's cookie — not a cached snapshot.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 export default async function ClientLayout({ children }: { children: React.ReactNode }) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   // Dev bypass — same triple-guard as middleware. Treats the layout as if
