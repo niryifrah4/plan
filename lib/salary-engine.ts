@@ -54,7 +54,12 @@ export const DEFAULT_SALARY_PROFILE: SalaryProfile = {
 
 const STORAGE_KEY = "verdant:salary_profile";
 const SPOUSE_STORAGE_KEY = "verdant:salary_profile_spouse";
+/** Supabase client_state blob keys, per-household. */
+const SALARY_BLOB_KEY = "salary_profile";
+const SPOUSE_SALARY_BLOB_KEY = "salary_profile_spouse";
 export const SALARY_PROFILE_EVENT = "verdant:salary_profile:updated";
+
+import { pushBlobInBackground, pullBlob } from "./sync/blob-sync";
 
 /* ═══════════════════════════════════════════════════════════
    Breakdown result
@@ -251,6 +256,10 @@ export function saveSalaryProfile(profile: SalaryProfile): void {
     const toSave = { ...profile, savedAt: new Date().toISOString() };
     localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(toSave));
     window.dispatchEvent(new Event(SALARY_PROFILE_EVENT));
+    // 2026-05-27: salary profile was localStorage-only, so it didn't
+    // survive `wipeForTenantSwitch` on tenant switch. Push to Supabase
+    // with race-safe household snapshot.
+    pushBlobInBackground(SALARY_BLOB_KEY, toSave);
   } catch {}
 }
 
@@ -296,9 +305,12 @@ export function saveSpouseSalaryProfile(profile: SalaryProfile | null): void {
   try {
     if (profile === null) {
       localStorage.removeItem(scopedKey(SPOUSE_STORAGE_KEY));
+      // Push null so Supabase reflects "spouse cleared". Race-safe.
+      pushBlobInBackground(SPOUSE_SALARY_BLOB_KEY, null);
     } else {
       const toSave = { ...profile, savedAt: new Date().toISOString() };
       localStorage.setItem(scopedKey(SPOUSE_STORAGE_KEY), JSON.stringify(toSave));
+      pushBlobInBackground(SPOUSE_SALARY_BLOB_KEY, toSave);
     }
     window.dispatchEvent(new Event(SALARY_PROFILE_EVENT));
   } catch {}
@@ -306,6 +318,34 @@ export function saveSpouseSalaryProfile(profile: SalaryProfile | null): void {
 
 export function hasSavedSpouseSalaryProfile(): boolean {
   return loadSpouseSalaryProfile() !== null;
+}
+
+/**
+ * Pull salary profiles from Supabase and overwrite local. Called from
+ * bootstrap on tenant switch — without this, a tenant switch leaves the
+ * new household with no salary data even if Supabase has it.
+ */
+export async function hydrateSalaryFromRemote(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  let wrote = false;
+  try {
+    const remote = await pullBlob<SalaryProfile>(SALARY_BLOB_KEY);
+    if (remote && typeof remote === "object") {
+      localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(remote));
+      wrote = true;
+    }
+  } catch {}
+  try {
+    const remote = await pullBlob<SalaryProfile | null>(SPOUSE_SALARY_BLOB_KEY);
+    if (remote && typeof remote === "object") {
+      localStorage.setItem(scopedKey(SPOUSE_STORAGE_KEY), JSON.stringify(remote));
+      wrote = true;
+    }
+  } catch {}
+  if (wrote && typeof window !== "undefined") {
+    window.dispatchEvent(new Event(SALARY_PROFILE_EVENT));
+  }
+  return wrote;
 }
 
 /** Combined household monthly net from both earners. Used by the mobile

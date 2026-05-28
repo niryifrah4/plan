@@ -11,7 +11,7 @@
 
 import { scopedKey } from "./client-scope";
 
-import { pushBlobInBackground, pullBlob } from "./sync/blob-sync";
+import { pushBlobInBackground, pullBlob, pullBlobsByPrefix } from "./sync/blob-sync";
 
 const STORAGE_KEY = "verdant:budgets";
 const BLOB_KEY = "budgets";
@@ -97,6 +97,47 @@ export async function hydrateBudgetsFromRemote(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * Pull every per-month budget snapshot (`verdant:budget_YYYY_MM`) for the
+ * active household and overwrite local. Without this, a tenant switch
+ * leaves the new household with no monthly data even when Supabase has it
+ * — and (worse) the planner's previous-tenant edits could appear in the
+ * new tenant's `budget_YYYY_MM` cache if anything raced.
+ *
+ * Uses `pullBlobsByPrefix("budget_")` so the call cost is constant
+ * regardless of how many months are stored.
+ *
+ * Per-month blobs are pushed by `saveBudget()` in `app/(client)/budget/page.tsx`
+ * via `pushMonthlyBudgetInBackground()` exported below.
+ */
+export async function hydrateMonthlyBudgetsFromRemote(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  const map = await pullBlobsByPrefix("budget_");
+  let wrote = false;
+  for (const [key, value] of Object.entries(map)) {
+    // key format: `budget_YYYY_MM`. The local key uses `verdant:` prefix.
+    if (!/^budget_\d{4}_\d{2}$/.test(key)) continue;
+    try {
+      localStorage.setItem(scopedKey(`verdant:${key}`), JSON.stringify(value));
+      wrote = true;
+    } catch {}
+  }
+  if (wrote && typeof window !== "undefined") {
+    window.dispatchEvent(new Event("verdant:budgets:updated"));
+  }
+  return wrote;
+}
+
+/**
+ * Fire-and-forget push of a single per-month budget snapshot. Called by
+ * `saveBudget()` so changes survive a tenant switch and propagate to
+ * other devices/sessions. Race-safe (snapshots household synchronously).
+ */
+export function pushMonthlyBudgetInBackground(year: number, month: number, value: unknown): void {
+  const key = `budget_${year}_${String(month + 1).padStart(2, "0")}`;
+  pushBlobInBackground(key, value);
 }
 
 export function updateBudgetAmount(key: string, newBudget: number) {

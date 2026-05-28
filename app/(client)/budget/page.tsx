@@ -20,6 +20,7 @@ import {
   type ImportSummary,
 } from "@/lib/budget-import";
 import { syncOnboardingToStores } from "@/lib/onboarding-sync";
+import { pushMonthlyBudgetInBackground } from "@/lib/budget-store";
 
 const BudgetPie = dynamic(() => import("./BudgetPie"), { ssr: false });
 const MonthlyInsights = dynamic(() => import("./MonthlyInsights"), { ssr: false });
@@ -508,6 +509,10 @@ function loadBudget(year: number, month: number): BudgetData | null {
 function saveBudget(data: BudgetData) {
   try {
     localStorage.setItem(scopedKey(budgetKey(data.year, data.month)), JSON.stringify(data));
+    // 2026-05-27 — per-month budget was localStorage-only, so it didn't
+    // survive `wipeForTenantSwitch`. push (race-safe via blob-sync) so
+    // the snapshot lives in Supabase under the correct household_id.
+    pushMonthlyBudgetInBackground(data.year, data.month, data);
   } catch (e) {
     console.warn("[Budget] save failed:", e);
   }

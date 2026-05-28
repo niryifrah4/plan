@@ -87,13 +87,20 @@ export async function pullFromRemote<TLocal, TRow = any>(
  * Push items to remote. "Replace" semantics: deletes existing rows for the
  * household, then inserts the new set. Keeps DB in sync with local truth.
  * Best-effort — errors are logged, never thrown.
+ *
+ * **CRITICAL — push-race protection (2026-05-27):** see pushBlob in
+ * blob-sync.ts for the full explainer. The optional `householdIdOverride`
+ * locks the write to the tenant that was active when save was called, not
+ * when the async push resolves. The fire-and-forget wrapper below captures
+ * the household synchronously and forwards it.
  */
 export async function pushToRemote<TLocal, TRow = any>(
   cfg: SyncConfig<TLocal, TRow>,
-  items: TLocal[]
+  items: TLocal[],
+  householdIdOverride?: string | null
 ): Promise<{ ok: boolean; error?: string }> {
   if (!isSupabaseConfigured()) return { ok: false, error: "not-configured" };
-  const hh = getHouseholdId();
+  const hh = householdIdOverride ?? getHouseholdId();
   if (!hh) return { ok: false, error: "no-household" };
   const sb = getSupabaseBrowser();
   if (!sb) return { ok: false, error: "no-client" };
@@ -122,10 +129,15 @@ export async function pushToRemote<TLocal, TRow = any>(
   }
 }
 
-/** Fire-and-forget wrapper for save paths that can't await. */
+/**
+ * Fire-and-forget wrapper for save paths that can't await. Captures the
+ * household synchronously to avoid the push-race (see pushBlob for the
+ * full incident report).
+ */
 export function pushToRemoteInBackground<TLocal, TRow = any>(
   cfg: SyncConfig<TLocal, TRow>,
   items: TLocal[]
 ) {
-  void pushToRemote(cfg, items);
+  const hh = getHouseholdId();
+  void pushToRemote(cfg, items, hh);
 }

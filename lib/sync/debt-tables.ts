@@ -197,9 +197,16 @@ function rowToInstallment(row: InstallmentRow): Installment {
  *
  * Idempotent — safe to call repeatedly with the same data.
  */
-export async function pushDebtToTables(data: DebtData): Promise<boolean> {
+export async function pushDebtToTables(
+  data: DebtData,
+  householdIdOverride?: string | null
+): Promise<boolean> {
   if (!isSupabaseConfigured()) return false;
-  const hh = getHouseholdId();
+  // CRITICAL — push-race protection. The optional override is supplied by
+  // the fire-and-forget wrapper which captures the household synchronously.
+  // Without it, an async push can write client A's data to client B's row
+  // when the advisor switches mid-flight. See blob-sync.ts pushBlob.
+  const hh = householdIdOverride ?? getHouseholdId();
   if (!hh) return false;
   const sb = getSupabaseBrowser();
   if (!sb) return false;
@@ -322,7 +329,9 @@ export async function pushDebtToTables(data: DebtData): Promise<boolean> {
 }
 
 export function pushDebtToTablesInBackground(data: DebtData) {
-  void pushDebtToTables(data);
+  // Snapshot the household synchronously to neutralize the push-race.
+  const hh = getHouseholdId();
+  void pushDebtToTables(data, hh);
 }
 
 /* ── Pull (read whole snapshot) ─────────────────────────────────────────── */

@@ -34,9 +34,63 @@ export async function pullBlob<T = any>(key: string): Promise<T | null> {
   }
 }
 
-export async function pushBlob<T = any>(key: string, value: T): Promise<boolean> {
-  if (!isSupabaseConfigured()) return false;
+/**
+ * Pull all blobs for the current household whose key starts with `prefix`.
+ * Returns a map of state_key → state_value. Empty object when nothing matches
+ * or Supabase is unavailable.
+ *
+ * Used by stores that namespace many keys (e.g. `budget_YYYY_MM`) and need
+ * to rehydrate all of them on tenant switch.
+ */
+export async function pullBlobsByPrefix(prefix: string): Promise<Record<string, unknown>> {
+  if (!isSupabaseConfigured()) return {};
   const hh = getHouseholdId();
+  if (!hh) return {};
+  const sb = getSupabaseBrowser();
+  if (!sb) return {};
+  try {
+    const { data, error } = await sb
+      .from("client_state")
+      .select("state_key, state_value")
+      .eq("household_id", hh)
+      .like("state_key", `${prefix}%`);
+    if (error || !data) return {};
+    const out: Record<string, unknown> = {};
+    for (const row of data as Array<{ state_key: string; state_value: unknown }>) {
+      out[row.state_key] = row.state_value;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Push a blob to Supabase, scoped to a household.
+ *
+ * **CRITICAL — push-race protection (2026-05-27):** the second parameter
+ * `householdIdOverride` MUST be passed by every caller. It locks the write
+ * to the household that was active **at the moment of save**, not at the
+ * moment the async push resolves.
+ *
+ * Without this, the following sequence corrupted Supabase:
+ *   1. advisor edits client A's data — write hits localStorage immediately
+ *   2. saveX fires `pushBlobInBackground` (async)
+ *   3. advisor switches to client B before step 2 resolves
+ *   4. wipeForTenantSwitch sets active_household_id = B
+ *   5. step 2 finally executes — reads getHouseholdId() = B → writes A's
+ *      data to B's client_state row. NOW client B's view shows A's data.
+ *
+ * Always call sites: capture `getHouseholdId()` *synchronously* in the same
+ * function that called the save, then pass it as the third arg.
+ */
+export async function pushBlob<T = any>(
+  key: string,
+  value: T,
+  householdIdOverride?: string | null
+): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false;
+  const hh = householdIdOverride ?? getHouseholdId();
   if (!hh) return false;
   const sb = getSupabaseBrowser();
   if (!sb) return false;
@@ -58,8 +112,15 @@ export async function pushBlob<T = any>(key: string, value: T): Promise<boolean>
   }
 }
 
-export function pushBlobInBackground<T = any>(key: string, value: T) {
-  void pushBlob(key, value);
+export function pushBlobInBackground<T = any>(
+  key: string,
+  value: T,
+  householdIdOverride?: string | null
+) {
+  // Snapshot the household synchronously when no override given so the
+  // async push can't pick up a post-switch UUID.
+  const hh = householdIdOverride ?? getHouseholdId();
+  void pushBlob(key, value, hh);
 }
 
 /**

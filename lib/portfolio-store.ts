@@ -20,6 +20,7 @@
  */
 
 import { scopedKey } from "./client-scope";
+import { pushBlobInBackground, pullBlob } from "./sync/blob-sync";
 
 /* ─────────────────────────────────────────────────────────────
    Types
@@ -179,6 +180,10 @@ export interface PositionValuation {
 const ACCOUNTS_KEY = "verdant:portfolio:accounts";
 const POSITIONS_KEY = "verdant:portfolio:positions";
 
+/** Supabase blob keys — single blob per (household, key) in client_state. */
+const ACCOUNTS_BLOB_KEY = "portfolio_accounts";
+const POSITIONS_BLOB_KEY = "portfolio_positions";
+
 export const PORTFOLIO_EVENT = "verdant:portfolio:updated";
 
 function nowIso(): string {
@@ -207,6 +212,11 @@ export function saveAccounts(accounts: Account[]): void {
   try {
     localStorage.setItem(scopedKey(ACCOUNTS_KEY), JSON.stringify(accounts));
     window.dispatchEvent(new Event(PORTFOLIO_EVENT));
+    // 2026-05-27 — portfolio data was localStorage-only and did not survive
+    // tenant switch (wipe-on-switch leaves the new tenant with no
+    // portfolio data). pushBlobInBackground snapshots household_id
+    // synchronously so the async push cannot leak to a different tenant.
+    pushBlobInBackground(ACCOUNTS_BLOB_KEY, accounts);
   } catch {}
 }
 
@@ -254,7 +264,35 @@ export function savePositions(positions: Position[]): void {
   try {
     localStorage.setItem(scopedKey(POSITIONS_KEY), JSON.stringify(positions));
     window.dispatchEvent(new Event(PORTFOLIO_EVENT));
+    pushBlobInBackground(POSITIONS_BLOB_KEY, positions);
   } catch {}
+}
+
+/**
+ * Pull from Supabase and overwrite local. Called from bootstrap on
+ * tenant switch. Returns true if remote had data and we wrote it.
+ */
+export async function hydratePortfolioFromRemote(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  let wrote = false;
+  try {
+    const accounts = await pullBlob<Account[]>(ACCOUNTS_BLOB_KEY);
+    if (Array.isArray(accounts)) {
+      localStorage.setItem(scopedKey(ACCOUNTS_KEY), JSON.stringify(accounts));
+      wrote = true;
+    }
+  } catch {}
+  try {
+    const positions = await pullBlob<Position[]>(POSITIONS_BLOB_KEY);
+    if (Array.isArray(positions)) {
+      localStorage.setItem(scopedKey(POSITIONS_KEY), JSON.stringify(positions));
+      wrote = true;
+    }
+  } catch {}
+  if (wrote && typeof window !== "undefined") {
+    window.dispatchEvent(new Event(PORTFOLIO_EVENT));
+  }
+  return wrote;
 }
 
 export function addPosition(input: Omit<Position, "id" | "createdAt" | "updatedAt">): Position {

@@ -122,10 +122,13 @@ export function loadProperties(): Property[] {
   if (typeof window === "undefined") return [];
   const raw = localStorage.getItem(scopedKey(STORAGE_KEY));
   if (!raw) {
-    // First time — migrate from onboarding
+    // First time — migrate from onboarding. Without the push, the
+    // migration result lived only in localStorage and was lost on every
+    // tenant switch (wipeForTenantSwitch). Push race-safely.
     const migrated = migrateFromOnboarding();
     if (migrated.length > 0) {
       localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(migrated));
+      pushBlobInBackground(BLOB_KEY, migrated);
       return migrated;
     }
     return [];
