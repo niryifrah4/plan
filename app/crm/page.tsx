@@ -1373,59 +1373,19 @@ export default function CrmPage() {
                                   );
                                   return;
                                 }
-                                // DIAGNOSTIC (2026-05-28) — surface the
-                                // exact UUID being sent so we can see if
-                                // the click handler is mis-binding to the
-                                // wrong row. Temporary debug; remove after
-                                // the "click yifrah, get beser" report is
-                                // fully resolved.
-                                setToast(
-                                  `→ ${c.family} · ${c.householdId.slice(0, 8)}`
-                                );
-                                try {
-                                  const res = await fetch("/api/crm/impersonate", {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ householdId: c.householdId }),
-                                  });
-                                  if (!res.ok) {
-                                    setToast("❌ לא ניתן להיכנס לתיק — בדוק הרשאות");
-                                    return;
-                                  }
-                                  // Confirm the server actually set the
-                                  // cookie to the UUID we asked for —
-                                  // catches any server-side re-binding.
-                                  let serverFamily = c.family;
-                                  try {
-                                    const echo = (await res.json()) as {
-                                      householdId?: string;
-                                      familyName?: string;
-                                    };
-                                    if (echo.householdId !== c.householdId) {
-                                      setToast(
-                                        `⚠ שרת החזיר UUID שונה: ${echo.householdId?.slice(0, 8)} (ביקשנו ${c.householdId.slice(0, 8)})`
-                                      );
-                                      return;
-                                    }
-                                    if (echo.familyName) serverFamily = echo.familyName;
-                                  } catch {}
-                                  // Final confirmation toast — visible for
-                                  // ~1.2s before navigation fires so we
-                                  // can SEE which family we're entering.
-                                  setToast(
-                                    `✓ נכנס לתיק ${serverFamily} (${c.householdId.slice(0, 8)})`
-                                  );
-                                  await new Promise((r) => setTimeout(r, 1200));
-                                  // Always land on /dashboard. Earlier we sent
-                                  // step=0 clients straight to /onboarding;
-                                  // now /dashboard's empty state already
-                                  // points them at the questionnaire and at
-                                  // accounts/goals — a calmer first impression
-                                  // than a 5-step form on entry.
-                                  window.location.href = "/dashboard";
-                                } catch {
-                                  setToast("❌ שגיאת רשת בכניסה לתיק");
-                                }
+                                // 2026-05-28 — switched from POST + JS
+                                // navigation to a single GET that does
+                                // cookie-set + 303 redirect atomically
+                                // on the server. The previous flow had a
+                                // race where the browser sometimes fired
+                                // the /dashboard navigation BEFORE
+                                // committing the Set-Cookie header from
+                                // the POST response, so the layout
+                                // resolved with the OLD cookie value
+                                // (yifrah's UUID lost, beser's UUID kept
+                                // → "click yifrah, see beser"). Atomic
+                                // GET eliminates the race entirely.
+                                window.location.href = `/api/crm/impersonate/enter?household_id=${encodeURIComponent(c.householdId)}`;
                               }}
                               className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-4 py-2 text-[11px] font-extrabold transition-all hover:shadow-soft active:scale-95"
                               style={{ background: "#2C7A5A", color: "#FFFFFF" }}
