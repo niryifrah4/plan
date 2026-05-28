@@ -30,6 +30,33 @@ export default function ClientLayoutInner({
   children: React.ReactNode;
   impersonation: Impersonation | null;
 }) {
+  // ═══════════════════════════════════════════════════════════
+  // CRITICAL — RENDER-TIME SCOPE SYNC (2026-05-28)
+  // ═══════════════════════════════════════════════════════════
+  // React runs useEffect children-first. That means the Dashboard's
+  // effects (which call `scopedKey()` to load debt/budget/pension data)
+  // fire BEFORE this component's effects. If `verdant:active_household_id`
+  // is stale (e.g. holds the previous tenant's UUID from yesterday's
+  // session), the Dashboard reads that stale scope and renders the wrong
+  // tenant's data — the exact "click yifrah, see beser" bug.
+  //
+  // Fix: plant the correct UUID in localStorage during render, before
+  // children mount. Yes, side-effects in render are normally a smell.
+  // This one is idempotent (only writes when current !== expected) and
+  // required for correctness; nothing else satisfies the ordering
+  // constraint that children's first read must see the new tenant.
+  if (typeof window !== "undefined" && impersonation) {
+    try {
+      const current = localStorage.getItem("verdant:active_household_id");
+      if (current !== impersonation.householdId) {
+        localStorage.setItem("verdant:active_household_id", impersonation.householdId);
+        // Defensive: kill any numeric current_hh that could route scopedKey
+        // back through the legacy `verdant:c:<digit>:*` namespace.
+        localStorage.removeItem(CURRENT_HH_KEY);
+      }
+    } catch {}
+  }
+
   useEffect(() => {
     runFactoryResetIfNeeded();
     // One-time legacy purge per browser tab. Catches the case where the
