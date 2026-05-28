@@ -547,6 +547,19 @@ export default function CrmPage() {
     window.addEventListener("verdant:clients:refetch", fetchClients);
     fetchClients();
 
+    // 2026-05-28 — drop any stale impersonation cookie on entering /crm.
+    // Without this, an old `plan_impersonate_hh` from a prior session can
+    // survive the CRM landing, and if the click-into-tab handler falls
+    // through to the legacy `?hh=` branch (no UUID), the layout reads the
+    // STALE cookie and opens the wrong client — the "click yifrah, get
+    // beser" leak Nir reported 2026-05-28.
+    fetch("/api/crm/impersonate", { method: "DELETE" }).catch(() => {});
+
+    // Defensive: prune persisted client rows that lack a householdId —
+    // these are pre-API legacy entries from before /api/crm/clients
+    // existed. They render fine but break the click-into-tab handler.
+    setClients((prev) => prev.filter((c) => !!c.householdId));
+
     return () => {
       window.removeEventListener("verdant:clients:refetch", fetchClients);
     };
@@ -1335,30 +1348,40 @@ export default function CrmPage() {
                             <button
                               type="button"
                               onClick={async () => {
-                                if (c.householdId) {
-                                  try {
-                                    const res = await fetch("/api/crm/impersonate", {
-                                      method: "POST",
-                                      headers: { "Content-Type": "application/json" },
-                                      body: JSON.stringify({ householdId: c.householdId }),
-                                    });
-                                    if (!res.ok) {
-                                      setToast("❌ לא ניתן להיכנס לתיק — בדוק הרשאות");
-                                      return;
-                                    }
-                                    // Always land on /dashboard. Earlier we sent
-                                    // step=0 clients straight to /onboarding;
-                                    // now /dashboard's empty state already
-                                    // points them at the questionnaire and at
-                                    // accounts/goals — a calmer first impression
-                                    // than a 5-step form on entry.
-                                    window.location.href = "/dashboard";
-                                  } catch {
-                                    setToast("❌ שגיאת רשת בכניסה לתיק");
+                                // 2026-05-28 — the legacy `?hh=` fallback was
+                                // REMOVED. It did not set the impersonation
+                                // cookie, so the layout fell back to whatever
+                                // cookie was already there → wrong client
+                                // loaded ("click yifrah, get beser"). If a
+                                // row has no householdId now, it's a stale
+                                // local entry — refuse the click + tell user
+                                // to reload, never silently load the wrong
+                                // tenant.
+                                if (!c.householdId) {
+                                  setToast(
+                                    "❌ רשומה ישנה ללא מזהה לקוח — רענן את הדף ונסה שוב"
+                                  );
+                                  return;
+                                }
+                                try {
+                                  const res = await fetch("/api/crm/impersonate", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ householdId: c.householdId }),
+                                  });
+                                  if (!res.ok) {
+                                    setToast("❌ לא ניתן להיכנס לתיק — בדוק הרשאות");
+                                    return;
                                   }
-                                } else {
-                                  // Legacy demo client without real household — open with old ?hh= param
-                                  window.location.href = `/dashboard?hh=${c.id}`;
+                                  // Always land on /dashboard. Earlier we sent
+                                  // step=0 clients straight to /onboarding;
+                                  // now /dashboard's empty state already
+                                  // points them at the questionnaire and at
+                                  // accounts/goals — a calmer first impression
+                                  // than a 5-step form on entry.
+                                  window.location.href = "/dashboard";
+                                } catch {
+                                  setToast("❌ שגיאת רשת בכניסה לתיק");
                                 }
                               }}
                               className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-4 py-2 text-[11px] font-extrabold transition-all hover:shadow-soft active:scale-95"
