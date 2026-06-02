@@ -43,6 +43,12 @@ export const fetchCache = "force-no-store";
 
 export async function GET(req: NextRequest) {
   const householdId = req.nextUrl.searchParams.get("household_id")?.trim() || "";
+  // Server-side diagnostic. Visible in Render logs. Helps localize where
+  // 'click yifrah, see beser' breaks if it ever surfaces again.
+  // eslint-disable-next-line no-console
+  console.info(
+    `[impersonate/enter] requested household_id=${householdId.slice(0, 8) || "<empty>"}`
+  );
   if (!householdId) {
     return new NextResponse("missing household_id", { status: 400 });
   }
@@ -77,12 +83,21 @@ export async function GET(req: NextRequest) {
     .eq("advisor_id", user.id)
     .maybeSingle();
   if (!owned) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[impersonate/enter] household ${householdId.slice(0, 8)} NOT owned by user ${user.id.slice(0, 8)} → bouncing to /crm`
+    );
     // Caller asked for a household this advisor doesn't own. Bounce back
     // to the CRM with a query flag so the UI can show a toast.
     const crmUrl = new URL("/crm", req.url);
     crmUrl.searchParams.set("err", "not_owned");
     return NextResponse.redirect(crmUrl);
   }
+
+  // eslint-disable-next-line no-console
+  console.info(
+    `[impersonate/enter] OK — setting cookie=${householdId.slice(0, 8)} for user=${user.id.slice(0, 8)} → redirect /dashboard`
+  );
 
   // Atomic: same response carries Set-Cookie + 303 Location → browser
   // commits cookie and follows redirect with no possibility of race.
