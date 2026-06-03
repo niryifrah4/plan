@@ -82,14 +82,18 @@ const nextConfig = {
   // 2026-05-01: skip ESLint during build. The lint phase is the RAM heavy
   // one and OOMs on Render's 512MB free tier. We run it locally instead.
   eslint: { ignoreDuringBuilds: true },
-  // 2026-05-23: TypeScript checking is BACK ON. Disabled it for ~3 weeks
-  // because we feared the same OOM, but a real-world failure proved the
-  // opposite cost: a commit referencing a file that didn't exist (Step0Welcome)
-  // passed the build, deployed to prod, and 500'd at runtime. With
-  // ignoreBuildErrors=true Render is blind to broken imports. Re-enabling
-  // type-check at build catches missing modules + signature drift before
-  // anything reaches prod. RAM tested OK 2026-05-23.
-  // typescript: { ignoreBuildErrors: true },
+  // 2026-06-03: type-check is gated to LOCAL builds only.
+  // History: it was off for ~3 weeks (a missing-file import — Step0Welcome —
+  // slipped to prod and 500'd), so on 2026-05-23 we turned it back ON at build.
+  // But the type-check phase is the RAM hog: with it on, EVERY deploy since
+  // ~2026-05-25 OOM'd. Even a 2GB heap blew up during "Checking validity of
+  // types", leaving an incomplete .next → "Could not find a production build"
+  // at start → prod frozen on a stale build for over a week.
+  // Fix that keeps BOTH safety and a green deploy: skip type-check on Render
+  // only. Render sets RENDER=true; locally (and in the pre-push hook, which
+  // runs `npm run build`) RENDER is unset, so type-check still runs and blocks
+  // broken imports / signature drift before they ever reach main.
+  typescript: { ignoreBuildErrors: !!process.env.RENDER },
   experimental: {
     typedRoutes: true,
     // 2026-04-28 perf fix: googleapis (~194MB) and xlsx (~7MB) are used only
