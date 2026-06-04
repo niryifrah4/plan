@@ -10,9 +10,14 @@ import { cookies } from "next/headers";
  */
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
+  const fwdProto = req.headers.get("x-forwarded-proto") || "https";
+  const fwdHost = req.headers.get("x-forwarded-host") || req.headers.get("host");
+  const publicOrigin =
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    (fwdHost ? `${fwdProto}://${fwdHost}` : new URL(req.url).origin);
 
   if (!code) {
-    return NextResponse.redirect(new URL("/crm?gcal=error&reason=no_code", req.url));
+    return NextResponse.redirect(new URL("/crm?gcal=error&reason=no_code", publicOrigin));
   }
 
   try {
@@ -49,11 +54,11 @@ export async function GET(req: NextRequest) {
       path: "/",
     });
 
-    return NextResponse.redirect(new URL("/crm?gcal=connected", req.url));
+    return NextResponse.redirect(new URL("/crm?gcal=connected", publicOrigin));
   } catch (e: any) {
     console.error("[gcal/callback] Token exchange failed:", e);
     return NextResponse.redirect(
-      new URL(`/crm?gcal=error&reason=${encodeURIComponent(e.message)}`, req.url)
+      new URL(`/crm?gcal=error&reason=${encodeURIComponent(e.message)}`, publicOrigin)
     );
   }
 }

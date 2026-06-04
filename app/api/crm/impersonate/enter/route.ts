@@ -43,6 +43,11 @@ export const fetchCache = "force-no-store";
 
 export async function GET(req: NextRequest) {
   const householdId = req.nextUrl.searchParams.get("household_id")?.trim() || "";
+  const fwdProto = req.headers.get("x-forwarded-proto") || "https";
+  const fwdHost = req.headers.get("x-forwarded-host") || req.headers.get("host");
+  const publicOrigin =
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    (fwdHost ? `${fwdProto}://${fwdHost}` : new URL(req.url).origin);
   // Server-side diagnostic. Visible in Render logs. Helps localize where
   // 'click yifrah, see beser' breaks if it ever surfaces again.
   // eslint-disable-next-line no-console
@@ -59,7 +64,7 @@ export async function GET(req: NextRequest) {
   } = await sb.auth.getUser();
   if (!user) {
     // Bounce to login with redirect-back so the click resumes after auth.
-    const loginUrl = new URL("/login", req.url);
+    const loginUrl = new URL("/login", publicOrigin);
     loginUrl.searchParams.set(
       "redirect",
       `/api/crm/impersonate/enter?household_id=${encodeURIComponent(householdId)}`
@@ -73,7 +78,7 @@ export async function GET(req: NextRequest) {
     .eq("id", user.id)
     .maybeSingle();
   if (!advisor) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+    return NextResponse.redirect(new URL("/dashboard", publicOrigin));
   }
 
   const { data: owned } = await sb
@@ -89,7 +94,7 @@ export async function GET(req: NextRequest) {
     );
     // Caller asked for a household this advisor doesn't own. Bounce back
     // to the CRM with a query flag so the UI can show a toast.
-    const crmUrl = new URL("/crm", req.url);
+    const crmUrl = new URL("/crm", publicOrigin);
     crmUrl.searchParams.set("err", "not_owned");
     return NextResponse.redirect(crmUrl);
   }
@@ -101,7 +106,7 @@ export async function GET(req: NextRequest) {
 
   // Atomic: same response carries Set-Cookie + 303 Location → browser
   // commits cookie and follows redirect with no possibility of race.
-  const res = NextResponse.redirect(new URL("/dashboard", req.url), 303);
+  const res = NextResponse.redirect(new URL("/dashboard", publicOrigin), 303);
   res.cookies.set(COOKIE, householdId, {
     httpOnly: true,
     sameSite: "lax",

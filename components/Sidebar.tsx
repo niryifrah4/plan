@@ -19,6 +19,7 @@ interface SidebarProps {
 }
 
 const GROUPS_STORAGE_KEY = "verdant:nav:groups";
+const MOBILE_BREAKPOINT = 768;
 
 function loadGroupState(): Record<string, boolean> {
   if (typeof window === "undefined") return {};
@@ -37,6 +38,21 @@ function saveGroupState(state: Record<string, boolean>): void {
   } catch {}
 }
 
+function buildDefaultGroupState(
+  pathname: string | null,
+  compact: boolean
+): Record<string, boolean> {
+  const defaults: Record<string, boolean> = {};
+  for (const g of NAV_SECTIONS) {
+    if (!g.collapsible) continue;
+    const hasActive =
+      !!pathname &&
+      g.items.some((it) => pathname === it.href || pathname.startsWith(it.href + "/"));
+    defaults[g.id] = compact ? hasActive : (g.defaultOpen ?? true);
+  }
+  return defaults;
+}
+
 export function Sidebar({
   familyName,
   membersCount,
@@ -48,25 +64,37 @@ export function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const { confirm, modal } = useConfirm();
+  const [isMobile, setIsMobile] = useState(false);
 
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
-    const defaults: Record<string, boolean> = {};
-    for (const g of NAV_SECTIONS) {
-      if (g.collapsible) defaults[g.id] = g.defaultOpen ?? true;
-    }
-    return defaults;
-  });
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
+    const media = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+    const update = () => setIsMobile(media.matches);
+    update();
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", update);
+      return () => media.removeEventListener("change", update);
+    }
+    media.addListener(update);
+    return () => media.removeListener(update);
+  }, []);
+
+  useEffect(() => {
+    if (!pathname) return;
+    if (isMobile) {
+      setOpenGroups(buildDefaultGroupState(pathname, true));
+      return;
+    }
     const stored = loadGroupState();
-    setOpenGroups((prev) => {
-      const merged = { ...prev };
+    setOpenGroups(() => {
+      const merged = buildDefaultGroupState(pathname, false);
       for (const g of NAV_SECTIONS) {
         if (g.collapsible && stored[g.id] !== undefined) merged[g.id] = stored[g.id];
       }
       return merged;
     });
-  }, []);
+  }, [isMobile, pathname]);
 
   useEffect(() => {
     if (!pathname) return;
@@ -84,7 +112,7 @@ export function Sidebar({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
+  }, [pathname, isMobile]);
 
   const handleReset = async () => {
     const ok = await confirm({
@@ -131,15 +159,16 @@ export function Sidebar({
 
   const renderItem = (item: NavItem, indent = false) => {
     const active = isActive(item.href);
+    const compact = isMobile;
     return (
       <li key={item.id}>
         <Link
           href={item.href as any}
           className="relative flex items-center justify-between gap-3 rounded-xl transition-all"
           style={{
-            height: "42px",
-            paddingInline: indent ? "14px" : "12px",
-            paddingInlineStart: indent ? "28px" : "12px",
+            height: compact ? "38px" : "42px",
+            paddingInline: indent ? (compact ? "12px" : "14px") : compact ? "10px" : "12px",
+            paddingInlineStart: indent ? (compact ? "24px" : "28px") : compact ? "10px" : "12px",
             background: active ? "var(--morning-leaf-tint)" : "transparent",
             color: active ? "var(--morning-forest)" : "var(--morning-muted)",
           }}
@@ -165,7 +194,11 @@ export function Sidebar({
             />
           )}
           <span
-            className="material-symbols-outlined text-[20px]"
+            className={
+              compact
+                ? "material-symbols-outlined text-[18px]"
+                : "material-symbols-outlined text-[20px]"
+            }
             style={{
               color: active ? "var(--morning-forest)" : "var(--morning-muted)",
               fontVariationSettings: active ? "'FILL' 1, 'wght' 500" : "'FILL' 0, 'wght' 400",
@@ -177,6 +210,7 @@ export function Sidebar({
             className="flex-1 text-right text-[14px]"
             style={{
               fontWeight: active ? 600 : 500,
+              fontSize: compact ? 13 : 14,
               color: active ? "var(--morning-ink)" : "var(--morning-muted)",
             }}
           >
@@ -199,28 +233,33 @@ export function Sidebar({
   };
 
   const renderGroup = (group: NavGroup) => {
+    const compact = isMobile;
     if (!group.label) {
       return (
         <div
           key={group.id}
-          className="mt-3 pt-3"
+          className={compact ? "mt-2 pt-2" : "mt-3 pt-3"}
           style={{ borderTop: "1px solid var(--morning-border)" }}
         >
-          <ul className="space-y-1">{group.items.map((it) => renderItem(it, false))}</ul>
+          <ul className={compact ? "space-y-0.5" : "space-y-1"}>
+            {group.items.map((it) => renderItem(it, false))}
+          </ul>
         </div>
       );
     }
 
     if (!group.collapsible) {
       return (
-        <div key={group.id} className="mt-5">
+        <div key={group.id} className={compact ? "mt-3" : "mt-5"}>
           <div
             className="mb-2 px-3 text-right text-[11px] font-semibold uppercase tracking-[0.14em]"
             style={{ color: "var(--morning-subtle)" }}
           >
             {group.label}
           </div>
-          <ul className="space-y-1">{group.items.map((it) => renderItem(it, false))}</ul>
+          <ul className={compact ? "space-y-0.5" : "space-y-1"}>
+            {group.items.map((it) => renderItem(it, false))}
+          </ul>
         </div>
       );
     }
@@ -228,38 +267,49 @@ export function Sidebar({
     const open = openGroups[group.id] ?? true;
     const hasActiveChild = group.items.some((it) => isActive(it.href));
     return (
-      <div key={group.id} className="mt-4">
+      <div key={group.id} className={compact ? "mt-2" : "mt-4"}>
         <button
           onClick={() => toggleGroup(group.id)}
-          className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 transition-all"
+          className="flex w-full items-center justify-between gap-2 rounded-lg transition-all"
           style={{
+            paddingInline: compact ? "10px" : "12px",
+            paddingBlock: compact ? "7px" : "8px",
             color: hasActiveChild ? "var(--morning-ink)" : "var(--morning-muted)",
             background: "transparent",
           }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.background = "var(--morning-surface-2)")
-          }
+          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--morning-surface-2)")}
           onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           aria-expanded={open}
         >
           {/* Category icon on the right (RTL leading edge) */}
           {group.icon && (
             <span
-              className="material-symbols-outlined text-[18px]"
+              className={
+                compact
+                  ? "material-symbols-outlined text-[16px]"
+                  : "material-symbols-outlined text-[18px]"
+              }
               style={{ color: hasActiveChild ? "var(--morning-forest)" : "var(--morning-subtle)" }}
             >
               {group.icon}
             </span>
           )}
           <span
-            className="flex-1 text-right text-[12px] font-semibold uppercase tracking-[0.12em]"
-            style={{ color: hasActiveChild ? "var(--morning-ink)" : "var(--morning-subtle)" }}
+            className="flex-1 text-right font-semibold uppercase tracking-[0.12em]"
+            style={{
+              color: hasActiveChild ? "var(--morning-ink)" : "var(--morning-subtle)",
+              fontSize: compact ? 11 : 12,
+            }}
           >
             {group.label}
           </span>
           {/* Chevron on the left (trailing edge) */}
           <span
-            className="material-symbols-outlined text-[18px] transition-transform"
+            className={
+              compact
+                ? "material-symbols-outlined text-[16px] transition-transform"
+                : "material-symbols-outlined text-[18px] transition-transform"
+            }
             style={{
               color: "var(--morning-subtle)",
               transform: open ? "rotate(0deg)" : "rotate(90deg)",
@@ -276,7 +326,9 @@ export function Sidebar({
           }}
         >
           <div style={{ overflow: "hidden" }}>
-            <ul className="mt-1 space-y-1">{group.items.map((it) => renderItem(it, true))}</ul>
+            <ul className={compact ? "mt-1 space-y-0.5" : "mt-1 space-y-1"}>
+              {group.items.map((it) => renderItem(it, true))}
+            </ul>
           </div>
         </div>
       </div>
@@ -296,14 +348,18 @@ export function Sidebar({
         }}
       >
         {/* Brand */}
-        <div className="px-6 pb-5 pt-7">
+        <div className={isMobile ? "px-4 pb-3 pt-4" : "px-6 pb-5 pt-7"}>
           {/* Brand — text on the right (RTL leading), leaf icon pushed to the
               left edge with justify-between so it gets breathing room and
               doesn't feel pinned to the text. */}
           <div className="flex items-center justify-between gap-3">
             <div className="text-right">
               <div
-                className="text-[26px] font-bold leading-tight tracking-tight lowercase"
+                className={
+                  isMobile
+                    ? "text-[22px] font-bold lowercase leading-tight tracking-tight"
+                    : "text-[26px] font-bold lowercase leading-tight tracking-tight"
+                }
                 style={{
                   color: "var(--morning-ink)",
                   fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif",
@@ -312,7 +368,9 @@ export function Sidebar({
                 plan
               </div>
               <div
-                className="mt-0.5 text-[11px] font-medium"
+                className={
+                  isMobile ? "mt-0.5 text-[10px] font-medium" : "mt-0.5 text-[11px] font-medium"
+                }
                 style={{ color: "var(--morning-muted)" }}
               >
                 מערכת לתכנון פיננסי
@@ -326,7 +384,11 @@ export function Sidebar({
               }}
             >
               <span
-                className="material-symbols-outlined text-[20px]"
+                className={
+                  isMobile
+                    ? "material-symbols-outlined text-[18px]"
+                    : "material-symbols-outlined text-[20px]"
+                }
                 style={{ color: "var(--morning-forest)" }}
               >
                 eco
@@ -336,7 +398,7 @@ export function Sidebar({
         </div>
 
         {/* Active household */}
-        <div className="px-5 pb-3">
+        <div className={isMobile ? "px-4 pb-2" : "px-5 pb-3"}>
           <div
             className="rounded-xl px-4 py-3"
             style={{
@@ -345,19 +407,29 @@ export function Sidebar({
             }}
           >
             <div
-              className="text-right text-[10px] font-semibold uppercase tracking-[0.14em]"
+              className={
+                isMobile
+                  ? "text-right text-[9px] font-semibold uppercase tracking-[0.14em]"
+                  : "text-right text-[10px] font-semibold uppercase tracking-[0.14em]"
+              }
               style={{ color: "var(--morning-muted)" }}
             >
               תיק פעיל
             </div>
             <div
-              className="mt-1 text-right text-[15px] font-bold"
+              className={
+                isMobile
+                  ? "mt-0.5 text-right text-[14px] font-bold"
+                  : "mt-1 text-right text-[15px] font-bold"
+              }
               style={{ color: "var(--morning-ink)" }}
             >
               {familyName}
             </div>
             <div
-              className="mt-0.5 text-right text-[11px]"
+              className={
+                isMobile ? "mt-0.5 text-right text-[10px]" : "mt-0.5 text-right text-[11px]"
+              }
               style={{ color: "var(--morning-muted)" }}
             >
               {membersCount} בני משפחה
@@ -366,7 +438,11 @@ export function Sidebar({
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto px-4 pb-2">
+        <nav
+          className={
+            isMobile ? "flex-1 overflow-y-auto px-3 pb-1" : "flex-1 overflow-y-auto px-4 pb-2"
+          }
+        >
           {NAV_SECTIONS.map((g) => {
             const items = isAdvisor ? g.items : g.items.filter((it) => !it.advisorOnly);
             if (items.length === 0) return null;
@@ -376,12 +452,16 @@ export function Sidebar({
 
         {/* Footer */}
         <div
-          className="px-5 py-4"
+          className={isMobile ? "px-4 py-3" : "px-5 py-4"}
           style={{ borderTop: "1px solid var(--morning-border)" }}
         >
           <div className="flex items-center gap-3">
             <div
-              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-[14px] font-bold"
+              className={
+                isMobile
+                  ? "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-[13px] font-bold"
+                  : "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-[14px] font-bold"
+              }
               style={{
                 background: "var(--morning-forest)",
                 color: "#fff",
@@ -391,7 +471,11 @@ export function Sidebar({
             </div>
             <div className="min-w-0 flex-1 text-right">
               <div
-                className="truncate text-[14px] font-semibold"
+                className={
+                  isMobile
+                    ? "truncate text-[13px] font-semibold"
+                    : "truncate text-[14px] font-semibold"
+                }
                 style={{ color: "var(--morning-ink)" }}
               >
                 {advisorName}
@@ -401,7 +485,11 @@ export function Sidebar({
 
           {saveStatus !== "idle" && (
             <div
-              className="mt-3 flex items-center justify-center gap-2 rounded-xl py-1.5 text-[11px] font-semibold"
+              className={
+                isMobile
+                  ? "mt-2 flex items-center justify-center gap-1.5 rounded-lg py-1 text-[10px] font-semibold"
+                  : "mt-3 flex items-center justify-center gap-2 rounded-xl py-1.5 text-[11px] font-semibold"
+              }
               style={{
                 background:
                   saveStatus === "saving"
@@ -436,7 +524,11 @@ export function Sidebar({
           {isAdvisor && (
             <button
               onClick={handleReset}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[12px] font-semibold transition-all"
+              className={
+                isMobile
+                  ? "mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-semibold transition-all"
+                  : "mt-3 flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[12px] font-semibold transition-all"
+              }
               style={{
                 background: "transparent",
                 color: "var(--morning-muted)",
@@ -454,7 +546,15 @@ export function Sidebar({
               }}
               title="מוחק את כל הנתונים של הלקוח ומחזיר את כל הערכים לאפס"
             >
-              <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+              <span
+                className={
+                  isMobile
+                    ? "material-symbols-outlined text-[15px]"
+                    : "material-symbols-outlined text-[16px]"
+                }
+              >
+                restart_alt
+              </span>
               איפוס נתוני לקוח
             </button>
           )}
@@ -474,7 +574,11 @@ export function Sidebar({
                 }
                 window.location.href = "/crm";
               }}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-[13px] font-semibold transition-all"
+              className={
+                isMobile
+                  ? "mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-semibold transition-all"
+                  : "mt-2 flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-[13px] font-semibold transition-all"
+              }
               style={{
                 background: "var(--morning-leaf-tint)",
                 color: "var(--morning-forest)",
@@ -487,14 +591,26 @@ export function Sidebar({
                 e.currentTarget.style.background = "var(--morning-leaf-tint)";
               }}
             >
-              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+              <span
+                className={
+                  isMobile
+                    ? "material-symbols-outlined text-[15px]"
+                    : "material-symbols-outlined text-[16px]"
+                }
+              >
+                arrow_forward
+              </span>
               חזרה ל-CRM
             </button>
           )}
 
           <button
             onClick={onExit ?? (() => router.push("/login"))}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all"
+            className={
+              isMobile
+                ? "mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-medium transition-all"
+                : "mt-2 flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all"
+            }
             style={{
               background: "transparent",
               color: "var(--morning-muted)",
@@ -508,7 +624,15 @@ export function Sidebar({
               e.currentTarget.style.color = "var(--morning-muted)";
             }}
           >
-            <span className="material-symbols-outlined text-[16px]">logout</span>
+            <span
+              className={
+                isMobile
+                  ? "material-symbols-outlined text-[15px]"
+                  : "material-symbols-outlined text-[16px]"
+              }
+            >
+              logout
+            </span>
             התנתקות
           </button>
         </div>

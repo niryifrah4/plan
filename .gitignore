@@ -3,11 +3,13 @@ node_modules/
 .env
 .env.local
 .env.*.local
+.env.supabase
 # 2026-05-21: explicit guard for ad-hoc env backups that don't match the
 # patterns above (e.g. `.env.local.prod-backup`). These can contain real
 # SERVICE_ROLE_KEY / ANON_KEY and must never reach git.
 .env.*backup*
 .env.local.prod-backup
+.env.supabase.save
 *.tsbuildinfo
 .DS_Store
 uploads/
