@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
-import Image from "next/image";
 import Link from "next/link";
 import { fmtILS, fmtPct } from "@/lib/format";
 import { savingsRate as calcSavingsRate } from "@/lib/financial-math";
@@ -787,20 +786,6 @@ export default function DashboardPage() {
     return `₪${v}`;
   };
 
-  const workBanner = (
-    <div className="mb-4 overflow-hidden rounded-[24px] md:mb-6">
-      <Image
-        src="/images/dashboard-work-banner.jpg"
-        alt="על מה אתם עובדים עכשיו?"
-        width={1600}
-        height={560}
-        priority
-        sizes="(max-width: 768px) 100vw, 960px"
-        className="block h-auto w-full"
-      />
-    </div>
-  );
-
   // ═══════ Empty state — first-time visitor with no data ═══════
   // A new couple landing here would otherwise see a wall of zeros and
   // empty charts — confusing and demotivating. The welcome card points
@@ -812,7 +797,6 @@ export default function DashboardPage() {
         className="mx-auto max-w-3xl py-8 md:py-16"
         style={{ fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif" }}
       >
-        {workBanner}
         {/* MacroStrip belongs in the empty state too — it's a trust signal
             that the system has live data, even before the family has entered
             anything of their own. The Wealth Report CTA is intentionally
@@ -891,7 +875,6 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-5xl py-4 md:py-8" style={{ fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif" }}>
-      {workBanner}
       {/* ═══════ AI categorization nudge — only visible when there's work ═══════ */}
       <UnmappedNudge />
       {/* ═══════ Live macro strip + Wealth Report CTA ═══════ */}
