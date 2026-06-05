@@ -407,17 +407,31 @@ export default function DashboardPage() {
   // Empty-state detection — true when nothing has been entered yet. Rendering
   // dozens of widgets with zeros would tell a new couple "your money is gone";
   // the welcome state instead points them at the 3 places to start.
-  const hasOnboardingFields = (() => {
-    if (typeof window === "undefined") return false;
-    try {
-      const raw = localStorage.getItem(scopedKey("verdant:onboarding:fields"));
-      if (!raw) return false;
-      const f = JSON.parse(raw);
-      return f && Object.values(f).some((v) => String(v ?? "").trim() !== "");
-    } catch {
-      return false;
-    }
-  })();
+  const [hasOnboardingFields, setHasOnboardingFields] = useState(false);
+  useEffect(() => {
+    const refresh = () => {
+      try {
+        const raw = localStorage.getItem(scopedKey("verdant:onboarding:fields"));
+        if (!raw) {
+          setHasOnboardingFields(false);
+          return;
+        }
+        const f = JSON.parse(raw);
+        setHasOnboardingFields(
+          Boolean(f && Object.values(f).some((v) => String(v ?? "").trim() !== ""))
+        );
+      } catch {
+        setHasOnboardingFields(false);
+      }
+    };
+    refresh();
+    window.addEventListener("storage", refresh);
+    window.addEventListener("verdant:assumptions", refresh);
+    return () => {
+      window.removeEventListener("storage", refresh);
+      window.removeEventListener("verdant:assumptions", refresh);
+    };
+  }, [clientId]);
   const reMortgageTotal = reProperties.reduce((s, p) => s + (p.mortgageBalance ?? 0), 0);
   const creditCharges = totalCreditCharges(accounts);
   // 2026-05-03 fix (Victor): same mortgage entered in BOTH debt-store and

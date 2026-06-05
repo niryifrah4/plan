@@ -23,6 +23,13 @@ import {
 import { loadParsedTransactions } from "@/lib/budget-import";
 import { detectRecurring, type RecurringGroup } from "@/lib/doc-parser/recurring";
 import { getOverrides } from "@/lib/doc-parser/categorizer";
+import {
+  excludeSubscriptionRadarGroup,
+  isSubscriptionRadarExcluded,
+  loadSubscriptionRadarExclusions,
+  type SubscriptionRadarExclusion,
+  SUBSCRIPTIONS_RADAR_EXCLUSIONS_EVENT,
+} from "@/lib/subscriptions-radar-exclusions";
 import { scopedKey } from "@/lib/client-scope";
 import { CATEGORY_TO_BUDGET } from "@/lib/category-to-budget-map";
 import {
@@ -41,6 +48,9 @@ export function DiscoverTab() {
   const [windowSize, setWindowSize] = useState<WindowSize>(6);
   const [summary, setSummary] = useState<DiscoverSummary | null>(null);
   const [subscriptions, setSubscriptions] = useState<RecurringGroup[]>([]);
+  const [subscriptionExclusions, setSubscriptionExclusions] = useState<
+    SubscriptionRadarExclusion[]
+  >([]);
   const [flagged, setFlagged] = useState<Set<string>>(new Set());
   /** Stats for the "learning" banner: how many user corrections the
    *  classifier has remembered, and how many txs in the current window
@@ -60,6 +70,7 @@ export function DiscoverTab() {
       const subs = detectRecurring(allTxs).filter((g) => g.frequency === "monthly");
       subs.sort((a, b) => b.amount - a.amount);
       setSubscriptions(subs);
+      setSubscriptionExclusions(loadSubscriptionRadarExclusions());
       // Learning stats — surface that the system IS getting smarter and that
       // unmapped txs are still pending triage. Window-scoped count keeps the
       // banner relevant to the current view.
@@ -88,14 +99,24 @@ export function DiscoverTab() {
     refresh();
     window.addEventListener("storage", refresh);
     window.addEventListener("verdant:parsed_transactions:updated", refresh);
+    window.addEventListener(SUBSCRIPTIONS_RADAR_EXCLUSIONS_EVENT, refresh);
     return () => {
       window.removeEventListener("storage", refresh);
       window.removeEventListener("verdant:parsed_transactions:updated", refresh);
+      window.removeEventListener(SUBSCRIPTIONS_RADAR_EXCLUSIONS_EVENT, refresh);
     };
   }, [windowSize]);
 
   const [showBuildModal, setShowBuildModal] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  const visibleSubscriptions = useMemo(
+    () =>
+      subscriptions.filter(
+        (sub) => !isSubscriptionRadarExcluded(sub, subscriptionExclusions)
+      ),
+    [subscriptions, subscriptionExclusions]
+  );
 
   const toggleFlag = (key: string) => {
     setFlagged((prev) => {
@@ -166,11 +187,17 @@ export function DiscoverTab() {
         unmappedTxCount={learning.unmappedTxCount}
       />
 
-      {subscriptions.length > 0 && (
+      {visibleSubscriptions.length > 0 && (
         <SubscriptionsRadar
-          subscriptions={subscriptions}
+          subscriptions={visibleSubscriptions}
           flagged={flagged}
           onToggleFlag={toggleFlag}
+          onMarkNotSubscription={(sub) => {
+            const updated = excludeSubscriptionRadarGroup(sub);
+            setSubscriptionExclusions(updated);
+            setToast("נשמר · לא יוצג שוב כ-subscription");
+            setTimeout(() => setToast(null), 3200);
+          }}
         />
       )}
 
@@ -849,10 +876,12 @@ function SubscriptionsRadar({
   subscriptions,
   flagged,
   onToggleFlag,
+  onMarkNotSubscription,
 }: {
   subscriptions: RecurringGroup[];
   flagged: Set<string>;
   onToggleFlag: (key: string) => void;
+  onMarkNotSubscription: (sub: RecurringGroup) => void;
 }) {
   const totalMonthly = subscriptions.reduce((s, sub) => s + sub.amount, 0);
   const flaggedTotal = subscriptions
@@ -930,18 +959,32 @@ function SubscriptionsRadar({
                   לחודש
                 </div>
               </div>
-              <button
-                onClick={() => onToggleFlag(key)}
-                className="rounded-full px-3 py-1 text-[11px] font-bold transition-colors"
-                style={{
-                  background: isFlagged ? "rgba(217,119,6,0.30)" : "#FAFAF7",
-                  color: isFlagged ? "#78350F" : "#6B7280",
-                  border: `1px solid ${isFlagged ? "#D97706" : "#E5E7EB"}`,
-                }}
-                title={isFlagged ? "הסר סימון" : "סמן לדיון עם הלקוח"}
-              >
-                {isFlagged ? "✓ סומן לדיון" : "סמן לדיון"}
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => onMarkNotSubscription(sub)}
+                  className="rounded-full px-3 py-1 text-[11px] font-bold transition-colors"
+                  style={{
+                    background: "rgba(44,122,90,0.10)",
+                    color: "#2C7A5A",
+                    border: "1px solid rgba(44,122,90,0.25)",
+                  }}
+                  title="לא להציג את החיוב הזה כ-subscription בעתיד"
+                >
+                  לא subscription
+                </button>
+                <button
+                  onClick={() => onToggleFlag(key)}
+                  className="rounded-full px-3 py-1 text-[11px] font-bold transition-colors"
+                  style={{
+                    background: isFlagged ? "rgba(217,119,6,0.30)" : "#FAFAF7",
+                    color: isFlagged ? "#78350F" : "#6B7280",
+                    border: `1px solid ${isFlagged ? "#D97706" : "#E5E7EB"}`,
+                  }}
+                  title={isFlagged ? "הסר סימון" : "סמן לדיון עם הלקוח"}
+                >
+                  {isFlagged ? "✓ סומן לדיון" : "סמן לדיון"}
+                </button>
+              </div>
             </div>
           );
         })}

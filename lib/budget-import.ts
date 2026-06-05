@@ -19,7 +19,7 @@ import type { ParsedTransaction } from "@/lib/doc-parser/types";
 import type { Scope } from "@/lib/scope-types";
 import { CATEGORY_TO_BUDGET, type BudgetSection } from "@/lib/category-to-budget-map";
 import { scopedKey } from "@/lib/client-scope";
-import { pushBlobInBackground, pullBlob } from "@/lib/sync/blob-sync";
+import { pushBlob, pushBlobInBackground, pullBlob } from "@/lib/sync/blob-sync";
 
 const TX_KEY = "verdant:parsed_transactions";
 const TX_BLOB_KEY = "parsed_transactions";
@@ -173,15 +173,30 @@ export function addManualTransaction(input: ManualExpenseInput): ParsedTransacti
    same device.
    ────────────────────────────────────────────────────────── */
 
-function persistTransactions(txs: ParsedTransaction[]): void {
+function writeTransactionsLocal(txs: ParsedTransaction[]): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(scopedKey(TX_KEY), JSON.stringify(txs));
     window.dispatchEvent(new Event("verdant:parsed_transactions:updated"));
-    pushBlobInBackground(TX_BLOB_KEY, txs);
   } catch (err) {
     throw new Error("Failed to update transaction — storage write rejected");
   }
+}
+
+function persistTransactions(txs: ParsedTransaction[]): void {
+  writeTransactionsLocal(txs);
+  pushBlobInBackground(TX_BLOB_KEY, txs);
+}
+
+export function saveParsedTransactions(txs: ParsedTransaction[]): void {
+  persistTransactions(txs);
+}
+
+export async function saveParsedTransactionsAndWait(txs: ParsedTransaction[]): Promise<boolean> {
+  const remoteSaved = await pushBlob(TX_BLOB_KEY, txs);
+  if (!remoteSaved) return false;
+  writeTransactionsLocal(txs);
+  return true;
 }
 
 /** Bootstrap pull. Called once per session by bootstrap.ts so the

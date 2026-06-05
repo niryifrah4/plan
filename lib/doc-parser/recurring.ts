@@ -18,6 +18,20 @@ export interface RecurringGroup {
 }
 
 /**
+ * Normalize descriptions the same way recurring detection does, so related
+ * stores can build stable signatures on top of the same text shape.
+ */
+export function normalizeRecurringDescription(description: string): string {
+  return description
+    .toLowerCase()
+    .replace(/[\u200F\u200E"]/g, "")
+    .replace(/\d{4,}/g, "") // remove long numbers (phone, reference)
+    .replace(/\s+/g, " ")
+    .trim()
+    .substring(0, 40); // cap length
+}
+
+/**
  * Detect recurring transactions from a list of parsed transactions.
  * Algorithm:
  *   1. Group by (normalized description, amount within ±2% tolerance)
@@ -31,15 +45,6 @@ export function detectRecurring(transactions: ParsedTransaction[]): RecurringGro
   const expenses = transactions.filter((t) => t.amount > 0 && t.date);
 
   // Normalize description for grouping (trim numbers, lowercase, collapse spaces)
-  const normalize = (d: string) =>
-    d
-      .toLowerCase()
-      .replace(/[\u200F\u200E"]/g, "")
-      .replace(/\d{4,}/g, "") // remove long numbers (phone, reference)
-      .replace(/\s+/g, " ")
-      .trim()
-      .substring(0, 40); // cap length
-
   // Group by (normalizedDesc, amount ± 2%)
   interface GroupEntry {
     desc: string;
@@ -55,7 +60,7 @@ export function detectRecurring(transactions: ParsedTransaction[]): RecurringGro
   const entries: GroupEntry[] = expenses.map((t) => {
     const [y, m, d] = t.date.split("-");
     return {
-      desc: normalize(t.description),
+      desc: normalizeRecurringDescription(t.description),
       origDesc: t.description,
       amount: t.amount,
       day: parseInt(d) || 0,

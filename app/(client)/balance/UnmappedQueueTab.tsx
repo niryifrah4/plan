@@ -19,12 +19,11 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import type { ParsedTransaction } from "@/lib/doc-parser/types";
-import { scopedKey } from "@/lib/client-scope";
+import { loadParsedTransactions, saveParsedTransactions } from "@/lib/budget-import";
 import { normalizeSupplier, extractBitRecipient } from "@/lib/doc-parser/normalizer";
 import { learnOverride, getOverrides } from "@/lib/doc-parser/categorizer";
 import { markUpdated, triggerFullSync } from "@/lib/sync-engine";
 import { CAT_OPTIONS, UNMAPPED_KEYS, CONFIDENCE_THRESHOLD } from "@/lib/documents-categories";
-import { STORAGE_KEY } from "@/lib/documents-store";
 import { isBusinessScopeEnabled, BUSINESS_SCOPE_EVENT } from "@/lib/business-scope";
 import { recordCorrection } from "@/lib/doc-parser/correction-history";
 import { groupOptionsByParent } from "@/lib/doc-parser/category-tree";
@@ -49,17 +48,11 @@ interface MerchantGroup {
 }
 
 function loadTransactions(): ParsedTransaction[] {
-  try {
-    const raw = localStorage.getItem(scopedKey(STORAGE_KEY));
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+  return loadParsedTransactions();
 }
 
 function saveTransactions(txs: ParsedTransaction[]) {
-  localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(txs));
-  window.dispatchEvent(new Event("verdant:parsed_transactions:updated"));
+  saveParsedTransactions(txs);
 }
 
 export function UnmappedQueueTab() {

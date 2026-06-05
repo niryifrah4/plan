@@ -13,6 +13,7 @@
  */
 
 import { scopedKey } from "./client-scope";
+import { pullBlob, pushBlob, pushBlobInBackground } from "./sync/blob-sync";
 
 /** Parsed transactions array (scoped). */
 export const STORAGE_KEY = "verdant:parsed_transactions";
@@ -22,6 +23,7 @@ export const DRAFT_KEY = "verdant:doc_draft";
 
 /** Persistent list of uploaded documents (scoped). */
 export const HISTORY_KEY = "verdant:doc_history";
+const HISTORY_BLOB_KEY = "doc_history";
 
 export interface DocHistoryEntry {
   id: string;
@@ -60,5 +62,31 @@ export function saveDocHistory(history: DocHistoryEntry[]): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(scopedKey(HISTORY_KEY), JSON.stringify(history));
+    pushBlobInBackground(HISTORY_BLOB_KEY, history);
   } catch {}
+}
+
+export async function saveDocHistoryAndWait(history: DocHistoryEntry[]): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  try {
+    const remoteSaved = await pushBlob(HISTORY_BLOB_KEY, history);
+    if (!remoteSaved) return false;
+    localStorage.setItem(scopedKey(HISTORY_KEY), JSON.stringify(history));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function hydrateDocHistoryFromRemote(): Promise<boolean> {
+  const remote = await pullBlob<DocHistoryEntry[]>(HISTORY_BLOB_KEY);
+  if (!remote || !Array.isArray(remote)) return false;
+  if (typeof window === "undefined") return false;
+  try {
+    localStorage.setItem(scopedKey(HISTORY_KEY), JSON.stringify(remote));
+    window.dispatchEvent(new Event("verdant:docs:updated"));
+    return true;
+  } catch {
+    return false;
+  }
 }

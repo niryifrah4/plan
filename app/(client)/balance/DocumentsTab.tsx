@@ -28,12 +28,16 @@ import { scopedKey } from "@/lib/client-scope";
 import { isBusinessScopeEnabled, BUSINESS_SCOPE_EVENT } from "@/lib/business-scope";
 import { CAT_OPTIONS, UNMAPPED_KEYS, CONFIDENCE_THRESHOLD } from "@/lib/documents-categories";
 import {
-  STORAGE_KEY,
   DRAFT_KEY,
   loadDocHistory,
   saveDocHistory,
+  saveDocHistoryAndWait,
   type DocHistoryEntry,
 } from "@/lib/documents-store";
+import {
+  loadParsedTransactions,
+  saveParsedTransactionsAndWait,
+} from "@/lib/budget-import";
 import { IdleView } from "./_documents-tab/IdleView";
 import { PreviewView } from "./_documents-tab/PreviewView";
 import { SavedView } from "./_documents-tab/SavedView";
@@ -399,7 +403,7 @@ export function DocumentsTab() {
   );
 
   /* ── Save to cashflow (append to localStorage history) ── */
-  const handleTransfer = useCallback(() => {
+  const handleTransfer = useCallback(async () => {
     if (!doc) return;
     try {
       const docId = `doc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -409,9 +413,7 @@ export function DocumentsTab() {
         sourceDocId: docId,
         sourceFile: doc.filename,
       }));
-      const existing: ParsedTransaction[] = JSON.parse(
-        localStorage.getItem(scopedKey(STORAGE_KEY)) || "[]"
-      );
+      const existing: ParsedTransaction[] = loadParsedTransactions();
 
       // ── Cross-session dedup ──
       // If a tx was already saved from a previous upload (e.g. credit-card
@@ -436,7 +438,12 @@ export function DocumentsTab() {
         }
         return true;
       });
-      localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify([...existing, ...fresh]));
+      const allTransactions = [...existing, ...fresh];
+      const txRemoteSaved = await saveParsedTransactionsAndWait(allTransactions);
+      if (!txRemoteSaved) {
+        setError("שמירת התנועות ל-DB נכשלה. נסה לשמור שוב לפני יציאה.");
+        return;
+      }
       setCrossDupsSkipped(crossDupsSkippedLocal);
 
       // Record in persistent document history (counts reflect `fresh` —
@@ -467,7 +474,11 @@ export function DocumentsTab() {
         crossDupsSkipped: crossDupsSkippedLocal > 0 ? crossDupsSkippedLocal : undefined,
       };
       const newHistory = [entry, ...loadDocHistory()].slice(0, 50); // keep last 50
-      saveDocHistory(newHistory);
+      const historyRemoteSaved = await saveDocHistoryAndWait(newHistory);
+      if (!historyRemoteSaved) {
+        setError("התנועות נשמרו, אבל שמירת היסטוריית הקובץ ל-DB נכשלה. נסה שוב.");
+        return;
+      }
       setDocHistory(newHistory);
 
       localStorage.removeItem(scopedKey(DRAFT_KEY)); // draft consumed

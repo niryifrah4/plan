@@ -69,6 +69,7 @@ export async function hydrateAllFromRemote(): Promise<void> {
     accounts,
     budget,
     budgetImport,
+    documents,
     balanceHist,
     risk,
     scenarios,
@@ -76,6 +77,7 @@ export async function hydrateAllFromRemote(): Promise<void> {
     annualEvents,
     portfolio,
     salary,
+    subscriptionsRadar,
     blobSync,
   ] = await Promise.all([
     import("@/lib/pension-store"),
@@ -84,6 +86,7 @@ export async function hydrateAllFromRemote(): Promise<void> {
     import("@/lib/accounts-store"),
     import("@/lib/budget-store"),
     import("@/lib/budget-import"),
+    import("@/lib/documents-store"),
     import("@/lib/balance-history-store"),
     import("@/lib/risk-store"),
     import("@/lib/scenarios-store"),
@@ -91,6 +94,7 @@ export async function hydrateAllFromRemote(): Promise<void> {
     import("@/lib/annual-events-store"),
     import("@/lib/portfolio-store"),
     import("@/lib/salary-engine"),
+    import("@/lib/subscriptions-radar-exclusions"),
     import("@/lib/sync/blob-sync"),
   ]);
 
@@ -103,6 +107,7 @@ export async function hydrateAllFromRemote(): Promise<void> {
     budget.hydrateBudgetsFromRemote?.(),
     budget.hydrateMonthlyBudgetsFromRemote?.(),
     budgetImport.hydrateTransactionsFromRemote?.(),
+    documents.hydrateDocHistoryFromRemote?.(),
     balanceHist.hydrateHistoryFromRemote?.(),
     risk.hydrateRiskFromRemote?.(),
     scenarios.hydrateScenariosFromRemote?.(),
@@ -110,6 +115,7 @@ export async function hydrateAllFromRemote(): Promise<void> {
     annualEvents.hydrateAnnualEventsFromRemote?.(),
     portfolio.hydratePortfolioFromRemote?.(),
     salary.hydrateSalaryFromRemote?.(),
+    subscriptionsRadar.hydrateSubscriptionRadarExclusionsFromRemote?.(),
     hydrateSecurities(blobSync),
   ]);
 }
