@@ -385,7 +385,7 @@ function BuildBudgetModal({
             {savedDelta !== 0 && (
               <Stat
                 label="חיסכון חודשי"
-                value={`${savedDelta > 0 ? "+" : ""}${fmtILS(Math.round(savedDelta))}`}
+                value={fmtILS(Math.round(savedDelta), { signed: true })}
                 color={savedDelta > 0 ? "#2C7A5A" : "#B91C1C"}
                 hint={`${fmtILS(Math.round(savedDelta * 12))} בשנה`}
               />
@@ -729,9 +729,7 @@ function SpendingSnapshot({ summary }: { summary: DiscoverSummary }) {
                     className="px-3 py-2 text-left tabular-nums font-bold"
                     style={{ color: deltaColor }}
                   >
-                    {row.lastDelta === 0
-                      ? "—"
-                      : `${row.lastDelta > 0 ? "+" : ""}${fmtILS(row.lastDelta)}`}
+                    {row.lastDelta === 0 ? "—" : fmtILS(row.lastDelta, { signed: true })}
                   </td>
                 </tr>
               );
@@ -764,16 +762,14 @@ function SpendingSnapshot({ summary }: { summary: DiscoverSummary }) {
                   className="px-3 py-2.5 text-left font-extrabold tabular-nums"
                   style={{ color: m.net >= 0 ? "#2C7A5A" : "#B91C1C" }}
                 >
-                  {m.net >= 0 ? "+" : ""}
-                  {fmtILS(m.net)}
+                  {fmtILS(m.net, { signed: true })}
                 </td>
               ))}
               <td
                 className="px-3 py-2.5 text-left font-extrabold tabular-nums"
                 style={{ color: summary.avgMonthlyNet >= 0 ? "#2C7A5A" : "#B91C1C" }}
               >
-                {summary.avgMonthlyNet >= 0 ? "+" : ""}
-                {fmtILS(summary.avgMonthlyNet)}
+                {fmtILS(summary.avgMonthlyNet, { signed: true })}
               </td>
               <td />
             </tr>

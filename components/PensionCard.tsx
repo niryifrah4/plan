@@ -1,4 +1,5 @@
 import { fmtILS } from "@/lib/format";
+import { MoneyText } from "@/components/ui/MoneyText";
 
 interface Props {
   monthlyPension: number;
@@ -21,7 +22,9 @@ export function PensionCard({ monthlyPension, replacementRate }: Props) {
         קצבה חזויה בפרישה
       </div>
       <div className="mb-4 text-sm opacity-70">גיל 67 · חישוב מהמסלקה הפנסיונית</div>
-      <div className="mb-1 text-5xl font-extrabold tracking-tight">{fmtILS(monthlyPension)}</div>
+      <MoneyText className="mb-1 text-5xl font-extrabold tracking-tight">
+        {fmtILS(monthlyPension)}
+      </MoneyText>
       <div className="mb-6 text-sm opacity-70">לחודש · במונחי היום</div>
       <div className="border-t border-white/10 pt-5">
         <div className="mb-2 flex items-center justify-between text-xs">

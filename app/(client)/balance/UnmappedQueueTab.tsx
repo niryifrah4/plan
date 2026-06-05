@@ -34,8 +34,7 @@ import {
   EXCLUDED_EVENT,
 } from "@/lib/doc-parser/excluded-merchants";
 import type { AISuggestion } from "@/lib/doc-parser/ai-categorizer";
-
-const fmtILS = (v: number) => "₪" + Math.abs(Math.round(v)).toLocaleString("he-IL");
+import { fmtILS } from "@/lib/format";
 
 interface MerchantGroup {
   key: string; // normalized supplier

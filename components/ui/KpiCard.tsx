@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card } from "./Card";
 import { fmtILS } from "@/lib/format";
+import { MoneyText } from "./MoneyText";
 
 interface KpiCardProps {
   label: string;
@@ -53,7 +54,9 @@ export function KpiCard({
         className="tabular text-[2.4rem] font-bold leading-none tracking-tight"
         style={{ color: "var(--morning-ink)", fontVariantNumeric: "tabular-nums" }}
       >
-        {fmtILS(value, { signed })}
+        <MoneyText className="text-[2.4rem] font-bold leading-none tracking-tight">
+          {fmtILS(value, { signed })}
+        </MoneyText>
       </div>
       {subline && (
         <div

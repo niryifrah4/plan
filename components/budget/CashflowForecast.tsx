@@ -152,8 +152,7 @@ export function CashflowForecast() {
             >
               <span className="min-w-[80px] font-extrabold tabular-nums">{m.label}</span>
               <span className="min-w-[80px] font-bold tabular-nums">
-                {m.netCashflow >= 0 ? "+" : ""}
-                {fmtILS(m.netCashflow)}
+                {fmtILS(m.netCashflow, { signed: true })}
               </span>
               <span className="flex-1">{m.events.length > 0 ? m.events.join(" · ") : "—"}</span>
             </div>
@@ -214,7 +213,7 @@ export function CashflowForecast() {
                     className="text-[15px] font-extrabold tabular-nums"
                     style={{ color: "#2C7A5A" }}
                   >
-                    +{fmtILS(totalMonthlyRelief)}/ח׳
+                    {fmtILS(totalMonthlyRelief, { signed: true })}/ח׳
                   </div>
                 </div>
               )}

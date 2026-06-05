@@ -18,6 +18,7 @@ import {
   type CoverageStatus,
   type RiskCategory,
 } from "@/lib/risk-store";
+import { fmtILS } from "@/lib/format";
 
 /* ── Status config ── */
 
@@ -35,7 +36,7 @@ const STATUS_ORDER: CoverageStatus[] = ["covered", "partial", "missing", "not_re
 
 /* ── Formatters ── */
 
-const fmtCurrency = (n: number) => (n ? `₪${n.toLocaleString("he-IL")}` : "—");
+const fmtCurrency = (n: number) => fmtILS(n);
 
 /* ── Main Page ── */
 

@@ -134,8 +134,7 @@ export function InvestmentSurplusCard({ currentIncome, currentExpenses }: Props)
             className="text-[22px] font-extrabold tabular-nums leading-tight"
             style={{ color: positive ? "#2C7A5A" : "#B91C1C" }}
           >
-            {summary.currentSurplus >= 0 ? "+" : ""}
-            {fmtILS(summary.currentSurplus)}
+            {fmtILS(summary.currentSurplus, { signed: true })}
           </div>
           <div className="mt-0.5 text-[11px] text-verdant-muted">
             הכנסות {fmtILS(income)} − הוצאות {fmtILS(expenses)}
@@ -155,8 +154,7 @@ export function InvestmentSurplusCard({ currentIncome, currentExpenses }: Props)
               className="text-[22px] font-extrabold tabular-nums leading-tight"
               style={{ color: summary.annualizedSurplus >= 0 ? "#2C7A5A" : "#B91C1C" }}
             >
-              {summary.annualizedSurplus >= 0 ? "+" : ""}
-              {fmtILS(summary.annualizedSurplus)}/ח׳
+              {fmtILS(summary.annualizedSurplus, { signed: true })}/ח׳
             </div>
             <div className="mt-0.5 text-[11px] text-verdant-muted">
               {stepUp > 0 ? (
@@ -181,7 +179,7 @@ export function InvestmentSurplusCard({ currentIncome, currentExpenses }: Props)
               className="text-[22px] font-extrabold tabular-nums leading-tight"
               style={{ color: "#2C7A5A" }}
             >
-              +{fmtILS(summary.peakSurplus)}
+              {fmtILS(summary.peakSurplus, { signed: true })}
             </div>
             <div className="mt-0.5 text-[11px] text-verdant-muted">{summary.peakLabel}</div>
           </div>

@@ -482,7 +482,7 @@ function ScenarioCard({
           fontFamily: "inherit",
         }}
       >
-        {positive ? fmtILS(saving) : `−${fmtILS(Math.abs(saving))}`}
+        {fmtILS(saving, { signed: true })}
       </div>
       <div
         className="space-y-0.5 text-[11px]"

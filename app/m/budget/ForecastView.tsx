@@ -103,8 +103,7 @@ export function ForecastView() {
                 marginTop: 2,
               }}
             >
-              {summary.totalNet >= 0 ? "+" : ""}
-              {fmtILS(summary.totalNet)}
+              {fmtILS(summary.totalNet, { signed: true })}
             </div>
           </div>
           <div style={{ textAlign: "end", fontSize: 11, color: "var(--morning-muted)" }}>
@@ -233,8 +232,7 @@ export function ForecastView() {
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
-                  {isIncome ? "+" : "−"}
-                  {fmtILS(n.amount)}
+                  {fmtILS(n.amount, { signed: true })}
                 </div>
               </li>
             );
@@ -287,8 +285,7 @@ export function ForecastView() {
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
-                  {e.kind === "income" ? "+" : "−"}
-                  {fmtILS(e.amount)}
+                  {fmtILS(e.amount, { signed: true })}
                 </div>
                 <button
                   type="button"

@@ -17,6 +17,7 @@ import {
   GOV_MONTHLY_DEPOSIT,
   PARENT_MONTHLY_MAX,
 } from "@/lib/kids-savings-store";
+import { fmtILS } from "@/lib/format";
 import type { Child, Fields } from "./types";
 import { EMPTY_CHILD, FRAMEWORKS } from "./constants";
 import { Fld, FldSelect, StepCard } from "./fields";
@@ -290,9 +291,12 @@ function KidsSavingsRow({
   onUpdate: (k: string, v: string) => void;
 }) {
   const parentDeposit = Number(c.savings_parent_deposit) || 0;
-  const totalDeposit = parentDeposit > 0
-    ? `ביט״ל ₪${GOV_MONTHLY_DEPOSIT}/ח + הורים ₪${PARENT_MONTHLY_MAX}/ח = ₪${GOV_MONTHLY_DEPOSIT + PARENT_MONTHLY_MAX}/חודש`
-    : `ביט״ל בלבד — ₪${GOV_MONTHLY_DEPOSIT}/חודש`;
+  const totalDeposit =
+    parentDeposit > 0
+      ? `ביט״ל ${fmtILS(GOV_MONTHLY_DEPOSIT)}/ח + הורים ${fmtILS(
+          PARENT_MONTHLY_MAX
+        )}/ח = ${fmtILS(GOV_MONTHLY_DEPOSIT + PARENT_MONTHLY_MAX)}/חודש`
+      : `ביט״ל בלבד — ${fmtILS(GOV_MONTHLY_DEPOSIT)}/חודש`;
 
   return (
     <div className="v-divider border-t pt-3">

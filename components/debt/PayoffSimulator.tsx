@@ -256,7 +256,7 @@ export function PayoffSimulator({ data }: { data: DebtData }) {
                       className="text-[16px] font-extrabold tabular-nums"
                       style={{ color: "#2C7A5A" }}
                     >
-                      +{fmtILS(opt.monthlyRelief)}/ח׳
+                      {fmtILS(opt.monthlyRelief, { signed: true })}/ח׳
                     </div>
                     <div className="text-[11px] font-bold text-verdant-muted">
                       בעלות {fmtILS(opt.costToClose)}

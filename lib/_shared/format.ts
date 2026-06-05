@@ -8,15 +8,11 @@ interface FmtOpts {
 }
 
 export function fmtILS(value: number | null | undefined, opts: FmtOpts = {}): string {
-  // ₪ position: trailing, per Nir 2026-05-24 — "1,234 ₪" reads more
-  // naturally inside Hebrew RTL paragraphs and is the convention most
-  // Israeli finance apps use.
   if (value == null || Number.isNaN(value)) return "—";
   const rounded = Math.round(value);
   const abs = Math.abs(rounded).toLocaleString("en-US");
-  if (rounded < 0) return "−" + abs + " ₪";
-  if (opts.signed && rounded > 0) return "+" + abs + " ₪";
-  return abs + " ₪";
+  const sign = rounded < 0 ? "−" : opts.signed && rounded > 0 ? "+" : "";
+  return `\u2066${sign}${abs} ₪\u2069`;
 }
 
 export function fmtPct(value: number | null | undefined, decimals = 1): string {

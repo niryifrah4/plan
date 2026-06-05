@@ -778,12 +778,13 @@ export default function DashboardPage() {
   // (much smaller scale) — show them without M/K abbreviation for readability.
   const fmtAxis = (v: number) => {
     if (viewMode === "income") {
-      if (v >= 1_000) return `₪${Math.round(v / 100) / 10}K`;
-      return `₪${Math.round(v)}`;
+      if (v >= 1_000) return `\u2066${Math.round(v / 100) / 10}K ₪\u2069`;
+      return `\u2066${Math.round(v)} ₪\u2069`;
     }
-    if (v >= 1_000_000) return `₪${(v / 1_000_000).toFixed(v % 1_000_000 === 0 ? 0 : 1)}M`;
-    if (v >= 1_000) return `₪${Math.round(v / 1_000)}K`;
-    return `₪${v}`;
+    if (v >= 1_000_000)
+      return `\u2066${(v / 1_000_000).toFixed(v % 1_000_000 === 0 ? 0 : 1)}M ₪\u2069`;
+    if (v >= 1_000) return `\u2066${Math.round(v / 1_000)}K ₪\u2069`;
+    return `\u2066${v} ₪\u2069`;
   };
 
   // ═══════ Empty state — first-time visitor with no data ═══════
@@ -1298,15 +1299,14 @@ export default function DashboardPage() {
               >
                 {fmtILS(netWorthVal)}
               </div>
-              {nwChange !== null && (
-                <div
-                  className="tabular mt-1 text-[11px] font-bold"
-                  style={{ color: "rgba(249,250,242,0.55)" }}
-                >
-                  {nwChange >= 0 ? "+" : ""}
-                  {fmtILS(nwChange)} מהחודש הקודם
-                </div>
-              )}
+                {nwChange !== null && (
+                  <div
+                    className="tabular mt-1 text-[11px] font-bold"
+                    style={{ color: "rgba(249,250,242,0.55)" }}
+                  >
+                  {fmtILS(nwChange, { signed: true })} מהחודש הקודם
+                  </div>
+                )}
               <div className="mt-4 space-y-2">
                 <div className="pill-inner flex items-center justify-between">
                   <span

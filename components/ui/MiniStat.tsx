@@ -6,6 +6,8 @@
  * Morning treatment: subtle leaf-tinted bg with dark ink text.
  */
 
+import { MoneyText } from "./MoneyText";
+
 interface MiniStatProps {
   label: string;
   value: string;
@@ -36,7 +38,7 @@ export function MiniStat({ label, value, sub, color }: MiniStatProps) {
           fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif",
         }}
       >
-        {value}
+        <MoneyText className="text-[15px] font-bold">{value}</MoneyText>
       </div>
       {sub && (
         <div

@@ -290,7 +290,7 @@ export function FullRefinanceSimulator({ mortgages }: Props) {
                       fontFamily: "inherit",
                     }}
                   >
-                    {positive ? fmtILS(sc.lifetimeSaving) : `−${fmtILS(Math.abs(sc.lifetimeSaving))}`}
+                    {fmtILS(sc.lifetimeSaving, { signed: true })}
                   </div>
                   <div className="space-y-1 text-[11px]" style={{ color: "#6B7280" }}>
                     <div className="flex justify-between">
@@ -305,8 +305,7 @@ export function FullRefinanceSimulator({ mortgages }: Props) {
                         className="tabular-nums"
                         style={{ color: sc.monthlySaving >= 0 ? "#2C7A5A" : "#DC2626" }}
                       >
-                        {sc.monthlySaving >= 0 ? "−" : "+"}
-                        {fmtILS(Math.abs(sc.monthlySaving))}
+                        {fmtILS(sc.monthlySaving, { signed: true })}
                       </span>
                     </div>
                     {sc.breakEvenMonths !== null && (

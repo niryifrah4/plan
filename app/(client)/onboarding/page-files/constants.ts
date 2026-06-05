@@ -4,6 +4,7 @@
  */
 
 import type { IncomeRow, InsRow, Child } from "./types";
+import { fmtILS } from "@/lib/format";
 
 /** Income rows shown by default to every new client; the user can edit/delete.
  *  "שכר" and "הכנסה מנכסים מניבים" are also covered automatically by the
@@ -75,4 +76,4 @@ export const TOTAL_STEPS = STEP_LABELS.length;
 export const n = (v: string | undefined | null): number => Number(v) || 0;
 
 /** ILS formatter for footer sums (rounded to nearest shekel, RTL-safe). */
-export const fmt = (v: number): string => "₪" + Math.round(v).toLocaleString("he-IL");
+export const fmt = (v: number): string => fmtILS(v);

@@ -674,8 +674,7 @@ function CashflowHero({
             fontVariantNumeric: "tabular-nums",
           }}
         >
-          {isPositive ? "+" : ""}
-          {fmtILS(snapshot.net)}
+          {fmtILS(snapshot.net, { signed: true })}
         </span>
       </div>
 
@@ -1092,7 +1091,7 @@ function CategoryTile({
         }}
       >
         {line.actual.toLocaleString("en-US")} /{" "}
-        {line.budget.toLocaleString("en-US")} ₪
+        {fmtILS(line.budget)}
       </div>
 
       {/* Bar + percent as the secondary, smaller signal */}
@@ -1271,7 +1270,7 @@ function FixedRow({
           }}
         >
           {line.actual.toLocaleString("en-US")} /{" "}
-          {line.budget.toLocaleString("en-US")} ₪
+          {fmtILS(line.budget)}
         </div>
         <div style={{ fontSize: 11, color: "var(--morning-muted)", marginTop: 1 }}>
           {Math.round(pct)}%
@@ -1437,4 +1436,3 @@ function InstallmentRow({
     </div>
   );
 }
-

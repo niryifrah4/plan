@@ -20,8 +20,7 @@ import {
   type AccountsData,
 } from "@/lib/accounts-store";
 import { syncInstrumentsToAccounts, AUTO_SYNC_BADGE } from "@/lib/accounts-sync";
-
-const fmtILS = (n: number) => `₪${n.toLocaleString("he-IL")}`;
+import { fmtILS } from "@/lib/format";
 const today = () => new Date().toISOString().split("T")[0];
 
 /** Days from today until the next occurrence of `day` of the month.

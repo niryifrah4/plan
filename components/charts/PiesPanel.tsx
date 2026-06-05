@@ -19,6 +19,8 @@
  */
 
 import type { ReactNode } from "react";
+import { MoneyText } from "@/components/ui/MoneyText";
+import { fmtILS } from "@/lib/format";
 
 export interface PieSlice {
   /** Stable key for React. */
@@ -159,9 +161,9 @@ function Donut({
                 <span className="flex-1 truncate font-bold text-verdant-ink">{slice.label}</span>
                 <span className="tabular text-verdant-muted">{Math.round(slice.pct)}%</span>
                 {showILS && typeof slice.ils === "number" && slice.ils > 0 && (
-                  <span className="tabular text-[11px] text-verdant-muted">
-                    {slice.ils.toLocaleString()}₪
-                  </span>
+                  <MoneyText className="tabular text-[11px] text-verdant-muted">
+                    {fmtILS(slice.ils)}
+                  </MoneyText>
                 )}
               </div>
             ))}

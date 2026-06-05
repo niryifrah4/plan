@@ -11,6 +11,7 @@
  */
 
 import { useLiveMacro, type LiveMacro } from "@/lib/hooks/useLiveMacro";
+import { fmtILS } from "@/lib/format";
 
 /** Last-known-good fallback for when the live endpoint is unreachable
  *  (e.g. unauth'd page hit, BoI timeout). Kept aligned with
@@ -30,10 +31,6 @@ const STATIC_FALLBACK: LiveMacro = {
 
 function fmtPct(decimal: number): string {
   return `${(decimal * 100).toFixed(2)}%`;
-}
-
-function fmtIls(n: number): string {
-  return `₪${n.toFixed(2)}`;
 }
 
 function fmtUpdatedAt(iso: string): string {
@@ -102,7 +99,7 @@ export function MacroStrip() {
   if (data.usd != null) {
     items.push({
       label: "דולר",
-      value: fmtIls(data.usd),
+      value: fmtILS(data.usd),
       live: data.source.usd === "live",
     });
   }

@@ -2247,7 +2247,7 @@ function BudgetSection({
             const a = hasSubs ? rowEffective(row, "actual") : Number(row.actual) || 0;
             const gap = b - a;
             const gapPositive = isIncome ? gap <= 0 : gap >= 0;
-            const gapStr = (gap > 0 ? "+" : gap < 0 ? "−" : "") + fmtILS(Math.abs(gap));
+            const gapStr = fmtILS(gap, { signed: true });
             const subOverspend = hasSubOverspend(row);
 
             return (
@@ -2473,7 +2473,7 @@ function BudgetSection({
                       const sa = Number(sub.actual) || 0;
                       const sg = sb - sa;
                       const sgPositive = isIncome ? sg <= 0 : sg >= 0;
-                      const sgStr = (sg > 0 ? "+" : sg < 0 ? "−" : "") + fmtILS(Math.abs(sg));
+                      const sgStr = fmtILS(sg, { signed: true });
                       const subOver = !isIncome && sa > sb && sb > 0;
 
                       return (

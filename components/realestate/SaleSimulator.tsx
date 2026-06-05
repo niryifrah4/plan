@@ -258,7 +258,7 @@ function Row({
           fontSize: bold ? "16px" : "13px",
         }}
       >
-        {value < 0 ? `−${fmtILS(Math.abs(value))}` : fmtILS(value)}
+        {fmtILS(value, { signed: true })}
       </span>
     </div>
   );

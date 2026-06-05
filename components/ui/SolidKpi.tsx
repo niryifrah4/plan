@@ -7,6 +7,9 @@
  * tone is communicated by a thin right-edge accent stripe.
  */
 
+import type { ReactNode } from "react";
+import { MoneyText } from "./MoneyText";
+
 export type KpiTone = "forest" | "emerald" | "mint" | "sage" | "red" | "amber" | "ink";
 
 const ACCENT_COLOR: Record<KpiTone, string> = {
@@ -79,7 +82,7 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg, title }
             fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif",
           }}
         >
-          {value}
+          <MoneyText className="text-2xl font-bold leading-tight">{value}</MoneyText>
         </div>
         {sub && (
           <div className="mt-1 text-[11px]" style={{ color: "rgba(255,255,255,0.85)" }}>
@@ -138,7 +141,7 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg, title }
           letterSpacing: "-0.01em",
         }}
       >
-        {value}
+        <MoneyText className="text-2xl font-bold leading-tight">{value}</MoneyText>
       </div>
 
       {sub && (
@@ -153,6 +156,6 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg, title }
   );
 }
 
-export function SolidKpiRow({ children }: { children: React.ReactNode }) {
+export function SolidKpiRow({ children }: { children: ReactNode }) {
   return <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">{children}</section>;
 }

@@ -21,6 +21,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { fmtILS } from "@/lib/format";
 import type { ParsedTransaction } from "@/lib/doc-parser/types";
 import { scopedKey } from "@/lib/client-scope";
 import {
@@ -30,8 +31,6 @@ import {
 import { isBusinessScopeEnabled, BUSINESS_SCOPE_EVENT } from "@/lib/business-scope";
 
 const STORAGE_KEY = "verdant:parsed_transactions";
-
-const fmtILS = (n: number): string => "₪" + Math.abs(Math.round(n)).toLocaleString("he-IL");
 
 function loadParsedTransactions(): ParsedTransaction[] {
   if (typeof window === "undefined") return [];

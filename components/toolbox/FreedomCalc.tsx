@@ -148,7 +148,7 @@ export function FreedomCalc() {
                 הפרש דינמי
               </div>
               <div className="tabular text-sm font-bold" style={{ color: "#d97706" }}>
-                +{fmtILS(dynamic.freedomNumber - staticNum)}
+                {fmtILS(dynamic.freedomNumber - staticNum, { signed: true })}
               </div>
             </div>
           </div>

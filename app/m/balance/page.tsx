@@ -292,8 +292,7 @@ function NetWorthHero({
           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
             {delta.diff >= 0 ? "trending_up" : "trending_down"}
           </span>
-          {delta.diff >= 0 ? "+" : ""}
-          {fmtILS(delta.diff)} ({delta.pct >= 0 ? "+" : ""}
+          {fmtILS(delta.diff, { signed: true })} ({delta.pct >= 0 ? "+" : ""}
           {delta.pct.toFixed(1)}%)
           <span style={{ opacity: 0.7, fontWeight: 500 }}> מהצילום הקודם</span>
         </div>

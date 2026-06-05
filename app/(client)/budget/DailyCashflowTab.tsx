@@ -253,8 +253,8 @@ export function DailyCashflowTab() {
             color={endBalColor}
             hint={
               traj.endingBalance >= data.openingBalance
-                ? `+${fmtILS(traj.endingBalance - data.openingBalance)}`
-                : `−${fmtILS(data.openingBalance - traj.endingBalance)}`
+                ? fmtILS(traj.endingBalance - data.openingBalance, { signed: true })
+                : fmtILS(traj.endingBalance - data.openingBalance, { signed: true })
             }
           />
         </div>

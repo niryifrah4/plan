@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { fmtILS } from "@/lib/format";
 import { scopedKey } from "@/lib/client-scope";
 
 /* ═══════════════════════════════════════════════════════════
@@ -354,7 +355,7 @@ function getChildrenInsight(month: number, childCount: number): SeasonalInsight 
     return {
       icon: "👨‍👩‍👧‍👦",
       title: `${childCount} ילדים — קייטנות ופעילויות קיץ`,
-      body: `עם ${childCount} ילדים, הוצאות הקיץ יכולות להגיע ל-₪${(childCount * 2500).toLocaleString("he-IL")}+ על קייטנות בלבד. מומלץ להגדיל תקציב חינוך ופנאי.`,
+      body: `עם ${childCount} ילדים, הוצאות הקיץ יכולות להגיע ל-${fmtILS(childCount * 2500)}+ על קייטנות בלבד. מומלץ להגדיל תקציב חינוך ופנאי.`,
       adjustments: [
         {
           sectionKey: "fixed",
