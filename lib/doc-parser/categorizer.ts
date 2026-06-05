@@ -938,6 +938,7 @@ export const CATEGORIES: Category[] = [
 /* ──────── User Override Storage (Persistent ML) ──────── */
 import { scopedKey } from "../client-scope";
 import { extractBitRecipient } from "./normalizer";
+import { findMerchantCategoryRule } from "./merchant-category-rules";
 
 const OVERRIDES_KEY = "verdant:category_overrides";
 
@@ -1117,6 +1118,14 @@ export function categorize(description: string): {
         if (cat) return { key: cat.key, label: cat.label, confidence: 1.0 };
       }
     }
+  }
+
+  // 1b. Merchant-name rules — if the user mapped this business before, use
+  // that category for future uploads even when the raw text varies.
+  const merchantRule = findMerchantCategoryRule(description);
+  if (merchantRule) {
+    const cat = CATEGORIES.find((c) => c.key === merchantRule.categoryKey);
+    if (cat) return { key: cat.key, label: cat.label, confidence: 1.0 };
   }
 
   // 2. Longest keyword match

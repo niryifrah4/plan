@@ -81,9 +81,9 @@ export function normalizeSupplier(description: string): string {
  */
 export function extractBitRecipient(description: string): string | null {
   const cleaned = description.replace(/[\u200F\u200E"]/g, "").trim();
-  const platformRx = /^(?:ביט|bit|paybox|pay\s*box|pepper|פפר)\b[\s\-:,/]*/i;
+  const platformRx = /^(?:ביט|bit|paybox|pay\s*box|pepper|פפר)(?:\b|(?=[\s\-:,/]))[\s\-:,/]*/i;
   // Also catch "POALIM PAYBOX" / "BIT POALIM" prefixes used by Hapoalim
-  const bankPlatformRx = /^(?:poalim|hapoalim|הפועלים|leumi|לאומי)\s*(?:bit|paybox|ביט|פייבוקס)\s*[\s\-:,/]*/i;
+  const bankPlatformRx = /^(?:poalim|hapoalim|הפועלים|leumi|לאומי)\s*(?:bit|paybox|ביט|פייבוקס)(?:\b|(?=[\s\-:,/]))[\s\-:,/]*/i;
 
   let rest = cleaned;
   if (bankPlatformRx.test(rest)) {

@@ -7,6 +7,7 @@ import { matchSynonym, detectBank } from "../synonyms";
 import { parseILNumber, parseILDate, cleanAmount } from "../number-utils";
 import { categorize } from "../categorizer";
 import { normalizeSupplier, isInternalTransfer, getTier, groupByTier } from "../normalizer";
+import { getMerchantKey, matchMerchantCategoryRule } from "../merchant-category-rules";
 import { detectRecurring } from "../recurring";
 import { analyzeBurnRate } from "../burn-rate";
 import type { ParsedTransaction } from "../types";
@@ -120,6 +121,23 @@ assert("netflix → נטפליקס", normalizeSupplier("netflix.com"), "נטפל
 assert("spotify → ספוטיפיי", normalizeSupplier("spotify ab"), "ספוטיפיי");
 assert("סופר-פארם → סופר פארם", normalizeSupplier("סופר-פארם"), "סופר פארם");
 assert("unknown stays same", normalizeSupplier("ABC Corp"), "ABC Corp");
+
+console.log("\n═══ 6b. Merchant Name Rules ═══");
+assert("merchant key groups shufersal variants", getMerchantKey("שופרסל דיל סניף 42"), "שופרסל");
+assert("merchant key groups bit recipient", getMerchantKey("ביט - שלמה גואטה"), "bit:שלמה גואטה");
+const sampleRules = [
+  {
+    merchantKey: "שופרסל",
+    categoryKey: "food",
+    count: 1,
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
+];
+assert(
+  "merchant rule matches supplier variation",
+  matchMerchantCategoryRule("שופרסל אקספרס", sampleRules)?.categoryKey,
+  "food"
+);
 
 console.log("\n═══ 7. Internal Transfer Detection ═══");
 assert("העברה בין חשבונות", isInternalTransfer("העברה בין חשבונות"), true);
