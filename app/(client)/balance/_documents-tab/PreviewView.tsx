@@ -18,6 +18,7 @@ import type { ParsedDocument, ParsedTransaction } from "@/lib/doc-parser/types";
 import { CAT_OPTIONS } from "@/lib/documents-categories";
 import { groupOptionsByParent } from "@/lib/doc-parser/category-tree";
 import { fmtILS } from "@/lib/format";
+import { MoneyText } from "@/components/ui/MoneyText";
 import { getBankIcon } from "./banks";
 import { MiniKPI } from "./MiniKPI";
 
@@ -147,7 +148,7 @@ export function PreviewView({
           />
           <MiniKPI
             label="חיובים נטו"
-            value={(netCharges >= 0 ? "-" : "+") + fmtILS(netCharges)}
+            value={fmtILS(netCharges, { signed: true })}
             color={netCharges >= 0 ? "#DC2626" : "#2C7A5A"}
           />
         </div>
@@ -384,8 +385,10 @@ function ReviewRow({
         className="tabular w-24 px-3 py-2 text-left text-xs font-extrabold"
         style={{ color: tx.amount > 0 ? "#DC2626" : "#2C7A5A" }}
       >
-        {tx.amount > 0 ? "-" : "+"}
-        {fmtILS(tx.amount)}
+        <MoneyText className="text-xs font-extrabold">
+          {tx.amount > 0 ? "-" : "+"}
+          {fmtILS(Math.abs(tx.amount))}
+        </MoneyText>
       </td>
       <td className="w-10 px-3 py-2 text-center">
         <button
@@ -582,8 +585,10 @@ function MappedRow({
         className="tabular w-24 px-3 py-2 text-left text-xs font-extrabold"
         style={{ color: tx.amount > 0 ? "#DC2626" : "#2C7A5A" }}
       >
-        {tx.amount > 0 ? "-" : "+"}
-        {fmtILS(tx.amount)}
+        <MoneyText className="text-xs font-extrabold">
+          {tx.amount > 0 ? "-" : "+"}
+          {fmtILS(Math.abs(tx.amount))}
+        </MoneyText>
       </td>
       <td className="w-10 px-3 py-2 text-center">
         <button
