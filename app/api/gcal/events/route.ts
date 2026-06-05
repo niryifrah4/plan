@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { fetchUpcomingEvents, createCalendarEvent } from "@/lib/google-calendar";
+import { requireUser } from "@/lib/supabase/require-user";
 
 /**
  * GET /api/gcal/events — fetch upcoming calendar events
  */
 export async function GET() {
+  const auth = await requireUser();
+  if ("response" in auth) return auth.response;
+
   const cookieStore = cookies();
   const accessToken = cookieStore.get("gcal_access_token")?.value;
   const refreshToken = cookieStore.get("gcal_refresh_token")?.value;
@@ -28,6 +32,9 @@ export async function GET() {
  * Body: { summary, description, startDateTime, endDateTime }
  */
 export async function POST(req: NextRequest) {
+  const auth = await requireUser();
+  if ("response" in auth) return auth.response;
+
   const cookieStore = cookies();
   const accessToken = cookieStore.get("gcal_access_token")?.value;
   const refreshToken = cookieStore.get("gcal_refresh_token")?.value;

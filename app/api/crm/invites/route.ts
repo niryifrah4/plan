@@ -132,11 +132,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const fwdProto = req.headers.get("x-forwarded-proto") || "https";
-    const fwdHost = req.headers.get("x-forwarded-host") || req.headers.get("host");
-    const origin = fwdHost
-      ? `${fwdProto}://${fwdHost}`
-      : process.env.NEXT_PUBLIC_BASE_URL || new URL(req.url).origin;
+    const origin = process.env.NEXT_PUBLIC_BASE_URL || new URL(req.url).origin;
     const inviteUrl = `${origin}/login?invite=${encodeURIComponent(token)}`;
 
     // 2026-05-01 per Nir: advisor can set password directly. If a password

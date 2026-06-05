@@ -9,6 +9,7 @@ import { useAutoSave } from "@/hooks/useAutoSave";
 import { SaveIndicator } from "@/components/SaveIndicator";
 import { InviteClientButton } from "@/components/crm/InviteClientButton";
 import { SolidKpi } from "@/components/ui/SolidKpi";
+import { clearGoogleCalendarSession } from "@/lib/auth";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -651,6 +652,7 @@ export default function CrmPage() {
                 // `plan_impersonate_hh` cookie surviving across logouts could
                 // let the next session jump straight into the last household.
                 await fetch("/api/crm/impersonate", { method: "DELETE" }).catch(() => {});
+                await clearGoogleCalendarSession();
                 const supabase = getSupabaseBrowser();
                 if (supabase) await supabase.auth.signOut();
               } catch {

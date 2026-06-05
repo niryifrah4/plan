@@ -26,12 +26,13 @@ export function getOAuth2Client() {
 }
 
 /** Generate the consent URL that opens Google's account picker */
-export function getAuthUrl(): string {
+export function getAuthUrl(state?: string): string {
   const oauth2 = getOAuth2Client();
   return oauth2.generateAuthUrl({
     access_type: "offline", // gets refresh_token
     prompt: "consent", // always show account picker
     scope: SCOPES,
+    ...(state ? { state } : {}),
   });
 }
 

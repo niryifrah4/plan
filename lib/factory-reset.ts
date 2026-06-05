@@ -9,6 +9,8 @@
  * all client data) for future UI use.
  */
 
+import { clearGoogleCalendarSession } from "./auth";
+
 const VERSION_KEY = "verdant:factory_reset_version";
 /**
  * Bump this string to trigger a clean wipe on every browser on next load.
@@ -111,6 +113,7 @@ async function wipeBrowserState(opts: { keepAuth?: boolean } = {}): Promise<void
 
     // Supabase explicit sign-out (also kills the auth cookie).
     try {
+      await clearGoogleCalendarSession();
       const { getSupabaseBrowser, isSupabaseConfigured } = await import("./supabase/browser");
       if (isSupabaseConfigured()) {
         const supabase = getSupabaseBrowser();

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUrl } from "@/lib/google-calendar";
+import { randomBytes } from "crypto";
 
 /**
  * GET /api/gcal/auth
@@ -7,15 +8,21 @@ import { getAuthUrl } from "@/lib/google-calendar";
  * If credentials aren't set, redirects back to CRM with friendly error.
  */
 export async function GET(req: NextRequest) {
-  const fwdProto = req.headers.get("x-forwarded-proto") || "https";
-  const fwdHost = req.headers.get("x-forwarded-host") || req.headers.get("host");
   const publicOrigin =
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    (fwdHost ? `${fwdProto}://${fwdHost}` : new URL(req.url).origin);
+    process.env.NEXT_PUBLIC_BASE_URL || new URL(req.url).origin;
 
   try {
-    const url = getAuthUrl();
-    return NextResponse.redirect(url);
+    const state = randomBytes(16).toString("base64url");
+    const url = getAuthUrl(state);
+    const res = NextResponse.redirect(url);
+    res.cookies.set("gcal_oauth_state", state, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 10, // 10 minutes
+    });
+    return res;
   } catch {
     // No credentials configured — redirect back with error param
     return NextResponse.redirect(

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { exchangeCode } from "@/lib/google-calendar";
 import { cookies } from "next/headers";
 
+const OAUTH_STATE_COOKIE = "gcal_oauth_state";
+
 /**
  * GET /api/gcal/callback?code=...
  * Google redirects here after consent. Exchanges code for tokens.
@@ -10,19 +12,33 @@ import { cookies } from "next/headers";
  */
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
-  const fwdProto = req.headers.get("x-forwarded-proto") || "https";
-  const fwdHost = req.headers.get("x-forwarded-host") || req.headers.get("host");
+  const state = req.nextUrl.searchParams.get("state");
   const publicOrigin =
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    (fwdHost ? `${fwdProto}://${fwdHost}` : new URL(req.url).origin);
+    process.env.NEXT_PUBLIC_BASE_URL || new URL(req.url).origin;
+  const cookieStore = cookies();
+  const expectedState = cookieStore.get(OAUTH_STATE_COOKIE)?.value || null;
+
+  // Clear the one-time state cookie regardless of outcome.
+  cookieStore.set(OAUTH_STATE_COOKIE, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
+  });
 
   if (!code) {
     return NextResponse.redirect(new URL("/crm?gcal=error&reason=no_code", publicOrigin));
   }
 
+  if (!state || !expectedState || state !== expectedState) {
+    return NextResponse.redirect(
+      new URL("/crm?gcal=error&reason=invalid_state", publicOrigin)
+    );
+  }
+
   try {
     const tokens = await exchangeCode(code);
-    const cookieStore = cookies();
 
     // Store tokens securely in HTTP-only cookies
     if (tokens.access_token) {

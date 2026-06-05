@@ -65,6 +65,20 @@ export async function isAuthenticated(): Promise<boolean> {
   return user !== null;
 }
 
+/** Clear Google Calendar cookies for the current browser session. */
+export async function clearGoogleCalendarSession(): Promise<void> {
+  if (typeof window === "undefined" || !isSupabaseConfigured()) return;
+
+  try {
+    await fetch("/api/gcal/disconnect", {
+      method: "POST",
+      cache: "no-store",
+    });
+  } catch {
+    // Best effort — logout must continue even if the cookie clear fails.
+  }
+}
+
 /** Get user role */
 export async function getUserRole(): Promise<AppUser["role"]> {
   const user = await getCurrentUser();
@@ -78,6 +92,7 @@ export async function signOut(): Promise<void> {
     return;
   }
 
+  await clearGoogleCalendarSession();
   const sb = getSupabaseBrowser();
   if (sb) {
     await sb.auth.signOut();
