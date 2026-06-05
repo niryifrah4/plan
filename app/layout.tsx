@@ -50,6 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="he" dir="rtl" className={`${heebo.variable} ${rubik.variable}`}>
       <head>
+        <meta name="mobile-web-app-capable" content="yes" />
         {/* Material Symbols — kept as blocking stylesheet for now. Replacing
             the icon-by-icon usage with inline SVG would be a larger sweep;
             the first-paint win this commit focuses on comes from dropping

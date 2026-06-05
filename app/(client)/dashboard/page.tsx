@@ -134,7 +134,7 @@ const CHART_RANGES: { key: ChartRange; label: string }[] = [
 ];
 
 export default function DashboardPage() {
-  const { familyName, loading, clientId } = useClient();
+  const { familyName, clientId } = useClient();
   const [reProperties, setReProperties] = useState<ReturnType<typeof loadProperties>>([]);
 
   // Real cashflow from budget store. Empty array when no real data — never show demo.
@@ -212,8 +212,24 @@ export default function DashboardPage() {
   /** capital = net-worth mountain. income = monthly retirement income layers. */
   const [viewMode, setViewMode] = useState<"capital" | "income">("capital");
   const [targetRetireIncome, setTargetRetireIncome] = useState(0);
+  const [hasOnboardingFields, setHasOnboardingFields] = useState(false);
   useEffect(() => {
     setTargetRetireIncome(loadTargetRetirementIncome());
+  }, [clientId]);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(scopedKey("verdant:onboarding:fields"));
+      if (!raw) {
+        setHasOnboardingFields(false);
+        return;
+      }
+      const fields = JSON.parse(raw);
+      setHasOnboardingFields(
+        !!fields && Object.values(fields).some((v) => String(v ?? "").trim() !== "")
+      );
+    } catch {
+      setHasOnboardingFields(false);
+    }
   }, [clientId]);
 
   useEffect(() => {
