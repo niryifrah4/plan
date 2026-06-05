@@ -43,6 +43,10 @@ function normalize(desc: string): string {
     .trim();
 }
 
+export function getExcludedMerchantKey(description: string): string {
+  return normalize(description);
+}
+
 export function loadExcludedMerchants(): ExcludedMerchant[] {
   if (typeof window === "undefined") return [];
   try {
@@ -68,7 +72,7 @@ function saveExcludedMerchants(items: ExcludedMerchant[]): void {
  * so "שופרסל סניף 42" and "שופרסל אקספרס" collapse into one entry.
  */
 export function excludeMerchant(description: string, reason?: string): void {
-  const key = normalize(description);
+  const key = getExcludedMerchantKey(description);
   if (!key) return;
   const current = loadExcludedMerchants();
   if (current.some((m) => m.normalizedKey === key)) return; // already excluded
@@ -89,7 +93,7 @@ export function unexcludeMerchant(normalizedKey: string): void {
 
 /** Returns true if the given description matches any excluded merchant. */
 export function isExcluded(description: string): boolean {
-  const key = normalize(description);
+  const key = getExcludedMerchantKey(description);
   if (!key) return false;
   const set = new Set(loadExcludedMerchants().map((m) => m.normalizedKey));
   return set.has(key);
@@ -102,5 +106,5 @@ export function buildExcludedSet(): Set<string> {
 
 /** Test a description against a pre-built Set. */
 export function isExcludedIn(set: Set<string>, description: string): boolean {
-  return set.has(normalize(description));
+  return set.has(getExcludedMerchantKey(description));
 }

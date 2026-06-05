@@ -23,7 +23,7 @@ export function UnmappedNudge() {
 
   return (
     <Link
-      href="/files"
+      href="/files#unmapped-queue-ai"
       dir="rtl"
       className="mb-4 flex items-center justify-between gap-3 rounded-xl px-4 py-3 transition-opacity hover:opacity-90"
       style={{

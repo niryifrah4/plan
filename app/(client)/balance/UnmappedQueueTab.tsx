@@ -39,6 +39,11 @@ import {
   excludeMerchant,
   buildExcludedSet,
   EXCLUDED_EVENT,
+  getExcludedMerchantKey,
+  loadExcludedMerchants,
+  isExcludedIn,
+  unexcludeMerchant,
+  type ExcludedMerchant,
 } from "@/lib/doc-parser/excluded-merchants";
 import {
   excludeMerchantKey,
@@ -83,6 +88,8 @@ export function UnmappedQueueTab() {
   const [businessEnabled, setBusinessEnabled] = useState(false);
   /** Refreshed via window event whenever the excluded list changes. */
   const [excludedSet, setExcludedSet] = useState<Set<string>>(new Set());
+  /** Full list for the modal that shows hidden businesses. */
+  const [excludedMerchants, setExcludedMerchants] = useState<ExcludedMerchant[]>([]);
   /** Merchant-key exclusions for "never show this business again". */
   const [excludedMerchantKeys, setExcludedMerchantKeys] = useState<Set<string>>(new Set());
   /** AI re-categorization state. */
@@ -96,6 +103,8 @@ export function UnmappedQueueTab() {
   const [merchantModalOpen, setMerchantModalOpen] = useState(false);
   const [merchantModalFocusKey, setMerchantModalFocusKey] = useState<string | null>(null);
   const [merchantSelections, setMerchantSelections] = useState<Record<string, string>>({});
+  /** Hidden-businesses modal state. */
+  const [excludedModalOpen, setExcludedModalOpen] = useState(false);
 
   useEffect(() => {
     setTransactions(loadTransactions());
@@ -130,6 +139,17 @@ export function UnmappedQueueTab() {
     return () => {
       window.removeEventListener(EXCLUDED_EVENT, handler);
       window.removeEventListener("storage", handler);
+    };
+  }, []);
+
+  useEffect(() => {
+    const refresh = () => setExcludedMerchants(loadExcludedMerchants());
+    refresh();
+    window.addEventListener(EXCLUDED_EVENT, refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener(EXCLUDED_EVENT, refresh);
+      window.removeEventListener("storage", refresh);
     };
   }, []);
 
@@ -247,6 +267,27 @@ export function UnmappedQueueTab() {
     if (!filterBusinessOnly) return groups;
     return groups.filter((g) => g.txIndices.some((i) => transactions[i]?.scope === "business"));
   }, [groups, filterBusinessOnly, transactions]);
+
+  useEffect(() => {
+    if (window.location.hash !== "#unmapped-queue-ai") return;
+
+    const timers: number[] = [];
+    const scrollToAiAction = () => {
+      document.getElementById("unmapped-queue-ai")?.scrollIntoView({
+        block: "start",
+        behavior: "auto",
+      });
+    };
+
+    scrollToAiAction();
+    for (const delay of [100, 300, 700, 1200]) {
+      timers.push(window.setTimeout(scrollToAiAction, delay));
+    }
+
+    return () => {
+      for (const timer of timers) window.clearTimeout(timer);
+    };
+  }, []);
 
   const merchantModalGroups: MerchantMappingGroup[] = useMemo(() => {
     const map = new Map<string, MerchantMappingGroup>();
@@ -503,13 +544,28 @@ export function UnmappedQueueTab() {
     [transactions]
   );
 
-  /* Exclude a merchant group entirely. Future transactions from that
-   * normalized supplier never appear in the queue OR in cashflow. The
-   * existing rows stay in storage so totals from past periods stay reproducible. */
+  /* Toggle a merchant group in the exclusion registry. Future transactions
+   * from that normalized supplier are hidden from the queue and cashflow;
+   * clicking again restores them if the user marked it by mistake. */
   const handleExcludeMerchant = useCallback((group: MerchantGroup) => {
+    if (isExcludedIn(excludedSet, group.displaySample)) {
+      unexcludeMerchant(getExcludedMerchantKey(group.displaySample));
+      return;
+    }
     excludeMerchant(group.displaySample);
     // The buildExcludedSet event handler will refresh excludedSet → memo re-runs → group disappears.
-  }, []);
+  }, [excludedSet]);
+
+  const toggleHiddenMerchant = useCallback(
+    (normalizedKey: string) => {
+      if (excludedSet.has(normalizedKey)) {
+        unexcludeMerchant(normalizedKey);
+        return;
+      }
+      excludeMerchant(normalizedKey);
+    },
+    [excludedSet]
+  );
 
   /* "סווג מחדש עם AI" — bulk-classify everything in the queue via Claude
    * Haiku. Past corrections are fed into the prompt so the model can mirror
@@ -714,7 +770,7 @@ export function UnmappedQueueTab() {
   return (
     <div className="mx-auto max-w-5xl space-y-4" dir="rtl">
       {/* Action bar — AI button + hint + optional business filter */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div id="unmapped-queue-ai" className="flex flex-wrap items-center gap-3 scroll-mt-24">
         <button
           onClick={handleAiRecategorize}
           disabled={aiRunning || stats.groupCount === 0}
@@ -729,6 +785,15 @@ export function UnmappedQueueTab() {
         <span className="text-[11px] text-verdant-muted">
           Claude Haiku בודק את כל ה-{stats.groupCount} הקבוצות לפי הקטגוריות וההיסטוריה שלך
         </span>
+        <button
+          type="button"
+          onClick={() => setExcludedModalOpen(true)}
+          className="ml-auto flex items-center gap-1 rounded-full border px-3 py-1.5 text-[11px] font-extrabold transition-all hover:bg-white"
+          style={{ borderColor: "#E5E7EB", background: "#FFFFFF", color: "#374151" }}
+        >
+          <span className="material-symbols-outlined text-[14px]">visibility_off</span>
+          עסקים מוסתרים ({excludedMerchants.length})
+        </button>
         {aiResult && (
           <span
             className="rounded-md px-2 py-1 text-[11px] font-bold"
@@ -846,11 +911,138 @@ export function UnmappedQueueTab() {
         }}
         onSave={handleMerchantModalSave}
       />
+
+      <HiddenMerchantsModal
+        open={excludedModalOpen}
+        items={excludedMerchants}
+        onClose={() => setExcludedModalOpen(false)}
+        onToggle={toggleHiddenMerchant}
+      />
     </div>
   );
 }
 
 /* ═══════════════════ Sub-components ═══════════════════ */
+
+function HiddenMerchantsModal({
+  open,
+  items,
+  onClose,
+  onToggle,
+}: {
+  open: boolean;
+  items: ExcludedMerchant[];
+  onClose: () => void;
+  onToggle: (displaySample: string) => void;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-3 md:p-6"
+      style={{ background: "rgba(10,25,41,0.55)" }}
+      onClick={onClose}
+      dir="rtl"
+      role="presentation"
+    >
+      <div
+        className="my-auto w-full max-w-3xl overflow-hidden rounded-2xl"
+        style={{ background: "#FFFFFF", boxShadow: "0 24px 60px rgba(10, 25, 41, 0.22)" }}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="עסקים מוסתרים"
+        dir="rtl"
+      >
+        <div className="flex items-start justify-between border-b px-5 py-4" style={{ borderColor: "#FAFAF7" }}>
+          <div className="min-w-0 text-right">
+            <h2 className="text-base font-extrabold text-verdant-ink">עסקים מוסתרים</h2>
+            <div className="mt-1 text-[11px] font-bold text-verdant-muted">
+              העסקים שסימנת כך שלא יחזרו בעתיד. אפשר לבטל כל סימון בלחיצה.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-verdant-bg"
+            title="סגור"
+            aria-label="סגור"
+          >
+            <span className="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+
+        <div className="max-h-[70vh] overflow-y-auto p-4 md:p-5">
+          {items.length === 0 ? (
+            <div className="rounded-xl border border-dashed px-4 py-8 text-center text-sm font-bold text-verdant-muted">
+              אין עדיין עסקים מוסתרים.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {items
+                .slice()
+                .sort((a, b) => b.addedAt.localeCompare(a.addedAt))
+                .map((item) => (
+                  <div
+                    key={item.normalizedKey}
+                    className="rounded-2xl border p-4"
+                    style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
+                  >
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div className="min-w-0 text-right">
+                        <div className="truncate text-sm font-extrabold text-verdant-ink">
+                          {item.displaySample}
+                        </div>
+                        <div className="mt-1 text-[11px] font-bold text-verdant-muted">
+                          הוסתר ב-{new Date(item.addedAt).toLocaleDateString("he-IL")}
+                          {item.reason ? ` · ${item.reason}` : ""}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onToggle(item.normalizedKey)}
+                        className="rounded-xl border px-3 py-2 text-[11px] font-extrabold transition hover:bg-red-50"
+                        style={{ borderColor: "#FCA5A5", color: "#B91C1C" }}
+                      >
+                        בטל הסתרה
+                      </button>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between border-t px-5 py-4" style={{ borderColor: "#FAFAF7" }}>
+          <div className="text-[11px] font-bold text-verdant-muted">
+            ביטול ההסתרה יחזיר את העסק לתור הפענוח ולתזרים.
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg bg-verdant-emerald px-4 py-2 text-sm font-extrabold text-white transition hover:opacity-95"
+          >
+            סגור
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function QueueSection({
   title,
@@ -1037,11 +1229,11 @@ function QueueRow({
           <button
             type="button"
             onClick={onExclude}
-            title="לחץ כדי לבטל את הסימון"
+            title="לחץ כדי לבטל את ההסתרה"
             className="rounded-full px-2.5 py-1 text-[10px] font-extrabold"
             style={{ background: "rgba(220,38,38,0.12)", color: "#DC2626", cursor: "pointer" }}
           >
-            מסומן לא להציג שוב
+            מוסתר - לחץ לביטול
           </button>
         )}
         {businessEnabled && (
@@ -1088,11 +1280,17 @@ function QueueRow({
         </select>
         <button
           onClick={onExclude}
-          title="סנן ספק זה מהתזרים — לא יופיע בתור פענוח ולא בתזרים. עסקאות קיימות נשארות בהיסטוריה."
+          title={
+            isExcluded
+              ? "בטל הסתרה — יחזור להופיע בתור הפענוח ובתזרים"
+              : "סנן ספק זה מהתזרים — לא יופיע בתור פענוח ולא בתזרים. עסקאות קיימות נשארות בהיסטוריה."
+          }
           className="flex h-9 w-9 items-center justify-center rounded-lg border transition-all hover:bg-red-50"
           style={{ borderColor: "#E5E7EB", color: "#9CA3AF" }}
         >
-          <span className="material-symbols-outlined text-[16px]">visibility_off</span>
+          <span className="material-symbols-outlined text-[16px]">
+            {isExcluded ? "visibility" : "visibility_off"}
+          </span>
         </button>
       </div>
 
@@ -1138,11 +1336,11 @@ function QueueRow({
             <button
               type="button"
               onClick={onExclude}
-              title="לחץ כדי לבטל את הסימון"
+              title="לחץ כדי לבטל את ההסתרה"
               className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-extrabold"
               style={{ background: "rgba(220,38,38,0.12)", color: "#DC2626", cursor: "pointer" }}
             >
-              מסומן לא להציג שוב
+              מוסתר - לחץ לביטול
             </button>
           )}
         </div>
@@ -1150,11 +1348,17 @@ function QueueRow({
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <button
             onClick={onExclude}
-            title="סנן ספק זה מהתזרים — לא יופיע בתור פענוח ולא בתזרים. עסקאות קיימות נשארות בהיסטוריה."
+            title={
+              isExcluded
+                ? "בטל הסתרה — יחזור להופיע בתור הפענוח ובתזרים"
+                : "סנן ספק זה מהתזרים — לא יופיע בתור פענוח ולא בתזרים. עסקאות קיימות נשארות בהיסטוריה."
+            }
             className="flex h-10 w-10 items-center justify-center rounded-lg border transition-all hover:bg-red-50"
             style={{ borderColor: "#E5E7EB", color: "#9CA3AF" }}
           >
-            <span className="material-symbols-outlined text-[16px]">visibility_off</span>
+            <span className="material-symbols-outlined text-[16px]">
+              {isExcluded ? "visibility" : "visibility_off"}
+            </span>
           </button>
           {businessEnabled && (
             <button

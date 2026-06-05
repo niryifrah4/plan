@@ -72,10 +72,12 @@ export function MerchantMappingModal({
 
   if (!open) return null;
 
-  const changedCount = groupsBySize.filter((g) => {
+  const dirtyGroups = groupsBySize.filter((g) => {
     const selected = selectedCategories[g.merchantKey] || "";
     return selected && selected !== g.suggestedCategory;
-  }).length;
+  });
+  const changedCount = dirtyGroups.length;
+  const changedTxCount = dirtyGroups.reduce((sum, g) => sum + g.count, 0);
 
   return (
     <div
@@ -116,7 +118,9 @@ export function MerchantMappingModal({
           <div className="flex flex-wrap items-center gap-3 text-[11px] font-bold text-verdant-muted">
             <span>קבוצות פתוחות: {groupsBySize.length}</span>
             <span>•</span>
-            <span>בחירות חדשות: {changedCount}</span>
+            <span>לשמירה: {changedCount} קבוצות</span>
+            <span>•</span>
+            <span>{changedTxCount} תנועות ייצאו מהתור</span>
             <span>•</span>
             <span>למקרים חריגים, משאירים שורה בודדת בתור הרגיל</span>
           </div>
@@ -227,9 +231,12 @@ export function MerchantMappingModal({
           )}
         </div>
 
-        <div className="flex flex-col gap-2 border-t px-5 py-4 md:flex-row md:items-center md:justify-between" style={{ borderColor: "#FAFAF7" }}>
+        <div
+          className="sticky bottom-0 flex flex-col gap-2 border-t px-5 py-4 shadow-[0_-8px_24px_rgba(10,25,41,0.06)] md:flex-row md:items-center md:justify-between"
+          style={{ borderColor: "#FAFAF7", background: "#FFFFFF" }}
+        >
           <div className="text-[11px] font-bold text-verdant-muted">
-            אפשר לשמור גם אם רק חלק מהקבוצות הוגדרו. חריגים בודדים נשארים לטיפול ידני.
+            שמירה תחיל את הקטגוריות על כל העסקאות עם אותו שם ותעדכן מיד את התור שנשאר לטיפול.
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -243,10 +250,11 @@ export function MerchantMappingModal({
             <button
               type="button"
               onClick={onSave}
-              className="rounded-lg px-4 py-2 text-sm font-extrabold transition hover:opacity-95"
+              disabled={changedCount === 0}
+              className="rounded-lg px-4 py-2 text-sm font-extrabold transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40"
               style={{ background: "#2C7A5A", color: "#FFFFFF" }}
             >
-              שמירת מיפוי
+              שמור שינויים
             </button>
           </div>
         </div>
