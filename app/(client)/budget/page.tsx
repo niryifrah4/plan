@@ -7,6 +7,7 @@ import { savingsRate as calcSavingsRate } from "@/lib/financial-math";
 import { loadDebtData, getDebtSummary, type DebtData } from "@/lib/debt-store";
 import { loadAssumptions } from "@/lib/assumptions";
 import { getPassiveIncomeSummary } from "@/lib/passive-income";
+import { NumberEditModal } from "@/components/ui/NumberEditModal";
 import {
   loadSalaryProfile,
   computeSalaryBreakdown,
@@ -2119,6 +2120,13 @@ function BudgetSection({
   const { confirm, modal } = useConfirm();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [open, setOpen] = useState(defaultOpen);
+  const [editNum, setEditNum] = useState<{
+    rowId: string;
+    subId?: string;
+    field: "budget" | "actual";
+    value: string | number;
+    name: string;
+  } | null>(null);
   const secBudget = sectionTotal(rows, "budget");
   const secActual = sectionTotal(rows, "actual");
   const isIncome = meta.type === "income";
@@ -2142,6 +2150,21 @@ function BudgetSection({
   return (
     <>
       {modal}
+      {editNum && (
+        <NumberEditModal
+          title={`עריכת ${editNum.field === "budget" ? "תקציב" : "בפועל"} - ${editNum.name}`}
+          initialValue={editNum.value}
+          onSave={(val) => {
+            if (editNum.subId) {
+              onUpdateSub(sectionKey, editNum.rowId, editNum.subId, editNum.field, val);
+            } else {
+              onUpdate(sectionKey, editNum.rowId, editNum.field, val);
+            }
+            setEditNum(null);
+          }}
+          onClose={() => setEditNum(null)}
+        />
+      )}
       <section
       // 2026-05-05 visual-cleanup: lighter border + bigger bottom margin so
       // sections breathe between each other. Was mb-3 (cramped) + a darker
@@ -2357,20 +2380,14 @@ function BudgetSection({
                       {fmtILS(b)}
                     </div>
                   ) : (
-                    <input
-                      type="number"
-                      value={row.budget || ""}
-                      onChange={(e) => onUpdate(sectionKey, row.id, "budget", e.target.value)}
-                      placeholder="0"
-                      className="w-full border-none bg-transparent text-left text-[13px] font-bold tabular-nums focus:outline-none"
+                    <button
+                      type="button"
+                      onClick={() => setEditNum({ rowId: row.id, field: "budget", value: row.budget || 0, name: row.name })}
+                      className="w-full border-none bg-transparent text-left text-[13px] font-bold tabular-nums focus:outline-none hover:opacity-80"
                       style={{ color: "#1A1A1A", borderBottom: "1px dotted transparent" }}
-                      onFocus={(e) => {
-                        e.currentTarget.style.borderBottomColor = "#059669";
-                      }}
-                      onBlur={(e) => {
-                        e.currentTarget.style.borderBottomColor = "transparent";
-                      }}
-                    />
+                    >
+                      {row.budget || "0"}
+                    </button>
                   )}
                   {/* Actual */}
                   {isLocked || hasSubs ? (
@@ -2381,20 +2398,14 @@ function BudgetSection({
                       {fmtILS(a)}
                     </div>
                   ) : (
-                    <input
-                      type="number"
-                      value={row.actual || ""}
-                      onChange={(e) => onUpdate(sectionKey, row.id, "actual", e.target.value)}
-                      placeholder="0"
-                      className="w-full border-none bg-transparent text-left text-[13px] font-bold tabular-nums focus:outline-none"
+                    <button
+                      type="button"
+                      onClick={() => setEditNum({ rowId: row.id, field: "actual", value: row.actual || 0, name: row.name })}
+                      className="w-full border-none bg-transparent text-left text-[13px] font-bold tabular-nums focus:outline-none hover:opacity-80"
                       style={{ color: "#1A1A1A", borderBottom: "1px dotted transparent" }}
-                      onFocus={(e) => {
-                        e.currentTarget.style.borderBottomColor = "#059669";
-                      }}
-                      onBlur={(e) => {
-                        e.currentTarget.style.borderBottomColor = "transparent";
-                      }}
-                    />
+                    >
+                      {row.actual || "0"}
+                    </button>
                   )}
                   {/* Gap */}
                   <div
@@ -2508,42 +2519,26 @@ function BudgetSection({
                             }}
                           />
                           {/* Sub budget */}
-                          <input
-                            type="number"
-                            value={sub.budget || ""}
-                            onChange={(e) =>
-                              onUpdateSub(sectionKey, row.id, sub.id, "budget", e.target.value)
-                            }
-                            placeholder="0"
-                            className="w-full border-none bg-transparent text-left text-[12px] font-bold tabular-nums focus:outline-none"
+                          <button
+                            type="button"
+                            onClick={() => setEditNum({ rowId: row.id, subId: sub.id, field: "budget", value: sub.budget || 0, name: sub.name || "פריט" })}
+                            className="w-full border-none bg-transparent text-left text-[12px] font-bold tabular-nums focus:outline-none hover:opacity-80"
                             style={{ color: "#1A1A1A", borderBottom: "1px dotted transparent" }}
-                            onFocus={(e) => {
-                              e.currentTarget.style.borderBottomColor = "#059669";
-                            }}
-                            onBlur={(e) => {
-                              e.currentTarget.style.borderBottomColor = "transparent";
-                            }}
-                          />
+                          >
+                            {sub.budget || "0"}
+                          </button>
                           {/* Sub actual */}
-                          <input
-                            type="number"
-                            value={sub.actual || ""}
-                            onChange={(e) =>
-                              onUpdateSub(sectionKey, row.id, sub.id, "actual", e.target.value)
-                            }
-                            placeholder="0"
-                            className="w-full border-none bg-transparent text-left text-[12px] font-bold tabular-nums focus:outline-none"
+                          <button
+                            type="button"
+                            onClick={() => setEditNum({ rowId: row.id, subId: sub.id, field: "actual", value: sub.actual || 0, name: sub.name || "פריט" })}
+                            className="w-full border-none bg-transparent text-left text-[12px] font-bold tabular-nums focus:outline-none hover:opacity-80"
                             style={{
                               color: subOver ? "#DC2626" : "#FFFFFF",
                               borderBottom: "1px dotted transparent",
                             }}
-                            onFocus={(e) => {
-                              e.currentTarget.style.borderBottomColor = "#059669";
-                            }}
-                            onBlur={(e) => {
-                              e.currentTarget.style.borderBottomColor = "transparent";
-                            }}
-                          />
+                          >
+                            {sub.actual || "0"}
+                          </button>
                           {/* Sub gap */}
                           <div
                             className="text-left text-[11px] font-extrabold tabular-nums"

@@ -84,6 +84,8 @@ export default function BudgetPie({
   mode = "actual",
 }: Props) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 15;
 
   const cleaned = useMemo(
     () =>
@@ -116,6 +118,14 @@ export default function BudgetPie({
       return seg;
     });
   }, [cleaned, total]);
+
+  // Reset page if data changes drastically
+  const totalPages = Math.ceil(segments.length / PAGE_SIZE);
+  if (currentPage > totalPages && totalPages > 0) {
+    setCurrentPage(totalPages);
+  }
+
+  const visibleSegments = segments.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const CX = 130,
     CY = 130,
@@ -188,7 +198,19 @@ export default function BudgetPie({
                   </filter>
                 </defs>
 
-                {segments.map((seg, i) => {
+                {segments.length > visibleSegments.length && (
+                  <circle
+                    cx={CX}
+                    cy={CY}
+                    r={(R_OUT + R_IN) / 2}
+                    stroke="#F3F4F6"
+                    strokeWidth={R_OUT - R_IN}
+                    fill="transparent"
+                  />
+                )}
+
+                {visibleSegments.map((seg) => {
+                  const i = seg.idx;
                   const isHover = hoverIdx === i;
                   const rOut = isHover ? R_OUT + 4 : R_OUT;
                   return (
@@ -254,9 +276,10 @@ export default function BudgetPie({
             </div>
 
             {/* ── Legend with percentages ── */}
-            <div className="min-w-0 flex-1">
-              <div className="grid max-h-[260px] grid-cols-1 gap-1.5 overflow-y-auto pr-1">
-                {segments.map((seg, i) => {
+            <div className="min-w-0 flex-1 flex flex-col">
+              <div className="grid max-h-[260px] grid-cols-1 gap-1.5 overflow-y-auto pr-1 flex-1">
+                {visibleSegments.map((seg) => {
+                  const i = seg.idx;
                   const isHover = hoverIdx === i;
                   return (
                     <button
@@ -296,6 +319,30 @@ export default function BudgetPie({
                   );
                 })}
               </div>
+              
+              {segments.length > PAGE_SIZE && (
+                <div className="mt-3 flex items-center justify-between border-t border-[#E5E7EB] pt-3">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FAFAF7] text-[#6B7280] disabled:opacity-50 transition-colors hover:bg-[#E5E7EB]"
+                    title="עמוד קודם"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                  </button>
+                  <span className="text-[11px] font-bold" style={{ color: "#6B7280" }}>
+                    עמוד {currentPage} מתוך {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FAFAF7] text-[#6B7280] disabled:opacity-50 transition-colors hover:bg-[#E5E7EB]"
+                    title="עמוד הבא"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
