@@ -150,7 +150,8 @@ async function hydrateSecurities(blobSync: typeof import("@/lib/sync/blob-sync")
  */
 export async function bootstrapSessionOnce(): Promise<void> {
   if (typeof window === "undefined") return;
-  if (sessionStorage.getItem(BOOTSTRAP_FLAG) === "1") return;
+  const hasHousehold = Boolean(localStorage.getItem(ACTIVE_HH_KEY));
+  if (sessionStorage.getItem(BOOTSTRAP_FLAG) === "1" && hasHousehold) return;
   await resolveActiveHousehold();
   await hydrateAllFromRemote();
   sessionStorage.setItem(BOOTSTRAP_FLAG, "1");

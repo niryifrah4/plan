@@ -69,6 +69,21 @@ function writeLocalSavedAt(iso: string): void {
   } catch {}
 }
 
+function canReadLegacyOnboardingKeys(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    // Only actual client sessions use this rescue path. Advisor impersonation
+    // must never fall back to unscoped keys because those may belong to a
+    // previously viewed household.
+    return (
+      Boolean(localStorage.getItem("verdant:active_household_id")) &&
+      !sessionStorage.getItem("verdant:last_impersonated")
+    );
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Build a snapshot from localStorage. Returns null if no onboarding keys
  * are present at all. `savedAt` uses the persisted timestamp when known,
@@ -87,7 +102,16 @@ function readLocalSnapshot(): OnboardingBlob | null {
     // tenant's view (family בסר saw family יפרח's children + assets).
     // Falling back to the unscoped key in any read path on a multi-tenant
     // surface is structurally a cross-tenant leak — never reintroduce it.
-    const raw = localStorage.getItem(scopedKey(k));
+    const scoped = scopedKey(k);
+    let raw = localStorage.getItem(scoped);
+    if (raw === null && canReadLegacyOnboardingKeys()) {
+      raw = localStorage.getItem(k);
+      if (raw !== null && scoped !== k) {
+        try {
+          localStorage.setItem(scoped, raw);
+        } catch {}
+      }
+    }
     if (raw !== null) {
       data[k] = raw;
       hasAny = true;
