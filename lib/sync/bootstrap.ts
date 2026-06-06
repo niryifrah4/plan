@@ -3,7 +3,7 @@
  *  Boot bootstrap — אתחול sync אחרי login/signup
  * ═══════════════════════════════════════════════════════════
  *
- * 1. resolveActiveHousehold() — בוחר household ראשון של ה-advisor
+ * 1. resolveActiveHousehold() — בוחר household ראשון של ה-advisor/לקוח
  *    ושומר ב-localStorage (`verdant:active_household_id`).
  * 2. hydrateAllFromRemote() — מושך את כל ה-blobs והטבלאות
  *    מהשרת → overwrite של cache ב-localStorage.
@@ -32,6 +32,17 @@ export async function resolveActiveHousehold(): Promise<string | null> {
       data: { user },
     } = await sb.auth.getUser();
     if (!user) return null;
+
+    const { data: clientHousehold, error: clientError } = await sb
+      .from("client_users")
+      .select("household_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!clientError && clientHousehold?.household_id) {
+      localStorage.setItem(ACTIVE_HH_KEY, clientHousehold.household_id);
+      return clientHousehold.household_id;
+    }
 
     // first household owned by this advisor (trigger in 0008 creates one on signup)
     const { data, error } = await sb
@@ -78,6 +89,7 @@ export async function hydrateAllFromRemote(): Promise<void> {
     portfolio,
     salary,
     subscriptionsRadar,
+    onboarding,
     blobSync,
   ] = await Promise.all([
     import("@/lib/pension-store"),
@@ -95,6 +107,7 @@ export async function hydrateAllFromRemote(): Promise<void> {
     import("@/lib/portfolio-store"),
     import("@/lib/salary-engine"),
     import("@/lib/subscriptions-radar-exclusions"),
+    import("@/lib/onboarding-remote"),
     import("@/lib/sync/blob-sync"),
   ]);
 
@@ -116,6 +129,7 @@ export async function hydrateAllFromRemote(): Promise<void> {
     portfolio.hydratePortfolioFromRemote?.(),
     salary.hydrateSalaryFromRemote?.(),
     subscriptionsRadar.hydrateSubscriptionRadarExclusionsFromRemote?.(),
+    onboarding.hydrateOnboardingFromRemote?.(),
     hydrateSecurities(blobSync),
   ]);
 }

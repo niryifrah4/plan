@@ -272,6 +272,7 @@ export default function OnboardingPage() {
       localStorage.setItem(scopedKey("verdant:onboarding:incomes"), JSON.stringify(incomes));
     } catch {}
     syncOnboardingToStores();
+    pushOnboardingSnapshot();
     // Flip household.stage from 'onboarding' → 'active' so the (client)
     // layout stops redirecting back here on next navigation. Fire-and-forget:
     // a failure shouldn't block the user from reaching their dashboard.

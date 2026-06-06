@@ -317,6 +317,7 @@ export default function DashboardPage() {
     // showed stale income/expenses + goal pins.
     window.addEventListener("verdant:budgets:updated", reload);
     window.addEventListener("verdant:goals:updated", reload);
+    window.addEventListener("verdant:parsed_transactions:updated", reload);
     return () => {
       window.removeEventListener("storage", reload);
       window.removeEventListener("verdant:assumptions", reload);
@@ -329,6 +330,7 @@ export default function DashboardPage() {
       window.removeEventListener(SALARY_PROFILE_EVENT, reload);
       window.removeEventListener("verdant:budgets:updated", reload);
       window.removeEventListener("verdant:goals:updated", reload);
+      window.removeEventListener("verdant:parsed_transactions:updated", reload);
     };
   }, [clientId]);
 

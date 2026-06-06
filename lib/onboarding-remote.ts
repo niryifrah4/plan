@@ -47,6 +47,7 @@ const KEYS = [
   "verdant:onboarding:liabilities",
   "verdant:onboarding:insurance",
   "verdant:onboarding:goals",
+  "verdant:onboarding:incomes",
   "verdant:onboarding:planner_notes",
 ] as const;
 
