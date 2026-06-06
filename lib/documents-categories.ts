@@ -10,6 +10,8 @@
  */
 
 import { CATEGORIES } from "./doc-parser/categorizer";
+import { normalizeSupplier } from "./doc-parser/normalizer";
+import type { ParsedTransaction } from "./doc-parser/types";
 
 export interface CatOption {
   key: string;
@@ -26,3 +28,27 @@ export const UNMAPPED_KEYS = new Set(["other", "transfers"]);
 
 /** Transactions below this confidence get surfaced for review. */
 export const CONFIDENCE_THRESHOLD = 0.7;
+
+export function getMappingExcludeKey(description: string): string {
+  return normalizeSupplier(description || "")
+    .toLowerCase()
+    .replace(/["\u200F\u200E]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function needsMappingAttention(
+  tx: ParsedTransaction,
+  excludedSet?: Set<string>
+): boolean {
+  const isUnmapped = UNMAPPED_KEYS.has(tx.category);
+  const isLowConfidence =
+    typeof tx.confidence === "number" && tx.confidence < CONFIDENCE_THRESHOLD && !isUnmapped;
+  if (!isUnmapped && !isLowConfidence) return false;
+
+  if (excludedSet && excludedSet.has(getMappingExcludeKey(tx.description || ""))) {
+    return false;
+  }
+
+  return true;
+}

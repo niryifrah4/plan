@@ -26,7 +26,12 @@ import { triggerFullSync, markUpdated } from "@/lib/sync-engine";
 import type { ParsedDocument, ParsedTransaction } from "@/lib/doc-parser/types";
 import { scopedKey } from "@/lib/client-scope";
 import { isBusinessScopeEnabled, BUSINESS_SCOPE_EVENT } from "@/lib/business-scope";
-import { CAT_OPTIONS, UNMAPPED_KEYS, CONFIDENCE_THRESHOLD } from "@/lib/documents-categories";
+import {
+  CAT_OPTIONS,
+  UNMAPPED_KEYS,
+  CONFIDENCE_THRESHOLD,
+  needsMappingAttention,
+} from "@/lib/documents-categories";
 import {
   DRAFT_KEY,
   loadDocHistory,
@@ -149,6 +154,7 @@ export function DocumentsTab() {
             categoryLabel: ov.label,
             amount: adjustedAmount,
             scope: scopeVal,
+            confidence: 1.0,
             _idx: i,
           };
         }
@@ -452,7 +458,7 @@ export function DocumentsTab() {
       const creditsSum = fresh
         .filter((t) => t.amount < 0)
         .reduce((s, t) => s + Math.abs(t.amount), 0);
-      const unmappedCount = fresh.filter((t) => UNMAPPED_KEYS.has(t.category)).length;
+      const unmappedCount = fresh.filter((t) => needsMappingAttention(t)).length;
       const mappedCount = fresh.length - unmappedCount;
       const dates = fresh
         .map((t) => t.date)

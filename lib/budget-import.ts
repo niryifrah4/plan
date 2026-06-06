@@ -17,6 +17,8 @@
 
 import type { ParsedTransaction } from "@/lib/doc-parser/types";
 import type { Scope } from "@/lib/scope-types";
+import { categorize } from "@/lib/doc-parser/categorizer";
+import { CONFIDENCE_THRESHOLD, UNMAPPED_KEYS } from "@/lib/documents-categories";
 import { CATEGORY_TO_BUDGET, type BudgetSection } from "@/lib/category-to-budget-map";
 import { scopedKey } from "@/lib/client-scope";
 import { pushBlob, pushBlobInBackground, pullBlob } from "@/lib/sync/blob-sync";
@@ -79,7 +81,12 @@ export function loadParsedTransactions(): ParsedTransaction[] {
     const raw = localStorage.getItem(scopedKey(TX_KEY));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    const normalized = normalizeReviewedTransactions(parsed);
+    if (normalized !== parsed) {
+      persistTransactions(normalized);
+    }
+    return normalized;
   } catch {
     return [];
   }
@@ -100,6 +107,43 @@ export function filterByMonth(
 }
 
 const uid = () => "r" + Math.random().toString(36).slice(2, 9);
+
+/**
+ * Upgrade already-saved rows when the current classifier can now reproduce
+ * the exact stored category with higher confidence.
+ *
+ * This is the migration path for old saves where a user already chose a
+ * category in the documents preview, but the persisted row kept the stale
+ * parser confidence and still showed up in the "needs attention" badge.
+ */
+function normalizeReviewedTransactions(txs: ParsedTransaction[]): ParsedTransaction[] {
+  let changed = false;
+
+  const next = txs.map((tx) => {
+    if (!tx || UNMAPPED_KEYS.has(tx.category)) return tx;
+
+    const currentConfidence =
+      typeof tx.confidence === "number" && Number.isFinite(tx.confidence) ? tx.confidence : null;
+    if (currentConfidence == null || currentConfidence >= CONFIDENCE_THRESHOLD) return tx;
+
+    const description = tx.description?.trim();
+    if (!description) return tx;
+
+    const inferred = categorize(description);
+    if (inferred.key !== tx.category) return tx;
+    if (typeof inferred.confidence !== "number" || inferred.confidence <= currentConfidence) {
+      return tx;
+    }
+
+    changed = true;
+    return {
+      ...tx,
+      confidence: inferred.confidence,
+    };
+  });
+
+  return changed ? next : txs;
+}
 
 /* ──────────────────────────────────────────────────────────
    Add a single manual transaction (used by the mobile PWA
@@ -189,13 +233,14 @@ function persistTransactions(txs: ParsedTransaction[]): void {
 }
 
 export function saveParsedTransactions(txs: ParsedTransaction[]): void {
-  persistTransactions(txs);
+  persistTransactions(normalizeReviewedTransactions(txs));
 }
 
 export async function saveParsedTransactionsAndWait(txs: ParsedTransaction[]): Promise<boolean> {
-  const remoteSaved = await pushBlob(TX_BLOB_KEY, txs);
+  const normalized = normalizeReviewedTransactions(txs);
+  const remoteSaved = await pushBlob(TX_BLOB_KEY, normalized);
   if (!remoteSaved) return false;
-  writeTransactionsLocal(txs);
+  writeTransactionsLocal(normalized);
   return true;
 }
 

@@ -23,6 +23,8 @@ import {
 import { loadParsedTransactions } from "@/lib/budget-import";
 import { detectRecurring, type RecurringGroup } from "@/lib/doc-parser/recurring";
 import { getOverrides } from "@/lib/doc-parser/categorizer";
+import { needsMappingAttention } from "@/lib/documents-categories";
+import { buildExcludedSet, EXCLUDED_EVENT } from "@/lib/doc-parser/excluded-merchants";
 import {
   excludeSubscriptionRadarGroup,
   isSubscriptionRadarExcluded,
@@ -81,11 +83,8 @@ export function DiscoverTab() {
         const d = new Date(t.date);
         return !isNaN(d.getTime()) && d >= windowStart;
       });
-      const unmapped = windowTxs.filter(
-        (t) =>
-          t.category === "other" ||
-          (typeof t.confidence === "number" && t.confidence < 0.7)
-      );
+      const excludedSet = buildExcludedSet();
+      const unmapped = windowTxs.filter((t) => needsMappingAttention(t, excludedSet));
       setLearning({
         overrideCount: getOverrides().length,
         unmappedTxCount: unmapped.length,
@@ -99,10 +98,12 @@ export function DiscoverTab() {
     refresh();
     window.addEventListener("storage", refresh);
     window.addEventListener("verdant:parsed_transactions:updated", refresh);
+    window.addEventListener(EXCLUDED_EVENT, refresh);
     window.addEventListener(SUBSCRIPTIONS_RADAR_EXCLUSIONS_EVENT, refresh);
     return () => {
       window.removeEventListener("storage", refresh);
       window.removeEventListener("verdant:parsed_transactions:updated", refresh);
+      window.removeEventListener(EXCLUDED_EVENT, refresh);
       window.removeEventListener(SUBSCRIPTIONS_RADAR_EXCLUSIONS_EVENT, refresh);
     };
   }, [windowSize]);

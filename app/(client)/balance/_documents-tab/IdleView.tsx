@@ -15,10 +15,14 @@
  * `onFiles`, runs the parse pipeline, and switches phase to "preview".
  */
 
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getBankIcon } from "./banks";
 import { fmtILS } from "@/lib/format";
 import type { DocHistoryEntry } from "@/lib/documents-store";
+import { loadParsedTransactions } from "@/lib/budget-import";
+import { needsMappingAttention } from "@/lib/documents-categories";
+import { buildExcludedSet, EXCLUDED_EVENT } from "@/lib/doc-parser/excluded-merchants";
+import type { ParsedTransaction } from "@/lib/doc-parser/types";
 
 export function IdleView({
   phase,
@@ -310,12 +314,57 @@ function MappingDrilldown({
   onRemove: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const totalTx = docHistory.reduce((s, h) => s + (h.txCount || 0), 0);
-  const totalUnmapped = docHistory.reduce((s, h) => s + (h.unmappedCount ?? 0), 0);
+  const [transactions, setTransactions] = useState<ParsedTransaction[]>([]);
+  const [excludedSet, setExcludedSet] = useState<Set<string>>(() => new Set());
+
+  useEffect(() => {
+    const refresh = () => {
+      setTransactions(loadParsedTransactions());
+      setExcludedSet(buildExcludedSet());
+    };
+    refresh();
+    window.addEventListener("verdant:parsed_transactions:updated", refresh);
+    window.addEventListener("verdant:docs:updated", refresh);
+    window.addEventListener(EXCLUDED_EVENT, refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("verdant:parsed_transactions:updated", refresh);
+      window.removeEventListener("verdant:docs:updated", refresh);
+      window.removeEventListener(EXCLUDED_EVENT, refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+
+  const currentDocHistory = useMemo(() => {
+    const byDocId = new Map<string, ParsedTransaction[]>();
+    for (const tx of transactions) {
+      if (!tx.sourceDocId) continue;
+      const rows = byDocId.get(tx.sourceDocId) || [];
+      rows.push(tx);
+      byDocId.set(tx.sourceDocId, rows);
+    }
+
+    return docHistory.map((entry) => {
+      const rows = byDocId.get(entry.id);
+      if (!rows) return entry;
+      const unmappedCount = rows.filter((tx) => needsMappingAttention(tx, excludedSet)).length;
+      const txCount = rows.length;
+      return {
+        ...entry,
+        txCount,
+        mappedCount: txCount - unmappedCount,
+        unmappedCount,
+        fullyMapped: unmappedCount === 0,
+      };
+    });
+  }, [docHistory, excludedSet, transactions]);
+
+  const totalTx = currentDocHistory.reduce((s, h) => s + (h.txCount || 0), 0);
+  const totalUnmapped = currentDocHistory.reduce((s, h) => s + (h.unmappedCount ?? 0), 0);
   const totalMapped = totalTx - totalUnmapped;
   const pct = totalTx > 0 ? Math.round((totalMapped / totalTx) * 100) : 100;
-  const filesWithGaps = docHistory.filter((h) => (h.unmappedCount ?? 0) > 0).length;
-  const allDates = docHistory
+  const filesWithGaps = currentDocHistory.filter((h) => (h.unmappedCount ?? 0) > 0).length;
+  const allDates = currentDocHistory
     .flatMap((h) => [h.periodFrom, h.periodTo])
     .filter(Boolean)
     .sort() as string[];
@@ -401,7 +450,7 @@ function MappingDrilldown({
             description
           </span>
           <span className="text-[12px] font-extrabold text-verdant-ink">
-            {open ? "הסתר פירוט מסמכים" : `פירוט מסמכים (${docHistory.length})`}
+            {open ? "הסתר פירוט מסמכים" : `פירוט מסמכים (${currentDocHistory.length})`}
           </span>
         </div>
         <span
@@ -415,7 +464,7 @@ function MappingDrilldown({
       {open && (
         <div className="border-t bg-[#FFFFFF]" style={{ borderColor: "#E5E7EB" }}>
           <div className="divide-y" style={{ borderColor: "#FAFAF7" }}>
-            {docHistory.map((h) => (
+            {currentDocHistory.map((h) => (
               <DocHistoryRow key={h.id} entry={h} onRemove={() => onRemove(h.id)} />
             ))}
           </div>
@@ -590,4 +639,3 @@ function DocHistoryRow({ entry: h, onRemove }: { entry: DocHistoryEntry; onRemov
     </div>
   );
 }
-

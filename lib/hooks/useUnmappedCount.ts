@@ -13,7 +13,8 @@
 
 import { useEffect, useState } from "react";
 import { loadParsedTransactions } from "@/lib/budget-import";
-import { UNMAPPED_KEYS, CONFIDENCE_THRESHOLD } from "@/lib/documents-categories";
+import { needsMappingAttention } from "@/lib/documents-categories";
+import { buildExcludedSet, EXCLUDED_EVENT } from "@/lib/doc-parser/excluded-merchants";
 import { onSync } from "@/lib/sync-engine";
 
 export function useUnmappedCount(): number {
@@ -23,24 +24,21 @@ export function useUnmappedCount(): number {
     const compute = () => {
       try {
         const txs = loadParsedTransactions();
-        let n = 0;
-        for (const t of txs) {
-          if (UNMAPPED_KEYS.has(t.category)) {
-            n++;
-          } else if (typeof t.confidence === "number" && t.confidence < CONFIDENCE_THRESHOLD) {
-            n++;
-          }
-        }
-        setCount(n);
+        const excludedSet = buildExcludedSet();
+        setCount(txs.filter((t) => needsMappingAttention(t, excludedSet)).length);
       } catch {
         setCount(0);
       }
     };
     compute();
     const unsub = onSync("verdant:docs:updated", compute);
+    window.addEventListener("verdant:parsed_transactions:updated", compute);
+    window.addEventListener(EXCLUDED_EVENT, compute);
     window.addEventListener("storage", compute);
     return () => {
       unsub();
+      window.removeEventListener("verdant:parsed_transactions:updated", compute);
+      window.removeEventListener(EXCLUDED_EVENT, compute);
       window.removeEventListener("storage", compute);
     };
   }, []);
