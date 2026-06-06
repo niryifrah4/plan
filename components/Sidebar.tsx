@@ -12,6 +12,8 @@ interface SidebarProps {
   membersCount: number;
   advisorName: string;
   onExit?: () => void;
+  onNavigateStart?: (href: string) => void;
+  pendingHref?: string | null;
   saveStatus?: "idle" | "saving" | "saved" | "error";
   /** True when the logged-in user owns this advisor practice (vs. is a
    *  client of one). Hides advisor-only affordances when false. */
@@ -58,6 +60,8 @@ export function Sidebar({
   membersCount,
   advisorName,
   onExit,
+  onNavigateStart,
+  pendingHref = null,
   saveStatus = "idle",
   isAdvisor = false,
 }: SidebarProps) {
@@ -156,9 +160,11 @@ export function Sidebar({
   };
 
   const isActive = (href: string) => pathname === href || pathname?.startsWith(href + "/");
+  const isPending = (href: string) => pendingHref === href;
 
   const renderItem = (item: NavItem, indent = false) => {
     const active = isActive(item.href);
+    const pending = isPending(item.href);
     const compact = isMobile;
     return (
       <li key={item.id}>
@@ -169,14 +175,31 @@ export function Sidebar({
             height: compact ? "38px" : "42px",
             paddingInline: indent ? (compact ? "12px" : "14px") : compact ? "10px" : "12px",
             paddingInlineStart: indent ? (compact ? "24px" : "28px") : compact ? "10px" : "12px",
-            background: active ? "var(--morning-leaf-tint)" : "transparent",
-            color: active ? "var(--morning-forest)" : "var(--morning-muted)",
+            background: active || pending ? "var(--morning-leaf-tint)" : "transparent",
+            color: active || pending ? "var(--morning-forest)" : "var(--morning-muted)",
+            boxShadow: pending ? "inset 0 0 0 1px var(--morning-leaf-soft)" : "none",
           }}
           onMouseEnter={(e) => {
-            if (!active) e.currentTarget.style.background = "var(--morning-surface-2)";
+            if (!active && !pending) e.currentTarget.style.background = "var(--morning-surface-2)";
           }}
           onMouseLeave={(e) => {
-            if (!active) e.currentTarget.style.background = "transparent";
+            if (!active && !pending) e.currentTarget.style.background = "transparent";
+          }}
+          aria-current={active ? "page" : undefined}
+          aria-busy={pending ? true : undefined}
+          onClick={(e) => {
+            if (active || pending) return;
+            if (
+              e.defaultPrevented ||
+              e.metaKey ||
+              e.ctrlKey ||
+              e.shiftKey ||
+              e.altKey ||
+              e.button !== 0
+            ) {
+              return;
+            }
+            onNavigateStart?.(item.href);
           }}
         >
           {active && (
@@ -196,27 +219,28 @@ export function Sidebar({
           <span
             className={
               compact
-                ? "material-symbols-outlined text-[18px]"
-                : "material-symbols-outlined text-[20px]"
+                ? `material-symbols-outlined inline-flex text-[18px] ${pending ? "animate-spin" : ""}`
+                : `material-symbols-outlined inline-flex text-[20px] ${pending ? "animate-spin" : ""}`
             }
             style={{
-              color: active ? "var(--morning-forest)" : "var(--morning-muted)",
-              fontVariationSettings: active ? "'FILL' 1, 'wght' 500" : "'FILL' 0, 'wght' 400",
+              color: active || pending ? "var(--morning-forest)" : "var(--morning-muted)",
+              fontVariationSettings:
+                active || pending ? "'FILL' 1, 'wght' 500" : "'FILL' 0, 'wght' 400",
             }}
           >
-            {item.icon}
+            {pending ? "progress_activity" : item.icon}
           </span>
           <span
             className="flex-1 text-right text-[14px]"
             style={{
               fontWeight: active ? 600 : 500,
               fontSize: compact ? 13 : 14,
-              color: active ? "var(--morning-ink)" : "var(--morning-muted)",
+              color: active || pending ? "var(--morning-ink)" : "var(--morning-muted)",
             }}
           >
             {item.label}
           </span>
-          {item.badge && (
+          {item.badge && !pending ? (
             <span
               className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
               style={{
@@ -226,7 +250,7 @@ export function Sidebar({
             >
               {item.badge}
             </span>
-          )}
+          ) : null}
         </Link>
       </li>
     );

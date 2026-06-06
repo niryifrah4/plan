@@ -50,6 +50,7 @@ export function ClientShell({
   // Pull the logged-in advisor's name from the auth session so the sidebar
   // footer reflects whoever is signed in (not a hardcoded value).
   const [advisorName, setAdvisorName] = useState<string>("מתכנן");
+  const [navPendingHref, setNavPendingHref] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
     getCurrentUser()
@@ -71,6 +72,16 @@ export function ClientShell({
   useEffect(() => {
     setMobileNavOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    setNavPendingHref(null);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!navPendingHref) return;
+    const timeout = window.setTimeout(() => setNavPendingHref(null), 12000);
+    return () => window.clearTimeout(timeout);
+  }, [navPendingHref]);
 
   // Start idle-timeout watcher (only when real auth is active — skip in demo mode)
   useEffect(() => {
@@ -218,6 +229,8 @@ export function ClientShell({
           familyName={loading ? "טוען..." : familyName}
           membersCount={membersCount}
           advisorName={advisorName}
+          pendingHref={navPendingHref}
+          onNavigateStart={setNavPendingHref}
           isAdvisor={isAdvisor}
         />
       </div>
