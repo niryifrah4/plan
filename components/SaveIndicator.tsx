@@ -15,7 +15,7 @@ export function SaveIndicator({ status }: { status: "idle" | "saving" | "saved" 
 
   return (
     <div
-      className="fixed bottom-5 left-5 z-50 flex animate-[fadeInUp_0.3s_ease-out] items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold shadow-md transition-all"
+      className="pointer-events-none fixed bottom-5 left-5 z-50 flex animate-[fadeInUp_0.3s_ease-out] items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold shadow-md transition-all"
       style={{ background: config.bg, color: config.color, border: `1px solid ${config.color}25` }}
     >
       <span

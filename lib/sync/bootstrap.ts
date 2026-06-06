@@ -12,17 +12,29 @@
  */
 
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/browser";
+import { CURRENT_HH_KEY, dispatchStoreRefreshEvents } from "@/lib/client-scope";
 
 const ACTIVE_HH_KEY = "verdant:active_household_id";
 const BOOTSTRAP_FLAG = "verdant:bootstrap_done";
+let bootstrapInFlight: Promise<boolean> | null = null;
+let remoteRefreshInFlight: Promise<void> | null = null;
+
+function clearBootstrapMarkers(): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(BOOTSTRAP_FLAG);
+    sessionStorage.removeItem("verdant:last_impersonated");
+    sessionStorage.removeItem("verdant:legacy_purge_done");
+  } catch {}
+  try {
+    localStorage.removeItem(ACTIVE_HH_KEY);
+    localStorage.removeItem(CURRENT_HH_KEY);
+  } catch {}
+}
 
 export async function resolveActiveHousehold(): Promise<string | null> {
   if (typeof window === "undefined") return null;
   if (!isSupabaseConfigured()) return null;
-
-  // כבר נבחר?
-  const existing = localStorage.getItem(ACTIVE_HH_KEY);
-  if (existing) return existing;
 
   const sb = getSupabaseBrowser();
   if (!sb) return null;
@@ -31,7 +43,10 @@ export async function resolveActiveHousehold(): Promise<string | null> {
     const {
       data: { user },
     } = await sb.auth.getUser();
-    if (!user) return null;
+    if (!user) {
+      console.debug("[bootstrap] no user yet");
+      return null;
+    }
 
     const { data: clientHousehold, error: clientError } = await sb
       .from("client_users")
@@ -40,8 +55,11 @@ export async function resolveActiveHousehold(): Promise<string | null> {
       .maybeSingle();
 
     if (!clientError && clientHousehold?.household_id) {
-      localStorage.setItem(ACTIVE_HH_KEY, clientHousehold.household_id);
-      return clientHousehold.household_id;
+      const hh = clientHousehold.household_id;
+      try {
+        localStorage.setItem(ACTIVE_HH_KEY, hh);
+      } catch {}
+      return hh;
     }
 
     // first household owned by this advisor (trigger in 0008 creates one on signup)
@@ -53,8 +71,16 @@ export async function resolveActiveHousehold(): Promise<string | null> {
       .limit(1)
       .maybeSingle();
 
-    if (error || !data?.id) return null;
-    localStorage.setItem(ACTIVE_HH_KEY, data.id);
+    if (error || !data?.id) {
+      console.debug("[bootstrap] no household resolved", {
+        userId: user.id,
+        reason: error?.message || "missing household row",
+      });
+      return null;
+    }
+    try {
+      localStorage.setItem(ACTIVE_HH_KEY, data.id);
+    } catch {}
     return data.id;
   } catch {
     return null;
@@ -90,6 +116,7 @@ export async function hydrateAllFromRemote(): Promise<void> {
     salary,
     subscriptionsRadar,
     onboarding,
+    specialEvents,
     blobSync,
   ] = await Promise.all([
     import("@/lib/pension-store"),
@@ -108,6 +135,7 @@ export async function hydrateAllFromRemote(): Promise<void> {
     import("@/lib/salary-engine"),
     import("@/lib/subscriptions-radar-exclusions"),
     import("@/lib/onboarding-remote"),
+    import("@/lib/special-events-store"),
     import("@/lib/sync/blob-sync"),
   ]);
 
@@ -129,9 +157,127 @@ export async function hydrateAllFromRemote(): Promise<void> {
     portfolio.hydratePortfolioFromRemote?.(),
     salary.hydrateSalaryFromRemote?.(),
     subscriptionsRadar.hydrateSubscriptionRadarExclusionsFromRemote?.(),
-    onboarding.hydrateOnboardingFromRemote?.(),
     hydrateSecurities(blobSync),
+    specialEvents.hydrateSpecialEventsFromRemote?.(),
   ]);
+
+  await onboarding.hydrateOnboardingFromRemote?.();
+  const { syncOnboardingToStores } = await import("@/lib/onboarding-sync");
+  syncOnboardingToStores();
+}
+
+/**
+ * Force a remote rehydrate even if the session was already bootstrapped.
+ *
+ * Used by the realtime/polling watcher so changes made in another browser
+ * or phone are pulled back into every open client tab.
+ */
+export async function refreshAllFromRemote(trigger = "manual"): Promise<void> {
+  if (typeof window === "undefined") return;
+  if (!isSupabaseConfigured()) return;
+  if (remoteRefreshInFlight) return remoteRefreshInFlight;
+
+  const task = (async () => {
+    const hh = localStorage.getItem(ACTIVE_HH_KEY);
+    if (!hh) {
+      await resolveActiveHousehold();
+    }
+    await hydrateAllFromRemote();
+    dispatchStoreRefreshEvents();
+    console.info("[bootstrap] remote refresh completed", { trigger });
+  })().finally(() => {
+    remoteRefreshInFlight = null;
+  });
+
+  remoteRefreshInFlight = task;
+  return task;
+}
+
+export function watchRemoteHouseholdChanges(
+  triggerPrefix: string,
+  onReady?: (ready: boolean) => void
+): (() => void) | undefined {
+  if (typeof window === "undefined" || !isSupabaseConfigured()) return undefined;
+
+  const sb = getSupabaseBrowser();
+  if (!sb) return undefined;
+
+  const householdId = localStorage.getItem(ACTIVE_HH_KEY);
+  if (!householdId) return undefined;
+
+  let disposed = false;
+  let refreshTimer: number | null = null;
+  let pollTimer: number | null = null;
+
+  const scheduleRefresh = (reason: string) => {
+    if (disposed) return;
+    if (refreshTimer != null) return;
+    refreshTimer = window.setTimeout(() => {
+      refreshTimer = null;
+      void refreshAllFromRemote(`${triggerPrefix}:${reason}`).then(() => {
+        if (!disposed) onReady?.(true);
+      });
+    }, 350);
+  };
+
+  const tables = [
+    "client_state",
+    "pension_products",
+    "households",
+    "client_users",
+  ] as const;
+
+  const channels = tables.map((table) =>
+    sb
+      .channel(`verdant:${triggerPrefix}:${table}:${householdId.slice(0, 8)}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table,
+          filter:
+            table === "households"
+              ? `id=eq.${householdId}`
+              : `household_id=eq.${householdId}`,
+        },
+        () => scheduleRefresh(`realtime:${table}`)
+      )
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") onReady?.(true);
+      })
+  );
+
+  const onFocusOrVisible = () => {
+    if (document.visibilityState === "hidden") return;
+    scheduleRefresh("focus");
+  };
+
+  const onOnline = () => scheduleRefresh("online");
+
+  window.addEventListener("focus", onFocusOrVisible);
+  document.addEventListener("visibilitychange", onFocusOrVisible);
+  window.addEventListener("online", onOnline);
+
+  pollTimer = window.setInterval(() => {
+    if (document.visibilityState === "visible") {
+      scheduleRefresh("poll");
+    }
+  }, 45_000);
+
+  scheduleRefresh("start");
+
+  return () => {
+    disposed = true;
+    if (refreshTimer != null) window.clearTimeout(refreshTimer);
+    if (pollTimer != null) window.clearInterval(pollTimer);
+    window.removeEventListener("focus", onFocusOrVisible);
+    document.removeEventListener("visibilitychange", onFocusOrVisible);
+    window.removeEventListener("online", onOnline);
+    channels.forEach((channel) => {
+      void sb.removeChannel(channel);
+    });
+  };
 }
 
 async function hydrateSecurities(blobSync: typeof import("@/lib/sync/blob-sync")) {
@@ -148,11 +294,66 @@ async function hydrateSecurities(blobSync: typeof import("@/lib/sync/blob-sync")
 /**
  * נקודת כניסה: פעם אחת לכל session, מבצע גם resolve וגם hydrate.
  */
-export async function bootstrapSessionOnce(): Promise<void> {
-  if (typeof window === "undefined") return;
-  const hasHousehold = Boolean(localStorage.getItem(ACTIVE_HH_KEY));
-  if (sessionStorage.getItem(BOOTSTRAP_FLAG) === "1" && hasHousehold) return;
-  await resolveActiveHousehold();
-  await hydrateAllFromRemote();
-  sessionStorage.setItem(BOOTSTRAP_FLAG, "1");
+export async function bootstrapSessionOnce(trigger = "manual"): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  if (bootstrapInFlight) return bootstrapInFlight;
+
+  const task = (async () => {
+    const hasHousehold = Boolean(localStorage.getItem(ACTIVE_HH_KEY));
+    const bootstrapped = sessionStorage.getItem(BOOTSTRAP_FLAG) === "1";
+    if (bootstrapped && hasHousehold) {
+      console.info("[bootstrap] hydration skipped because already bootstrapped", { trigger });
+      return true;
+    }
+
+    const hh = await resolveActiveHousehold();
+    if (!hh) {
+      return false;
+    }
+
+    await hydrateAllFromRemote();
+
+    try {
+      sessionStorage.setItem(BOOTSTRAP_FLAG, "1");
+    } catch {}
+
+    console.info("[bootstrap] hydration completed", { trigger, householdId: hh });
+    return true;
+  })().finally(() => {
+    bootstrapInFlight = null;
+  });
+
+  bootstrapInFlight = task;
+  return task;
+}
+
+export function clearBootstrapState(): void {
+  clearBootstrapMarkers();
+}
+
+export function watchBootstrapAuthState(
+  triggerPrefix: string,
+  onReady?: (ready: boolean) => void
+): (() => void) | undefined {
+  if (typeof window === "undefined" || !isSupabaseConfigured()) return undefined;
+  const sb = getSupabaseBrowser();
+  if (!sb) return undefined;
+
+  const {
+    data: { subscription },
+  } = sb.auth.onAuthStateChange((event, session) => {
+    if (event === "SIGNED_OUT") {
+      clearBootstrapMarkers();
+      onReady?.(false);
+      return;
+    }
+
+    if (session?.user) {
+      void bootstrapSessionOnce(`${triggerPrefix}:${event}`).then((ready) => {
+        if (ready) onReady?.(true);
+      });
+    }
+  });
+
+  return () => subscription.unsubscribe();
 }

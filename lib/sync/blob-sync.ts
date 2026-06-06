@@ -65,26 +65,36 @@ export async function pullBlobsByPrefix(prefix: string): Promise<Record<string, 
   }
 }
 
-/**
- * Push a blob to Supabase, scoped to a household.
- *
- * **CRITICAL — push-race protection (2026-05-27):** the second parameter
- * `householdIdOverride` MUST be passed by every caller. It locks the write
- * to the household that was active **at the moment of save**, not at the
- * moment the async push resolves.
- *
- * Without this, the following sequence corrupted Supabase:
- *   1. advisor edits client A's data — write hits localStorage immediately
- *   2. saveX fires `pushBlobInBackground` (async)
- *   3. advisor switches to client B before step 2 resolves
- *   4. wipeForTenantSwitch sets active_household_id = B
- *   5. step 2 finally executes — reads getHouseholdId() = B → writes A's
- *      data to B's client_state row. NOW client B's view shows A's data.
- *
- * Always call sites: capture `getHouseholdId()` *synchronously* in the same
- * function that called the save, then pass it as the third arg.
- */
-export async function pushBlob<T = any>(
+async function pushBlobViaServerRoute<T = any>(
+  key: string,
+  value: T,
+  householdId: string
+): Promise<boolean> {
+  try {
+    const response = await fetch("/api/sync/blob", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        key,
+        value: value ?? null,
+        householdId,
+      }),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      console.warn(`[blob-sync:${key}] server route failed:`, response.status, payload?.error ?? response.statusText);
+      return false;
+    }
+
+    return true;
+  } catch (e) {
+    console.warn(`[blob-sync:${key}] server route threw:`, e);
+    return false;
+  }
+}
+
+async function pushBlobDirect<T = any>(
   key: string,
   value: T,
   householdIdOverride?: string | null
@@ -102,14 +112,41 @@ export async function pushBlob<T = any>(
         { onConflict: "household_id,state_key" }
       );
     if (error) {
-      console.warn(`[blob-sync:${key}] upsert error:`, error.message);
+      console.warn(`[blob-sync:${key}] direct upsert error:`, error.message);
       return false;
     }
     return true;
   } catch (e) {
-    console.warn(`[blob-sync:${key}] threw:`, e);
+    console.warn(`[blob-sync:${key}] direct threw:`, e);
     return false;
   }
+}
+
+/**
+ * Push a blob to Supabase, scoped to a household.
+ *
+ * **CRITICAL — push-race protection (2026-05-27):** the second parameter
+ * `householdIdOverride` MUST be passed by every caller. It locks the write
+ * to the household that was active **at the moment of save**, not at the
+ * moment the async push resolves.
+ *
+ * The primary write path is now a server route so the browser no longer
+ * writes directly to Supabase. If that route is unavailable, we fall back
+ * to the legacy direct client write to avoid losing data during rollout.
+ */
+export async function pushBlob<T = any>(
+  key: string,
+  value: T,
+  householdIdOverride?: string | null
+): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false;
+  const hh = householdIdOverride ?? getHouseholdId();
+  if (!hh) return false;
+
+  const viaRoute = await pushBlobViaServerRoute(key, value, hh);
+  if (viaRoute) return true;
+
+  return pushBlobDirect(key, value, hh);
 }
 
 export function pushBlobInBackground<T = any>(

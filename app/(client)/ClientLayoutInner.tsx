@@ -1,11 +1,15 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { ClientProvider } from "@/lib/client-context";
 import { ImpersonationProvider } from "@/lib/impersonation-context";
 import { ClientShell } from "./ClientShell";
 import { runFactoryResetIfNeeded } from "@/lib/factory-reset";
-import { bootstrapSessionOnce } from "@/lib/sync/bootstrap";
+import {
+  bootstrapSessionOnce,
+  watchRemoteHouseholdChanges,
+  watchBootstrapAuthState,
+} from "@/lib/sync/bootstrap";
 import {
   CURRENT_HH_KEY,
   dispatchAllRefreshEvents,
@@ -30,6 +34,7 @@ export default function ClientLayoutInner({
   children: React.ReactNode;
   impersonation: Impersonation | null;
 }) {
+  const [bootstrapReady, setBootstrapReady] = useState(false);
   // ═══════════════════════════════════════════════════════════
   // CRITICAL — RENDER-TIME SCOPE SYNC (2026-05-28)
   // ═══════════════════════════════════════════════════════════
@@ -130,18 +135,39 @@ export default function ClientLayoutInner({
         dispatchAllRefreshEvents();
       }
     }
-    bootstrapSessionOnce().catch(() => {});
+    void bootstrapSessionOnce("desktop-mount").finally(() => {
+      setBootstrapReady(true);
+    });
+    const stopAuthWatch = watchBootstrapAuthState("desktop", setBootstrapReady);
+    return () => {
+      stopAuthWatch?.();
+    };
   }, [impersonation]);
+
+  useEffect(() => {
+    if (!bootstrapReady) return;
+    const stopRemoteWatch = watchRemoteHouseholdChanges("desktop", (ready) => {
+      if (ready) setBootstrapReady(true);
+    });
+    return () => {
+      stopRemoteWatch?.();
+    };
+  }, [bootstrapReady, impersonation?.householdId ?? null]);
+
+  const loadingScreen = (
+    <div className="flex min-h-screen items-center justify-center text-verdant-muted">
+      טוען...
+    </div>
+  );
 
   return (
     <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center text-verdant-muted">
-          טוען...
-        </div>
-      }
+      fallback={loadingScreen}
     >
-      <ImpersonationProvider value={impersonation}>
+      {!bootstrapReady ? (
+        loadingScreen
+      ) : (
+        <ImpersonationProvider value={impersonation}>
         <ClientProvider>
           {/* `impersonation !== null` ↔ logged-in user is the advisor. Pass
               it through so the sidebar can hide CRM-only affordances for
@@ -154,7 +180,8 @@ export default function ClientLayoutInner({
             {children}
           </ClientShell>
         </ClientProvider>
-      </ImpersonationProvider>
+        </ImpersonationProvider>
+      )}
     </Suspense>
   );
 }

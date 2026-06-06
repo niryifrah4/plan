@@ -147,10 +147,11 @@ export async function hydrateOnboardingFromRemote(): Promise<boolean> {
   if (!remote || !remote.data) return false;
 
   const local = readLocalSnapshot();
-  // If local exists and has a persisted savedAt that is newer, don't clobber
-  // in-flight edits. Empty/missing local.savedAt means "no provenance" — let
-  // remote win, even if local has stale data from a previous session.
-  if (local && local.savedAt && local.savedAt > remote.savedAt) return false;
+  // If local exists and has a persisted savedAt that is newer or equal,
+  // don't clobber in-flight edits and don't trigger a pointless reload loop.
+  // Empty/missing local.savedAt means "no provenance" — let remote win,
+  // even if local has stale data from a previous session.
+  if (local && local.savedAt && local.savedAt >= remote.savedAt) return false;
 
   let wrote = false;
   for (const [k, v] of Object.entries(remote.data)) {

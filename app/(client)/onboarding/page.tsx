@@ -24,7 +24,7 @@
  * live — moving to /budget immediately reflects what was typed here.
  */
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, type SetStateAction } from "react";
 import { useRouter } from "next/navigation";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { SaveIndicator } from "@/components/SaveIndicator";
@@ -134,15 +134,77 @@ export default function OnboardingPage() {
     goalsSaving ||
     incomesSaving;
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const saveIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [hasUserEdited, setHasUserEdited] = useState(false);
+  const markUserEdited = useCallback(() => {
+    setHasUserEdited(true);
+  }, []);
   useEffect(() => {
+    if (saveIdleTimerRef.current) {
+      clearTimeout(saveIdleTimerRef.current);
+      saveIdleTimerRef.current = null;
+    }
     if (isSaving) {
       setSaveStatus("saving");
-    } else if (saveStatus === "saving") {
+      return;
+    }
+    if (saveStatus === "saving") {
       setSaveStatus("saved");
-      const t = setTimeout(() => setSaveStatus("idle"), 2000);
-      return () => clearTimeout(t);
+      saveIdleTimerRef.current = setTimeout(() => {
+        setSaveStatus("idle");
+        saveIdleTimerRef.current = null;
+      }, 2000);
+      return;
     }
   }, [isSaving, saveStatus]);
+
+  const setChildrenWithEdit = useCallback(
+    (next: SetStateAction<Child[]>) => {
+      markUserEdited();
+      setChildren(next);
+    },
+    [markUserEdited, setChildren]
+  );
+
+  const setAssetsWithEdit = useCallback(
+    (next: SetStateAction<AssetRow[]>) => {
+      markUserEdited();
+      setAssets(next);
+    },
+    [markUserEdited, setAssets]
+  );
+
+  const setLiabilitiesWithEdit = useCallback(
+    (next: SetStateAction<LiabRow[]>) => {
+      markUserEdited();
+      setLiabilities(next);
+    },
+    [markUserEdited, setLiabilities]
+  );
+
+  const setInsuranceWithEdit = useCallback(
+    (next: SetStateAction<InsRow[]>) => {
+      markUserEdited();
+      setInsurance(next);
+    },
+    [markUserEdited, setInsurance]
+  );
+
+  const setGoalsWithEdit = useCallback(
+    (next: SetStateAction<GoalRow[]>) => {
+      markUserEdited();
+      setGoals(next);
+    },
+    [markUserEdited, setGoals]
+  );
+
+  const setIncomesWithEdit = useCallback(
+    (next: SetStateAction<IncomeRow[]>) => {
+      markUserEdited();
+      setIncomes(next);
+    },
+    [markUserEdited, setIncomes]
+  );
 
   /* ── Push to Supabase + cascade to all stores whenever saves settle ──
    * usePersistedState writes to the RAW key (no scope). The stores read from
@@ -227,6 +289,7 @@ export default function OnboardingPage() {
 
   const setField = useCallback(
     (name: string, value: string) => {
+      markUserEdited();
       setFields((p) => ({ ...p, [name]: value }));
       // When employment type changes, notify business-scope gate
       if (name === "p1_emp_type" || name === "p2_emp_type") {
@@ -234,7 +297,7 @@ export default function OnboardingPage() {
         setTimeout(notifyBusinessScopeChanged, 200);
       }
     },
-    [setFields]
+    [markUserEdited, setFields]
   );
 
   const goNext = useCallback(() => {
@@ -310,7 +373,7 @@ export default function OnboardingPage() {
             fields={fields}
             setField={setField}
             children={children}
-            setChildren={setChildren}
+            setChildren={setChildrenWithEdit}
           />
         )}
         {step === 2 && (
@@ -318,11 +381,11 @@ export default function OnboardingPage() {
             fields={fields}
             setField={setField}
             incomes={incomes}
-            setIncomes={setIncomes}
+            setIncomes={setIncomesWithEdit}
             assets={assets}
-            setAssets={setAssets}
+            setAssets={setAssetsWithEdit}
             liabilities={liabilities}
-            setLiabilities={setLiabilities}
+            setLiabilities={setLiabilitiesWithEdit}
           />
         )}
         {step === 3 && (
@@ -330,18 +393,18 @@ export default function OnboardingPage() {
             fields={fields}
             setField={setField}
             insurance={insurance}
-            setInsurance={setInsurance}
+            setInsurance={setInsuranceWithEdit}
           />
         )}
         {step === 4 && (
-          <Step4Goals fields={fields} setField={setField} goals={goals} setGoals={setGoals} />
+          <Step4Goals fields={fields} setField={setField} goals={goals} setGoals={setGoalsWithEdit} />
         )}
         {step === 5 && <Step5Retirement fields={fields} setField={setField} />}
 
         <Navigation step={step} onPrev={goPrev} onNext={goNext} onFinish={handleFinish} />
       </form>
 
-      <SaveIndicator status={saveStatus} />
+      {hasUserEdited && <SaveIndicator status={saveStatus} />}
     </div>
   );
 }

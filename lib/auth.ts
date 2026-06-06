@@ -8,6 +8,7 @@
  */
 
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/browser";
+import { clearBootstrapState } from "@/lib/sync/bootstrap";
 
 /* ── Types ── */
 export interface AppUser {
@@ -93,6 +94,7 @@ export async function signOut(): Promise<void> {
   }
 
   await clearGoogleCalendarSession();
+  clearBootstrapState();
   const sb = getSupabaseBrowser();
   if (sb) {
     await sb.auth.signOut();

@@ -11,9 +11,11 @@
 
 import { fireSync } from "./sync-engine";
 import { scopedKey } from "./client-scope";
+import { pullBlob, pushBlobInBackground } from "./sync/blob-sync";
 
 export const SPECIAL_EVENTS_STORAGE_KEY = "verdant:special_events";
 export const SPECIAL_EVENTS_EVENT = "verdant:special-events:updated";
+const SPECIAL_EVENTS_BLOB_KEY = "special_events";
 
 export type SpecialEventType = "income" | "expense";
 
@@ -54,7 +56,20 @@ export function saveSpecialEvents(events: SpecialEvent[]): void {
   try {
     localStorage.setItem(scopedKey(SPECIAL_EVENTS_STORAGE_KEY), JSON.stringify(events));
     fireSync(SPECIAL_EVENTS_EVENT);
+    pushBlobInBackground(SPECIAL_EVENTS_BLOB_KEY, events);
   } catch {}
+}
+
+export async function hydrateSpecialEventsFromRemote(): Promise<boolean> {
+  const remote = await pullBlob<SpecialEvent[]>(SPECIAL_EVENTS_BLOB_KEY);
+  if (!remote || !Array.isArray(remote)) return false;
+  try {
+    localStorage.setItem(scopedKey(SPECIAL_EVENTS_STORAGE_KEY), JSON.stringify(remote));
+    fireSync(SPECIAL_EVENTS_EVENT);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function createSpecialEvent(input: Omit<SpecialEvent, "id">): SpecialEvent {

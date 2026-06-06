@@ -20,8 +20,12 @@
  * client-only login will plug in here in later iterations.
  */
 
-import { useEffect } from "react";
-import { bootstrapSessionOnce } from "@/lib/sync/bootstrap";
+import { useEffect, useState } from "react";
+import {
+  bootstrapSessionOnce,
+  watchRemoteHouseholdChanges,
+  watchBootstrapAuthState,
+} from "@/lib/sync/bootstrap";
 
 interface Props {
   householdId: string | null;
@@ -29,6 +33,14 @@ interface Props {
 }
 
 export function MobileBootstrap({ householdId, children }: Props) {
+  const [bootstrapReady, setBootstrapReady] = useState(false);
+
+  const loadingScreen = (
+    <div className="flex min-h-screen items-center justify-center text-verdant-muted">
+      טוען...
+    </div>
+  );
+
   useEffect(() => {
     // Match the desktop's storage key so scopedKey() + bootstrap agree.
     if (householdId) {
@@ -36,10 +48,28 @@ export function MobileBootstrap({ householdId, children }: Props) {
         localStorage.setItem("verdant:active_household_id", householdId);
       } catch {}
     }
-    bootstrapSessionOnce().catch(() => {
-      /* sync is best-effort; offline pages still render local data */
+    void bootstrapSessionOnce("mobile-mount").finally(() => {
+      setBootstrapReady(true);
     });
+    const stopAuthWatch = watchBootstrapAuthState("mobile", setBootstrapReady);
+    return () => {
+      stopAuthWatch?.();
+    };
   }, [householdId]);
+
+  useEffect(() => {
+    if (!bootstrapReady) return;
+    const stopRemoteWatch = watchRemoteHouseholdChanges("mobile", (ready) => {
+      if (ready) setBootstrapReady(true);
+    });
+    return () => {
+      stopRemoteWatch?.();
+    };
+  }, [bootstrapReady, householdId]);
+
+  if (!bootstrapReady) {
+    return loadingScreen;
+  }
 
   return <>{children}</>;
 }

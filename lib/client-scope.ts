@@ -229,6 +229,40 @@ export function dispatchAllRefreshEvents(): void {
     "verdant:parsed_transactions:updated",
     "verdant:insights:updated",
     "verdant:kids_savings:updated",
+    "verdant:investments:updated",
+  ];
+  events.forEach((name) => window.dispatchEvent(new Event(name)));
+}
+
+/**
+ * Store refresh events only.
+ *
+ * Use this after remote hydration so pages re-read their data without
+ * pretending the active client/household changed.
+ */
+export function dispatchStoreRefreshEvents(): void {
+  if (typeof window === "undefined") return;
+  const events = [
+    "verdant:accounts:updated",
+    "verdant:pension:updated",
+    "verdant:realestate:updated",
+    "verdant:debt:updated",
+    "verdant:budgets:updated",
+    "verdant:buckets:updated",
+    "verdant:balance_history:updated",
+    "verdant:assumptions",
+    "verdant:scenarios:updated",
+    "verdant:goals:updated",
+    "verdant:risk:updated",
+    "verdant:securities:updated",
+    "verdant:parsed_transactions:updated",
+    "verdant:insights:updated",
+    "verdant:kids_savings:updated",
+    "verdant:salary_profile:updated",
+    "verdant:docs:updated",
+    "verdant:portfolio:updated",
+    "verdant:special-events:updated",
+    "verdant:subscriptions_radar_exclusions:updated",
   ];
   events.forEach((name) => window.dispatchEvent(new Event(name)));
 }

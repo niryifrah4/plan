@@ -69,6 +69,7 @@ import { scopedKey } from "@/lib/client-scope";
 import { SCOPE_COLORS, effectiveScope, type Scope } from "@/lib/scope-types";
 import { MacroStrip } from "@/components/MacroStrip";
 import { UnmappedNudge } from "@/components/UnmappedNudge";
+import { refreshDashboardFromRemote } from "@/lib/dashboard-remote-sync";
 
 const TRACK_COLOR: Record<string, string> = {
   on: "#2C7A5A",
@@ -333,6 +334,11 @@ export default function DashboardPage() {
       window.removeEventListener("verdant:parsed_transactions:updated", reload);
     };
   }, [clientId]);
+
+  useEffect(() => {
+    if (loading) return;
+    void refreshDashboardFromRemote();
+  }, [clientId, loading]);
 
   // Monthly check-in: auto-popup disabled. The check-in is now opt-in from the
   // deposits page (עדכונים והפקדות) — users set their own reminder cadence there.
