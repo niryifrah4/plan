@@ -10,7 +10,7 @@
  */
 
 import type { Fields, InsRow } from "./types";
-import { FldSelect, StepCard } from "./fields";
+import { FldSelect, ModalNumberInput, StepCard } from "./fields";
 
 export function Step3Risk({
   fields,
@@ -180,21 +180,21 @@ function InsuranceRow({
         />
       </td>
       <td className="px-2">
-        <input
-          className="inp tabular"
-          type="number"
-          min="0"
+        <ModalNumberInput
           value={ins.coverage}
-          onChange={(e) => onUpdate({ coverage: e.target.value })}
+          onChange={(v) => onUpdate({ coverage: v })}
+          title={`עריכת סכום כיסוי - ${ins.type}`}
+          placeholder="0"
+          inputClassName="inp tabular"
         />
       </td>
       <td className="px-2">
-        <input
-          className="inp tabular"
-          type="number"
-          min="0"
+        <ModalNumberInput
           value={ins.premium}
-          onChange={(e) => onUpdate({ premium: e.target.value })}
+          onChange={(v) => onUpdate({ premium: v })}
+          title={`עריכת פרמיה - ${ins.type}`}
+          placeholder="0"
+          inputClassName="inp tabular"
         />
       </td>
       <td className="px-1">

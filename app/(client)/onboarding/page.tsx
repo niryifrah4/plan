@@ -8,7 +8,7 @@
  * migrations, CRM-prefill, and the sync-out cascade. Per-step rendering
  * is delegated to the 5 Step* components under `page-files/`.
  *
- * Persistence layout (per slice, all scoped per household):
+ * Persistence layout (per page snapshot, all scoped per household):
  *   • verdant:onboarding:step         — current step number
  *   • verdant:onboarding:fields       — flat key/value bag
  *   • verdant:onboarding:children     — Child[]
@@ -18,16 +18,16 @@
  *   • verdant:onboarding:goals        — GoalRow[]
  *   • verdant:onboarding:incomes      — IncomeRow[]
  *
- * usePersistedState writes to the RAW key (no scope). After every settled
- * save we copy each slice to its scoped key, run syncOnboardingToStores,
- * and push a remote snapshot. That makes the questionnaire effectively
- * live — moving to /budget immediately reflects what was typed here.
+ * The questionnaire now saves once per page transition:
+ *   1. Inputs update in-memory React state only.
+ *   2. Clicking Next / Back / a step chip writes the whole snapshot.
+ *   3. The sync cascade runs after the snapshot is committed.
  */
 
 import { useState, useCallback, useEffect, useRef, type SetStateAction } from "react";
 import { useRouter } from "next/navigation";
-import { usePersistedState } from "@/hooks/usePersistedState";
 import { SaveIndicator } from "@/components/SaveIndicator";
+import { useSaveStatus } from "@/lib/hooks/useSaveStatus";
 import { syncOnboardingToStores } from "@/lib/onboarding-sync";
 import { pushOnboardingSnapshot, hydrateOnboardingFromRemote } from "@/lib/onboarding-remote";
 import { notifyBusinessScopeChanged } from "@/lib/business-scope";
@@ -52,12 +52,54 @@ import { Step5Retirement } from "./page-files/Step5Retirement";
 import { Navigation } from "./page-files/Navigation";
 import { Step0Welcome, shouldShowWelcome } from "./page-files/Step0Welcome";
 
+const ONBOARDING_STEP_KEY = "verdant:onboarding:step";
+const ONBOARDING_FIELDS_KEY = "verdant:onboarding:fields";
+const ONBOARDING_CHILDREN_KEY = "verdant:onboarding:children";
+const ONBOARDING_ASSETS_KEY = "verdant:onboarding:assets";
+const ONBOARDING_LIABILITIES_KEY = "verdant:onboarding:liabilities";
+const ONBOARDING_INSURANCE_KEY = "verdant:onboarding:insurance";
+const ONBOARDING_GOALS_KEY = "verdant:onboarding:goals";
+const ONBOARDING_INCOMES_KEY = "verdant:onboarding:incomes";
+
+function readScopedJSON<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = localStorage.getItem(scopedKey(key));
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeScopedJSON(key: string, value: unknown): void {
+  localStorage.setItem(scopedKey(key), JSON.stringify(value));
+}
+
+function loadInitialOnboardingState() {
+  return {
+    step: readScopedJSON<number>(ONBOARDING_STEP_KEY, 1),
+    fields: readScopedJSON<Fields>(ONBOARDING_FIELDS_KEY, {}),
+    children: readScopedJSON<Child[]>(ONBOARDING_CHILDREN_KEY, [EMPTY_CHILD]),
+    assets: readScopedJSON<AssetRow[]>(ONBOARDING_ASSETS_KEY, [
+      { type: 'נדל"ן למגורים', desc: "", value: "", rent: "", rentExpenses: "" },
+    ]),
+    liabilities: readScopedJSON<LiabRow[]>(ONBOARDING_LIABILITIES_KEY, [
+      { type: "משכנתא", lender: "", balance: "", rate: "", monthly: "" },
+    ]),
+    insurance: readScopedJSON<InsRow[]>(ONBOARDING_INSURANCE_KEY, INS_DEFAULTS),
+    goals: readScopedJSON<GoalRow[]>(ONBOARDING_GOALS_KEY, [
+      { name: "", cost: "", horizon: "", priority: "" },
+    ]),
+    incomes: readScopedJSON<IncomeRow[]>(ONBOARDING_INCOMES_KEY, INCOME_DEFAULTS),
+  };
+}
+
 export default function OnboardingPage() {
   const router = useRouter();
 
   /* ── Hydrate from Supabase BEFORE rendering the form ──
-   * Prevents usePersistedState from initializing with a stale empty state
-   * when the user re-opens the page on a different browser. */
+   * Prevents the page from rendering a stale local snapshot when the user
+   * re-opens the questionnaire on a different browser. */
   const [hydrated, setHydrated] = useState(false);
   // Welcome screen — shown once per household before Step 1. Defer the
   // localStorage read to post-mount so the SSR/CSR render trees match.
@@ -71,8 +113,8 @@ export default function OnboardingPage() {
       try {
         const wrote = await hydrateOnboardingFromRemote();
         if (!alive) return;
-        // If we wrote new data, force a full remount so usePersistedState re-reads
-        // from localStorage. Otherwise just proceed — local already matches.
+        // If we wrote new data, force a full remount so the local state
+        // initializers re-read from localStorage. Otherwise just proceed.
         if (wrote) {
           window.location.reload();
           return;
@@ -86,77 +128,23 @@ export default function OnboardingPage() {
   }, []);
 
   /* ── Step navigation ── */
-  const [step, setStep] = usePersistedState<number>("verdant:onboarding:step", 1);
+  const [initial] = useState(loadInitialOnboardingState);
+  const [step, setStep] = useState<number>(initial.step);
 
-  /* ── Persisted state — auto-saves to localStorage (1.5s debounce) ── */
-  const [fields, setFields, fieldsSaving] = usePersistedState<Fields>(
-    "verdant:onboarding:fields",
-    {},
-    1500
-  );
-  const [children, setChildren, childrenSaving] = usePersistedState<Child[]>(
-    "verdant:onboarding:children",
-    [EMPTY_CHILD],
-    1500
-  );
-  const [assets, setAssets, assetsSaving] = usePersistedState<AssetRow[]>(
-    "verdant:onboarding:assets",
-    [{ type: 'נדל"ן למגורים', desc: "", value: "", rent: "", rentExpenses: "" }],
-    1500
-  );
-  const [liabilities, setLiabilities, liabSaving] = usePersistedState<LiabRow[]>(
-    "verdant:onboarding:liabilities",
-    [{ type: "משכנתא", lender: "", balance: "", rate: "", monthly: "" }],
-    1500
-  );
-  const [insurance, setInsurance, insSaving] = usePersistedState<InsRow[]>(
-    "verdant:onboarding:insurance",
-    INS_DEFAULTS,
-    1500
-  );
-  const [goals, setGoals, goalsSaving] = usePersistedState<GoalRow[]>(
-    "verdant:onboarding:goals",
-    [{ name: "", cost: "", horizon: "", priority: "" }],
-    1500
-  );
-  const [incomes, setIncomes, incomesSaving] = usePersistedState<IncomeRow[]>(
-    "verdant:onboarding:incomes",
-    INCOME_DEFAULTS,
-    1500
-  );
+  /* ── In-memory page state; persisted only on page transitions ── */
+  const [fields, setFields] = useState<Fields>(initial.fields);
+  const [children, setChildren] = useState<Child[]>(initial.children);
+  const [assets, setAssets] = useState<AssetRow[]>(initial.assets);
+  const [liabilities, setLiabilities] = useState<LiabRow[]>(initial.liabilities);
+  const [insurance, setInsurance] = useState<InsRow[]>(initial.insurance);
+  const [goals, setGoals] = useState<GoalRow[]>(initial.goals);
+  const [incomes, setIncomes] = useState<IncomeRow[]>(initial.incomes);
 
-  const isSaving =
-    fieldsSaving ||
-    childrenSaving ||
-    assetsSaving ||
-    liabSaving ||
-    insSaving ||
-    goalsSaving ||
-    incomesSaving;
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
-  const saveIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { status: saveStatus, pulse: pulseSaveStatus } = useSaveStatus({ savedMs: 2000 });
   const [hasUserEdited, setHasUserEdited] = useState(false);
   const markUserEdited = useCallback(() => {
     setHasUserEdited(true);
   }, []);
-  useEffect(() => {
-    if (saveIdleTimerRef.current) {
-      clearTimeout(saveIdleTimerRef.current);
-      saveIdleTimerRef.current = null;
-    }
-    if (isSaving) {
-      setSaveStatus("saving");
-      return;
-    }
-    if (saveStatus === "saving") {
-      setSaveStatus("saved");
-      saveIdleTimerRef.current = setTimeout(() => {
-        setSaveStatus("idle");
-        saveIdleTimerRef.current = null;
-      }, 2000);
-      return;
-    }
-  }, [isSaving, saveStatus]);
 
   const setChildrenWithEdit = useCallback(
     (next: SetStateAction<Child[]>) => {
@@ -205,34 +193,6 @@ export default function OnboardingPage() {
     },
     [markUserEdited, setIncomes]
   );
-
-  /* ── Push to Supabase + cascade to all stores whenever saves settle ──
-   * usePersistedState writes to the RAW key (no scope). The stores read from
-   * the scoped key. So after each debounced save we:
-   *   1. Copy every onboarding slice to its scoped key (what the sync reads).
-   *   2. Fan out via syncOnboardingToStores → budget, properties, etc.
-   *   3. Push a remote snapshot (Supabase).
-   * Result: the client doesn't need to click "סיום" for data to flow —
-   * navigating to /budget immediately shows allowances, rent, etc. */
-  useEffect(() => {
-    if (!hydrated) return;
-    if (!isSaving) {
-      try {
-        localStorage.setItem(scopedKey("verdant:onboarding:fields"), JSON.stringify(fields));
-        localStorage.setItem(scopedKey("verdant:onboarding:children"), JSON.stringify(children));
-        localStorage.setItem(scopedKey("verdant:onboarding:assets"), JSON.stringify(assets));
-        localStorage.setItem(
-          scopedKey("verdant:onboarding:liabilities"),
-          JSON.stringify(liabilities)
-        );
-        localStorage.setItem(scopedKey("verdant:onboarding:insurance"), JSON.stringify(insurance));
-        localStorage.setItem(scopedKey("verdant:onboarding:goals"), JSON.stringify(goals));
-        localStorage.setItem(scopedKey("verdant:onboarding:incomes"), JSON.stringify(incomes));
-      } catch {}
-      syncOnboardingToStores();
-      pushOnboardingSnapshot();
-    }
-  }, [hydrated, isSaving, fields, children, assets, liabilities, insurance, goals, incomes]);
 
   /* ── One-shot migration: legacy inc_* fields → incomes[] list ──
    * Runs once per client after hydration. If the user already has any
@@ -291,61 +251,68 @@ export default function OnboardingPage() {
     (name: string, value: string) => {
       markUserEdited();
       setFields((p) => ({ ...p, [name]: value }));
-      // When employment type changes, notify business-scope gate
-      if (name === "p1_emp_type" || name === "p2_emp_type") {
-        // Small delay so persisted state writes first
-        setTimeout(notifyBusinessScopeChanged, 200);
-      }
     },
     [markUserEdited, setFields]
   );
 
+  const persistSnapshot = useCallback(
+    (nextStep: number) => {
+      try {
+        writeScopedJSON(ONBOARDING_STEP_KEY, nextStep);
+        writeScopedJSON(ONBOARDING_FIELDS_KEY, fields);
+        writeScopedJSON(ONBOARDING_CHILDREN_KEY, children);
+        writeScopedJSON(ONBOARDING_ASSETS_KEY, assets);
+        writeScopedJSON(ONBOARDING_LIABILITIES_KEY, liabilities);
+        writeScopedJSON(ONBOARDING_INSURANCE_KEY, insurance);
+        writeScopedJSON(ONBOARDING_GOALS_KEY, goals);
+        writeScopedJSON(ONBOARDING_INCOMES_KEY, incomes);
+      } catch (e) {
+        console.warn("[onboarding] snapshot save failed:", e);
+        return;
+      }
+      syncOnboardingToStores();
+      pushOnboardingSnapshot();
+      notifyBusinessScopeChanged();
+      pulseSaveStatus();
+    },
+    [fields, children, assets, liabilities, insurance, goals, incomes, pulseSaveStatus]
+  );
+
   const goNext = useCallback(() => {
-    setStep((s: number) => Math.min(s + 1, TOTAL_STEPS));
+    const next = Math.min(step + 1, TOTAL_STEPS);
+    persistSnapshot(next);
+    setStep(next);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [setStep]);
+  }, [persistSnapshot, setStep, step]);
 
   const goPrev = useCallback(() => {
-    setStep((s: number) => Math.max(s - 1, 1));
+    const prev = Math.max(step - 1, 1);
+    persistSnapshot(prev);
+    setStep(prev);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [setStep]);
+  }, [persistSnapshot, setStep, step]);
 
   const goToStep = useCallback(
     (n: number) => {
+      persistSnapshot(n);
       setStep(n);
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
-    [setStep]
+    [persistSnapshot, setStep]
   );
 
   const handleFinish = useCallback(async () => {
-    // Flush all persisted state to localStorage immediately before sync.
-    // Must use scopedKey() so the sync engine and store migrations read
-    // from the same client-scoped namespace (verdant:c:{id}:...).
-    try {
-      localStorage.setItem(scopedKey("verdant:onboarding:fields"), JSON.stringify(fields));
-      localStorage.setItem(scopedKey("verdant:onboarding:children"), JSON.stringify(children));
-      localStorage.setItem(scopedKey("verdant:onboarding:assets"), JSON.stringify(assets));
-      localStorage.setItem(
-        scopedKey("verdant:onboarding:liabilities"),
-        JSON.stringify(liabilities)
-      );
-      localStorage.setItem(scopedKey("verdant:onboarding:insurance"), JSON.stringify(insurance));
-      localStorage.setItem(scopedKey("verdant:onboarding:goals"), JSON.stringify(goals));
-      localStorage.setItem(scopedKey("verdant:onboarding:incomes"), JSON.stringify(incomes));
-    } catch {}
-    syncOnboardingToStores();
-    pushOnboardingSnapshot();
+    persistSnapshot(step);
     // Flip household.stage from 'onboarding' → 'active' so the (client)
     // layout stops redirecting back here on next navigation. Fire-and-forget:
     // a failure shouldn't block the user from reaching their dashboard.
     fetch("/api/onboarding/complete", { method: "POST" }).catch(() => {});
     router.push("/dashboard");
-  }, [router, fields, children, assets, liabilities, insurance, goals, incomes]);
+  }, [persistSnapshot, router, step]);
 
   // Guard: don't render the form until remote hydration has resolved.
-  // Otherwise usePersistedState initializes with localStorage defaults
-  // and the effect's window.location.reload() yanks the page mid-render.
+  // Otherwise the page could render before the remote/local snapshot check
+  // decides whether a full reload is needed.
   if (!hydrated) {
     return (
       <div className="mx-auto max-w-5xl">

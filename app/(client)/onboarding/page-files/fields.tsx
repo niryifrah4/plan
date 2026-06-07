@@ -12,6 +12,8 @@
  */
 
 import type { Fields } from "./types";
+import { useState } from "react";
+import { NumberEditModal } from "@/components/ui/NumberEditModal";
 
 export function StepCard({
   num,
@@ -65,15 +67,82 @@ export function Fld({
   return (
     <div>
       <label className="mb-1 block px-0.5 text-[11px] font-bold text-verdant-ink">{label}</label>
-      <input
-        className="inp"
-        type={type}
-        dir={dir}
-        placeholder={placeholder}
-        value={fields[name] || ""}
-        onChange={(e) => onChange(name, e.target.value)}
-      />
+      {type === "number" ? (
+        <ModalNumberInput
+          value={fields[name] || ""}
+          onChange={(v) => onChange(name, v)}
+          title={label}
+          placeholder={placeholder}
+          dir={dir}
+          inputClassName="inp tabular"
+        />
+      ) : (
+        <input
+          className="inp"
+          type={type}
+          dir={dir}
+          placeholder={placeholder}
+          value={fields[name] || ""}
+          onChange={(e) => onChange(name, e.target.value)}
+        />
+      )}
     </div>
+  );
+}
+
+export function ModalNumberInput({
+  value,
+  onChange,
+  title,
+  placeholder,
+  dir = "ltr",
+  inputClassName = "inp tabular",
+  wrapperClassName = "",
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  title: string;
+  placeholder?: string;
+  dir?: string;
+  inputClassName?: string;
+  wrapperClassName?: string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <div className={`relative ${wrapperClassName}`}>
+        <input
+          className={`${inputClassName} pl-10`}
+          type="text"
+          inputMode="decimal"
+          dir={dir}
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="absolute left-1 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md border border-transparent text-verdant-muted transition-colors hover:bg-[#FAFAF7] hover:text-verdant-ink"
+          aria-label={`פתח עריכה מדויקת עבור ${title}`}
+          title={`פתח עריכה מדויקת עבור ${title}`}
+        >
+          <span className="material-symbols-outlined text-[16px]">edit</span>
+        </button>
+      </div>
+      {open && (
+        <NumberEditModal
+          title={title}
+          initialValue={value}
+          onSave={(next) => {
+            onChange(String(next));
+            setOpen(false);
+          }}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
   );
 }
 

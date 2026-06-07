@@ -2,8 +2,9 @@
  * Step navigation bar — Previous / Next or Finish.
  *
  * On the final step the "next" button becomes a "סיום ומעבר לדשבורד" CTA
- * that triggers the consumer's `onFinish` (which flushes all slices to the
- * scoped localStorage namespace and fans out to the sync engine).
+ * that triggers the consumer's `onFinish` (which commits the whole page
+ * snapshot to the scoped localStorage namespace and fans out to the sync
+ * engine).
  */
 
 import { TOTAL_STEPS } from "./constants";

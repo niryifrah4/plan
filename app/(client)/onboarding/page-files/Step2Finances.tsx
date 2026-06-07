@@ -15,7 +15,7 @@
 
 import type { AssetRow, Fields, IncomeRow, LiabRow } from "./types";
 import { ASSET_TYPES, LIAB_TYPES, fmt, n } from "./constants";
-import { DynTable, Fld, StepCard } from "./fields";
+import { DynTable, Fld, ModalNumberInput, StepCard } from "./fields";
 
 export function Step2Finances({
   fields,
@@ -105,18 +105,17 @@ function IncomesList({
                 }
                 placeholder="תיאור ההכנסה (למשל: שכר, שכ״ד, הרצאות...)"
               />
-              <input
-                className="inp tabular w-36 text-left"
-                type="number"
-                min="0"
+              <ModalNumberInput
                 value={row.value}
-                onChange={(e) =>
+                onChange={(v) =>
                   setIncomes((p) =>
-                    p.map((r, j) => (j === i ? { ...r, value: e.target.value } : r))
+                    p.map((r, j) => (j === i ? { ...r, value: v } : r))
                   )
                 }
+                title={`עריכת הכנסה - ${row.label || "שורה"}`}
                 placeholder="0"
                 dir="ltr"
+                inputClassName="inp tabular w-36 text-left"
               />
               <button
                 type="button"
@@ -340,12 +339,13 @@ function AssetsSection({
               />
             </td>
             <td className="px-2">
-              <input
-                className="inp tabular"
-                type="number"
-                min="0"
+              <ModalNumberInput
                 value={a.value}
-                onChange={(e) => onUpdate(i, "value", e.target.value)}
+                onChange={(v) => onUpdate(i, "value", v)}
+                title={`עריכת שווי נכס - ${a.desc || "נכס"}`}
+                placeholder="0"
+                dir="ltr"
+                inputClassName="inp tabular"
               />
             </td>
           </>
@@ -389,37 +389,36 @@ function InvestmentPropertyRentals({
                 <label className="mb-1 block text-[10px] font-bold text-verdant-muted">
                   שכ״ד חודשי (₪)
                 </label>
-                <input
-                  className="inp tabular"
-                  type="number"
-                  min="0"
+                <ModalNumberInput
                   value={a.rent || ""}
-                  onChange={(e) =>
+                  onChange={(v) =>
                     setAssets((p) =>
-                      p.map((x, j) => (j === i ? { ...x, rent: e.target.value } : x))
+                      p.map((x, j) => (j === i ? { ...x, rent: v } : x))
                     )
                   }
+                  title={`עריכת שכ״ד - ${a.desc || "נכס"}`}
                   placeholder="0"
+                  dir="ltr"
+                  inputClassName="inp tabular"
                 />
               </div>
               <div>
                 <label className="mb-1 block text-[10px] font-bold text-verdant-muted">
                   הוצאות חודשיות (₪)
                 </label>
-                <input
-                  className="inp tabular"
-                  type="number"
-                  min="0"
+                <ModalNumberInput
                   value={a.rentExpenses || ""}
-                  onChange={(e) =>
+                  onChange={(v) =>
                     setAssets((p) =>
                       p.map((x, j) =>
-                        j === i ? { ...x, rentExpenses: e.target.value } : x
+                        j === i ? { ...x, rentExpenses: v } : x
                       )
                     )
                   }
-                  placeholder="ועד בית, ארנונה, ניהול"
-                  title="לא כולל משכנתא — היא כבר נספרת דרך טבלת ההתחייבויות"
+                  title={`עריכת הוצאות - ${a.desc || "נכס"}`}
+                  placeholder="0"
+                  dir="ltr"
+                  inputClassName="inp tabular"
                 />
               </div>
             </div>
@@ -510,12 +509,13 @@ function LiabilitiesSection({
               />
             </td>
             <td className="px-2">
-              <input
-                className="inp tabular"
-                type="number"
-                min="0"
+              <ModalNumberInput
                 value={l.balance}
-                onChange={(e) => onUpdate(i, "balance", e.target.value)}
+                onChange={(v) => onUpdate(i, "balance", v)}
+                title={`עריכת יתרה - ${l.lender || l.type}`}
+                placeholder="0"
+                dir="ltr"
+                inputClassName="inp tabular"
               />
             </td>
             <td className="px-2">
@@ -529,23 +529,24 @@ function LiabilitiesSection({
                   style={{ background: "#FAFAF7", color: "#6B7280", cursor: "help" }}
                 />
               ) : (
-                <input
-                  className="inp tabular"
-                  type="number"
-                  step="0.1"
-                  min="0"
+                <ModalNumberInput
                   value={l.rate}
-                  onChange={(e) => onUpdate(i, "rate", e.target.value)}
+                  onChange={(v) => onUpdate(i, "rate", v)}
+                  title={`עריכת ריבית - ${l.lender || l.type}`}
+                  placeholder="0"
+                  dir="ltr"
+                  inputClassName="inp tabular"
                 />
               )}
             </td>
             <td className="px-2">
-              <input
-                className="inp tabular"
-                type="number"
-                min="0"
+              <ModalNumberInput
                 value={l.monthly}
-                onChange={(e) => onUpdate(i, "monthly", e.target.value)}
+                onChange={(v) => onUpdate(i, "monthly", v)}
+                title={`עריכת החזר חודשי - ${l.lender || l.type}`}
+                placeholder="0"
+                dir="ltr"
+                inputClassName="inp tabular"
               />
             </td>
           </>

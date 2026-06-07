@@ -2,7 +2,8 @@
  * Step 1 — Family profile.
  *
  * Three sections:
- *   1. Couple details (name, ID, DOB, phone, email, address, city, marital status)
+ *   1. Couple details (name, ID, DOB, phone, email, shared address, optional
+ *      personal address street + city per spouse, marital status)
  *   2. Children — name, DOB, gender, framework, special needs, kids-savings track
  *   3. Employment — type, employer, role, tenure for each spouse
  *
@@ -20,7 +21,7 @@ import {
 import { fmtILS } from "@/lib/format";
 import type { Child, Fields } from "./types";
 import { EMPTY_CHILD, FRAMEWORKS } from "./constants";
-import { Fld, FldSelect, StepCard } from "./fields";
+import { Fld, FldSelect, ModalNumberInput, StepCard } from "./fields";
 
 export function Step1Family({
   fields,
@@ -33,19 +34,106 @@ export function Step1Family({
   children: Child[];
   setChildren: (updater: (prev: Child[]) => Child[]) => void;
 }) {
+  const spouse2Visible =
+    fields.p2_present === "1" ||
+    Boolean(
+      fields.p2_name ||
+        fields.p2_id ||
+        fields.p2_dob ||
+        fields.p2_phone ||
+        fields.p2_email ||
+        fields.p2_address_street ||
+        fields.p2_address_city ||
+        fields.p2_emp_type ||
+        fields.p2_employer ||
+        fields.p2_role ||
+        fields.p2_tenure
+    );
+
+  const showSpouse2 = () => setField("p2_present", "1");
+  const hideSpouse2 = () => {
+    [
+      "p2_name",
+      "p2_id",
+      "p2_dob",
+      "p2_phone",
+      "p2_email",
+      "p2_address_street",
+      "p2_address_city",
+      "p2_address_present",
+      "p2_emp_type",
+      "p2_employer",
+      "p2_role",
+      "p2_tenure",
+      "p2_present",
+    ].forEach((k) => setField(k, ""));
+  };
+
+  const sharedAddress = fields.address || "";
+  const spouseHasOwnAddress = (prefix: "p1" | "p2") =>
+    fields[`${prefix}_address_present`] === "1" ||
+    Boolean(fields[`${prefix}_address_street`] || fields[`${prefix}_address_city`]);
+  const showSpouseAddress = (prefix: "p1" | "p2") => setField(`${prefix}_address_present`, "1");
+  const hideSpouseAddress = (prefix: "p1" | "p2") => {
+    setField(`${prefix}_address_street`, "");
+    setField(`${prefix}_address_city`, "");
+    setField(`${prefix}_address_present`, "");
+  };
+
   return (
     <StepCard num={1} title="פרופיל משפחתי ואישי" icon="people">
-      <h3 className="mb-3 flex items-center gap-2 text-sm font-extrabold text-verdant-ink">
-        <span className="material-symbols-outlined text-[18px] text-verdant-emerald">people</span>
-        פרטי בני הזוג
-      </h3>
-      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-        <SpouseFields prefix="p1" label="בן/בת זוג 1" fields={fields} setField={setField} />
-        <SpouseFields prefix="p2" label="בן/בת זוג 2" fields={fields} setField={setField} />
+      <div className="mb-6">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="flex items-center gap-2 text-sm font-extrabold text-verdant-ink">
+            <span className="material-symbols-outlined text-[18px] text-verdant-emerald">
+              people
+            </span>
+            פרטי בני הזוג
+          </h3>
+          {!spouse2Visible ? (
+            <button
+              type="button"
+              onClick={showSpouse2}
+              className="flex items-center gap-1 text-[11px] font-bold text-verdant-emerald hover:underline"
+            >
+              <span className="material-symbols-outlined text-[14px]">add</span>
+              הוסף בן/בת זוג
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={hideSpouse2}
+              className="flex items-center gap-1 text-[11px] font-bold text-red-400 hover:text-red-600"
+            >
+              <span className="material-symbols-outlined text-[14px]">close</span>
+              הסר בן/בת זוג 2
+            </button>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          <SpouseCard
+            prefix="p1"
+            label="בן/בת זוג 1"
+            fields={fields}
+            setField={setField}
+            accent="primary"
+          />
+          {spouse2Visible && (
+            <SpouseCard
+              prefix="p2"
+              label="בן/בת זוג 2"
+              fields={fields}
+              setField={setField}
+              accent="secondary"
+              onRemove={hideSpouse2}
+            />
+          )}
+        </div>
       </div>
-      <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
+      <div className="mb-3 grid grid-cols-1 gap-3 md:grid-cols-3">
         <Fld
-          label="כתובת"
+          label="כתובת משפחתית משותפת"
           name="address"
           fields={fields}
           onChange={setField}
@@ -60,37 +148,66 @@ export function Step1Family({
           options={["נשואים", "ידועים בציבור", "פרודים", "גרושים", "אלמן/ה"]}
         />
       </div>
+      <div className="mb-6 text-[11px] leading-relaxed text-verdant-muted">
+        הכתובת המשותפת משמשת כברירת מחדל. אם לבן/בת זוג יש כתובת אישית, אפשר להגדיר אותה
+        בתוך הכרטיס שלו/שלה.
+      </div>
 
       <ChildrenSection children={children} setChildren={setChildren} />
 
-      <h3 className="mb-3 flex items-center gap-2 text-sm font-extrabold text-verdant-ink">
-        <span className="material-symbols-outlined text-[18px] text-verdant-emerald">work</span>
-        תעסוקה
-      </h3>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <EmploymentFields prefix="p1" label="בן/בת זוג 1" fields={fields} setField={setField} />
-        <EmploymentFields prefix="p2" label="בן/בת זוג 2" fields={fields} setField={setField} />
-      </div>
     </StepCard>
   );
 }
 
 /* ── Spouse + employment helpers ── */
 
-function SpouseFields({
+function SpouseCard({
   prefix,
   label,
   fields,
   setField,
+  accent,
+  onRemove,
 }: {
   prefix: "p1" | "p2";
   label: string;
   fields: Fields;
   setField: (name: string, value: string) => void;
+  accent: "primary" | "secondary";
+  onRemove?: () => void;
 }) {
+  const sharedAddress = fields.address || "";
+  const spouseHasOwnAddress = () =>
+    fields[`${prefix}_address_present`] === "1" ||
+    Boolean(fields[`${prefix}_address_street`] || fields[`${prefix}_address_city`]);
+  const showSpouseAddress = () => setField(`${prefix}_address_present`, "1");
+  const hideSpouseAddress = () => {
+    setField(`${prefix}_address_street`, "");
+    setField(`${prefix}_address_city`, "");
+    setField(`${prefix}_address_present`, "");
+  };
+
   return (
-    <div className="space-y-2">
-      <div className="caption">{label}</div>
+    <div
+      className="rounded-2xl border p-4"
+      style={{
+        borderColor: accent === "primary" ? "#D7E5DC" : "#E5E7EB",
+        background: accent === "primary" ? "#F7FBF8" : "#FFFFFF",
+      }}
+    >
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="caption">{label}</div>
+        {onRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="flex items-center gap-0.5 text-[11px] font-bold text-red-400 hover:text-red-600"
+          >
+            <span className="material-symbols-outlined text-[14px]">close</span>
+            הסר
+          </button>
+        )}
+      </div>
       <Fld label="שם מלא" name={`${prefix}_name`} fields={fields} onChange={setField} />
       <div className="grid grid-cols-2 gap-2">
         <Fld label="ת.ז" name={`${prefix}_id`} fields={fields} onChange={setField} dir="ltr" />
@@ -120,24 +237,74 @@ function SpouseFields({
           dir="ltr"
         />
       </div>
+      <div className="mt-3 rounded-xl border border-dashed border-verdant-line bg-white/70 p-3">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <div className="text-[11px] font-bold text-verdant-ink">כתובת אישית</div>
+          {!spouseHasOwnAddress() ? (
+            <button
+              type="button"
+              onClick={showSpouseAddress}
+              className="flex items-center gap-1 text-[11px] font-bold text-verdant-emerald hover:underline"
+            >
+              <span className="material-symbols-outlined text-[14px]">add</span>
+              יש כתובת משלו/שלה
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={hideSpouseAddress}
+              className="flex items-center gap-1 text-[11px] font-bold text-red-400 hover:text-red-600"
+            >
+              <span className="material-symbols-outlined text-[14px]">close</span>
+              השתמש/י בכתובת המשותפת
+            </button>
+          )}
+        </div>
+        {spouseHasOwnAddress() ? (
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+            <Fld
+              label="רחוב ומספר"
+              name={`${prefix}_address_street`}
+              fields={fields}
+              onChange={setField}
+              placeholder="רחוב ומספר"
+            />
+            <Fld
+              label="עיר"
+              name={`${prefix}_address_city`}
+              fields={fields}
+              onChange={setField}
+            />
+          </div>
+        ) : (
+          <div className="text-[11px] leading-relaxed text-verdant-muted">
+            כרגע משתמשים בכתובת המשותפת: {sharedAddress ? sharedAddress : "לא הוזנה כתובת משותפת"}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-4 rounded-xl border border-dashed border-verdant-line bg-white/70 p-3">
+        <h4 className="mb-3 flex items-center gap-2 text-[11px] font-bold text-verdant-ink">
+          <span className="material-symbols-outlined text-[14px] text-verdant-emerald">work</span>
+          תעסוקה
+        </h4>
+        <EmploymentFields prefix={prefix} fields={fields} setField={setField} />
+      </div>
     </div>
   );
 }
 
 function EmploymentFields({
   prefix,
-  label,
   fields,
   setField,
 }: {
   prefix: "p1" | "p2";
-  label: string;
   fields: Fields;
   setField: (name: string, value: string) => void;
 }) {
   return (
     <div className="space-y-2">
-      <div className="caption">{label}</div>
       <FldSelect
         label="סוג תעסוקה"
         name={`${prefix}_emp_type`}
@@ -380,13 +547,23 @@ function LabeledInput({
   return (
     <div>
       <label className="mb-1 block text-[10px] font-bold text-verdant-muted">{label}</label>
-      <input
-        className="inp w-full"
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-      />
+      {type === "number" ? (
+        <ModalNumberInput
+          value={value}
+          onChange={onChange}
+          title={label}
+          placeholder={placeholder}
+          inputClassName="inp w-full tabular"
+        />
+      ) : (
+        <input
+          className="inp w-full"
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+        />
+      )}
     </div>
   );
 }

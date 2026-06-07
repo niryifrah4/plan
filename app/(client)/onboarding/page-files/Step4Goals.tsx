@@ -10,7 +10,7 @@
  */
 
 import type { Fields, GoalRow } from "./types";
-import { DynTable, FldTextarea, StepCard } from "./fields";
+import { DynTable, FldTextarea, ModalNumberInput, StepCard } from "./fields";
 
 export function Step4Goals({
   fields,
@@ -85,21 +85,21 @@ export function Step4Goals({
               />
             </td>
             <td className="px-2">
-              <input
-                className="inp tabular"
-                type="number"
-                min="0"
+              <ModalNumberInput
                 value={g.cost}
-                onChange={(e) => onUpdate(i, "cost", e.target.value)}
+                onChange={(v) => onUpdate(i, "cost", v)}
+                title={`עריכת עלות - ${g.name || "יעד"}`}
+                placeholder="0"
+                inputClassName="inp tabular"
               />
             </td>
             <td className="px-2">
-              <input
-                className="inp tabular"
-                type="number"
-                min="0"
+              <ModalNumberInput
                 value={g.horizon}
-                onChange={(e) => onUpdate(i, "horizon", e.target.value)}
+                onChange={(v) => onUpdate(i, "horizon", v)}
+                title={`עריכת אופק - ${g.name || "יעד"}`}
+                placeholder="0"
+                inputClassName="inp tabular"
               />
             </td>
             <td className="px-3">

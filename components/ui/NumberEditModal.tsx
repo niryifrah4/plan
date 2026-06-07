@@ -10,7 +10,9 @@ interface Props {
 }
 
 export function NumberEditModal({ initialValue, title = "עריכת סכום", onSave, onClose }: Props) {
-  const [val, setVal] = useState<number>(Number(initialValue) || 0);
+  const [text, setText] = useState<string>(
+    initialValue === undefined || initialValue === null ? "" : String(initialValue)
+  );
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -21,8 +23,18 @@ export function NumberEditModal({ initialValue, title = "עריכת סכום", o
     }
   }, []);
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
   const handleAdd = (amount: number) => {
-    setVal((prev) => prev + amount);
+    const current = Number(text.replace(/,/g, "")) || 0;
+    setText(String(current + amount));
     if (inputRef.current) {
       inputRef.current.focus();
     }
@@ -30,7 +42,8 @@ export function NumberEditModal({ initialValue, title = "עריכת סכום", o
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    onSave(val);
+    const parsed = Number(text.replace(/,/g, ""));
+    onSave(Number.isFinite(parsed) ? parsed : 0);
   };
 
   return (
@@ -67,9 +80,11 @@ export function NumberEditModal({ initialValue, title = "עריכת סכום", o
           <div className="mb-6">
             <input
               ref={inputRef}
-              type="number"
-              value={val === 0 && !inputRef.current?.value ? "" : val}
-              onChange={(e) => setVal(Number(e.target.value))}
+              type="text"
+              inputMode="decimal"
+              dir="ltr"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
               className="no-spinners w-full rounded-xl border-2 border-transparent bg-[#FAFAF7] p-4 text-center text-4xl font-extrabold tabular-nums text-[#1A1A1A] outline-none transition-colors focus:border-[#2C7A5A]/30 focus:bg-[#FFFFFF]"
               placeholder="0"
             />

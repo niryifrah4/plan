@@ -2,8 +2,8 @@
  * 5-step progress header for the onboarding questionnaire.
  *
  * Clicking a step circle jumps to it (the user can revisit earlier sections
- * after they've moved on). The auto-save status pill on the right shows
- * whether the most recent edit has been persisted to localStorage.
+ * after they've moved on). The status pill on the right shows whether the
+ * current page snapshot was just committed to localStorage.
  */
 
 import { STEP_LABELS, TOTAL_STEPS } from "./constants";
@@ -29,10 +29,10 @@ export function ProgressBar({
           </span>
           <span>
             {saveStatus === "saving"
-              ? "שומר..."
+              ? "שומר עמוד..."
               : saveStatus === "saved"
-                ? "נשמר אוטומטית"
-                : "אוטומטי"}
+                ? "נשמר בעמוד"
+                : "שמירה בעמוד"}
           </span>
         </div>
       </div>
