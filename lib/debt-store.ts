@@ -149,6 +149,37 @@ export interface DebtData {
   mortgages: MortgageData[];
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isUuid(value: unknown): value is string {
+  return typeof value === "string" && UUID_RE.test(value);
+}
+
+export function createDebtId(): string {
+  return globalThis.crypto?.randomUUID?.() ?? `00000000-0000-4000-8000-${Math.random()
+    .toString(16)
+    .slice(2, 14)
+    .padEnd(12, "0")}`;
+}
+
+function hash32(seed: string, salt: number): number {
+  let hash = (0x811c9dc5 ^ salt) >>> 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash ^= seed.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash >>> 0;
+}
+
+export function createStableDebtId(seed: string): string {
+  const hex = [0, 1, 2, 3]
+    .map((salt) => hash32(seed, salt).toString(16).padStart(8, "0"))
+    .join("");
+  const timeHi = ((parseInt(hex.slice(12, 16), 16) & 0x0fff) | 0x4000).toString(16).padStart(4, "0");
+  const clockSeq = ((parseInt(hex.slice(16, 20), 16) & 0x3fff) | 0x8000).toString(16).padStart(4, "0");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${timeHi}-${clockSeq}-${hex.slice(20, 32)}`;
+}
+
 import { scopedKey } from "./client-scope";
 import { pushBlobInBackground, pullBlob } from "./sync/blob-sync";
 import {
@@ -202,17 +233,30 @@ function migrateDebtShape(raw: unknown): DebtData {
   if (!raw || typeof raw !== "object") return empty;
   const obj = raw as Record<string, unknown>;
   const loansRaw = Array.isArray(obj.loans) ? (obj.loans as Loan[]) : [];
-  const loans = loansRaw.map(normalizeLoanRates);
-  const installments = Array.isArray(obj.installments) ? (obj.installments as Installment[]) : [];
+  const loans = loansRaw.map((loan) => {
+    const normalized = normalizeLoanRates(loan);
+    return {
+      ...normalized,
+      id: isUuid(normalized.id) ? normalized.id : createDebtId(),
+    };
+  });
+  const installmentsRaw = Array.isArray(obj.installments) ? (obj.installments as Installment[]) : [];
+  const installments = installmentsRaw.map((inst) => ({
+    ...inst,
+    id: isUuid(inst.id) ? inst.id : createDebtId(),
+  }));
 
   // New shape already
   if (Array.isArray(obj.mortgages)) {
     // Ensure each mortgage has a stable id (defensive — older partial saves)
     // and normalize rate scale on every track.
-    const mortgages = (obj.mortgages as MortgageData[]).map((m, i) => ({
+    const mortgages = (obj.mortgages as MortgageData[]).map((m) => ({
       ...m,
-      id: m.id || `mtg_${Date.now()}_${i}`,
-      tracks: (m.tracks || []).map(normalizeTrackRates),
+      id: isUuid(m.id) ? m.id : createDebtId(),
+      tracks: (m.tracks || []).map((track) => ({
+        ...normalizeTrackRates(track),
+        id: isUuid(track.id) ? track.id : createDebtId(),
+      })),
     }));
     return { loans, installments, mortgages };
   }
@@ -224,8 +268,11 @@ function migrateDebtShape(raw: unknown): DebtData {
       ? [
           {
             ...legacy,
-            id: legacy.id || "mtg_legacy",
-            tracks: legacy.tracks.map(normalizeTrackRates),
+            id: isUuid(legacy.id) ? legacy.id : createDebtId(),
+            tracks: legacy.tracks.map((track) => ({
+              ...normalizeTrackRates(track),
+              id: isUuid(track.id) ? track.id : createDebtId(),
+            })),
           },
         ]
       : [];

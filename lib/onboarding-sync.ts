@@ -10,10 +10,14 @@
  *   - pension     → pension-store
  *   - income/expenses → assumptions
  *
- * Idempotent: uses "onb_" prefixed IDs so re-runs don't duplicate.
+ * Idempotent: stable IDs are generated in the debt store so re-runs don't duplicate.
  */
 
-import { loadDebtData, saveDebtData, type Loan, type MortgageData } from "./debt-store";
+import {
+  createStableDebtId,
+  loadDebtData,
+  saveDebtData,
+} from "./debt-store";
 import { loadRiskItems, saveRiskItems, type RiskItem, DEFAULT_RISK_ITEMS } from "./risk-store";
 import {
   loadPensionFunds,
@@ -77,6 +81,11 @@ const EMERGENCY_SEEDED = "verdant:onboarding:emergency_seeded";
  * not overwrite user refinements (pension %, study-fund %, periphery, etc.).
  */
 const SALARY_SEEDED = "verdant:onboarding:salary_seeded";
+
+// `syncOnboardingToStores()` dispatches a few store update events while it
+// runs. Some listeners call back into this function, so we need a re-entrancy
+// guard to prevent synchronous recursion and stack overflows.
+let isSyncingOnboarding = false;
 
 /* ── Helpers ── */
 function readJSON<T>(key: string, fallback: T): T {
@@ -142,39 +151,45 @@ interface OnbAsset {
 /* ── Main sync function ── */
 export function syncOnboardingToStores(): void {
   if (typeof window === "undefined") return;
+  if (isSyncingOnboarding) return;
 
-  const fields: OnbField = readJSON(ONB_FIELDS, {});
-  const liabilities: OnbLiability[] = readJSON(ONB_LIABILITIES, []);
-  const insurances: OnbInsurance[] = readJSON(ONB_INSURANCE, []);
-  const assets: OnbAsset[] = readJSON(ONB_ASSETS, []);
-  const goals: OnboardingGoalRow[] = readJSON(ONB_GOALS, []);
+  isSyncingOnboarding = true;
+  try {
+    const fields: OnbField = readJSON(ONB_FIELDS, {});
+    const liabilities: OnbLiability[] = readJSON(ONB_LIABILITIES, []);
+    const insurances: OnbInsurance[] = readJSON(ONB_INSURANCE, []);
+    const assets: OnbAsset[] = readJSON(ONB_ASSETS, []);
+    const goals: OnboardingGoalRow[] = readJSON(ONB_GOALS, []);
 
-  syncLiabilitiesToDebtStore(liabilities);
-  syncInsuranceToRiskStore(insurances);
-  syncLegalDocsToRiskStore(fields);
-  syncPensionToPensionStore(fields);
-  syncFieldsToAssumptions(fields);
-  syncChildrenToKidsSavings();
-  syncChildLifeEventsFromOnb();
-  syncRealEstateToPropertyStore(assets);
-  syncGemelAssetsToPrensionStore(assets);
-  syncGoalsToBuckets(goals);
-  syncSalaryProfile(fields);
-  syncBudgetFromExpenses(fields);
-  // Emergency fund must run AFTER syncBudgetFromExpenses so we have
-  // assumptions.monthlyExpenses available for the 3× target calculation.
-  seedEmergencyFundBucket();
+    syncLiabilitiesToDebtStore(liabilities);
+    syncInsuranceToRiskStore(insurances);
+    syncLegalDocsToRiskStore(fields);
+    syncPensionToPensionStore(fields);
+    syncFieldsToAssumptions(fields);
+    syncChildrenToKidsSavings();
+    syncChildLifeEventsFromOnb();
+    syncRealEstateToPropertyStore(assets);
+    syncGemelAssetsToPrensionStore(assets);
+    syncGoalsToBuckets(goals);
+    syncSalaryProfile(fields);
+    syncBudgetFromExpenses(fields);
+    // Emergency fund must run AFTER syncBudgetFromExpenses so we have
+    // assumptions.monthlyExpenses available for the 3× target calculation.
+    seedEmergencyFundBucket();
 
-  // Mark as synced
-  localStorage.setItem(scopedKey(ONB_SYNCED_AT), new Date().toISOString());
+    // Mark as synced
+    localStorage.setItem(scopedKey(ONB_SYNCED_AT), new Date().toISOString());
 
-  // Dispatch events so WealthTab and other listeners immediately re-read the stores
-  window.dispatchEvent(new CustomEvent("verdant:debt:updated"));
-  window.dispatchEvent(new Event(RE_EVENT));
-  window.dispatchEvent(new Event("verdant:risk:updated"));
-  window.dispatchEvent(new Event("verdant:assumptions"));
-  window.dispatchEvent(new Event("verdant:kids_savings:updated"));
-  window.dispatchEvent(new Event(BUCKETS_EVENT));
+    // Dispatch events so WealthTab and other listeners immediately re-read the stores
+    window.dispatchEvent(new CustomEvent("verdant:debt:updated"));
+    window.dispatchEvent(new Event(RE_EVENT));
+    window.dispatchEvent(new Event("verdant:risk:updated"));
+    window.dispatchEvent(new Event("verdant:assumptions"));
+    window.dispatchEvent(new Event("verdant:kids_savings:updated"));
+    window.dispatchEvent(new Event(BUCKETS_EVENT));
+  } finally {
+    isSyncingOnboarding = false;
+  }
 }
 
 /* ── 10. Expense fields → Budget Store ──
@@ -458,20 +473,21 @@ function syncLiabilitiesToDebtStore(liabilities: OnbLiability[]): void {
     if (balance === 0 && monthly === 0) continue;
 
     if (lib.type === "משכנתא") {
+      const mortgageSeed = `onboarding:mortgage:${lib.type}:${lib.lender || ""}:${balance}:${monthly}`;
       // Sync as mortgage — only seed if NO mortgage exists yet. Existing
       // mortgages (already created via the /debt page) are left untouched
       // so the user's manual edits aren't clobbered by re-syncing.
       if (debt.mortgages.length === 0) {
         const totalPayments = monthly > 0 ? Math.round(balance / monthly) : 0;
         debt.mortgages.push({
-          id: "onb_mortgage_1",
+          id: createStableDebtId(mortgageSeed),
           // propertyId left unset on purpose — the user assigns it on /debt
           // once they add a property on /realestate.
           bank: lib.lender || "לא צוין",
           propertyValue: 0,
           tracks: [
             {
-              id: "onb_mortgage_track_1",
+              id: createStableDebtId(`${mortgageSeed}:track:0`),
               name: "מסלול ראשי",
               // Onboarding input is typed as percent (e.g. "4.8"); store as
               // DECIMAL fraction to match the unified scale across the module.
@@ -491,7 +507,7 @@ function syncLiabilitiesToDebtStore(liabilities: OnbLiability[]): void {
       }
     } else {
       // Sync as loan
-      const loanId = `onb_loan_${lib.lender}_${balance}`;
+      const loanId = createStableDebtId(`onboarding:loan:${lib.type}:${lib.lender || ""}:${balance}:${monthly}`);
       if (!debt.loans.some((l) => l.id === loanId)) {
         debt.loans.push({
           id: loanId,

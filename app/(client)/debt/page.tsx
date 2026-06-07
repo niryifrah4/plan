@@ -5,6 +5,8 @@ import { fmtILS } from "@/lib/format";
 import {
   loadDebtData as loadDebt,
   saveDebtData as saveDebt,
+  createDebtId,
+  isUuid,
   effectiveTrackRate,
   trackCpiRate,
   type DebtData,
@@ -34,8 +36,6 @@ import {
 /* ═══════════════════════════════════════════════════════════
    Types & Persistence — imported from @/lib/debt-store (SSOT)
    ═══════════════════════════════════════════════════════════ */
-
-const uid = () => "d" + Math.random().toString(36).slice(2, 9);
 
 /* ═══════════════════════════════════════════════════════════
    Loan Helpers
@@ -100,11 +100,9 @@ function mortgageOverallProgress(tracks: MortgageTrack[]): number {
   return Math.min(1, (original - remaining) / original);
 }
 
-const uidMortgage = () => "mtg_" + Math.random().toString(36).slice(2, 9);
-
 function emptyMortgage(): MortgageData {
   return {
-    id: uidMortgage(),
+    id: createDebtId(),
     bank: "",
     propertyValue: 0,
     tracks: [],
@@ -170,12 +168,12 @@ export default function DebtPage() {
   /* ── Loan CRUD ── */
   const addLoan = useCallback(() => {
     update((prev) => ({
-      ...prev,
-      loans: [
-        ...prev.loans,
-        { id: uid(), lender: "", startDate: "", totalPayments: 0, monthlyPayment: 0 },
-      ],
-    }));
+        ...prev,
+        loans: [
+          ...prev.loans,
+          { id: createDebtId(), lender: "", startDate: "", totalPayments: 0, monthlyPayment: 0 },
+        ],
+      }));
   }, [update]);
 
   const updateLoan = useCallback(
@@ -221,7 +219,7 @@ export default function DebtPage() {
       installments: [
         ...prev.installments,
         {
-          id: uid(),
+          id: createDebtId(),
           merchant: "",
           source: "",
           currentPayment: 1,
@@ -313,7 +311,7 @@ export default function DebtPage() {
                 tracks: [
                   ...m.tracks,
                   {
-                    id: uid(),
+                    id: createDebtId(),
                     name: "",
                     interestRate: 0,
                     indexation: "לא צמוד" as IndexationType,
@@ -395,7 +393,7 @@ export default function DebtPage() {
                 ...m,
                 tracks: [
                   ...m.tracks,
-                  ...parsed.map((t) => ({ ...t, id: t.id || uid() })),
+                  ...parsed.map((t) => ({ ...t, id: isUuid(t.id) ? t.id : createDebtId() })),
                 ],
               }
         ),

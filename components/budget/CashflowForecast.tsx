@@ -74,6 +74,20 @@ export function CashflowForecast() {
 
   const max = Math.max(...months.map((m) => Math.abs(m.netCashflow)), 1);
   const negativeMonths = months.filter((m) => m.netCashflow < 0);
+  const getMonthTooltip = (m: ForecastMonth) => {
+    const eventText = m.events.length > 0 ? m.events.join(" · ") : "אין אירועים מיוחדים";
+    return {
+      month: m.label,
+      amount: fmtILS(m.netCashflow, { signed: true }),
+      status:
+        m.status === "negative"
+          ? "תזרים שלילי"
+          : m.status === "tight"
+            ? "תזרים צפוף"
+            : "תזרים תקין",
+      events: eventText,
+    };
+  };
 
   return (
     <section className="card-pad mb-6">
@@ -101,13 +115,29 @@ export function CashflowForecast() {
           const heightPct = (Math.abs(m.netCashflow) / max) * 100;
           const color =
             m.status === "negative" ? "#DC2626" : m.status === "tight" ? "#B45309" : "#2C7A5A";
+          const tooltip = getMonthTooltip(m);
           return (
             <div
               key={m.ym}
-              className="flex flex-col items-center justify-end"
+              className="group relative flex flex-col items-center justify-end outline-none"
               style={{ height: 100 }}
-              title={`${m.label}\n${fmtILS(m.netCashflow)}`}
+              tabIndex={0}
+              aria-label={`${tooltip.month}, ${tooltip.amount}, ${tooltip.status}. ${tooltip.events}`}
             >
+              <div
+                dir="rtl"
+                role="tooltip"
+                className="pointer-events-none absolute bottom-[108px] left-1/2 z-20 hidden w-max max-w-[180px] -translate-x-1/2 rounded-lg border border-verdant-border bg-white px-3 py-2 text-right text-[11px] leading-snug shadow-lg group-hover:block group-focus-visible:block"
+              >
+                <div className="font-extrabold text-verdant-ink">{tooltip.month}</div>
+                <div className="mt-0.5 font-bold tabular-nums text-verdant-emerald">
+                  {tooltip.amount}
+                </div>
+                <div className="mt-0.5 text-verdant-muted">{tooltip.status}</div>
+                <div className="mt-1 border-t border-verdant-border pt-1 text-verdant-muted">
+                  {tooltip.events}
+                </div>
+              </div>
               <div
                 className="w-full rounded-t transition-all"
                 style={{
