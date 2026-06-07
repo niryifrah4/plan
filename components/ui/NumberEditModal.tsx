@@ -46,6 +46,17 @@ export function NumberEditModal({ initialValue, title = "עריכת סכום", o
     onSave(Number.isFinite(parsed) ? parsed : 0);
   };
 
+  const shiftLabel = (amount: number) => {
+    const abs = Math.abs(amount).toLocaleString("en-US");
+    const sign = amount >= 0 ? "+" : "-";
+    return (
+      <span dir="ltr" style={{ unicodeBidi: "isolate", display: "inline-block" }}>
+        {sign}
+        {abs}
+      </span>
+    );
+  };
+
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1A1A1A]/40 backdrop-blur-sm transition-opacity"
@@ -91,12 +102,24 @@ export function NumberEditModal({ initialValue, title = "עריכת סכום", o
           </div>
 
           <div className="mb-6 grid grid-cols-3 gap-2">
-            <button type="button" onClick={() => handleAdd(100)} className="rounded-lg bg-[#FAFAF7] py-2 text-sm font-bold text-[#2C7A5A] transition-colors hover:bg-[#E5E7EB]">+100</button>
-            <button type="button" onClick={() => handleAdd(500)} className="rounded-lg bg-[#FAFAF7] py-2 text-sm font-bold text-[#2C7A5A] transition-colors hover:bg-[#E5E7EB]">+500</button>
-            <button type="button" onClick={() => handleAdd(1000)} className="rounded-lg bg-[#FAFAF7] py-2 text-sm font-bold text-[#2C7A5A] transition-colors hover:bg-[#E5E7EB]">+1,000</button>
-            <button type="button" onClick={() => handleAdd(-100)} className="rounded-lg bg-[#FAFAF7] py-2 text-sm font-bold text-[#DC2626] transition-colors hover:bg-[#E5E7EB]">-100</button>
-            <button type="button" onClick={() => handleAdd(-500)} className="rounded-lg bg-[#FAFAF7] py-2 text-sm font-bold text-[#DC2626] transition-colors hover:bg-[#E5E7EB]">-500</button>
-            <button type="button" onClick={() => handleAdd(-1000)} className="rounded-lg bg-[#FAFAF7] py-2 text-sm font-bold text-[#DC2626] transition-colors hover:bg-[#E5E7EB]">-1,000</button>
+            <button type="button" dir="ltr" onClick={() => handleAdd(100)} className="rounded-lg bg-[#FAFAF7] py-2 text-sm font-bold text-[#2C7A5A] transition-colors hover:bg-[#E5E7EB]">
+              {shiftLabel(100)}
+            </button>
+            <button type="button" dir="ltr" onClick={() => handleAdd(500)} className="rounded-lg bg-[#FAFAF7] py-2 text-sm font-bold text-[#2C7A5A] transition-colors hover:bg-[#E5E7EB]">
+              {shiftLabel(500)}
+            </button>
+            <button type="button" dir="ltr" onClick={() => handleAdd(1000)} className="rounded-lg bg-[#FAFAF7] py-2 text-sm font-bold text-[#2C7A5A] transition-colors hover:bg-[#E5E7EB]">
+              {shiftLabel(1000)}
+            </button>
+            <button type="button" dir="ltr" onClick={() => handleAdd(-100)} className="rounded-lg bg-[#FAFAF7] py-2 text-sm font-bold text-[#DC2626] transition-colors hover:bg-[#E5E7EB]">
+              {shiftLabel(-100)}
+            </button>
+            <button type="button" dir="ltr" onClick={() => handleAdd(-500)} className="rounded-lg bg-[#FAFAF7] py-2 text-sm font-bold text-[#DC2626] transition-colors hover:bg-[#E5E7EB]">
+              {shiftLabel(-500)}
+            </button>
+            <button type="button" dir="ltr" onClick={() => handleAdd(-1000)} className="rounded-lg bg-[#FAFAF7] py-2 text-sm font-bold text-[#DC2626] transition-colors hover:bg-[#E5E7EB]">
+              {shiftLabel(-1000)}
+            </button>
           </div>
 
           <button
