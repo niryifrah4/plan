@@ -8,6 +8,7 @@ import { parseILNumber, parseILDate, cleanAmount } from "../number-utils";
 import { categorize } from "../categorizer";
 import { normalizeSupplier, isInternalTransfer, getTier, groupByTier } from "../normalizer";
 import { getMerchantKey, matchMerchantCategoryRule } from "../merchant-category-rules";
+import { computeMerchantCategoryRulesFromVotes } from "../merchant-category-rules-core";
 import { detectRecurring } from "../recurring";
 import { analyzeBurnRate } from "../burn-rate";
 import type { ParsedTransaction } from "../types";
@@ -137,6 +138,67 @@ assert(
   "merchant rule matches supplier variation",
   matchMerchantCategoryRule("שופרסל אקספרס", sampleRules)?.categoryKey,
   "food"
+);
+
+console.log("\n═══ 6c. Shared Merchant Rule Ranking ═══");
+const rankedRules = computeMerchantCategoryRulesFromVotes([
+  {
+    merchantKey: "rami-levi",
+    categoryKey: "food",
+    txCount: 1,
+    createdAt: "2026-01-01T10:00:00.000Z",
+  },
+  {
+    merchantKey: "rami-levi",
+    categoryKey: "food",
+    txCount: 1,
+    createdAt: "2026-01-02T10:00:00.000Z",
+  },
+  {
+    merchantKey: "rami-levi",
+    categoryKey: "electronics",
+    txCount: 1,
+    createdAt: "2026-01-03T10:00:00.000Z",
+  },
+  {
+    merchantKey: "tie-shop",
+    categoryKey: "food",
+    txCount: 1,
+    createdAt: "2026-01-01T09:00:00.000Z",
+  },
+  {
+    merchantKey: "tie-shop",
+    categoryKey: "electronics",
+    txCount: 1,
+    createdAt: "2026-01-01T10:00:00.000Z",
+  },
+  {
+    merchantKey: "alphabetical",
+    categoryKey: "electronics",
+    txCount: 1,
+    createdAt: "2026-01-01T10:00:00.000Z",
+  },
+  {
+    merchantKey: "alphabetical",
+    categoryKey: "food",
+    txCount: 1,
+    createdAt: "2026-01-01T10:00:00.000Z",
+  },
+]);
+assert(
+  "majority wins",
+  rankedRules.find((r) => r.merchantKey === "rami-levi")?.categoryKey,
+  "food"
+);
+assert(
+  "earliest first-seen breaks ties",
+  rankedRules.find((r) => r.merchantKey === "tie-shop")?.categoryKey,
+  "food"
+);
+assert(
+  "deterministic fallback on exact tie",
+  rankedRules.find((r) => r.merchantKey === "alphabetical")?.categoryKey,
+  "electronics"
 );
 
 console.log("\n═══ 7. Internal Transfer Detection ═══");

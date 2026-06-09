@@ -1,0 +1,2 @@
+-- Placeholder for a migration version already recorded in the remote Supabase project.
+-- The schema change exists remotely; this file keeps local CLI history aligned.

@@ -28,7 +28,9 @@ import {
   getMerchantKey,
   getMerchantLabel,
   learnMerchantCategoryByKey,
+  learnMerchantCategoryVotes,
   loadMerchantCategoryRules,
+  refreshMerchantCategoryRules,
   MERCHANT_RULES_EVENT,
   type MerchantCategoryRule,
 } from "@/lib/doc-parser/merchant-category-rules";
@@ -108,6 +110,7 @@ export function UnmappedQueueTab() {
 
   useEffect(() => {
     setTransactions(loadTransactions());
+    void refreshMerchantCategoryRules();
     const handler = () => setTransactions(loadTransactions());
     window.addEventListener("verdant:parsed_transactions:updated", handler);
     window.addEventListener("storage", handler);
@@ -166,6 +169,7 @@ export function UnmappedQueueTab() {
 
   useEffect(() => {
     const refresh = () => setMerchantRules(loadMerchantCategoryRules());
+    void refreshMerchantCategoryRules(true);
     refresh();
     window.addEventListener(MERCHANT_RULES_EVENT, refresh);
     window.addEventListener("storage", refresh);
@@ -334,7 +338,7 @@ export function UnmappedQueueTab() {
   }, [transactions, excludedSet, merchantRules]);
 
   const handleMap = useCallback(
-    (group: MerchantGroup, newCategoryKey: string) => {
+    async (group: MerchantGroup, newCategoryKey: string) => {
       const cat = CAT_OPTIONS.find((c) => c.key === newCategoryKey);
       if (!cat) return;
       const isRefund = cat.key === "refunds";
@@ -365,7 +369,7 @@ export function UnmappedQueueTab() {
       const sampleDesc = next[affectedIndices[0]]?.description || group.displaySample;
       if (sampleDesc) {
         learnOverride(sampleDesc, cat.key);
-        learnMerchantCategoryByKey(group.merchantKey, cat.key, sampleDesc);
+        await learnMerchantCategoryByKey(group.merchantKey, cat.key, sampleDesc, affectedIndices.length);
         // Also log a proper correction record (with full context) so the AI
         // categorizer can use this as a learning example later.
         recordCorrection(sampleDesc, group.currentCategory, cat.key, "user");
@@ -397,7 +401,7 @@ export function UnmappedQueueTab() {
    * outlier line by line. We still learn the override on the per-tx
    * description, but it's a narrower signal than mass-mapping the group. */
   const handleMapSingle = useCallback(
-    (txIndex: number, newCategoryKey: string) => {
+    async (txIndex: number, newCategoryKey: string) => {
       const cat = CAT_OPTIONS.find((c) => c.key === newCategoryKey);
       if (!cat) return;
       const next = transactions.slice();
@@ -416,6 +420,7 @@ export function UnmappedQueueTab() {
       setTransactions(next);
       if (tx.description) {
         learnOverride(tx.description, cat.key);
+        await learnMerchantCategoryByKey(getMerchantKey(tx.description || ""), cat.key, tx.description, 1);
         recordCorrection(tx.description, tx.category, cat.key, "user");
       }
       markUpdated("docs");
@@ -450,9 +455,15 @@ export function UnmappedQueueTab() {
     setMerchantSelections((prev) => ({ ...prev, [merchantKey]: categoryKey }));
   }, []);
 
-  const handleMerchantModalSave = useCallback(() => {
+  const handleMerchantModalSave = useCallback(async () => {
     const next = transactions.slice();
     const touchedKeys: string[] = [];
+    const votes: Array<{
+      merchantKey: string;
+      categoryKey: string;
+      sampleDescription?: string;
+      txCount: number;
+    }> = [];
     let changed = false;
 
     for (const group of merchantModalGroups) {
@@ -491,7 +502,12 @@ export function UnmappedQueueTab() {
       const sampleDesc = next[affectedIndices[0]]?.description || group.displaySample;
       if (sampleDesc) {
         learnOverride(sampleDesc, cat.key);
-        learnMerchantCategoryByKey(group.merchantKey, cat.key, sampleDesc);
+        votes.push({
+          merchantKey: group.merchantKey,
+          categoryKey: cat.key,
+          sampleDescription: sampleDesc,
+          txCount: affectedIndices.length,
+        });
         recordCorrection(sampleDesc, previousCategory || "other", cat.key, "user");
       }
     }
@@ -504,6 +520,9 @@ export function UnmappedQueueTab() {
 
     saveTransactions(next);
     setTransactions(next);
+    if (votes.length > 0) {
+      await learnMerchantCategoryVotes(votes);
+    }
 
     setRecentlyMapped((prev) => {
       const s = new Set(prev);
@@ -626,6 +645,12 @@ export function UnmappedQueueTab() {
       // Apply confidently — only suggestions ≥ 0.6 — and skip ones that
       // don't actually move the category (waste a "correction" record).
       const next = transactions.slice();
+      const votes: Array<{
+        merchantKey: string;
+        categoryKey: string;
+        sampleDescription?: string;
+        txCount: number;
+      }> = [];
       let added = 0;
       let skipped = 0;
       for (const s of suggestions) {
@@ -649,9 +674,17 @@ export function UnmappedQueueTab() {
           confidence: s.confidence,
         };
         learnOverride(tx.description, s.category);
-        learnMerchantCategoryByKey(getMerchantKey(tx.description || ""), s.category, tx.description);
+        votes.push({
+          merchantKey: getMerchantKey(tx.description || ""),
+          categoryKey: s.category,
+          sampleDescription: tx.description,
+          txCount: 1,
+        });
         recordCorrection(tx.description, tx.category, s.category, "ai_bulk");
         added++;
+      }
+      if (votes.length > 0) {
+        await learnMerchantCategoryVotes(votes);
       }
       saveTransactions(next);
       setTransactions(next);

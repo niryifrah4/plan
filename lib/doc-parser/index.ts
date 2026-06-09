@@ -28,6 +28,23 @@ export {
   TIER_INFO,
 } from "./normalizer";
 export type { ExpenseTier, TierInfo } from "./normalizer";
+export {
+  getMerchantKey,
+  getMerchantLabel,
+  loadMerchantCategoryRules,
+  learnMerchantCategory,
+  learnMerchantCategoryByKey,
+  learnMerchantCategoryVotes,
+  refreshMerchantCategoryRules,
+  migrateLocalMerchantCategoryRulesToRemote,
+  findMerchantCategoryRule,
+  matchMerchantCategoryRule,
+  getMerchantCategoryKey,
+  setMerchantCategoryRulesCache,
+  clearMerchantCategoryRulesCache,
+  MERCHANT_RULES_EVENT,
+} from "./merchant-category-rules";
+export type { MerchantCategoryRule } from "./merchant-category-rules";
 export { deduplicateTransactions } from "./dedup";
 export {
   assignSubCategory,

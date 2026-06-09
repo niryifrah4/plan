@@ -13,6 +13,7 @@ node_modules/
 *.tsbuildinfo
 .DS_Store
 uploads/
+supabase/.temp/
 
 # Legacy `*.bak` rescue copies — never commit, keep local for safety only.
 *.bak

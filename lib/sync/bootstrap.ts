@@ -100,6 +100,7 @@ export async function hydrateAllFromRemote(): Promise<void> {
 
   // dynamic imports כדי לא לטעון את כל החנויות ב-SSR
   const [
+    merchantRules,
     pension,
     debt,
     realestate,
@@ -119,6 +120,7 @@ export async function hydrateAllFromRemote(): Promise<void> {
     specialEvents,
     blobSync,
   ] = await Promise.all([
+    import("@/lib/doc-parser/merchant-category-rules"),
     import("@/lib/pension-store"),
     import("@/lib/debt-store"),
     import("@/lib/realestate-store"),
@@ -140,6 +142,9 @@ export async function hydrateAllFromRemote(): Promise<void> {
   ]);
 
   // הרץ במקביל — כל אחד עצמאי, כישלון אחד לא מפיל אחרים
+  await merchantRules.migrateLocalMerchantCategoryRulesToRemote?.();
+  await merchantRules.refreshMerchantCategoryRules?.(true);
+
   await Promise.allSettled([
     pension.hydratePensionFundsFromRemote?.(),
     debt.hydrateDebtFromRemote?.(),

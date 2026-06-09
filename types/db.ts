@@ -70,6 +70,26 @@ export interface CashflowTx {
   created_at: string;
 }
 
+export interface MerchantCategoryVote {
+  id: string;
+  created_by: string;
+  merchant_key: string;
+  category_key: string;
+  tx_count: number;
+  sample_description: string | null;
+  source_file: string | null;
+  created_at: string;
+}
+
+export interface MerchantCategoryRule {
+  merchantKey: string;
+  categoryKey: string;
+  count: number;
+  firstSeenAt?: string;
+  updatedAt: string;
+  sampleDescription?: string;
+}
+
 export interface BudgetPlan {
   id: string;
   household_id: string;

@@ -20,7 +20,7 @@
  *   • verdant:doc_history         — per-file upload log (last 50)
  */
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { triggerFullSync, markUpdated } from "@/lib/sync-engine";
 import type { ParsedDocument, ParsedTransaction } from "@/lib/doc-parser/types";
@@ -39,6 +39,7 @@ import {
   saveDocHistoryAndWait,
   type DocHistoryEntry,
 } from "@/lib/documents-store";
+import { learnMerchantCategory } from "@/lib/doc-parser/merchant-category-rules";
 import {
   loadParsedTransactions,
   saveParsedTransactionsAndWait,
@@ -49,6 +50,38 @@ import { SavedView } from "./_documents-tab/SavedView";
 import type { Scope } from "@/lib/scope-types";
 
 type Phase = "idle" | "uploading" | "preview" | "saved";
+
+function buildEffectiveTransactions(
+  doc: ParsedDocument,
+  overrides: Record<number, { key: string; label: string }>,
+  scopeOverrides: Record<number, Scope | undefined>,
+  deletedIndices: Set<number>
+): (ParsedTransaction & { _idx: number })[] {
+  return doc.transactions
+    .map((t, i) => {
+      if (deletedIndices.has(i)) return null;
+      const ov = overrides[i];
+      const scopeOv = scopeOverrides[i];
+      // scopeOv undefined = use original; null-marker semantics: we explicitly store
+      // "personal" as undefined-scope (since undefined === personal by convention).
+      const scopeVal: Scope | undefined = i in scopeOverrides ? scopeOv : t.scope;
+      if (ov) {
+        const isRefund = ov.key === "refunds";
+        const adjustedAmount = isRefund && t.amount > 0 ? -t.amount : t.amount;
+        return {
+          ...t,
+          category: ov.key,
+          categoryLabel: ov.label,
+          amount: adjustedAmount,
+          scope: scopeVal,
+          confidence: 1.0,
+          _idx: i,
+        };
+      }
+      return { ...t, scope: scopeVal, _idx: i };
+    })
+    .filter(Boolean) as (ParsedTransaction & { _idx: number })[];
+}
 
 export function DocumentsTab() {
   /* ── Phase + result of the latest parse ── */
@@ -68,6 +101,26 @@ export function DocumentsTab() {
   const [scopeOverrides, setScopeOverrides] = useState<Record<number, Scope | undefined>>({});
   const [deletedIndices, setDeletedIndices] = useState<Set<number>>(new Set());
   const [expandedMappedCats, setExpandedMappedCats] = useState<Set<string>>(new Set());
+  const docRef = useRef<ParsedDocument | null>(null);
+  const overridesRef = useRef<Record<number, { key: string; label: string }>>({});
+  const scopeOverridesRef = useRef<Record<number, Scope | undefined>>({});
+  const deletedIndicesRef = useRef<Set<number>>(new Set());
+
+  useEffect(() => {
+    docRef.current = doc;
+  }, [doc]);
+
+  useEffect(() => {
+    overridesRef.current = overrides;
+  }, [overrides]);
+
+  useEffect(() => {
+    scopeOverridesRef.current = scopeOverrides;
+  }, [scopeOverrides]);
+
+  useEffect(() => {
+    deletedIndicesRef.current = deletedIndices;
+  }, [deletedIndices]);
 
   /* ── Sibling state from elsewhere in the app ── */
   const [docHistory, setDocHistory] = useState<DocHistoryEntry[]>([]);
@@ -137,30 +190,7 @@ export function DocumentsTab() {
   /* ── Effective transactions (with overrides + deletes applied) ── */
   const effectiveTx = useMemo(() => {
     if (!doc) return [];
-    return doc.transactions
-      .map((t, i) => {
-        if (deletedIndices.has(i)) return null;
-        const ov = overrides[i];
-        const scopeOv = scopeOverrides[i];
-        // scopeOv undefined = use original; null-marker semantics: we explicitly store
-        // "personal" as undefined-scope (since undefined === personal by convention).
-        const scopeVal: Scope | undefined = i in scopeOverrides ? scopeOv : t.scope;
-        if (ov) {
-          const isRefund = ov.key === "refunds";
-          const adjustedAmount = isRefund && t.amount > 0 ? -t.amount : t.amount;
-          return {
-            ...t,
-            category: ov.key,
-            categoryLabel: ov.label,
-            amount: adjustedAmount,
-            scope: scopeVal,
-            confidence: 1.0,
-            _idx: i,
-          };
-        }
-        return { ...t, scope: scopeVal, _idx: i };
-      })
-      .filter(Boolean) as (ParsedTransaction & { _idx: number })[];
+    return buildEffectiveTransactions(doc, overrides, scopeOverrides, deletedIndices);
   }, [doc, overrides, scopeOverrides, deletedIndices]);
 
   /* ── Split into review / mapped, sort א-ת ──
@@ -196,17 +226,17 @@ export function DocumentsTab() {
       if (!cat || !doc) return;
       const { learnOverride, findSimilarIndices } = await import("@/lib/doc-parser/categorizer");
       const similarIndices = findSimilarIndices(doc.transactions, idx);
-      setOverrides((prev) => {
-        const next = { ...prev };
-        for (const i of similarIndices) {
-          if (!deletedIndices.has(i)) next[i] = { key: cat.key, label: cat.label };
-        }
-        return next;
-      });
+      const nextOverrides = { ...overridesRef.current };
+      for (const i of similarIndices) {
+        if (!deletedIndicesRef.current.has(i)) nextOverrides[i] = { key: cat.key, label: cat.label };
+      }
+      overridesRef.current = nextOverrides;
+      setOverrides(nextOverrides);
       const tx = doc.transactions[idx];
       const desc = tx?.description;
       if (desc) {
         learnOverride(desc, newKey);
+        await learnMerchantCategory(desc, newKey, 1);
         // Full audit trail — old category + when + source. Feeds the AI
         // categorizer as a learning example later.
         const { recordCorrection } = await import("@/lib/doc-parser/correction-history");
@@ -217,26 +247,25 @@ export function DocumentsTab() {
   );
 
   const handleDelete = useCallback((idx: number) => {
-    setDeletedIndices((prev) => {
-      const next = new Set(prev);
-      next.add(idx);
-      return next;
-    });
-    setOverrides((prev) => {
-      const next = { ...prev };
-      delete next[idx];
-      return next;
-    });
+    const nextDeleted = new Set(deletedIndicesRef.current);
+    nextDeleted.add(idx);
+    deletedIndicesRef.current = nextDeleted;
+    setDeletedIndices(nextDeleted);
+    const next = { ...overridesRef.current };
+    delete next[idx];
+    overridesRef.current = next;
+    setOverrides(next);
   }, []);
 
   const toggleRowBusiness = useCallback(
     (idx: number) => {
-      setScopeOverrides((prev) => {
-        const next = { ...prev };
-        const current = idx in prev ? prev[idx] : doc?.transactions[idx]?.scope;
-        next[idx] = current === "business" ? undefined : "business";
-        return next;
-      });
+      const next = { ...scopeOverridesRef.current };
+      const current = idx in scopeOverridesRef.current
+        ? scopeOverridesRef.current[idx]
+        : doc?.transactions[idx]?.scope;
+      next[idx] = current === "business" ? undefined : "business";
+      scopeOverridesRef.current = next;
+      setScopeOverrides(next);
     },
     [doc]
   );
@@ -253,6 +282,10 @@ export function DocumentsTab() {
   /* ── BULK UPLOAD ── */
   const uploadFiles = useCallback(async (files: File[]) => {
     setError("");
+    docRef.current = null;
+    overridesRef.current = {};
+    scopeOverridesRef.current = {};
+    deletedIndicesRef.current = new Set();
     setOverrides({});
     setScopeOverrides({});
     setDeletedIndices(new Set());
@@ -410,14 +443,20 @@ export function DocumentsTab() {
 
   /* ── Save to cashflow (append to localStorage history) ── */
   const handleTransfer = useCallback(async () => {
-    if (!doc) return;
+    const currentDoc = docRef.current;
+    if (!currentDoc) return;
     try {
       const docId = `doc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       // Tag every saved transaction with the source doc so we can trace it later.
-      const txToSave = effectiveTx.map(({ _idx, ...rest }) => ({
+      const txToSave = buildEffectiveTransactions(
+        currentDoc,
+        overridesRef.current,
+        scopeOverridesRef.current,
+        deletedIndicesRef.current
+      ).map(({ _idx, ...rest }) => ({
         ...rest,
         sourceDocId: docId,
-        sourceFile: doc.filename,
+        sourceFile: currentDoc.filename,
       }));
       const existing: ParsedTransaction[] = loadParsedTransactions();
 
@@ -466,8 +505,8 @@ export function DocumentsTab() {
         .sort();
       const entry: DocHistoryEntry = {
         id: docId,
-        filename: doc.filename,
-        bankHint: doc.bankHint || "לא זוהה",
+        filename: currentDoc.filename,
+        bankHint: currentDoc.bankHint || "לא זוהה",
         uploadedAt: new Date().toISOString(),
         txCount: fresh.length,
         chargesSum,
@@ -494,10 +533,14 @@ export function DocumentsTab() {
     } catch {
       setError("שגיאה בשמירה");
     }
-  }, [doc, effectiveTx]);
+  }, []);
 
   /* ── Reset everything back to idle ── */
   const resetToIdle = useCallback(() => {
+    docRef.current = null;
+    overridesRef.current = {};
+    scopeOverridesRef.current = {};
+    deletedIndicesRef.current = new Set();
     setPhase("idle");
     setDoc(null);
     setOverrides({});

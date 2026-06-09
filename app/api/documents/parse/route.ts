@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseDocument } from "@/lib/doc-parser";
 import { deduplicateTransactions } from "@/lib/doc-parser/dedup";
+import { primeMerchantCategoryRulesCacheFromDb } from "@/lib/doc-parser/merchant-category-rules.server";
 import type { ParsedDocument } from "@/lib/doc-parser/types";
 import { rateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
 import { requireUser } from "@/lib/supabase/require-user";
@@ -20,6 +21,12 @@ export async function POST(req: NextRequest) {
     // ── Auth guard ──
     const auth = await requireUser();
     if ("response" in auth) return auth.response;
+
+    // Prime the merchant-learning cache before parsing so the synchronous
+    // categorizer sees the latest shared mapping while classifying this file.
+    await primeMerchantCategoryRulesCacheFromDb(auth.sb).catch((error) => {
+      console.warn("[documents/parse] merchant-category cache prime failed:", error);
+    });
 
     // ── Rate limit ──
     const ip = getClientIp(req.headers);
