@@ -42,7 +42,7 @@ export default async function ClientLayout({ children }: { children: React.React
   let impersonation: { householdId: string; familyName: string } | null = null;
 
   if (isConfigured) {
-    const sb = createClient();
+    const sb = await createClient();
     const {
       data: { user },
     } = await sb.auth.getUser();
@@ -56,7 +56,8 @@ export default async function ClientLayout({ children }: { children: React.React
 
     if (advisor) {
       // Advisor — require impersonation cookie to view client pages.
-      const impHhId = cookies().get(IMPERSONATE_COOKIE)?.value;
+      const cookieStore = await cookies();
+      const impHhId = cookieStore.get(IMPERSONATE_COOKIE)?.value;
       if (!impHhId) redirect("/crm");
 
       const { data: owned } = await sb

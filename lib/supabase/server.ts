@@ -5,8 +5,8 @@ import { cookies } from "next/headers";
  * Server-side Supabase client for RSC + Route Handlers.
  * Respects RLS — all queries run as the authenticated advisor.
  */
-export function createClient() {
-  const cookieStore = cookies();
+export async function createClient() {
+  const cookieStore = await cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

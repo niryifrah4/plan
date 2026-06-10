@@ -79,9 +79,7 @@ const __dirname_ = path.dirname(__filename_);
 
 const nextConfig = {
   reactStrictMode: true,
-  // 2026-05-01: skip ESLint during build. The lint phase is the RAM heavy
-  // one and OOMs on Render's 512MB free tier. We run it locally instead.
-  eslint: { ignoreDuringBuilds: true },
+  turbopack: {},
   // 2026-06-03: type-check is gated to LOCAL builds only.
   // History: it was off for ~3 weeks (a missing-file import — Step0Welcome —
   // slipped to prod and 500'd), so on 2026-05-23 we turned it back ON at build.
@@ -94,16 +92,15 @@ const nextConfig = {
   // runs `npm run build`) RENDER is unset, so type-check still runs and blocks
   // broken imports / signature drift before they ever reach main.
   typescript: { ignoreBuildErrors: !!process.env.RENDER },
-  experimental: {
-    typedRoutes: true,
-    // 2026-04-28 perf fix: googleapis (~194MB) and xlsx (~7MB) are used only
-    // by server-side API routes. Without this list, Next bundles them into
-    // every dev rebuild, dragging compile time. Marking external = ~2x dev speed.
-    serverComponentsExternalPackages: ["pdf-parse", "googleapis", "xlsx"],
-  },
+  typedRoutes: true,
+  // 2026-04-28 perf fix: googleapis (~194MB) and xlsx (~7MB) are used only
+  // by server-side API routes. Without this list, Next bundles them into
+  // every dev rebuild, dragging compile time. Marking external = ~2x dev speed.
+  serverExternalPackages: ["pdf-parse", "googleapis", "xlsx"],
   // 2026-05-01 — explicit webpack aliases. Render's build was failing on
   // every '@/...' import despite tsconfig declaring the paths. Forcing the
   // alias here at the bundler level removes any tooling ambiguity.
+  outputFileTracingRoot: __dirname_,
   webpack: (config) => {
     config.resolve.alias = {
       ...(config.resolve.alias || {}),

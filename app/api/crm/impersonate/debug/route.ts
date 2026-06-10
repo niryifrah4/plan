@@ -31,7 +31,7 @@ export const fetchCache = "force-no-store";
 const COOKIE = "plan_impersonate_hh";
 
 export async function GET() {
-  const sb = createClient();
+  const sb = await createClient();
   const {
     data: { user },
   } = await sb.auth.getUser();
@@ -40,7 +40,8 @@ export async function GET() {
     return NextResponse.json({ ok: false, reason: "unauthenticated" }, { status: 401 });
   }
 
-  const cookieValue = cookies().get(COOKIE)?.value ?? null;
+  const cookieStore = await cookies();
+  const cookieValue = cookieStore.get(COOKIE)?.value ?? null;
 
   const { data: advisor } = await sb
     .from("advisors")

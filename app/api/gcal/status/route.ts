@@ -9,7 +9,7 @@ export async function GET() {
   const auth = await requireUser();
   if ("response" in auth) return auth.response;
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const connected = cookieStore.get("gcal_connected")?.value === "true";
   const hasToken = !!cookieStore.get("gcal_access_token")?.value;
 

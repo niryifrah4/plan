@@ -89,7 +89,7 @@ export async function GET(req: NextRequest) {
   if (supabaseConfigured) {
     try {
       const { createClient } = await import("@/lib/supabase/server");
-      const sb = createClient();
+      const sb = await createClient();
       const {
         data: { user },
       } = await sb.auth.getUser();

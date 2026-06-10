@@ -9,7 +9,7 @@ export async function POST() {
   const auth = await requireUser();
   if ("response" in auth) return auth.response;
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   cookieStore.delete("gcal_access_token");
   cookieStore.delete("gcal_refresh_token");
   cookieStore.delete("gcal_connected");

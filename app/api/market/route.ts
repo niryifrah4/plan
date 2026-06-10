@@ -253,7 +253,7 @@ export async function GET(req: NextRequest) {
   // Auth gate — without this anyone on the internet could use us as a free
   // proxy against Yahoo/BoI/CoinGecko and get our IP rate-limited or banned.
   // (CRITICAL fix 2026-04 — security review.)
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
     error: authErr,

@@ -134,7 +134,7 @@ const CHART_RANGES: { key: ChartRange; label: string }[] = [
 ];
 
 export default function DashboardPage() {
-  const { familyName, clientId } = useClient();
+  const { familyName, clientId, loading } = useClient();
   const [reProperties, setReProperties] = useState<ReturnType<typeof loadProperties>>([]);
 
   // Real cashflow from budget store. Empty array when no real data — never show demo.

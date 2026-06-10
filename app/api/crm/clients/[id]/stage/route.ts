@@ -16,8 +16,11 @@ import { createClient } from "@/lib/supabase/server";
 
 const ALLOWED_STAGES = new Set(["onboarding", "active", "review", "archived"]);
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const supabase = createClient();
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const supabase = await createClient();
   const {
     data: { user },
     error: authErr,
@@ -26,7 +29,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const householdId = params.id;
+  const { id: householdId } = await params;
   if (!householdId) {
     return NextResponse.json({ error: "missing id" }, { status: 400 });
   }

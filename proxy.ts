@@ -42,7 +42,7 @@ function isPublicApi(pathname: string): boolean {
   return PUBLIC_API_ROUTES.some((r) => pathname.startsWith(r));
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow static assets first (cheap check)

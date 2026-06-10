@@ -10,7 +10,7 @@ export async function GET() {
   const auth = await requireUser();
   if ("response" in auth) return auth.response;
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const accessToken = cookieStore.get("gcal_access_token")?.value;
   const refreshToken = cookieStore.get("gcal_refresh_token")?.value;
 
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   const auth = await requireUser();
   if ("response" in auth) return auth.response;
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const accessToken = cookieStore.get("gcal_access_token")?.value;
   const refreshToken = cookieStore.get("gcal_refresh_token")?.value;
 

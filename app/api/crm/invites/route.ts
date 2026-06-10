@@ -29,7 +29,7 @@ import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
-    const sb = createClient();
+    const sb = await createClient();
     const {
       data: { user },
     } = await sb.auth.getUser();
@@ -231,7 +231,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-  const sb = createClient();
+  const sb = await createClient();
   const {
     data: { user },
   } = await sb.auth.getUser();

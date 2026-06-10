@@ -13,7 +13,7 @@ import { createClient } from "./server";
  *   const { user } = auth;
  */
 export async function requireUser() {
-  const sb = createClient();
+  const sb = await createClient();
   const {
     data: { user },
     error,

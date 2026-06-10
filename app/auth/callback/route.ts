@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
   const safeOrigin =
     process.env.NEXT_PUBLIC_BASE_URL || new URL(req.url).origin;
 
-  const sb = createClient();
+  const sb = await createClient();
 
   if (code) {
     const { error } = await sb.auth.exchangeCodeForSession(code);
@@ -66,7 +66,9 @@ export async function GET(req: NextRequest) {
  * Decide where the freshly-authenticated user should land.
  * Exported so the /login page's post-password-signin flow can reuse it.
  */
-async function resolveLandingPage(sb: ReturnType<typeof createClient>): Promise<string> {
+async function resolveLandingPage(
+  sb: Awaited<ReturnType<typeof createClient>>
+): Promise<string> {
   const {
     data: { user },
   } = await sb.auth.getUser();

@@ -29,7 +29,7 @@ const COOKIE = "plan_impersonate_hh";
 const MAX_AGE_SECONDS = 60 * 60 * 8; // 8 hours
 
 export async function POST(req: NextRequest) {
-  const sb = createClient();
+  const sb = await createClient();
   const {
     data: { user },
   } = await sb.auth.getUser();

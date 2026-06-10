@@ -38,7 +38,7 @@ export default async function MobileLayout({
 
   if (isConfigured) {
     try {
-      const sb = createClient();
+      const sb = await createClient();
       const {
         data: { user },
       } = await sb.auth.getUser();

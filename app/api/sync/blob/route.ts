@@ -13,7 +13,7 @@ function isUuid(value: unknown): value is string {
 }
 
 export async function POST(req: Request) {
-  const sb = createClient();
+  const sb = await createClient();
   const {
     data: { user },
   } = await sb.auth.getUser();

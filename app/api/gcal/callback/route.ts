@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const state = req.nextUrl.searchParams.get("state");
   const publicOrigin =
     process.env.NEXT_PUBLIC_BASE_URL || new URL(req.url).origin;
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const expectedState = cookieStore.get(OAUTH_STATE_COOKIE)?.value || null;
 
   // Clear the one-time state cookie regardless of outcome.

@@ -17,7 +17,7 @@ export default async function PlannerLayout({ children }: { children: React.Reac
   const isConfigured = !!url && !url.includes("YOUR-PROJECT");
 
   if (isConfigured) {
-    const sb = createClient();
+    const sb = await createClient();
     const {
       data: { user },
     } = await sb.auth.getUser();
@@ -29,7 +29,8 @@ export default async function PlannerLayout({ children }: { children: React.Reac
       .eq("id", user.id)
       .maybeSingle();
 
-    const impHhId = cookies().get(IMPERSONATE_COOKIE)?.value;
+    const cookieStore = await cookies();
+    const impHhId = cookieStore.get(IMPERSONATE_COOKIE)?.value;
     if (!advisor || !impHhId) redirect("/dashboard");
 
     // Verify the impersonation cookie actually points at a household this

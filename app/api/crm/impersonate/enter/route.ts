@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse("missing household_id", { status: 400 });
   }
 
-  const sb = createClient();
+  const sb = await createClient();
   const {
     data: { user },
   } = await sb.auth.getUser();

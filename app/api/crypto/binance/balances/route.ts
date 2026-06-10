@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   // Defense in depth: middleware already blocks unauthenticated /api/* by
   // default (this route is not in PUBLIC_API_ROUTES). The explicit check
   // here prevents proxy abuse if the middleware whitelist ever changes.
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

@@ -16,7 +16,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   const isConfigured = !!url && !url.includes("YOUR-PROJECT");
 
   if (isConfigured) {
-    const sb = createClient();
+    const sb = await createClient();
     const {
       data: { user },
     } = await sb.auth.getUser();
