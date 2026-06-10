@@ -186,6 +186,7 @@ function InsuranceRow({
           title={`עריכת סכום כיסוי - ${ins.type}`}
           placeholder="0"
           inputClassName="inp tabular"
+          steps={[10000, 50000, 100000]}
         />
       </td>
       <td className="px-2">
@@ -195,6 +196,7 @@ function InsuranceRow({
           title={`עריכת פרמיה - ${ins.type}`}
           placeholder="0"
           inputClassName="inp tabular"
+          steps={[10, 50, 100]}
         />
       </td>
       <td className="px-1">

@@ -55,6 +55,7 @@ export function Fld({
   type = "text",
   dir,
   placeholder,
+  steps,
 }: {
   label: string;
   name: string;
@@ -63,6 +64,7 @@ export function Fld({
   type?: string;
   dir?: string;
   placeholder?: string;
+  steps?: number[];
 }) {
   return (
     <div>
@@ -75,6 +77,7 @@ export function Fld({
           placeholder={placeholder}
           dir={dir}
           inputClassName="inp tabular"
+          steps={steps}
         />
       ) : (
         <input
@@ -98,6 +101,7 @@ export function ModalNumberInput({
   dir = "ltr",
   inputClassName = "inp tabular",
   wrapperClassName = "",
+  steps,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -106,6 +110,7 @@ export function ModalNumberInput({
   dir?: string;
   inputClassName?: string;
   wrapperClassName?: string;
+  steps?: number[];
 }) {
   const [open, setOpen] = useState(false);
 
@@ -135,6 +140,7 @@ export function ModalNumberInput({
         <NumberEditModal
           title={title}
           initialValue={value}
+          steps={steps}
           onSave={(next) => {
             onChange(String(next));
             setOpen(false);

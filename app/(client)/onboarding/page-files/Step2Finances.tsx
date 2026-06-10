@@ -81,7 +81,7 @@ function IncomesList({
         <button
           type="button"
           onClick={() => setIncomes((p) => [...p, { label: "", value: "" }])}
-          className="flex items-center gap-1 text-[11px] font-bold text-verdant-emerald hover:underline"
+          className="flex items-center gap-1 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-bold text-verdant-ink shadow-sm transition-colors hover:bg-gray-50"
         >
           <span className="material-symbols-outlined text-[14px]">add</span>
           הוסף הכנסה
@@ -188,6 +188,7 @@ function SalaryBreakdown({
           fields={fields}
           onChange={setField}
           type="number"
+          steps={[0.25, 0.5, 1]}
         />
         <Fld
           label="ברוטו חודשי בן/בת זוג 2 (₪)"
@@ -209,6 +210,7 @@ function SalaryBreakdown({
           fields={fields}
           onChange={setField}
           type="number"
+          steps={[0.25, 0.5, 1]}
         />
       </div>
       <div className="mt-2 text-[10px] leading-relaxed text-verdant-muted">
@@ -294,7 +296,7 @@ function AssetsSection({
               { type: 'נדל"ן למגורים', desc: "", value: "", rent: "", rentExpenses: "" },
             ])
           }
-          className="flex items-center gap-1 text-[11px] font-bold text-verdant-emerald hover:underline"
+          className="flex items-center gap-1 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-bold text-verdant-ink shadow-sm transition-colors hover:bg-gray-50"
         >
           <span className="material-symbols-outlined text-[14px]">add</span>הוסף נכס
         </button>
@@ -461,7 +463,7 @@ function LiabilitiesSection({
               { type: "הלוואה בנקאית", lender: "", balance: "", rate: "", monthly: "" },
             ])
           }
-          className="flex items-center gap-1 text-[11px] font-bold text-verdant-emerald hover:underline"
+          className="flex items-center gap-1 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-bold text-verdant-ink shadow-sm transition-colors hover:bg-gray-50"
         >
           <span className="material-symbols-outlined text-[14px]">add</span>הוסף הלוואה
         </button>
@@ -536,6 +538,7 @@ function LiabilitiesSection({
                   placeholder="0"
                   dir="ltr"
                   inputClassName="inp tabular"
+                  steps={[0.1, 0.5, 1]}
                 />
               )}
             </td>

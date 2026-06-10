@@ -62,7 +62,7 @@ export function Step4Goals({
           onClick={() =>
             setGoals((p) => [...p, { name: "", cost: "", horizon: "", priority: "" }])
           }
-          className="flex items-center gap-1 text-[11px] font-bold text-verdant-emerald hover:underline"
+          className="flex items-center gap-1 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-bold text-verdant-ink shadow-sm transition-colors hover:bg-gray-50"
         >
           <span className="material-symbols-outlined text-[14px]">add</span>הוסף יעד
         </button>
@@ -100,6 +100,7 @@ export function Step4Goals({
                 title={`עריכת אופק - ${g.name || "יעד"}`}
                 placeholder="0"
                 inputClassName="inp tabular"
+                steps={[1, 5, 10]}
               />
             </td>
             <td className="px-3">

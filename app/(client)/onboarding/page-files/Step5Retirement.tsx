@@ -35,6 +35,7 @@ export function Step5Retirement({
           onChange={setField}
           type="number"
           placeholder="67"
+          steps={[1, 5, 10]}
         />
         <Fld
           label="הכנסה חודשית רצויה בפרישה (₪)"

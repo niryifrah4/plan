@@ -23,6 +23,7 @@ import type { Child, Fields } from "./types";
 import { EMPTY_CHILD, FRAMEWORKS } from "./constants";
 import { Fld, FldSelect, ModalNumberInput, StepCard } from "./fields";
 import { CityAutocomplete } from "@/components/ui/CityAutocomplete";
+import { useConfirm } from "@/components/ui/ConfirmModal";
 
 export function Step1Family({
   fields,
@@ -373,18 +374,34 @@ function ChildrenSection({
   const isYes = hasChildren === "1";
   const isNo = hasChildren !== "1";
 
-  const setHasKids = (val: "1" | "0") => {
-    setField("has_children", val);
-    if (val === "1" && children.length === 0) {
-      setChildren(() => [{ ...EMPTY_CHILD }]);
-    }
+  const { confirm, modal } = useConfirm();
+
+  const setHasKids = async (val: "1" | "0") => {
     if (val === "0") {
+      const hasData = children.some((c) => c.name || c.birthYear || c.is_special_needs === "1");
+      if (hasData) {
+        const ok = await confirm({
+          title: "מחיקת פרטי הילדים",
+          body: "פעולה זו תמחק את כל פרטי הילדים שהזנת. האם להמשיך?",
+          variant: "danger",
+          confirmLabel: "מחיקה",
+          cancelLabel: "ביטול",
+        });
+        if (!ok) return;
+      }
+      setField("has_children", "0");
       setChildren(() => []);
+    } else {
+      setField("has_children", "1");
+      if (children.length === 0) {
+        setChildren(() => [{ ...EMPTY_CHILD }]);
+      }
     }
   };
 
   return (
     <div className="mb-6">
+      {modal}
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-2 text-sm font-extrabold text-verdant-ink">
           <span className="material-symbols-outlined text-[18px] text-verdant-emerald">
@@ -458,7 +475,20 @@ function ChildrenSection({
                   })
                 )
               }
-              onRemove={() => {
+              onRemove={async () => {
+                const hasData = c.name || c.birthYear || c.is_special_needs === "1";
+                if (hasData) {
+                  const ok = await confirm({
+                    title: "מחיקת פרטי ילד/ה",
+                    body: `פעולה זו תמחק את פרטי הילד/ה ${c.name ? `"${c.name}"` : "שהזנת"}. האם להמשיך?`,
+                    variant: "danger",
+                    confirmLabel: "מחיקה",
+                    cancelLabel: "ביטול",
+                  });
+                  if (!ok) return;
+                }
+                
+                // If it's the last child being removed, set 'has_children' to '0'
                 if (children.length <= 1) {
                   setField("has_children", "0");
                 }
@@ -622,12 +652,14 @@ function LabeledInput({
   onChange,
   placeholder,
   type = "text",
+  steps,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   type?: string;
+  steps?: number[];
 }) {
   return (
     <div>
@@ -639,6 +671,7 @@ function LabeledInput({
           title={label}
           placeholder={placeholder}
           inputClassName="inp w-full tabular"
+          steps={steps}
         />
       ) : (
         <input
