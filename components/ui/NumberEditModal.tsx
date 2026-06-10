@@ -87,7 +87,14 @@ export function NumberEditModal({ initialValue, title = "עריכת סכום", o
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <div
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleSubmit();
+            }
+          }}
+        >
           <div className="mb-6">
             <input
               ref={inputRef}
@@ -123,12 +130,13 @@ export function NumberEditModal({ initialValue, title = "עריכת סכום", o
           </div>
 
           <button
-            type="submit"
+            type="button"
+            onClick={() => handleSubmit()}
             className="w-full rounded-xl bg-[#2C7A5A] py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
           >
             שמור
           </button>
-        </form>
+        </div>
       </div>
     </div>
   );

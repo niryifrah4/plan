@@ -79,7 +79,7 @@ function loadInitialOnboardingState() {
   return {
     step: readScopedJSON<number>(ONBOARDING_STEP_KEY, 1),
     fields: readScopedJSON<Fields>(ONBOARDING_FIELDS_KEY, {}),
-    children: readScopedJSON<Child[]>(ONBOARDING_CHILDREN_KEY, [EMPTY_CHILD]),
+    children: readScopedJSON<Child[]>(ONBOARDING_CHILDREN_KEY, []),
     assets: readScopedJSON<AssetRow[]>(ONBOARDING_ASSETS_KEY, [
       { type: 'נדל"ן למגורים', desc: "", value: "", rent: "", rentExpenses: "" },
     ]),

@@ -22,6 +22,7 @@ import { fmtILS } from "@/lib/format";
 import type { Child, Fields } from "./types";
 import { EMPTY_CHILD, FRAMEWORKS } from "./constants";
 import { Fld, FldSelect, ModalNumberInput, StepCard } from "./fields";
+import { CityAutocomplete } from "@/components/ui/CityAutocomplete";
 
 export function Step1Family({
   fields,
@@ -94,7 +95,7 @@ export function Step1Family({
             <button
               type="button"
               onClick={showSpouse2}
-              className="flex items-center gap-1 text-[11px] font-bold text-verdant-emerald hover:underline"
+              className="flex items-center gap-1 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-bold text-verdant-ink shadow-sm transition-colors hover:bg-gray-50"
             >
               <span className="material-symbols-outlined text-[14px]">add</span>
               הוסף בן/בת זוג
@@ -103,7 +104,7 @@ export function Step1Family({
             <button
               type="button"
               onClick={hideSpouse2}
-              className="flex items-center gap-1 text-[11px] font-bold text-red-400 hover:text-red-600"
+              className="flex items-center gap-1 rounded-md border border-red-200 bg-white px-3 py-1.5 text-[11px] font-bold text-red-500 shadow-sm transition-colors hover:bg-red-50"
             >
               <span className="material-symbols-outlined text-[14px]">close</span>
               הסר בן/בת זוג 2
@@ -139,7 +140,11 @@ export function Step1Family({
           onChange={setField}
           placeholder="רחוב ומספר"
         />
-        <Fld label="עיר" name="city" fields={fields} onChange={setField} />
+        <CityAutocomplete
+          label="עיר"
+          value={fields.city || ""}
+          onChange={(val) => setField("city", val)}
+        />
         <FldSelect
           label="מצב משפחתי"
           name="marital"
@@ -153,7 +158,7 @@ export function Step1Family({
         בתוך הכרטיס שלו/שלה.
       </div>
 
-      <ChildrenSection children={children} setChildren={setChildren} />
+      <ChildrenSection fields={fields} setField={setField} children={children} setChildren={setChildren} />
 
     </StepCard>
   );
@@ -201,7 +206,7 @@ function SpouseCard({
           <button
             type="button"
             onClick={onRemove}
-            className="flex items-center gap-0.5 text-[11px] font-bold text-red-400 hover:text-red-600"
+            className="flex items-center gap-1 rounded-md border border-red-200 bg-white px-3 py-1.5 text-[11px] font-bold text-red-500 shadow-sm transition-colors hover:bg-red-50"
           >
             <span className="material-symbols-outlined text-[14px]">close</span>
             הסר
@@ -244,7 +249,7 @@ function SpouseCard({
             <button
               type="button"
               onClick={showSpouseAddress}
-              className="flex items-center gap-1 text-[11px] font-bold text-verdant-emerald hover:underline"
+              className="flex items-center gap-1 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-bold text-verdant-ink shadow-sm transition-colors hover:bg-gray-50"
             >
               <span className="material-symbols-outlined text-[14px]">add</span>
               יש כתובת משלו/שלה
@@ -253,7 +258,7 @@ function SpouseCard({
             <button
               type="button"
               onClick={hideSpouseAddress}
-              className="flex items-center gap-1 text-[11px] font-bold text-red-400 hover:text-red-600"
+              className="flex items-center gap-1 rounded-md border border-red-200 bg-white px-3 py-1.5 text-[11px] font-bold text-red-500 shadow-sm transition-colors hover:bg-red-50"
             >
               <span className="material-symbols-outlined text-[14px]">close</span>
               השתמש/י בכתובת המשותפת
@@ -269,16 +274,35 @@ function SpouseCard({
               onChange={setField}
               placeholder="רחוב ומספר"
             />
-            <Fld
+            <CityAutocomplete
               label="עיר"
-              name={`${prefix}_address_city`}
-              fields={fields}
-              onChange={setField}
+              value={fields[`${prefix}_address_city`] || ""}
+              onChange={(val) => setField(`${prefix}_address_city`, val)}
             />
           </div>
         ) : (
-          <div className="text-[11px] leading-relaxed text-verdant-muted">
-            כרגע משתמשים בכתובת המשותפת: {sharedAddress ? sharedAddress : "לא הוזנה כתובת משותפת"}
+          <div className="flex items-center gap-2 text-[11px] leading-relaxed text-verdant-muted">
+            {sharedAddress ? (
+              `כרגע משתמשים בכתובת המשותפת: ${sharedAddress}`
+            ) : (
+              <>
+                <span>לא הוזנה כתובת משותפת.</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const inputs = Array.from(document.querySelectorAll('input'));
+                    const sharedInput = inputs.find((i) => i.placeholder === 'רחוב ומספר');
+                    if (sharedInput) {
+                      sharedInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      setTimeout(() => sharedInput.focus(), 300);
+                    }
+                  }}
+                  className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-[10px] font-bold text-verdant-ink shadow-sm transition-colors hover:bg-gray-50"
+                >
+                  להזנת כתובת משותפת
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -335,12 +359,30 @@ function EmploymentFields({
 /* ── Children — repeats with kids-savings sub-section ── */
 
 function ChildrenSection({
+  fields,
+  setField,
   children,
   setChildren,
 }: {
+  fields: Fields;
+  setField: (name: string, value: string) => void;
   children: Child[];
   setChildren: (updater: (prev: Child[]) => Child[]) => void;
 }) {
+  const hasChildren = fields.has_children;
+  const isYes = hasChildren === "1";
+  const isNo = hasChildren !== "1";
+
+  const setHasKids = (val: "1" | "0") => {
+    setField("has_children", val);
+    if (val === "1" && children.length === 0) {
+      setChildren(() => [{ ...EMPTY_CHILD }]);
+    }
+    if (val === "0") {
+      setChildren(() => []);
+    }
+  };
+
   return (
     <div className="mb-6">
       <div className="mb-3 flex items-center justify-between">
@@ -350,39 +392,82 @@ function ChildrenSection({
           </span>
           ילדים
         </h3>
-        <button
-          type="button"
-          onClick={() => setChildren((p) => [...p, { ...EMPTY_CHILD }])}
-          className="flex items-center gap-1 text-[11px] font-bold text-verdant-emerald hover:underline"
-        >
-          <span className="material-symbols-outlined text-[14px]">add</span>הוסף ילד/ה
-        </button>
+        {isYes && (
+          <button
+            type="button"
+            onClick={() => setChildren((p) => [...p, { ...EMPTY_CHILD }])}
+            className="flex items-center gap-1 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-bold text-verdant-ink shadow-sm transition-colors hover:bg-gray-50"
+          >
+            <span className="material-symbols-outlined text-[14px]">add</span>הוסף ילד/ה
+          </button>
+        )}
       </div>
-      <div className="space-y-3">
-        {children.map((c, i) => (
-          <ChildRow
-            key={i}
-            child={c}
-            index={i}
-            onUpdate={(k, v) =>
-              setChildren((p) =>
-                p.map((ch, j) => {
-                  if (j !== i) return ch;
-                  const updated = { ...ch, [k]: v };
-                  if (k === "dob" && v) {
-                    const birth = new Date(v);
-                    const diff = Date.now() - birth.getTime();
-                    const ageYears = Math.floor(diff / (365.25 * 24 * 3600 * 1000));
-                    updated.age = ageYears >= 0 ? String(ageYears) : "";
-                  }
-                  return updated;
-                })
-              )
-            }
-            onRemove={() => setChildren((p) => p.filter((_, j) => j !== i))}
-          />
-        ))}
+
+      <div className="v-divider mb-4 flex items-center justify-between rounded-lg border bg-[#FAFAF7] p-4 shadow-sm">
+        <div className="text-[12px] font-extrabold text-verdant-ink">האם יש לכם ילדים?</div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setHasKids("1")}
+            className={`rounded-md px-4 py-1.5 text-[11px] font-bold transition-all ${
+              isYes
+                ? "bg-verdant-emerald text-white shadow-md hover:bg-emerald-700"
+                : "border border-gray-200 bg-white text-verdant-ink hover:bg-gray-50"
+            }`}
+          >
+            כן
+          </button>
+          <button
+            type="button"
+            onClick={() => setHasKids("0")}
+            className={`rounded-md px-4 py-1.5 text-[11px] font-bold transition-all ${
+              isNo
+                ? "bg-verdant-emerald text-white shadow-md hover:bg-emerald-700"
+                : "border border-gray-200 bg-white text-verdant-ink hover:bg-gray-50"
+            }`}
+          >
+            לא
+          </button>
+        </div>
       </div>
+
+      {isYes && (
+        <div className="space-y-3">
+          {children.length === 0 && (
+            <div className="text-[11px] text-verdant-muted">
+              אין ילדים ברשימה. לחצו על ״הוסף ילד/ה״ כדי להוסיף.
+            </div>
+          )}
+          {children.map((c, i) => (
+            <ChildRow
+              key={i}
+              child={c}
+              index={i}
+              onUpdate={(k, v) =>
+                setChildren((p) =>
+                  p.map((ch, j) => {
+                    if (j !== i) return ch;
+                    const updated = { ...ch, [k]: v };
+                    if (k === "dob" && v) {
+                      const birth = new Date(v);
+                      const diff = Date.now() - birth.getTime();
+                      const ageYears = Math.floor(diff / (365.25 * 24 * 3600 * 1000));
+                      updated.age = ageYears >= 0 ? String(ageYears) : "";
+                    }
+                    return updated;
+                  })
+                )
+              }
+              onRemove={() => {
+                if (children.length <= 1) {
+                  setField("has_children", "0");
+                }
+                setChildren((p) => p.filter((_, j) => j !== i));
+              }}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -401,17 +486,17 @@ function ChildRow({
   return (
     <div className="v-divider rounded-lg border bg-[#FFFFFF] p-4">
       <div className="mb-3 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={onRemove}
-          className="flex items-center gap-0.5 text-[11px] font-bold text-red-400 hover:text-red-600"
-        >
-          <span className="material-symbols-outlined text-[14px]">close</span>הסר
-        </button>
         <span className="text-[12px] font-extrabold text-verdant-ink">
           {c.name || `ילד/ה ${index + 1}`}
           {c.age && <span className="mr-2 font-bold text-verdant-muted">(גיל {c.age})</span>}
         </span>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="flex items-center gap-1 rounded-md border border-red-200 bg-white px-3 py-1.5 text-[11px] font-bold text-red-500 shadow-sm transition-colors hover:bg-red-50"
+        >
+          <span className="material-symbols-outlined text-[14px]">close</span>הסר
+        </button>
       </div>
 
       <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -467,9 +552,9 @@ function KidsSavingsRow({
 
   return (
     <div className="v-divider border-t pt-3">
-      <div className="mb-2 flex items-center justify-end gap-1.5 text-[10px] font-extrabold text-verdant-ink">
-        <span>חיסכון לכל ילד</span>
+      <div className="mb-2 flex items-center justify-start gap-1.5 text-[10px] font-extrabold text-verdant-ink">
         <span className="material-symbols-outlined text-[14px] text-verdant-emerald">savings</span>
+        <span>חיסכון לכל ילד</span>
       </div>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <LabeledSelect
