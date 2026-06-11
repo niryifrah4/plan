@@ -199,6 +199,7 @@ export default function CrmPage() {
   const [filterStatus, setFilterStatus] = useState<LeadStatus | "all">("all");
   const [drawerLeadId, setDrawerLeadId] = useState<number | null>(null);
   const [newFollowUp, setNewFollowUp] = useState("");
+  const [routeLoadingLabel, setRouteLoadingLabel] = useState<string | null>(null);
 
   // Drawer edit fields
   const [editName, setEditName] = useState("");
@@ -1359,12 +1360,24 @@ export default function CrmPage() {
                         </td>
                         <td className="px-4 py-3.5 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <Link
-                              href={`/onboarding?hh=${c.id}`}
+                            <a
+                              href={
+                                c.householdId
+                                  ? `/api/crm/impersonate/enter?household_id=${encodeURIComponent(c.householdId)}&next=${encodeURIComponent("/onboarding")}`
+                                  : "#"
+                              }
+                              onClick={(e) => {
+                                if (c.householdId) {
+                                  setRouteLoadingLabel("פותח שאלון...");
+                                  return;
+                                }
+                                e.preventDefault();
+                                setToast("❌ רשומה ישנה ללא מזהה לקוח — רענן את הדף ונסה שוב");
+                              }}
                               className="whitespace-nowrap text-[11px] font-bold text-verdant-muted transition-colors hover:text-verdant-accent"
                             >
                               שאלון אפיון
-                            </Link>
+                            </a>
                             <button
                               type="button"
                               onClick={async () => {
@@ -1383,6 +1396,7 @@ export default function CrmPage() {
                                   );
                                   return;
                                 }
+                                setRouteLoadingLabel("פותח תיק...");
                                 // 2026-05-28 — switched from POST + JS
                                 // navigation to a single GET that does
                                 // cookie-set + 303 redirect atomically
@@ -1787,6 +1801,21 @@ export default function CrmPage() {
           style={{ background: "var(--morning-ink)" }}
         >
           {toast}
+        </div>
+      )}
+
+      {routeLoadingLabel && (
+        <div
+          dir="rtl"
+          role="status"
+          aria-live="polite"
+          className="fixed left-6 top-6 z-[60] flex items-center gap-2 rounded-full px-4 py-2 text-[12px] font-extrabold shadow-lg"
+          style={{ background: "#FFFFFF", color: "#1A1A1A", border: "1px solid #E5E7EB" }}
+        >
+          <span className="material-symbols-outlined animate-spin text-[17px] text-verdant-emerald">
+            progress_activity
+          </span>
+          {routeLoadingLabel}
         </div>
       )}
 

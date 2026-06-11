@@ -14,10 +14,21 @@
  */
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { WealthTab } from "./WealthTab";
-import { AccountsTab } from "./AccountsTab";
-import { CashflowTab } from "./CashflowTab";
+
+const WealthTab = dynamic(() => import("./WealthTab").then((m) => m.WealthTab), {
+  ssr: false,
+  loading: () => <TabLoading />,
+});
+const AccountsTab = dynamic(() => import("./AccountsTab").then((m) => m.AccountsTab), {
+  ssr: false,
+  loading: () => <TabLoading />,
+});
+const CashflowTab = dynamic(() => import("./CashflowTab").then((m) => m.CashflowTab), {
+  ssr: false,
+  loading: () => <TabLoading />,
+});
 
 type Tab = "wealth" | "accounts" | "cashflow";
 
@@ -26,6 +37,22 @@ const TABS: { key: Tab; label: string; icon: string }[] = [
   { key: "accounts", label: "חשבונות", icon: "credit_card" },
   { key: "cashflow", label: "תזרים", icon: "swap_vert" },
 ];
+
+function TabLoading() {
+  return (
+    <div className="card-pad space-y-3" dir="rtl">
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="flex items-center gap-3">
+          <div className="h-9 w-9 animate-pulse rounded-xl bg-verdant-cream" />
+          <div className="flex-1">
+            <div className="mb-2 h-3 w-1/3 animate-pulse rounded bg-verdant-cream" />
+            <div className="h-3 w-2/3 animate-pulse rounded bg-verdant-cream" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function BalancePage() {
   const [tab, setTab] = useState<Tab>("wealth");

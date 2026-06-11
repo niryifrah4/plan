@@ -35,7 +35,7 @@ test("every (client) page renders 200 + no hydration error", async ({ page }) =>
   await page.goto("/login");
   await page.getByPlaceholder("mail@example.com").fill("niryifrah4@gmail.com");
   await page.locator('input[type="password"]').fill("PlanAdvisor2026!");
-  await page.getByRole("button", { name: /התחבר|כניסה/ }).click();
+  await page.locator('button[type="submit"]').click();
   await page.waitForURL(/\/crm/, { timeout: 15_000 });
 
   // Enter first client.

@@ -224,6 +224,11 @@ function getLocalClient(id: number): LocalClient | null {
   return getLocalClients().find((c) => c.id === id) ?? null;
 }
 
+export function getLocalClientByHouseholdId(householdId: string): LocalClient | null {
+  if (!householdId) return null;
+  return getLocalClients().find((c) => (c as LocalClient & { householdId?: string }).householdId === householdId) ?? null;
+}
+
 function saveLocalClient(client: LocalClient) {
   try {
     const all = getLocalClients();

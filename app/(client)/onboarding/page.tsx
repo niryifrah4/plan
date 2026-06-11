@@ -32,7 +32,8 @@ import { syncOnboardingToStores } from "@/lib/onboarding-sync";
 import { pushOnboardingSnapshot, hydrateOnboardingFromRemote } from "@/lib/onboarding-remote";
 import { notifyBusinessScopeChanged } from "@/lib/business-scope";
 import { scopedKey } from "@/lib/client-scope";
-import { useClient } from "@/lib/client-context";
+import { getLocalClientByHouseholdId, useClient } from "@/lib/client-context";
+import { useImpersonation } from "@/lib/impersonation-context";
 import type {
   AssetRow,
   Child,
@@ -234,18 +235,30 @@ export default function OnboardingPage() {
    * Only seeds empty fields — never overwrites user edits. Partner (p2) is
    * intentionally left blank; the advisor captures it during intake. */
   const { client } = useClient();
+  const impersonation = useImpersonation();
+  const activeClient =
+    impersonation?.householdId ? getLocalClientByHouseholdId(impersonation.householdId) : client;
   const prefilledRef = useRef(false);
   useEffect(() => {
-    if (!hydrated || prefilledRef.current || !client) return;
+    if (!hydrated || prefilledRef.current) return;
     const patch: Record<string, string> = {};
-    if (!fields.p1_email && client.email) patch.p1_email = client.email;
-    if (!fields.p1_phone && client.phone) patch.p1_phone = client.phone;
-    if (!fields.p1_name && client.family) patch.p1_name = client.family;
+    const familyName = activeClient?.family || impersonation?.familyName || "";
+    if (!fields.p1_email && activeClient?.email) patch.p1_email = activeClient.email;
+    if (!fields.p1_phone && activeClient?.phone) patch.p1_phone = activeClient.phone;
+    if (!fields.p1_name && familyName) patch.p1_name = familyName;
     if (Object.keys(patch).length > 0) {
       setFields((p) => ({ ...p, ...patch }));
     }
     prefilledRef.current = true;
-  }, [hydrated, client, fields.p1_email, fields.p1_phone, fields.p1_name, setFields]);
+  }, [
+    hydrated,
+    activeClient,
+    impersonation?.familyName,
+    fields.p1_email,
+    fields.p1_phone,
+    fields.p1_name,
+    setFields,
+  ]);
 
   const setField = useCallback(
     (name: string, value: string) => {

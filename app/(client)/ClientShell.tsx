@@ -67,6 +67,22 @@ export function ClientShell({
   // Mobile: sidebar is a slide-over drawer. Closed by default.
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const pathname = usePathname();
+  useEffect(() => {
+    const routes = ["/dashboard", "/budget", "/balance", "/files", "/investments", "/debt"];
+    const prefetchRoutes = () => routes.forEach((href) => router.prefetch(href as any));
+    const idleId =
+      "requestIdleCallback" in window
+        ? window.requestIdleCallback(prefetchRoutes)
+        : globalThis.setTimeout(prefetchRoutes, 800);
+    return () => {
+      if ("cancelIdleCallback" in window && typeof idleId === "number") {
+        window.cancelIdleCallback(idleId);
+      } else if (typeof idleId === "number") {
+        window.clearTimeout(idleId);
+      }
+    };
+  }, [router]);
+
   // Auto-close drawer when route changes (so tapping a link doesn't leave
   // the menu hovering above the new screen).
   useEffect(() => {
@@ -214,6 +230,25 @@ export function ClientShell({
           onClick={() => setMobileNavOpen(false)}
           aria-hidden
         />
+      )}
+
+      {navPendingHref && (
+        <div
+          dir="rtl"
+          role="status"
+          aria-live="polite"
+          className="fixed left-4 top-4 z-[60] flex items-center gap-2 rounded-full px-3 py-2 text-[12px] font-extrabold shadow-soft"
+          style={{
+            background: "#FFFFFF",
+            color: "#1A1A1A",
+            border: "1px solid var(--morning-border, #e5e9dc)",
+          }}
+        >
+          <span className="material-symbols-outlined animate-spin text-[16px] text-verdant-emerald">
+            progress_activity
+          </span>
+          טוען...
+        </div>
       )}
 
       {/* Sidebar wrapper — hidden off-screen on mobile, visible on md+.

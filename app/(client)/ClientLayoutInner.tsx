@@ -6,7 +6,7 @@ import { ImpersonationProvider } from "@/lib/impersonation-context";
 import { ClientShell } from "./ClientShell";
 import { runFactoryResetIfNeeded } from "@/lib/factory-reset";
 import {
-  bootstrapSessionOnce,
+  prepareSessionScopeOnce,
   watchRemoteHouseholdChanges,
   watchBootstrapAuthState,
 } from "@/lib/sync/bootstrap";
@@ -135,7 +135,7 @@ export default function ClientLayoutInner({
         dispatchAllRefreshEvents();
       }
     }
-    void bootstrapSessionOnce("desktop-mount").finally(() => {
+    void prepareSessionScopeOnce("desktop-mount").finally(() => {
       setBootstrapReady(true);
     });
     const stopAuthWatch = watchBootstrapAuthState("desktop", setBootstrapReady);

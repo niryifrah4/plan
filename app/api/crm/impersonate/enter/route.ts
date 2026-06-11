@@ -17,13 +17,13 @@
  * HTTP response. The browser commits Set-Cookie and follows Location
  * atomically. No client-side ordering to get wrong.
  *
- *   GET /api/crm/impersonate/enter?household_id=<UUID>
+ *   GET /api/crm/impersonate/enter?household_id=<UUID>&next=/dashboard
  *     → sets plan_impersonate_hh cookie
- *     → 303 redirect to /dashboard
+ *     → 303 redirect to the requested client route
  *
  * Validates advisor ownership server-side, same as the POST endpoint.
  *
- * The CRM "כניסה לתיק" button now navigates straight to this URL
+ * The CRM client action buttons now navigate straight to this URL
  * instead of doing POST-then-navigate.
  */
 
@@ -32,6 +32,7 @@ import { createClient } from "@/lib/supabase/server";
 
 const COOKIE = "plan_impersonate_hh";
 const MAX_AGE_SECONDS = 60 * 60 * 8; // 8 hours
+const DEFAULT_NEXT = "/dashboard";
 
 // Belt-and-suspenders: Next.js already treats this route as dynamic
 // because it reads cookies/headers, but Render's CDN occasionally caches
@@ -41,13 +42,24 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const fetchCache = "force-no-store";
 
+function safeNextPath(value: string | null): string {
+  const next = (value || DEFAULT_NEXT).trim();
+  if (!next.startsWith("/") || next.startsWith("//")) return DEFAULT_NEXT;
+  if (!["/dashboard", "/onboarding"].some((path) => next === path || next.startsWith(path + "?"))) {
+    return DEFAULT_NEXT;
+  }
+  return next;
+}
+
 export async function GET(req: NextRequest) {
   const householdId = req.nextUrl.searchParams.get("household_id")?.trim() || "";
-  const fwdProto = req.headers.get("x-forwarded-proto") || "https";
+  const nextPath = safeNextPath(req.nextUrl.searchParams.get("next"));
+  const requestOrigin = new URL(req.url).origin;
+  const fwdProto = req.headers.get("x-forwarded-proto");
   const fwdHost = req.headers.get("x-forwarded-host") || req.headers.get("host");
   const publicOrigin =
     process.env.NEXT_PUBLIC_BASE_URL ||
-    (fwdHost ? `${fwdProto}://${fwdHost}` : new URL(req.url).origin);
+    (fwdHost && fwdProto ? `${fwdProto}://${fwdHost}` : requestOrigin);
   // Server-side diagnostic. Visible in Render logs. Helps localize where
   // 'click yifrah, see beser' breaks if it ever surfaces again.
   // eslint-disable-next-line no-console
@@ -67,7 +79,7 @@ export async function GET(req: NextRequest) {
     const loginUrl = new URL("/login", publicOrigin);
     loginUrl.searchParams.set(
       "redirect",
-      `/api/crm/impersonate/enter?household_id=${encodeURIComponent(householdId)}`
+      `/api/crm/impersonate/enter?household_id=${encodeURIComponent(householdId)}&next=${encodeURIComponent(nextPath)}`
     );
     return NextResponse.redirect(loginUrl);
   }
@@ -101,12 +113,12 @@ export async function GET(req: NextRequest) {
 
   // eslint-disable-next-line no-console
   console.info(
-    `[impersonate/enter] OK — setting cookie=${householdId.slice(0, 8)} for user=${user.id.slice(0, 8)} → redirect /dashboard`
+    `[impersonate/enter] OK — setting cookie=${householdId.slice(0, 8)} for user=${user.id.slice(0, 8)} → redirect ${nextPath}`
   );
 
   // Atomic: same response carries Set-Cookie + 303 Location → browser
   // commits cookie and follows redirect with no possibility of race.
-  const res = NextResponse.redirect(new URL("/dashboard", publicOrigin), 303);
+  const res = NextResponse.redirect(new URL(nextPath, publicOrigin), 303);
   res.cookies.set(COOKIE, householdId, {
     httpOnly: true,
     sameSite: "lax",

@@ -20,6 +20,7 @@
  */
 
 import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { fmtILS } from "@/lib/format";
 import type { ParsedTransaction } from "@/lib/doc-parser/types";
@@ -79,9 +80,9 @@ export function CashflowTab() {
         <h3 className="mb-1 text-base font-extrabold text-verdant-ink">אין עדיין נתוני תזרים</h3>
         <p className="text-sm text-verdant-muted">
           העלה דפי בנק וכרטיסי אשראי דרך{" "}
-          <a href="/files" className="text-verdant-emerald underline">
+          <Link href="/files" className="text-verdant-emerald underline">
             קבצים במיפוי
-          </a>{" "}
+          </Link>{" "}
           כדי להתחיל
         </p>
       </div>
@@ -252,9 +253,9 @@ export function CashflowTab() {
           <span className="text-verdant-ink">
             עמודות "עסקי" יופיעו כאן אוטומטית כשבן/בת זוג מסומנים כעצמאי/ת בשאלון
             המיפוי. כל תנועה ניתנת להגדרה כעסקית ידנית דרך{" "}
-            <a href="/files" className="text-verdant-emerald underline">
+            <Link href="/files" className="text-verdant-emerald underline">
               תור הפענוח
-            </a>
+            </Link>
             .
           </span>
         </div>

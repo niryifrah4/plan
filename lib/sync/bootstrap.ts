@@ -16,8 +16,10 @@ import { CURRENT_HH_KEY, dispatchStoreRefreshEvents } from "@/lib/client-scope";
 
 const ACTIVE_HH_KEY = "verdant:active_household_id";
 const BOOTSTRAP_FLAG = "verdant:bootstrap_done";
+const BOOTSTRAP_USER_KEY = "verdant:bootstrap_user_id";
 let bootstrapInFlight: Promise<boolean> | null = null;
 let remoteRefreshInFlight: Promise<void> | null = null;
+let scopeBootstrapInFlight: Promise<boolean> | null = null;
 
 function clearBootstrapMarkers(): void {
   if (typeof window === "undefined") return;
@@ -25,6 +27,7 @@ function clearBootstrapMarkers(): void {
     sessionStorage.removeItem(BOOTSTRAP_FLAG);
     sessionStorage.removeItem("verdant:last_impersonated");
     sessionStorage.removeItem("verdant:legacy_purge_done");
+    sessionStorage.removeItem(BOOTSTRAP_USER_KEY);
   } catch {}
   try {
     localStorage.removeItem(ACTIVE_HH_KEY);
@@ -85,6 +88,34 @@ export async function resolveActiveHousehold(): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+async function resolveBootstrapUserId(): Promise<string | null> {
+  if (!isSupabaseConfigured()) return null;
+  const sb = getSupabaseBrowser();
+  if (!sb) return null;
+  try {
+    const {
+      data: { user },
+    } = await sb.auth.getUser();
+    return user?.id || null;
+  } catch {
+    return null;
+  }
+}
+
+async function ensureBootstrapForCurrentUser(): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  const userId = await resolveBootstrapUserId();
+  if (!userId) return null;
+  try {
+    const previous = sessionStorage.getItem(BOOTSTRAP_USER_KEY);
+    if (previous && previous !== userId) {
+      clearBootstrapMarkers();
+    }
+    sessionStorage.setItem(BOOTSTRAP_USER_KEY, userId);
+  } catch {}
+  return userId;
 }
 
 /**
@@ -198,6 +229,54 @@ export async function refreshAllFromRemote(trigger = "manual"): Promise<void> {
   return task;
 }
 
+/**
+ * Fast path for desktop route transitions: resolve the active household first,
+ * then hydrate remote stores in the background. This keeps tenant scoping
+ * correct without blocking the whole app shell on every first paint.
+ */
+export async function prepareSessionScopeOnce(trigger = "manual"): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  if (!isSupabaseConfigured()) return true;
+  if (scopeBootstrapInFlight) return scopeBootstrapInFlight;
+
+  const task = (async () => {
+    const userId = await ensureBootstrapForCurrentUser();
+    if (!userId) return false;
+
+    const hasHousehold = Boolean(localStorage.getItem(ACTIVE_HH_KEY));
+    const bootstrapped = sessionStorage.getItem(BOOTSTRAP_FLAG) === "1";
+    const recordedUserId = sessionStorage.getItem(BOOTSTRAP_USER_KEY);
+    if (bootstrapped && hasHousehold && recordedUserId === userId) {
+      console.info("[bootstrap] scope ready; hydration already completed", { trigger });
+      return true;
+    }
+
+    const hh = await resolveActiveHousehold();
+    if (!hh) return false;
+
+    void refreshAllFromRemote(`${trigger}:background-hydrate`)
+      .then(() => {
+        try {
+          sessionStorage.setItem(BOOTSTRAP_FLAG, "1");
+        } catch {}
+      })
+      .catch((reason) => {
+        console.warn("[bootstrap] background hydration failed", { trigger, reason });
+      });
+
+    console.info("[bootstrap] scope ready; hydration continuing in background", {
+      trigger,
+      householdId: hh,
+    });
+    return true;
+  })().finally(() => {
+    scopeBootstrapInFlight = null;
+  });
+
+  scopeBootstrapInFlight = task;
+  return task;
+}
+
 export function watchRemoteHouseholdChanges(
   triggerPrefix: string,
   onReady?: (ready: boolean) => void
@@ -304,9 +383,14 @@ export async function bootstrapSessionOnce(trigger = "manual"): Promise<boolean>
   if (bootstrapInFlight) return bootstrapInFlight;
 
   const task = (async () => {
+    const userId = await ensureBootstrapForCurrentUser();
+    if (!userId) {
+      return false;
+    }
     const hasHousehold = Boolean(localStorage.getItem(ACTIVE_HH_KEY));
     const bootstrapped = sessionStorage.getItem(BOOTSTRAP_FLAG) === "1";
-    if (bootstrapped && hasHousehold) {
+    const recordedUserId = sessionStorage.getItem(BOOTSTRAP_USER_KEY);
+    if (bootstrapped && hasHousehold && recordedUserId === userId) {
       console.info("[bootstrap] hydration skipped because already bootstrapped", { trigger });
       return true;
     }

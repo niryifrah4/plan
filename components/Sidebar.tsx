@@ -544,121 +544,78 @@ export function Sidebar({
             </div>
           )}
 
-          {/* Reset — advisor only. Clients never see this dangerous affordance. */}
-          {isAdvisor && (
+          {isAdvisor ? (
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <button
+                onClick={handleReset}
+                className="btn-botanical-ghost flex h-11 items-center justify-center px-0"
+                style={{ minHeight: 44 }}
+                aria-label="איפוס לקוח"
+                title="איפוס לקוח"
+              >
+                <span className="material-symbols-outlined text-[20px]" aria-hidden>
+                  restart_alt
+                </span>
+              </button>
+
+              <button
+                onClick={async () => {
+                  try {
+                    await fetch("/api/crm/impersonate", { method: "DELETE" });
+                  } catch {
+                    /* even if the network call fails, fall through to navigation */
+                  }
+                  window.location.href = "/crm";
+                }}
+                className="btn-botanical flex h-11 items-center justify-center px-0"
+                style={{ minHeight: 44 }}
+                aria-label="חזרה ל-CRM"
+                title="חזרה ל-CRM"
+              >
+                <span className="material-symbols-outlined text-[20px]" aria-hidden>
+                  arrow_forward
+                </span>
+              </button>
+
+              <button
+                onClick={onExit ?? (() => router.push("/login"))}
+                className="btn-botanical-ghost flex h-11 items-center justify-center px-0"
+                style={{ minHeight: 44 }}
+                aria-label="התנתקות"
+                title="התנתקות"
+              >
+                <span className="material-symbols-outlined text-[20px]" aria-hidden>
+                  logout
+                </span>
+              </button>
+            </div>
+          ) : (
             <button
-              onClick={handleReset}
-              className={
-                isMobile
-                  ? "mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-semibold transition-all"
-                  : "mt-3 flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[12px] font-semibold transition-all"
-              }
+              onClick={onExit ?? (() => router.push("/login"))}
+              className={`mt-2 w-full ${isMobile ? "px-3 py-2 text-[12px]" : "px-4 py-2.5 text-[13px]"}`}
               style={{
-                background: "transparent",
+                background: "#FFFFFF",
                 color: "var(--morning-muted)",
                 border: "1px solid var(--morning-border)",
+                borderRadius: "0.75rem",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "var(--morning-danger-soft)";
-                e.currentTarget.style.color = "var(--morning-danger)";
-                e.currentTarget.style.borderColor = "rgba(220,38,38,0.2)";
+                e.currentTarget.style.background = "var(--morning-surface-2)";
+                e.currentTarget.style.color = "var(--morning-ink)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.background = "#FFFFFF";
                 e.currentTarget.style.color = "var(--morning-muted)";
-                e.currentTarget.style.borderColor = "var(--morning-border)";
               }}
-              title="מוחק את כל הנתונים של הלקוח ומחזיר את כל הערכים לאפס"
             >
-              <span
-                className={
-                  isMobile
-                    ? "material-symbols-outlined text-[15px]"
-                    : "material-symbols-outlined text-[16px]"
-                }
-              >
-                restart_alt
+              <span className="flex items-center justify-between gap-3">
+                <span className="material-symbols-outlined text-[18px]" aria-hidden>
+                  logout
+                </span>
+                <span className="flex-1 text-center font-semibold">התנתקות</span>
               </span>
-              איפוס נתוני לקוח
             </button>
           )}
-
-          {isAdvisor && (
-            <button
-              onClick={async () => {
-                // 1. Clear the impersonation cookie so the advisor truly exits the
-                //    client's portfolio (instead of staying impersonated in the
-                //    background — which makes /dashboard bounce them straight back).
-                // 2. Use a hard navigation (window.location) so the (client) RSC
-                //    layout re-runs with a fresh cookie state.
-                try {
-                  await fetch("/api/crm/impersonate", { method: "DELETE" });
-                } catch {
-                  /* even if the network call fails, fall through to navigation */
-                }
-                window.location.href = "/crm";
-              }}
-              className={
-                isMobile
-                  ? "mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-semibold transition-all"
-                  : "mt-2 flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-[13px] font-semibold transition-all"
-              }
-              style={{
-                background: "var(--morning-leaf-tint)",
-                color: "var(--morning-forest)",
-                border: "1px solid var(--morning-leaf-soft)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "var(--morning-leaf-soft)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "var(--morning-leaf-tint)";
-              }}
-            >
-              <span
-                className={
-                  isMobile
-                    ? "material-symbols-outlined text-[15px]"
-                    : "material-symbols-outlined text-[16px]"
-                }
-              >
-                arrow_forward
-              </span>
-              חזרה ל-CRM
-            </button>
-          )}
-
-          <button
-            onClick={onExit ?? (() => router.push("/login"))}
-            className={
-              isMobile
-                ? "mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-medium transition-all"
-                : "mt-2 flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all"
-            }
-            style={{
-              background: "transparent",
-              color: "var(--morning-muted)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "var(--morning-surface-2)";
-              e.currentTarget.style.color = "var(--morning-ink)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = "var(--morning-muted)";
-            }}
-          >
-            <span
-              className={
-                isMobile
-                  ? "material-symbols-outlined text-[15px]"
-                  : "material-symbols-outlined text-[16px]"
-              }
-            >
-              logout
-            </span>
-            התנתקות
-          </button>
         </div>
       </aside>
     </>

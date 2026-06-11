@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { fmtILS } from "@/lib/format";
 import { buildForecast, type ForecastMonth } from "@/lib/cashflow-forecast";
 import { loadAssumptions, saveAssumptions } from "@/lib/assumptions";
@@ -62,9 +63,9 @@ export function CashflowForecast() {
           </div>
           <div className="text-[12px] text-verdant-muted leading-relaxed">
             הזינו הכנסות והוצאות בתקציב, והוסיפו אירועים מיוחדים ב-{" "}
-            <a href="/goals" className="underline hover:text-verdant-emerald">
+            <Link href="/goals" className="underline hover:text-verdant-emerald">
               מטרות
-            </a>
+            </Link>
             {" "}— התחזית תבנה אוטומטית.
           </div>
         </div>
@@ -301,9 +302,9 @@ export function CashflowForecast() {
 
       <div className="mt-2 text-[11px] text-verdant-muted">
         אירועים מיוחדים (בונוס, החזרי מס, רכישות גדולות) — נכנסים מ-
-        <a href="/goals" className="underline hover:text-verdant-emerald">
+        <Link href="/goals" className="underline hover:text-verdant-emerald">
           /goals → אירועים מיוחדים
-        </a>
+        </Link>
         .
       </div>
     </section>
