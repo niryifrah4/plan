@@ -125,3 +125,21 @@ export async function insertMerchantCategoryVotes(
 
   return { inserted: rows.length };
 }
+
+export async function deleteMerchantCategoryVotes(
+  sb: SupabaseClient,
+  merchantKeys: string[]
+): Promise<{ deleted: boolean }> {
+  if (merchantKeys.length === 0) return { deleted: true };
+  
+  const { error } = await sb
+    .from("merchant_category_votes")
+    .delete()
+    .in("merchant_key", merchantKeys);
+    
+  if (error) {
+    throw new Error(error.message);
+  }
+  
+  return { deleted: true };
+}

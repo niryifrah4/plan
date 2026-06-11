@@ -4,6 +4,7 @@ import {
   insertMerchantCategoryVotes,
   loadMerchantCategoryRulesFromDb,
   primeMerchantCategoryRulesCacheFromDb,
+  deleteMerchantCategoryVotes,
 } from "@/lib/doc-parser/merchant-category-rules.server";
 
 export const dynamic = "force-dynamic";
@@ -87,6 +88,44 @@ export async function POST(req: NextRequest) {
     console.error("[merchant-category-rules] write failed:", error);
     return NextResponse.json(
       { ok: false, error: "write_failed" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  const auth = await requireUser();
+  if ("response" in auth) return auth.response;
+
+  try {
+    const { searchParams } = new URL(req.url);
+    const merchantKey = searchParams.get("merchantKey");
+    const merchantKeysRaw = searchParams.get("merchantKeys");
+    
+    let keysToDelete: string[] = [];
+    if (merchantKey) {
+      keysToDelete.push(merchantKey);
+    } else if (merchantKeysRaw) {
+      try {
+        const parsed = JSON.parse(merchantKeysRaw);
+        if (Array.isArray(parsed)) keysToDelete = parsed;
+      } catch (e) {
+        // Ignore
+      }
+    }
+
+    if (keysToDelete.length === 0) {
+      return NextResponse.json({ ok: false, error: "missing_keys" }, { status: 400 });
+    }
+
+    await deleteMerchantCategoryVotes(auth.sb, keysToDelete);
+    const rules = await primeMerchantCategoryRulesCacheFromDb(auth.sb);
+    
+    return NextResponse.json({ ok: true, deleted: true, rules });
+  } catch (error) {
+    console.error("[merchant-category-rules] delete failed:", error);
+    return NextResponse.json(
+      { ok: false, error: "delete_failed" },
       { status: 500 }
     );
   }

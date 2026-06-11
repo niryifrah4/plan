@@ -16,6 +16,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { requireUser } from "@/lib/supabase/require-user";
 import { rateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
 import {
@@ -34,6 +35,7 @@ export async function POST(req: NextRequest) {
   try {
     const auth = await requireUser();
     if ("response" in auth) return auth.response;
+    const { sb, user } = auth;
 
     const ip = getClientIp(req.headers);
     const rl = rateLimit({ key: `categorize:${ip}`, ...RATE_LIMITS.PARSE });
@@ -67,7 +69,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const suggestions = await categorizeWithAI(txs, corrections);
+    const cookieStore = await cookies();
+    const aiModel = cookieStore.get("ai_categorizer_model")?.value === "perplexity" ? "perplexity" : "haiku";
+
+    const suggestions = await categorizeWithAI(txs, corrections, aiModel);
     return NextResponse.json({ suggestions });
   } catch (err) {
     console.error("/api/categorize error:", err);

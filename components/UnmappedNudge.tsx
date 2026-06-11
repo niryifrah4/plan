@@ -52,7 +52,7 @@ export function UnmappedNudge() {
             {count.toLocaleString("he-IL")} {count === 1 ? "תנועה ממתינה" : "תנועות ממתינות"} לסיווג
           </div>
           <div className="text-[12px]" style={{ color: "#7C3AED" }}>
-            Claude יקטלג אותן אוטומטית — לחץ כדי לעבור לתור הפענוח
+            Perplexity יקטלג אותן אוטומטית — לחץ כדי לעבור לתור הפענוח
           </div>
         </div>
       </div>

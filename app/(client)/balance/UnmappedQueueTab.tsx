@@ -60,6 +60,7 @@ import {
   MerchantMappingModal,
   type MerchantMappingGroup,
 } from "./_documents-tab/MerchantMappingModal";
+import { InteractiveCategoryModal } from "./_documents-tab/InteractiveCategoryModal";
 
 interface MerchantGroup {
   key: string; // normalized supplier
@@ -105,8 +106,10 @@ export function UnmappedQueueTab() {
   const [merchantModalOpen, setMerchantModalOpen] = useState(false);
   const [merchantModalFocusKey, setMerchantModalFocusKey] = useState<string | null>(null);
   const [merchantSelections, setMerchantSelections] = useState<Record<string, string>>({});
-  /** Hidden-businesses modal state. */
   const [excludedModalOpen, setExcludedModalOpen] = useState(false);
+
+  /** Interactive AI Categorizer modal state */
+  const [interactiveModalGroup, setInteractiveModalGroup] = useState<MerchantGroup | null>(null);
 
   useEffect(() => {
     setTransactions(loadTransactions());
@@ -816,7 +819,7 @@ export function UnmappedQueueTab() {
           {aiRunning ? "מסווג עם AI..." : "סווג מחדש עם AI"}
         </button>
         <span className="text-[11px] text-verdant-muted">
-          Claude Haiku בודק את כל ה-{stats.groupCount} הקבוצות לפי הקטגוריות וההיסטוריה שלך
+          Perplexity בודק את כל ה-{stats.groupCount} הקבוצות לפי הקטגוריות וההיסטוריה שלך
         </span>
         <button
           type="button"
@@ -901,6 +904,7 @@ export function UnmappedQueueTab() {
           onToggleBusinessSingle={handleToggleBusinessSingle}
           onExclude={handleExcludeMerchant}
           onOpenMerchantModal={openMerchantModal}
+          onOpenInteractiveModal={(g) => setInteractiveModalGroup(g)}
           showMerchantModalButton
           excludedMerchantKeys={excludedMerchantKeys}
         />
@@ -926,6 +930,7 @@ export function UnmappedQueueTab() {
           onToggleBusinessSingle={handleToggleBusinessSingle}
           onExclude={handleExcludeMerchant}
           onOpenMerchantModal={openMerchantModal}
+          onOpenInteractiveModal={(g) => setInteractiveModalGroup(g)}
           excludedMerchantKeys={excludedMerchantKeys}
         />
       )}
@@ -943,6 +948,19 @@ export function UnmappedQueueTab() {
           setMerchantModalFocusKey(null);
         }}
         onSave={handleMerchantModalSave}
+      />
+
+      <InteractiveCategoryModal
+        open={!!interactiveModalGroup}
+        merchantKey={interactiveModalGroup?.merchantKey || ""}
+        displaySample={interactiveModalGroup?.displaySample || ""}
+        txCount={interactiveModalGroup?.count || 0}
+        totalAmount={interactiveModalGroup?.totalAmount || 0}
+        onClose={() => setInteractiveModalGroup(null)}
+        onMap={(cat) => {
+          if (interactiveModalGroup) handleMap(interactiveModalGroup, cat);
+          setInteractiveModalGroup(null);
+        }}
       />
 
       <HiddenMerchantsModal
@@ -1095,6 +1113,7 @@ function QueueSection({
   onToggleBusinessSingle,
   onExclude,
   onOpenMerchantModal,
+  onOpenInteractiveModal,
   showMerchantModalButton,
   excludedMerchantKeys,
 }: {
@@ -1115,6 +1134,7 @@ function QueueSection({
   onToggleBusinessSingle: (txIndex: number) => void;
   onExclude: (g: MerchantGroup) => void;
   onOpenMerchantModal: (merchantKey: string) => void;
+  onOpenInteractiveModal?: (g: MerchantGroup) => void;
   showMerchantModalButton?: boolean;
   excludedMerchantKeys: Set<string>;
 }) {
@@ -1170,6 +1190,7 @@ function QueueSection({
             onToggleBusiness={() => onToggleBusiness(g)}
             onToggleBusinessSingle={onToggleBusinessSingle}
             onExclude={() => onExclude(g)}
+            onAskAi={onOpenInteractiveModal ? () => onOpenInteractiveModal(g) : undefined}
           />
         ))}
       </div>
@@ -1190,6 +1211,7 @@ function QueueRow({
   onToggleBusiness,
   onToggleBusinessSingle,
   onExclude,
+  onAskAi,
 }: {
   group: MerchantGroup;
   transactions: ParsedTransaction[];
@@ -1203,6 +1225,7 @@ function QueueRow({
   onToggleBusiness: () => void;
   onToggleBusinessSingle: (txIndex: number) => void;
   onExclude: () => void;
+  onAskAi?: () => void;
 }) {
   // Group is "business" if any tx in it is currently scoped business
   const isBusiness = group.txIndices.some((i) => transactions[i]?.scope === "business");
@@ -1311,6 +1334,16 @@ function QueueRow({
             </optgroup>
           ))}
         </select>
+        {onAskAi && (
+          <button
+            onClick={onAskAi}
+            title="התייעץ עם AI לגבי בית העסק הזה"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border transition-all hover:bg-verdant-bg"
+            style={{ borderColor: "#E5E7EB", color: "#2C7A5A" }}
+          >
+            <span className="material-symbols-outlined text-[16px]">smart_toy</span>
+          </button>
+        )}
         <button
           onClick={onExclude}
           title={
@@ -1473,9 +1506,10 @@ function QueueRow({
                       <div
                         className="shrink-0 text-left text-[13px] font-extrabold tabular-nums"
                         style={{ color: t.amount > 0 ? "#DC2626" : "#059669" }}
+                        dir="ltr"
                       >
                         {t.amount > 0 ? "-" : "+"}
-                        {fmtILS(t.amount)}
+                        {fmtILS(Math.abs(t.amount))}
                       </div>
                     </div>
 
@@ -1544,9 +1578,10 @@ function QueueRow({
                       <td
                         className="tabular w-20 px-3 py-2 text-left font-extrabold"
                         style={{ color: t.amount > 0 ? "#DC2626" : "#059669" }}
+                        dir="ltr"
                       >
                         {t.amount > 0 ? "-" : "+"}
-                        {fmtILS(t.amount)}
+                        {fmtILS(Math.abs(t.amount))}
                       </td>
                       {businessEnabled && (
                         <td className="px-2 py-2">

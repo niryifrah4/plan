@@ -640,7 +640,15 @@ export default function CrmPage() {
         {/* CRM header + Google Calendar removed 2026-04-28 per Nir.
             Logout button preserved as a small floating action so the
             advisor can still sign out. */}
-        <div className="mb-4 flex justify-end">
+        <div className="mb-4 flex justify-end gap-2">
+          <Link
+            href="/crm/settings"
+            title="הגדרות"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-verdant-muted transition-all hover:bg-gray-100 hover:text-verdant-ink"
+            style={{ background: "#FAFAF7" }}
+          >
+            <span className="material-symbols-outlined text-[18px]">settings</span>
+          </Link>
           <button
             onClick={async () => {
               // Real logout: kill the Supabase session BEFORE navigating.

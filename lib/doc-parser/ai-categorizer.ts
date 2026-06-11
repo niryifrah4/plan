@@ -25,6 +25,7 @@
 import "server-only";
 
 import { createAnthropicClient, getAnthropicKey } from "@/lib/anthropic-client";
+import { createPerplexityCompletion, getPerplexityKey } from "@/lib/perplexity-client";
 import { CATEGORIES } from "./categorizer";
 import { groupOptionsByParent } from "./category-tree";
 
@@ -47,6 +48,7 @@ Rules:
 - Business descriptors (Google Ads, מע"מ, מקדמת מס, fiverr, רואה חשבון, פייסבוק עסקי, Stripe, Cardcom) → use the matching business_* category
 - Refunds / זיכויים / החזרים → "refunds"
 - If genuinely uncertain → "other" with confidence: 1
+- If you don't recognize the merchant, use your web search capabilities to identify the business in Israel before classifying.
 - NEVER invent new categories — only use ones in the list
 - NEVER add commentary outside the JSON array`;
 
@@ -79,13 +81,13 @@ export interface AISuggestion {
  */
 export async function categorizeWithAI(
   txs: TxToClassify[],
-  pastCorrections: PastCorrection[] = []
+  pastCorrections: PastCorrection[] = [],
+  aiModel: "haiku" | "perplexity" = "haiku"
 ): Promise<AISuggestion[]> {
-  if (!getAnthropicKey()) return [];
   if (txs.length === 0) return [];
+  if (aiModel === "haiku" && !getAnthropicKey()) return [];
+  if (aiModel === "perplexity" && !getPerplexityKey()) return [];
 
-  const client = createAnthropicClient();
-  if (!client) return [];
   // Group categories under their parent so Haiku sees the same hierarchy a
   // human picker sees in the UI. Parent headers are labels only — Haiku is
   // instructed (in SYSTEM_PROMPT) to only ever return a LEAF key as `category`.
@@ -124,23 +126,33 @@ Return the JSON array now.`;
 
   let text = "";
   try {
-    const response = await client.messages.create({
-      model: MODEL,
-      max_tokens: 4096,
-      // System prompt is fixed — cache it so repeat calls within 5 minutes
-      // pay the cache-read rate (~0.1× input).
-      system: [
-        {
-          type: "text",
-          text: SYSTEM_PROMPT,
-          cache_control: { type: "ephemeral" },
-        },
-      ],
-      messages: [{ role: "user", content: userPrompt }],
-    });
-    text = response.content[0].type === "text" ? response.content[0].text : "";
+    if (aiModel === "perplexity") {
+      const response = await createPerplexityCompletion([
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: userPrompt }
+      ], "sonar-pro");
+      text = response.choices[0]?.message.content || "";
+    } else {
+      const client = createAnthropicClient();
+      if (!client) return [];
+      const response = await client.messages.create({
+        model: MODEL,
+        max_tokens: 4096,
+        // System prompt is fixed — cache it so repeat calls within 5 minutes
+        // pay the cache-read rate (~0.1× input).
+        system: [
+          {
+            type: "text",
+            text: SYSTEM_PROMPT,
+            cache_control: { type: "ephemeral" },
+          },
+        ],
+        messages: [{ role: "user", content: userPrompt }],
+      });
+      text = response.content[0].type === "text" ? response.content[0].text : "";
+    }
   } catch (err) {
-    console.error("[ai-categorizer] Haiku call failed:", err instanceof Error ? err.message : err);
+    console.error("[ai-categorizer] AI call failed:", err instanceof Error ? err.message : err);
     return [];
   }
 
@@ -180,4 +192,88 @@ Return the JSON array now.`;
   }
 
   return out;
+}
+
+export async function interactiveCategorizeWithAI(
+  merchantKey: string,
+  userDescription: string,
+  aiModel: "haiku" | "perplexity" = "haiku"
+): Promise<{ suggestions: { category: string; categoryLabel: string }[]; explanation: string } | null> {
+  if (aiModel === "haiku" && !getAnthropicKey()) return null;
+  if (aiModel === "perplexity" && !getPerplexityKey()) return null;
+
+  const validKeys = new Set<string>(CATEGORIES.map((c) => c.key));
+  validKeys.add("other");
+  const labelByKey = new Map<string, string>(CATEGORIES.map((c) => [c.key, c.label]));
+  labelByKey.set("other", "אחר");
+
+  const grouped = groupOptionsByParent(CATEGORIES.map((c) => ({ key: c.key, label: c.label })));
+  const groupedList = grouped
+    .map(
+      (g) =>
+        `▶ ${g.parent.label}\n${g.options.map((o) => `   - ${o.key}: ${o.label}`).join("\n")}`
+    )
+    .join("\n");
+  const categoriesBlock = `${groupedList}\n\n▶ שונות\n   - other: אחר (use when truly unable to classify)`;
+
+  const INTERACTIVE_SYSTEM_PROMPT = `You are an expert Israeli financial assistant. 
+The user is asking for help categorizing a business for their financial tracking.
+Business Name: "${merchantKey}"
+User's Description: "${userDescription}"
+
+Categories available:
+${categoriesBlock}
+
+Instructions:
+1. Return a JSON object with EXACTLY this structure:
+{
+  "explanation": "A short, friendly explanation in Hebrew (1-2 sentences) of why you chose these categories.",
+  "suggestions": ["category_key_1", "category_key_2"]
+}
+2. "suggestions" must be an array of 1 to 3 valid leaf category keys from the list above. Order them by best fit first.
+3. Keep the "explanation" short, clear, and in Hebrew.
+4. Output ONLY the JSON object, nothing else.`;
+
+  let text = "";
+  try {
+    if (aiModel === "perplexity") {
+      const response = await createPerplexityCompletion([
+        { role: "system", content: "You are a helpful assistant that strictly outputs JSON." },
+        { role: "user", content: INTERACTIVE_SYSTEM_PROMPT }
+      ], "sonar-pro");
+      text = response.choices[0]?.message.content || "";
+    } else {
+      const client = createAnthropicClient();
+      if (!client) return null;
+      const response = await client.messages.create({
+        model: MODEL,
+        max_tokens: 1024,
+        messages: [{ role: "user", content: INTERACTIVE_SYSTEM_PROMPT }],
+      });
+      text = response.content[0].type === "text" ? response.content[0].text : "";
+    }
+  } catch (err) {
+    console.error("[ai-categorizer] Interactive AI call failed:", err instanceof Error ? err.message : err);
+    return null;
+  }
+
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) return null;
+
+  try {
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (!parsed.suggestions || !Array.isArray(parsed.suggestions)) return null;
+
+    const validSuggestions = parsed.suggestions
+      .filter((k: any) => typeof k === "string" && validKeys.has(k))
+      .slice(0, 3)
+      .map((k: string) => ({ category: k, categoryLabel: labelByKey.get(k) || k }));
+
+    return {
+      explanation: typeof parsed.explanation === "string" ? parsed.explanation : "",
+      suggestions: validSuggestions,
+    };
+  } catch {
+    return null;
+  }
 }
