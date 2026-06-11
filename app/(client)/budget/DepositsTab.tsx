@@ -39,6 +39,7 @@ import {
 } from "@/lib/deposits-store";
 import { loadBuckets, BUCKETS_EVENT } from "@/lib/buckets-store";
 import { useConfirm } from "@/components/ui/ConfirmModal";
+import { NumberEditModal } from "@/components/ui/NumberEditModal";
 
 const HE_MONTHS = [
   "ינואר",
@@ -83,6 +84,7 @@ export function DepositsTab() {
   const [newRefId, setNewRefId] = useState<string>("");
   const [newLabel, setNewLabel] = useState<string>("");
   const [newAmount, setNewAmount] = useState<string>("");
+  const [showAddAmountModal, setShowAddAmountModal] = useState(false);
 
   useEffect(() => {
     const reload = () => {
@@ -388,14 +390,30 @@ export function DepositsTab() {
                 <label className="mb-1 block text-[11px] font-bold" style={{ color: "#6B7280" }}>
                   סכום חודשי (₪)
                 </label>
-                <input
-                  type="number"
-                  value={newAmount}
-                  onChange={(e) => setNewAmount(e.target.value)}
-                  placeholder="2100"
-                  className="tabular w-full rounded-lg px-3 py-2 text-[13px] font-extrabold"
-                  style={{ border: "1px solid #E5E7EB", background: "#FFFFFF" }}
-                />
+                <button
+                  type="button"
+                  onClick={() => setShowAddAmountModal(true)}
+                  className="w-full rounded-lg px-3 py-2 text-[13px] font-extrabold text-left tabular-nums transition-colors"
+                  style={{
+                    border: "1px solid #E5E7EB",
+                    background: "#FFFFFF",
+                    color: newAmount ? "#1A1A1A" : "#9CA3AF"
+                  }}
+                  dir="ltr"
+                >
+                  {newAmount ? Number(newAmount).toLocaleString("en-US") : "2100"}
+                </button>
+                {showAddAmountModal && (
+                  <NumberEditModal
+                    initialValue={newAmount || ""}
+                    title="סכום חודשי (₪)"
+                    onSave={(v) => {
+                      setNewAmount(String(v));
+                      setShowAddAmountModal(false);
+                    }}
+                    onClose={() => setShowAddAmountModal(false)}
+                  />
+                )}
               </div>
             </div>
             <button

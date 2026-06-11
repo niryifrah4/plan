@@ -72,6 +72,10 @@ export function KidsSavingsSection() {
     return (
       <Card>
         <div className="mb-3 flex items-center justify-between">
+          <h3 className="flex items-center gap-2 text-lg font-extrabold text-verdant-ink">
+            <span className="material-symbols-outlined text-verdant-emerald">child_care</span>
+            חיסכון לכל ילד
+          </h3>
           <button
             onClick={() => setShowAdd(true)}
             className="flex items-center gap-1 text-[11px] font-bold text-verdant-emerald hover:underline"
@@ -79,10 +83,6 @@ export function KidsSavingsSection() {
             <span className="material-symbols-outlined text-[14px]">add</span>
             הוסף ילד/ה
           </button>
-          <h3 className="flex items-center gap-2 text-lg font-extrabold text-verdant-ink">
-            <span className="material-symbols-outlined text-verdant-emerald">child_care</span>
-            חיסכון לכל ילד
-          </h3>
         </div>
         <div className="py-8 text-center text-sm text-verdant-muted">
           <span className="material-symbols-outlined mb-2 block text-[40px] opacity-30">
@@ -110,6 +110,10 @@ export function KidsSavingsSection() {
     <Card>
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
+        <h3 className="flex items-center gap-2 text-lg font-extrabold text-verdant-ink">
+          <span className="material-symbols-outlined text-verdant-emerald">child_care</span>
+          חיסכון לכל ילד
+        </h3>
         <button
           onClick={() => {
             setShowAdd((v) => !v);
@@ -122,10 +126,6 @@ export function KidsSavingsSection() {
           </span>
           {showAdd ? "בטל" : "הוסף ילד/ה"}
         </button>
-        <h3 className="flex items-center gap-2 text-lg font-extrabold text-verdant-ink">
-          <span className="material-symbols-outlined text-verdant-emerald">child_care</span>
-          חיסכון לכל ילד
-        </h3>
       </div>
 
       {/* Add form — collapsible */}

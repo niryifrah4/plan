@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BucketPriority, BUCKET_COLORS } from "@/lib/buckets-store";
 import { type Scope, SCOPE_COLORS } from "@/lib/scope-types";
 import { Modal } from "./Modal";
+import { useConfirm } from "@/components/ui/ConfirmModal";
 import {
   Field,
   InstrumentSelect,
@@ -48,6 +49,21 @@ export function AddGoalModal({
   const [scope, setScope] = useState<Scope | undefined>(undefined);
   const [initialCash, setInitialCash] = useState("");
 
+  useEffect(() => {
+    if (open) {
+      setName("");
+      setTargetAmount("");
+      setTargetDate(new Date(Date.now() + 3 * 365.25 * 24 * 3600 * 1000).toISOString().split("T")[0]);
+      setMonthlyContribution("");
+      setExpectedReturn("5.0");
+      setPriority("medium");
+      setFundingSource("money-market");
+      setColor(BUCKET_COLORS[0]);
+      setScope(undefined);
+      setInitialCash("");
+    }
+  }, [open]);
+
   const applyPreset = (preset: (typeof BUCKET_PRESETS)[0]) => {
     setName(preset.name);
     setTargetAmount(preset.targetAmount.toString());
@@ -72,8 +88,36 @@ export function AddGoalModal({
   const tip = taxRecommendation(years, amount);
   const currentInst = INSTRUMENTS[fundingSource];
 
+  const { confirm, modal: confirmModal } = useConfirm();
+
+  const handleClose = async () => {
+    const isDirty =
+      name.trim() !== "" ||
+      targetAmount.trim() !== "" ||
+      monthlyContribution.trim() !== "" ||
+      initialCash.trim() !== "" ||
+      expectedReturn !== "5.0" ||
+      priority !== "medium" ||
+      fundingSource !== "money-market" ||
+      color !== BUCKET_COLORS[0] ||
+      scope !== undefined;
+
+    if (isDirty) {
+      const ok = await confirm({
+        title: "לסגור בלי לשמור?",
+        body: "הזנת נתונים בטופס. האם אתה בטוח שברצונך לצאת ללא שמירה?",
+        confirmLabel: "כן, צא",
+        cancelLabel: "ביטול",
+        variant: "danger",
+      });
+      if (!ok) return;
+    }
+    onClose();
+  };
+
   return (
-    <Modal open={open} title="מטרה חדשה" onClose={onClose}>
+    <>
+      <Modal open={open} title="מטרה חדשה" onClose={handleClose}>
       <div className="space-y-4">
         <div>
           <div className="mb-2 text-[10px] font-bold text-verdant-muted">בחר תבנית מוכנה:</div>
@@ -82,7 +126,8 @@ export function AddGoalModal({
               <button
                 key={p.name}
                 onClick={() => applyPreset(p)}
-                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-bold transition-all"
+                title={p.name}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg p-2.5 sm:px-3 sm:py-2 text-[11px] font-bold transition-all hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-md active:scale-95"
                 style={{
                   background: `${p.color}10`,
                   color: "#1A1A1A",
@@ -90,12 +135,12 @@ export function AddGoalModal({
                 }}
               >
                 <span
-                  className="material-symbols-outlined text-[14px]"
+                  className="material-symbols-outlined text-[18px] sm:text-[14px]"
                   style={{ color: p.color }}
                 >
                   {p.icon}
                 </span>
-                {p.name}
+                <span className="hidden sm:inline">{p.name}</span>
               </button>
             ))}
           </div>
@@ -114,6 +159,8 @@ export function AddGoalModal({
             onChange={setTargetAmount}
             type="number"
             placeholder="150000"
+            useNumberModal
+            min={0}
           />
           <Field label="תאריך יעד" value={targetDate} onChange={setTargetDate} type="date" />
           <Field
@@ -122,6 +169,8 @@ export function AddGoalModal({
             onChange={setMonthlyContribution}
             type="number"
             placeholder="2000"
+            useNumberModal
+            min={0}
           />
           <Field
             label="תשואה צפויה %"
@@ -131,19 +180,15 @@ export function AddGoalModal({
           />
         </div>
 
-        <div>
-          <div className="mb-1 text-[9px] font-bold text-verdant-muted">
-            סכום מזומן שיש לך היום ליעד הזה (אופציונלי)
-          </div>
-          <input
-            type="number"
-            value={initialCash}
-            onChange={(e) => setInitialCash(e.target.value)}
-            placeholder="₪0"
-            className="w-full rounded-lg border px-3 py-2 text-[11px] font-bold outline-none focus:ring-2 focus:ring-verdant-accent/30"
-            style={{ borderColor: "#E5E7EB", background: "#FFFFFF", color: "#0891b2" }}
-          />
-        </div>
+        <Field
+          label="סכום מזומן שיש לך היום ליעד הזה (אופציונלי)"
+          value={initialCash}
+          onChange={setInitialCash}
+          type="number"
+          placeholder="₪0"
+          useNumberModal
+          min={0}
+        />
 
         <div>
           <div className="mb-1 text-[9px] font-bold text-verdant-muted">מכשיר</div>
@@ -231,7 +276,7 @@ export function AddGoalModal({
           className="flex items-center justify-end gap-2 border-t pt-4"
           style={{ borderColor: "#E5E7EB" }}
         >
-          <button onClick={onClose} className="btn-botanical-ghost !px-4 !py-2 text-[12px]">
+          <button onClick={handleClose} className="btn-botanical-ghost !px-4 !py-2 text-[12px]">
             ביטול
           </button>
           <button
@@ -257,6 +302,8 @@ export function AddGoalModal({
           </button>
         </div>
       </div>
-    </Modal>
+      </Modal>
+      {confirmModal}
+    </>
   );
 }

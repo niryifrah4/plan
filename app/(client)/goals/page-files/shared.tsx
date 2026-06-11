@@ -1,6 +1,8 @@
 "use client";
 
 import type { BucketPriority } from "@/lib/buckets-store";
+import { useState } from "react";
+import { NumberEditModal } from "@/components/ui/NumberEditModal";
 
 export const GOAL_ICONS: Record<string, string> = {
   "קרן חירום": "savings",
@@ -228,24 +230,65 @@ export function Field({
   onChange,
   type = "text",
   placeholder,
+  useNumberModal = false,
+  min,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   type?: string;
   placeholder?: string;
+  useNumberModal?: boolean;
+  min?: number;
 }) {
+  const [modalOpen, setModalOpen] = useState(false);
+
   return (
     <div>
       <div className="mb-1 text-[9px] font-bold text-verdant-muted">{label}</div>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full rounded-lg border px-3 py-2 text-[11px] font-bold outline-none focus:ring-2 focus:ring-verdant-accent/30"
-        style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
-      />
+      {useNumberModal ? (
+        <div className="relative">
+          <input
+            type="number"
+            min={min}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            className="w-full rounded-lg border px-3 py-2 pl-10 text-[11px] font-bold outline-none focus:ring-2 focus:ring-verdant-accent/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
+          />
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="absolute left-1 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md border border-transparent text-verdant-muted transition-colors hover:bg-gray-100 hover:text-verdant-ink"
+            title={`עריכת ${label}`}
+          >
+            <span className="material-symbols-outlined text-[16px]">edit</span>
+          </button>
+          {modalOpen && (
+            <NumberEditModal
+              title={label}
+              initialValue={value}
+              min={min}
+              onSave={(val) => {
+                onChange(String(val));
+                setModalOpen(false);
+              }}
+              onClose={() => setModalOpen(false)}
+            />
+          )}
+        </div>
+      ) : (
+        <input
+          type={type}
+          min={type === "number" ? min : undefined}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={`w-full rounded-lg border px-3 py-2 text-[11px] font-bold outline-none focus:ring-2 focus:ring-verdant-accent/30 ${type === 'number' ? '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none' : ''}`}
+          style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
+        />
+      )}
     </div>
   );
 }

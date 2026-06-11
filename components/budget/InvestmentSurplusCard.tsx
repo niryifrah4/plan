@@ -119,10 +119,14 @@ export function InvestmentSurplusCard({ currentIncome, currentExpenses }: Props)
         </div>
         <Link
           href="/goals"
-          className="text-[11px] font-bold underline-offset-2 hover:underline"
-          style={{ color: positive ? "#2C7A5A" : "#92400E" }}
+          className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all hover:opacity-90 shadow-sm"
+          style={{
+            background: positive ? "#2C7A5A" : "#92400E",
+            color: "#FFFFFF",
+          }}
         >
-          לכוון ליעדים →
+          לכוון ליעדים
+          <span className="material-symbols-outlined text-[14px] mr-0.5">arrow_back</span>
         </Link>
       </div>
 

@@ -156,6 +156,7 @@ export function SolidKpi({ label, value, icon, sub, tone = "forest", bg, title }
   );
 }
 
-export function SolidKpiRow({ children }: { children: ReactNode }) {
-  return <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">{children}</section>;
+export function SolidKpiRow({ children, cols = 4 }: { children: ReactNode; cols?: 3 | 4 }) {
+  const mdCols = cols === 3 ? "md:grid-cols-3" : "md:grid-cols-4";
+  return <section className={`mb-6 grid grid-cols-2 gap-3 ${mdCols}`}>{children}</section>;
 }

@@ -6,11 +6,12 @@ interface Props {
   initialValue: number | string;
   title?: string;
   steps?: number[];
+  min?: number;
   onSave: (val: number) => void;
   onClose: () => void;
 }
 
-export function NumberEditModal({ initialValue, title = "עריכת סכום", steps = [100, 500, 1000], onSave, onClose }: Props) {
+export function NumberEditModal({ initialValue, title = "עריכת סכום", steps = [100, 500, 1000], min, onSave, onClose }: Props) {
   const [text, setText] = useState<string>(
     initialValue === undefined || initialValue === null ? "" : String(initialValue)
   );
@@ -24,18 +25,15 @@ export function NumberEditModal({ initialValue, title = "עריכת סכום", s
     }
   }, []);
 
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
 
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
 
   const handleAdd = (amount: number) => {
-    const current = Number(text.replace(/,/g, "")) || 0;
-    setText(String(current + amount));
+    let current = Number(text.replace(/,/g, "")) || 0;
+    current += amount;
+    if (min !== undefined && current < min) {
+      current = min;
+    }
+    setText(String(current));
     if (inputRef.current) {
       inputRef.current.focus();
     }
@@ -43,8 +41,10 @@ export function NumberEditModal({ initialValue, title = "עריכת סכום", s
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const parsed = Number(text.replace(/,/g, ""));
-    onSave(Number.isFinite(parsed) ? parsed : 0);
+    let parsed = Number(text.replace(/,/g, ""));
+    if (!Number.isFinite(parsed)) parsed = 0;
+    if (min !== undefined && parsed < min) parsed = min;
+    onSave(parsed);
   };
 
   const shiftLabel = (amount: number) => {
@@ -63,6 +63,12 @@ export function NumberEditModal({ initialValue, title = "עריכת סכום", s
       className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1A1A1A]/40 backdrop-blur-sm transition-opacity"
       dir="rtl"
       onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          e.stopPropagation();
+          onClose();
+        }
+      }}
     >
       <style>{`
         .no-spinners::-webkit-outer-spin-button,

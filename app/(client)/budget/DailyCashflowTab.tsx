@@ -53,6 +53,7 @@ export function DailyCashflowTab() {
   const { confirm, modal } = useConfirm();
   const [data, setData] = useState<DailyCashflow | null>(null);
   const [monthsAhead, setMonthsAhead] = useState<1 | 3 | 6 | 12>(1);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     setData(loadDailyCashflow());
@@ -191,8 +192,8 @@ export function DailyCashflowTab() {
             </div>
             <h3 className="text-base font-extrabold text-verdant-ink">
               {monthsAhead === 1
-                ? "מה צפוי לקרות בעו״ש לפי יום בחודש"
-                : "מה צפוי לקרות בעו״ש לאורך זמן"}
+                ? "התזרים הצפוי בעו״ש לפי יום"
+                : "התזרים הצפוי בעו״ש לאורך זמן"}
             </h3>
           </div>
           {/* Multi-month selector — single month is the precision view, longer
@@ -289,68 +290,82 @@ export function DailyCashflowTab() {
         )}
 
         {/* Settings strip */}
-        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-[#FAFAF7] px-4 py-3">
-          <label className="flex items-center gap-2 text-[12px] font-bold text-verdant-ink">
-            יתרה נוכחית
-            <input
-              type="number"
-              value={data.openingBalance}
-              onChange={(e) => update({ openingBalance: parseFloat(e.target.value) || 0 })}
-              className="w-28 rounded-md border bg-[#FFFFFF] px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
-              style={{ borderColor: "#E5E7EB" }}
-              dir="ltr"
-            />
-            <span className="text-verdant-muted">₪</span>
-          </label>
-          <span className="text-verdant-muted">·</span>
-          <label className="flex items-center gap-2 text-[12px] font-bold text-verdant-ink">
-            סף אזהרה
-            <input
-              type="number"
-              value={data.threshold}
-              onChange={(e) => update({ threshold: parseFloat(e.target.value) || 0 })}
-              className="w-28 rounded-md border bg-[#FFFFFF] px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
-              style={{ borderColor: "#E5E7EB" }}
-              dir="ltr"
-            />
-            <span className="text-verdant-muted">₪</span>
-          </label>
-          <span className="text-verdant-muted">·</span>
-          <label
-            className="flex items-center gap-2 text-[12px] font-bold text-verdant-ink"
-            title="המסגרת שהבנק אישר לך לעו״ש. בלי זה — הכל מתחת ל-0 נראה אותו דבר; עם זה — אפשר להבדיל בין מינוס בתוך המסגרת לבין חריגה ממנה."
-          >
-            מסגרת מאושרת
-            <input
-              type="number"
-              value={data.creditLine || 0}
-              onChange={(e) => update({ creditLine: parseFloat(e.target.value) || 0 })}
-              className="w-28 rounded-md border bg-[#FFFFFF] px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
-              style={{ borderColor: "#E5E7EB" }}
-              dir="ltr"
-            />
-            <span className="text-verdant-muted">₪</span>
-          </label>
-          <span className="text-verdant-muted">·</span>
-          <label
-            className="flex items-center gap-2 text-[12px] font-bold text-verdant-ink"
-            title="היום שבו המשכורת נכנסת לבנק. כשמוגדר — המערכת מזרימה את ההכנסה הנטו לאותו יום בגרף."
-          >
-            יום שכר
-            <input
-              type="number"
-              min={1}
-              max={31}
-              value={data.salaryDayOfMonth || 0}
-              onChange={(e) =>
-                update({ salaryDayOfMonth: parseInt(e.target.value, 10) || 0 })
-              }
-              className="w-16 rounded-md border bg-[#FFFFFF] px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
-              style={{ borderColor: "#E5E7EB" }}
-              placeholder="—"
-              dir="ltr"
-            />
-          </label>
+        <div className="mt-4 flex flex-col gap-3 rounded-xl bg-[#FAFAF7] px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <label className="flex items-center gap-2 text-[12px] font-bold text-verdant-ink">
+              יתרה נוכחית
+              <input
+                type="number"
+                value={data.openingBalance}
+                onChange={(e) => update({ openingBalance: parseFloat(e.target.value) || 0 })}
+                className="w-28 rounded-md border bg-[#FFFFFF] px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
+                style={{ borderColor: "#E5E7EB" }}
+                dir="ltr"
+              />
+              <span className="text-verdant-muted">₪</span>
+            </label>
+            <button
+              onClick={() => setShowSettings((s) => !s)}
+              className="inline-flex items-center gap-1.5 text-[12px] font-bold transition-colors hover:text-verdant-emerald"
+              style={{ color: showSettings ? "#2C7A5A" : "#6B7280" }}
+            >
+              <span className="material-symbols-outlined text-[16px]">settings</span>
+              הגדרות תזרים
+            </button>
+          </div>
+
+          {showSettings && (
+            <div className="flex flex-wrap items-center gap-3 border-t border-[#E5E7EB] pt-3">
+              <label className="flex items-center gap-2 text-[12px] font-bold text-verdant-ink">
+                סף אזהרה
+                <input
+                  type="number"
+                  value={data.threshold}
+                  onChange={(e) => update({ threshold: parseFloat(e.target.value) || 0 })}
+                  className="w-28 rounded-md border bg-[#FFFFFF] px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
+                  style={{ borderColor: "#E5E7EB" }}
+                  dir="ltr"
+                />
+                <span className="text-verdant-muted">₪</span>
+              </label>
+              <span className="hidden text-verdant-muted sm:inline">·</span>
+              <label
+                className="flex items-center gap-2 text-[12px] font-bold text-verdant-ink"
+                title="המסגרת שהבנק אישר לך לעו״ש. בלי זה — הכל מתחת ל-0 נראה אותו דבר; עם זה — אפשר להבדיל בין מינוס בתוך המסגרת לבין חריגה ממנה."
+              >
+                מסגרת מאושרת
+                <input
+                  type="number"
+                  value={data.creditLine || 0}
+                  onChange={(e) => update({ creditLine: parseFloat(e.target.value) || 0 })}
+                  className="w-28 rounded-md border bg-[#FFFFFF] px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
+                  style={{ borderColor: "#E5E7EB" }}
+                  dir="ltr"
+                />
+                <span className="text-verdant-muted">₪</span>
+              </label>
+              <span className="hidden text-verdant-muted sm:inline">·</span>
+              <label
+                className="flex items-center gap-2 text-[12px] font-bold text-verdant-ink"
+                title="היום שבו המשכורת נכנסת לבנק. כשמוגדר — המערכת מזרימה את ההכנסה הנטו לאותו יום בגרף."
+              >
+                יום שכר
+                <input
+                  type="number"
+                  min={1}
+                  max={31}
+                  value={data.salaryDayOfMonth || 0}
+                  onChange={(e) =>
+                    update({ salaryDayOfMonth: parseInt(e.target.value, 10) || 0 })
+                  }
+                  className="w-16 rounded-md border bg-[#FFFFFF] px-2 py-1 text-center text-[13px] font-extrabold tabular-nums"
+                  style={{ borderColor: "#E5E7EB" }}
+                  placeholder="—"
+                  dir="ltr"
+                />
+              </label>
+            </div>
+          )}
         </div>
 
         {/* Educational note — 3 minus levels. Always visible per finance-agent's
@@ -624,11 +639,11 @@ function TrajectoryChart({
   creditLine: number;
 }) {
   const { points } = trajectory;
-  if (points.length === 0) return null;
+  if (points.length === 0) return <div className="text-center py-10 text-[13px] font-medium text-[#6B7280] bg-[#FAFAF7] rounded-xl border border-dashed border-[#E5E7EB]">אין נתונים לתצוגה בתקופה זו</div>;
 
   const W = 720;
   const H = 220;
-  const PAD = { top: 16, right: 20, bottom: 28, left: 56 };
+  const PAD = { top: 16, right: 56, bottom: 28, left: 20 };
   const innerW = W - PAD.left - PAD.right;
   const innerH = H - PAD.top - PAD.bottom;
 
@@ -640,8 +655,9 @@ function TrajectoryChart({
   const yMin = Math.min(...allYs);
   const ySpan = Math.max(1, yMax - yMin);
 
+  // RTL coordinates: day 0 is on the right, day N is on the left
   const xOf = (i: number) =>
-    PAD.left + (innerW * i) / Math.max(1, points.length - 1);
+    PAD.left + innerW - (innerW * i) / Math.max(1, points.length - 1);
   const yOf = (v: number) => PAD.top + innerH * (1 - (v - yMin) / ySpan);
 
   const path = points.map((p, i) => `${i === 0 ? "M" : "L"} ${xOf(i)} ${yOf(p.balance)}`).join(" ");
@@ -656,7 +672,7 @@ function TrajectoryChart({
   //   ⚠️ in frame minus — amber, between frameFloor and 0
   //   ⚠️ tight         — soft yellow, between 0 and threshold
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" dir="rtl">
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" preserveAspectRatio="xMidYMid meet">
         {/* Over-frame zone (below frameFloor) */}
         {creditLine > 0 && frameFloor > yMin && (
@@ -715,12 +731,13 @@ function TrajectoryChart({
               strokeDasharray={t === threshold ? "4 3" : undefined}
             />
             <text
-              x={PAD.left - 6}
+              x={PAD.left + innerW + 8}
               y={yOf(t) + 3}
               fontSize="10"
-              textAnchor="end"
+              textAnchor="start"
               fill="#6B7280"
               fontWeight="600"
+              dir="ltr"
             >
               {Math.round(t / 1000)}K
             </text>

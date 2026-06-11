@@ -1559,150 +1559,124 @@ export default function BudgetPage() {
     totals.incBudget > 0 ? Math.max(0, Math.min(100, (balance / totals.incBudget) * 100)) : 0;
 
   return (
-    <div className="mx-auto max-w-4xl py-4 md:py-8" dir="rtl">
+    <div className="mx-auto max-w-4xl pb-4 pt-0 md:pb-8" dir="rtl">
       {/* ═══════════════════════════════════════════════════════════
           HERO — one clear number per screen, Finav-inspired
           ═══════════════════════════════════════════════════════════ */}
       <section
-        // Hero stays the calm forest tone in every state. Earlier the whole
-        // card flipped to a saturated coral on overspend — readable, but
-        // alarming for a couple already anxious about money. The "חריגה"
-        // signal now lives in the headline label and number color, not in
-        // a wall of red. (2026-05-09 per ui-agent audit.)
-        className="relative mb-6 overflow-hidden rounded-2xl"
+        className="relative mb-6 overflow-hidden rounded-[20px] mx-auto max-w-[360px] md:max-w-[520px]"
         style={{
-          background: "linear-gradient(135deg, #2C7A5A 0%, #1F5A42 100%)",
+          background: "#2D6A4F",
           color: "#FFFFFF",
-          padding: "20px 24px",
+          padding: "20px",
           boxShadow: "0 8px 24px rgba(44, 122, 90, 0.18)",
         }}
       >
-        {/* Top row — month nav + save indicator */}
-        <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <button
-              onClick={goPrevMonth}
-              className="flex h-8 w-8 items-center justify-center rounded-full transition-all hover:bg-white/10"
-              style={{ color: "rgba(255,255,255,0.85)" }}
-              title="חודש קודם"
+        {/* Top row — month nav */}
+        <div className="flex items-center justify-between mb-5">
+          <button
+            onClick={goPrevMonth}
+            className="flex items-center justify-center w-8 h-8 border-none rounded-lg text-white text-[16px] cursor-pointer"
+            style={{ background: "rgba(255,255,255,0.15)" }}
+            title="חודש קודם"
+          >
+            <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+          </button>
+          
+          <div className="flex items-center gap-2">
+            <select
+              value={month}
+              onChange={(e) => setMonth(Number(e.target.value))}
+              className="px-3.5 py-1.5 text-[14px] font-medium rounded-[10px] cursor-pointer focus:outline-none appearance-none text-center"
+              style={{ background: "rgba(255,255,255,0.18)", color: "white" }}
             >
-              <span className="material-symbols-outlined text-[18px]">chevron_right</span>
-            </button>
-            <div
-              className="flex items-center gap-2 rounded-full px-3 py-1.5"
-              style={{ background: "rgba(255,255,255,0.06)" }}
+              {HE_MONTHS.map((m, i) => (
+                <option key={i} value={i} style={{ color: "#1A1A1A" }}>
+                  {m}
+                </option>
+              ))}
+            </select>
+            <select
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+              className="px-3.5 py-1.5 text-[14px] font-medium rounded-[10px] cursor-pointer focus:outline-none appearance-none text-center"
+              style={{ background: "rgba(255,255,255,0.18)", color: "white" }}
             >
-              <select
-                value={month}
-                onChange={(e) => setMonth(Number(e.target.value))}
-                className="cursor-pointer border-none bg-transparent text-[14px] font-bold focus:outline-none"
-                style={{ color: "#1A1A1A" }}
-              >
-                {HE_MONTHS.map((m, i) => (
-                  <option key={i} value={i} style={{ color: "#1A1A1A" }}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={year}
-                onChange={(e) => setYear(Number(e.target.value))}
-                className="cursor-pointer border-none bg-transparent text-[14px] font-bold focus:outline-none"
-                style={{ color: "#1A1A1A" }}
-              >
-                {yearOptions.map((y) => (
-                  <option key={y} value={y} style={{ color: "#1A1A1A" }}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button
-              onClick={goNextMonth}
-              className="flex h-8 w-8 items-center justify-center rounded-full transition-all hover:bg-white/10"
-              style={{ color: "rgba(255,255,255,0.85)" }}
-              title="חודש הבא"
-            >
-              <span className="material-symbols-outlined text-[18px]">chevron_left</span>
-            </button>
+              {yearOptions.map((y) => (
+                <option key={y} value={y} style={{ color: "#1A1A1A" }}>
+                  {y}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {saveStatus !== "idle" && (
-            <span
-              className="inline-flex items-center gap-1 text-[11px] font-bold"
-              style={{ color: "rgba(255,255,255,0.75)" }}
-            >
-              <span
-                className={`material-symbols-outlined text-[14px] ${saveStatus === "saving" ? "animate-pulse" : ""}`}
-              >
-                {saveStatus === "saving" ? "cloud_sync" : "cloud_done"}
-              </span>
-              {saveStatus === "saving" ? "שומר..." : "נשמר"}
-            </span>
-          )}
+          <button
+            onClick={goNextMonth}
+            className="flex items-center justify-center w-8 h-8 border-none rounded-lg text-white text-[16px] cursor-pointer"
+            style={{ background: "rgba(255,255,255,0.15)" }}
+            title="חודש הבא"
+          >
+            <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+          </button>
         </div>
 
-        {/* Hero — compact (2026-04-28: was eating half-screen). One row:
-            big number on right, in/out + daily allowance on left. */}
-        <div className="flex flex-wrap items-center justify-between gap-6">
-          <div>
-            <div
-              className="mb-1 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em]"
-              style={{
-                color: balance >= 0 ? "rgba(255,255,255,0.7)" : "#FCA5A5",
-              }}
-            >
-              {balance < 0 && (
-                <span className="material-symbols-outlined text-[14px]">warning</span>
-              )}
-              {balance >= 0 ? "נשאר בחודש" : "חריגה בחודש"}
-            </div>
-            <div
-              className="text-[34px] font-extrabold tabular-nums leading-none tracking-tight"
-              style={{
-                color: balance >= 0 ? "#FFFFFF" : "#FCA5A5",
-                fontFamily: "inherit",
-              }}
-            >
-              {fmtILS(Math.abs(balance))}
-            </div>
-            <div className="mt-1.5 text-[12px]" style={{ color: "rgba(255,255,255,0.8)" }}>
-              הכנסות <span className="font-bold tabular-nums">{fmtILS(totals.incBudget)}</span>
-              {" · "}
-              הוצאות <span className="font-bold tabular-nums">{fmtILS(totals.expBudget)}</span>
-              {" · "}
-              חיסכון <span className="font-bold tabular-nums">{savingsRate.toFixed(0)}%</span>
-            </div>
+        {/* Main numbers */}
+        <div className="text-center mb-1">
+          <div
+            className="text-[13px] mb-1"
+            style={{
+              color: balance >= 0 ? "rgba(255,255,255,0.7)" : "#FCA5A5",
+            }}
+          >
+            {balance < 0 && (
+              <span className="material-symbols-outlined text-[14px] inline-block align-middle ml-1">warning</span>
+            )}
+            {balance >= 0 ? "נשאר בחודש" : "חריגה בחודש"}
           </div>
+          <div
+            className="text-[38px] font-semibold tabular-nums tracking-[-1px] mb-3 leading-tight"
+            style={{ color: balance >= 0 ? "#FFFFFF" : "#FCA5A5" }}
+          >
+            {fmtILS(Math.abs(balance))}
+          </div>
+        </div>
 
-          {dailyAllowance && (
-            // 2026-05-05 visual-cleanup: dropped the divider line. The two
-            // numbers stand on their own — the spacing alone separates them.
-            <div className="text-left" style={{ minWidth: 140 }}>
-              <div
-                className="text-[11px] font-semibold"
-                style={{ color: "rgba(255,255,255,0.65)" }}
-              >
+        <div className="flex flex-wrap justify-center gap-1.5 text-[13px] mb-5" style={{ color: "rgba(255,255,255,0.75)" }}>
+          <span className="whitespace-nowrap">הכנסות {fmtILS(totals.incBudget)}</span>
+          <span style={{ color: "rgba(255,255,255,0.4)" }}>·</span>
+          <span className="whitespace-nowrap">הוצאות {fmtILS(totals.expBudget)}</span>
+          <span style={{ color: "rgba(255,255,255,0.4)" }}>·</span>
+          <span className="whitespace-nowrap">חיסכון {savingsRate.toFixed(0)}%</span>
+        </div>
+
+        <hr className="border-none m-0 mb-4" style={{ borderTop: "1px solid rgba(255,255,255,0.15)" }} />
+
+        {/* Bottom row: Daily allowance & days left */}
+        {dailyAllowance && (
+          <div className="flex justify-between items-end">
+            <div className="text-[12px] text-right" style={{ color: "rgba(255,255,255,0.6)" }}>
+              {dailyAllowance.daysRemaining} ימים נותרו
+              {dailyAllowance.overPace && (
+                <div>
+                  <span className="inline-block mt-1 px-2 py-0.5 text-[11px] rounded-md" style={{ background: "rgba(255,100,80,0.22)", color: "#FFB3A7" }}>
+                    חורג
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="text-left">
+              <div className="text-[12px] mb-0.5" style={{ color: "rgba(255,255,255,0.65)" }}>
                 מותר/יום
               </div>
               <div
-                className="mt-0.5 text-[22px] font-extrabold tabular-nums leading-none"
-                style={{
-                  color: dailyAllowance.overPace ? "#FCA5A5" : "#FFFFFF",
-                  fontFamily: "inherit",
-                }}
+                className="text-[22px] font-semibold tabular-nums leading-none"
+                style={{ color: dailyAllowance.overPace ? "#FFB3A7" : "#FFFFFF" }}
               >
                 {fmtILS(Math.round(dailyAllowance.perDay))}
               </div>
-              <div className="mt-1 text-[11px]" style={{ color: "rgba(255,255,255,0.7)" }}>
-                {dailyAllowance.daysRemaining} ימים נותרו
-                {dailyAllowance.overPace && (
-                  <span style={{ color: "#FCA5A5" }}> · חורג</span>
-                )}
-              </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </section>
 
       {/* ═══════════════════════════════════════════════════════════
@@ -1711,16 +1685,16 @@ export default function BudgetPage() {
           Editing rows is the rarer action; gated behind one click so
           the page doesn't hand a couple a wall of inputs by default.
           ═══════════════════════════════════════════════════════════ */}
-      <div className="mb-6 flex justify-center">
+      <div className="mb-3 flex justify-center">
         <div
-          className="inline-flex rounded-full p-1"
+          className="flex flex-wrap sm:inline-flex justify-center rounded-2xl sm:rounded-full p-1"
           style={{ background: "#FAFAF7", border: "1px solid #E5E7EB" }}
         >
           {(
             [
-              { key: "snapshot", label: "תמונת מצב", icon: "donut_large" },
-              { key: "discover", label: "ניתוח עבר", icon: "search" },
-              { key: "daily", label: "תזרים יומי", icon: "calendar_month" },
+              { key: "snapshot", label: "איפה אני?", icon: "donut_large" },
+              { key: "discover", label: "מה קרה?", icon: "search" },
+              { key: "daily", label: "מה יקרה?", icon: "calendar_month" },
               { key: "edit", label: "עריכה", icon: "tune" },
               { key: "deposits", label: "הפקדות", icon: "savings" },
             ] as const
@@ -1730,7 +1704,7 @@ export default function BudgetPage() {
               <button
                 key={tab.key}
                 onClick={() => setViewTab(tab.key)}
-                className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-bold transition-colors"
+                className="inline-flex flex-grow sm:flex-grow-0 justify-center items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-bold transition-colors"
                 style={{
                   background: active ? "#2C7A5A" : "transparent",
                   color: active ? "#FFFFFF" : "#6B7280",
@@ -1815,65 +1789,65 @@ export default function BudgetPage() {
               </button>
             </div>
 
-            {/* Scope filter — only shown when business scope enabled */}
-            {businessEnabled && (
-              <div className="flex items-center gap-1">
-                {(
-                  [
-                    { key: "all", label: "הכל" },
-                    { key: "personal", label: "פרטי" },
-                    { key: "business", label: "עסקי" },
-                  ] as const
-                ).map((tab) => {
-                  const active = scopeFilter === tab.key;
-                  return (
-                    <button
-                      key={tab.key}
-                      onClick={() => setScopeFilter(tab.key)}
-                      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-all"
-                      style={{
-                        background: active ? "#FFFFFF" : "transparent",
-                        color: active ? "#FFFFFF" : "#6B7280",
-                        border: active ? "1px solid #FFFFFF" : "1px solid #E5E7EB",
-                      }}
-                    >
-                      {tab.key === "business" && (
-                        <span
-                          className="inline-block h-1.5 w-1.5 rounded-full"
-                          style={{ background: active ? "#FFFFFF" : SCOPE_COLORS.business }}
-                        />
-                      )}
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Scope filter — only shown when business scope enabled */}
+              {businessEnabled && (
+                <div className="flex items-center gap-1">
+                  {(
+                    [
+                      { key: "all", label: "הכל" },
+                      { key: "personal", label: "פרטי" },
+                      { key: "business", label: "עסקי" },
+                    ] as const
+                  ).map((tab) => {
+                    const active = scopeFilter === tab.key;
+                    return (
+                      <button
+                        key={tab.key}
+                        onClick={() => setScopeFilter(tab.key)}
+                        className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-all"
+                        style={{
+                          background: active ? "#FFFFFF" : "transparent",
+                          color: active ? "#1A1A1A" : "#6B7280",
+                          border: active ? "1px solid #E5E7EB" : "1px solid transparent",
+                        }}
+                      >
+                        {tab.key === "business" && (
+                          <span
+                            className="inline-block h-1.5 w-1.5 rounded-full"
+                            style={{ background: active ? "#FFFFFF" : SCOPE_COLORS.business }}
+                          />
+                        )}
+                        {tab.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Business / personal scope toggle. Restored 2026-05-04 per Nir
+                  — the colored split is a key feature for self-employed couples. */}
+              <button
+                onClick={() => setBusinessScopeOverride(!businessEnabled)}
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-all hover:bg-verdant-bg"
+                style={{
+                  color: businessEnabled ? "#FFFFFF" : "#6B7280",
+                  border: `1px solid ${businessEnabled ? SCOPE_COLORS.business : "#E5E7EB"}`,
+                  background: businessEnabled ? "#FAFAF7" : "transparent",
+                }}
+                title={
+                  businessEnabled
+                    ? "הפרדת עסקי / פרטי פעילה. לחיצה תכבה את ההפרדה."
+                    : "הפעל הפרדה בין הוצאות פרטיות לעסקיות (מומלץ אם אחד מבני הזוג עצמאי)."
+                }
+              >
+                <span className="material-symbols-outlined text-[13px]">work</span>
+                {businessEnabled ? "כבה הפרדת עסקי / פרטי" : "הפעל הפרדת עסקי / פרטי"}
+              </button>
+            </div>
           </div>
 
           {showInsights && <MonthlyInsights month={month} year={year} onApply={applyInsights} />}
-
-          {/* Business / personal scope toggle. Restored 2026-05-04 per Nir
-              — the colored split is a key feature for self-employed couples. */}
-          <div className="mb-4 flex justify-end">
-            <button
-              onClick={() => setBusinessScopeOverride(!businessEnabled)}
-              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-all hover:bg-verdant-bg"
-              style={{
-                color: businessEnabled ? "#FFFFFF" : "#6B7280",
-                border: `1px solid ${businessEnabled ? SCOPE_COLORS.business : "#E5E7EB"}`,
-                background: businessEnabled ? "#FAFAF7" : "transparent",
-              }}
-              title={
-                businessEnabled
-                  ? "הפרדת עסקי / פרטי פעילה. לחיצה תכבה את ההפרדה."
-                  : "הפעל הפרדה בין הוצאות פרטיות לעסקיות (מומלץ אם אחד מבני הזוג עצמאי)."
-              }
-            >
-              <span className="material-symbols-outlined text-[13px]">work</span>
-              {businessEnabled ? "כבה הפרדת עסקי / פרטי" : "הפעל הפרדת עסקי / פרטי"}
-            </button>
-          </div>
 
           {SECTION_ORDER.filter(
             (sk) => !(sk === "business" && (!businessEnabled || scopeFilter === "personal"))
@@ -2225,7 +2199,7 @@ function BudgetSection({
         <div className="shrink-0 text-left">
           <div
             className="text-[18px] font-extrabold tabular-nums leading-none"
-            style={{ color: isIncome ? "#059669" : over ? "#DC2626" : "#FFFFFF" }}
+            style={{ color: isIncome ? "#059669" : over ? "#DC2626" : "#1A1A1A" }}
           >
             {fmtILS(secBudget)}
           </div>
@@ -2246,18 +2220,16 @@ function BudgetSection({
           {/* Column headers — 5 columns. Label uses natural width so it sits
           tight next to the numbers; notes takes remaining space. */}
           <div
-            className="mb-1 grid items-center pb-1 text-[11px] font-extrabold uppercase tracking-[0.08em]"
+            className="mb-1 grid items-center pb-1 text-[11px] font-extrabold uppercase tracking-[0.08em] grid-cols-[105px_65px_65px_65px_minmax(60px,1fr)] sm:grid-cols-[130px_70px_70px_70px_minmax(80px,1fr)] gap-x-1 sm:gap-x-[10px]"
             style={{
-              gridTemplateColumns: "minmax(120px,auto) 70px 70px 70px minmax(80px,1fr)",
               color: "#6B7280",
               borderBottom: "1px solid #E5E7EB",
-              columnGap: "10px",
             }}
           >
             <div>קטגוריה</div>
-            <div className="text-left tabular-nums">תקציב</div>
-            <div className="text-left tabular-nums">בפועל</div>
-            <div className="text-left tabular-nums">הפרש</div>
+            <div className="text-center tabular-nums">תקציב</div>
+            <div className="text-center tabular-nums">בפועל</div>
+            <div className="text-center tabular-nums">הפרש</div>
             <div className="text-right">הערות</div>
           </div>
 
@@ -2273,15 +2245,16 @@ function BudgetSection({
             const gapStr = fmtILS(gap, { signed: true });
             const subOverspend = hasSubOverspend(row);
 
+            const nameLen = row.name ? row.name.length : 0;
+            const rowNameSize = nameLen > 18 ? "text-[10px]" : nameLen > 14 ? "text-[11.5px]" : "text-[13px]";
+
             return (
               <div key={row.id}>
                 {/* Parent row — same 5-col grid as the header above */}
                 <div
-                  className="group relative grid items-center py-1.5"
+                  className="group relative grid items-center py-1.5 grid-cols-[105px_65px_65px_65px_minmax(60px,1fr)] sm:grid-cols-[130px_70px_70px_70px_minmax(80px,1fr)] gap-x-1 sm:gap-x-[10px]"
                   style={{
-                    gridTemplateColumns: "minmax(120px,auto) 70px 70px 70px minmax(80px,1fr)",
                     borderBottom: isExpanded ? "none" : "1px solid #E5E7EB",
-                    columnGap: "10px",
                     opacity: isLocked ? 0.85 : 1,
                   }}
                 >
@@ -2290,7 +2263,7 @@ function BudgetSection({
                     {isLocked ? (
                       row.source === "passive" ? (
                         <div
-                          className="flex items-center gap-1.5 text-[13px] font-semibold"
+                          className={`flex items-center gap-1.5 font-semibold ${rowNameSize}`}
                           style={{ color: "#2C7A5A" }}
                           title="מסונכרן מנדל״ן"
                         >
@@ -2310,7 +2283,7 @@ function BudgetSection({
                         </div>
                       ) : (
                         <div
-                          className="flex items-center gap-1.5 text-[13px] font-semibold"
+                          className={`flex items-center gap-1.5 font-semibold ${rowNameSize}`}
                           style={{ color: "#6B7280" }}
                           title="הוצאה קשיחה — נמשכת מדף חובות"
                         >
@@ -2326,8 +2299,8 @@ function BudgetSection({
                     ) : hasSubs ? (
                       <button
                         onClick={() => toggleExpand(row.id)}
-                        className="flex cursor-pointer items-center gap-1 border-none bg-transparent text-[13px] font-semibold transition-opacity hover:opacity-80"
-                        style={{ color: subOverspend ? "#DC2626" : "#FFFFFF" }}
+                        className={`flex cursor-pointer items-center gap-1 border-none bg-transparent font-semibold transition-opacity hover:opacity-80 ${rowNameSize}`}
+                        style={{ color: subOverspend ? "#DC2626" : "#1A1A1A" }}
                       >
                         <span
                           className="material-symbols-outlined text-[14px] transition-transform"
@@ -2354,7 +2327,7 @@ function BudgetSection({
                         value={row.name}
                         onChange={(e) => onUpdate(sectionKey, row.id, "name", e.target.value)}
                         placeholder="שם קטגוריה"
-                        className="w-full border-none bg-transparent text-[13px] font-semibold focus:outline-none"
+                        className={`w-full border-none bg-transparent font-semibold focus:outline-none ${rowNameSize}`}
                         style={{ color: "#1A1A1A", borderBottom: "1px dotted transparent" }}
                         onFocus={(e) => {
                           e.currentTarget.style.borderBottomColor = "#059669";
@@ -2368,13 +2341,13 @@ function BudgetSection({
                   {/* Budget */}
                   {isLocked || hasSubs ? (
                     <div
-                      className="text-left text-[13px] font-bold tabular-nums"
+                      className="text-center text-[13px] font-bold tabular-nums"
                       style={{
                         color: isLocked
                           ? row.source === "passive"
                             ? "#2C7A5A"
                             : "#9a6458"
-                          : "#FFFFFF",
+                          : "#1A1A1A",
                       }}
                     >
                       {fmtILS(b)}
@@ -2383,17 +2356,17 @@ function BudgetSection({
                     <button
                       type="button"
                       onClick={() => setEditNum({ rowId: row.id, field: "budget", value: row.budget || 0, name: row.name })}
-                      className="w-full border-none bg-transparent text-left text-[13px] font-bold tabular-nums focus:outline-none hover:opacity-80"
+                      className="w-full border-none bg-transparent text-center text-[13px] font-bold tabular-nums focus:outline-none hover:opacity-80"
                       style={{ color: "#1A1A1A", borderBottom: "1px dotted transparent" }}
                     >
-                      {row.budget || "0"}
+                      {fmtILS(row.budget || 0)}
                     </button>
                   )}
                   {/* Actual */}
                   {isLocked || hasSubs ? (
                     <div
-                      className="text-left text-[13px] font-bold tabular-nums"
-                      style={{ color: isLocked ? "#9a6458" : subOverspend ? "#DC2626" : "#FFFFFF" }}
+                      className="text-center text-[13px] font-bold tabular-nums"
+                      style={{ color: isLocked ? "#9a6458" : subOverspend ? "#DC2626" : "#1A1A1A" }}
                     >
                       {fmtILS(a)}
                     </div>
@@ -2401,15 +2374,15 @@ function BudgetSection({
                     <button
                       type="button"
                       onClick={() => setEditNum({ rowId: row.id, field: "actual", value: row.actual || 0, name: row.name })}
-                      className="w-full border-none bg-transparent text-left text-[13px] font-bold tabular-nums focus:outline-none hover:opacity-80"
+                      className="w-full border-none bg-transparent text-center text-[13px] font-bold tabular-nums focus:outline-none hover:opacity-80"
                       style={{ color: "#1A1A1A", borderBottom: "1px dotted transparent" }}
                     >
-                      {row.actual || "0"}
+                      {fmtILS(row.actual || 0)}
                     </button>
                   )}
                   {/* Gap */}
                   <div
-                    className="text-left text-[12px] font-extrabold tabular-nums"
+                    className="text-center text-[12px] font-extrabold tabular-nums"
                     style={{ color: isLocked ? "#6B7280" : gapPositive ? "#2C7A5A" : "#DC2626" }}
                   >
                     {isLocked ? "₪0" : gapStr}
@@ -2487,15 +2460,15 @@ function BudgetSection({
                       const sgStr = fmtILS(sg, { signed: true });
                       const subOver = !isIncome && sa > sb && sb > 0;
 
+                      const subNameLen = sub.name ? sub.name.length : 0;
+                      const subNameSize = subNameLen > 18 ? "text-[10px]" : subNameLen > 14 ? "text-[11px]" : "text-[12px]";
+
                       return (
                         <div
                           key={sub.id}
-                          className="group/sub relative grid items-center px-3 py-1.5"
+                          className="group/sub relative grid items-center px-3 py-1.5 grid-cols-[95px_65px_65px_65px_minmax(60px,1fr)] sm:grid-cols-[115px_70px_70px_70px_minmax(80px,1fr)] gap-x-1 sm:gap-x-[10px]"
                           style={{
-                            gridTemplateColumns:
-                              "minmax(110px,auto) 70px 70px 70px minmax(80px,1fr)",
                             borderBottom: "1px solid #E5E7EB",
-                            columnGap: "10px",
                           }}
                         >
                           {/* Sub name */}
@@ -2506,7 +2479,7 @@ function BudgetSection({
                               onUpdateSub(sectionKey, row.id, sub.id, "name", e.target.value)
                             }
                             placeholder="פריט"
-                            className="w-full border-none bg-transparent text-[12px] font-semibold focus:outline-none"
+                            className={`w-full border-none bg-transparent font-semibold focus:outline-none ${subNameSize}`}
                             style={{
                               color: subOver ? "#DC2626" : "#6B7280",
                               borderBottom: "1px dotted transparent",
@@ -2522,26 +2495,26 @@ function BudgetSection({
                           <button
                             type="button"
                             onClick={() => setEditNum({ rowId: row.id, subId: sub.id, field: "budget", value: sub.budget || 0, name: sub.name || "פריט" })}
-                            className="w-full border-none bg-transparent text-left text-[12px] font-bold tabular-nums focus:outline-none hover:opacity-80"
+                            className="w-full border-none bg-transparent text-center text-[12px] font-bold tabular-nums focus:outline-none hover:opacity-80"
                             style={{ color: "#1A1A1A", borderBottom: "1px dotted transparent" }}
                           >
-                            {sub.budget || "0"}
+                            {fmtILS(sub.budget || 0)}
                           </button>
                           {/* Sub actual */}
                           <button
                             type="button"
                             onClick={() => setEditNum({ rowId: row.id, subId: sub.id, field: "actual", value: sub.actual || 0, name: sub.name || "פריט" })}
-                            className="w-full border-none bg-transparent text-left text-[12px] font-bold tabular-nums focus:outline-none hover:opacity-80"
+                            className="w-full border-none bg-transparent text-center text-[12px] font-bold tabular-nums focus:outline-none hover:opacity-80"
                             style={{
-                              color: subOver ? "#DC2626" : "#FFFFFF",
+                              color: subOver ? "#DC2626" : "#1A1A1A",
                               borderBottom: "1px dotted transparent",
                             }}
                           >
-                            {sub.actual || "0"}
+                            {fmtILS(sub.actual || 0)}
                           </button>
                           {/* Sub gap */}
                           <div
-                            className="text-left text-[11px] font-extrabold tabular-nums"
+                            className="text-center text-[11px] font-extrabold tabular-nums"
                             style={{ color: sgPositive ? "#2C7A5A" : "#DC2626" }}
                           >
                             {sgStr}
