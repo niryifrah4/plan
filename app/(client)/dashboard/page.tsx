@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, Suspense } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { fmtILS, fmtPct } from "@/lib/format";
 import { savingsRate as calcSavingsRate } from "@/lib/financial-math";
 import type { CashflowSummary } from "@/types/db";
 import { getTotalLiabilities, loadDebtData, getAllMortgageTracks } from "@/lib/debt-store";
+import { AssumptionsEditModal } from "@/components/ui/AssumptionsEditModal";
 import { syncOnboardingToStores } from "@/lib/onboarding-sync";
 import {
   buildBudgetLines,
@@ -26,7 +28,7 @@ import { loadSecurities, totalSecuritiesValue } from "@/lib/securities-store";
 import { loadKidsSavings, KIDS_SAVINGS_EVENT } from "@/lib/kids-savings-store";
 import { loadBuckets, BUCKETS_EVENT, type Bucket } from "@/lib/buckets-store";
 import { projectBucket } from "@shared/buckets-rebalancing";
-import { loadAssumptions, savingsRatio } from "@/lib/assumptions";
+import { loadAssumptions, savingsRatio, patchAssumptions } from "@/lib/assumptions";
 import {
   loadSalaryProfile,
   computeSalaryBreakdown,
@@ -52,10 +54,10 @@ import { useClient } from "@/lib/client-context";
 // a chart — fully below-fold-ish on the dashboard and not part of the
 // "answer in 3 seconds" promise. Lazy-load it so it doesn't block the
 // initial paint.
-const MacroPanel = dynamic(
-  () => import("@/components/MacroPanel").then((m) => m.MacroPanel),
-  { ssr: false, loading: () => null }
-);
+const MacroPanel = dynamic(() => import("@/components/MacroPanel").then((m) => m.MacroPanel), {
+  ssr: false,
+  loading: () => null,
+});
 import { buildNudges, type Nudge } from "@/lib/benchmark-advice";
 import {
   syncGoalsToDepositPlans,
@@ -134,7 +136,56 @@ const CHART_RANGES: { key: ChartRange; label: string }[] = [
 ];
 
 export default function DashboardPage() {
+  return (
+    <Suspense>
+      <DashboardClient />
+    </Suspense>
+  );
+}
+
+function DashboardClient() {
+  const router = useRouter();
+
+  // Settings / Assumptions modal state
+  const [showAssumptionsModal, setShowAssumptionsModal] = useState(false);
+  const [initialRetireIncome, setInitialRetireIncome] = useState(0);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(scopedKey("verdant:onboarding:fields"));
+      if (raw) {
+        const fields = JSON.parse(raw);
+        setInitialRetireIncome(Number(fields.retire_income) || 0);
+      }
+    } catch {}
+  }, []);
+
+  const handleSaveAssumptions = (data: {
+    currentAge: number;
+    retirementAge: number;
+    monthlyInvestment: number;
+    retireIncome: number;
+  }) => {
+    patchAssumptions({
+      currentAge: data.currentAge,
+      retirementAge: data.retirementAge,
+      monthlyInvestment: data.monthlyInvestment,
+    });
+    try {
+      const actualKey = scopedKey("verdant:onboarding:fields");
+      const raw = localStorage.getItem(actualKey);
+      const fields = raw ? JSON.parse(raw) : {};
+      fields.retire_income = String(data.retireIncome);
+      fields.retire_age = String(data.retirementAge);
+      localStorage.setItem(actualKey, JSON.stringify(fields));
+    } catch {}
+    setShowAssumptionsModal(false);
+    window.location.reload();
+  };
+
   const { familyName, clientId, loading } = useClient();
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const chartRef = useRef<SVGSVGElement>(null);
   const [reProperties, setReProperties] = useState<ReturnType<typeof loadProperties>>([]);
 
   // Real cashflow from budget store. Empty array when no real data — never show demo.
@@ -174,7 +225,11 @@ export default function DashboardPage() {
     }
 
     if (securitiesTotal > 0) {
-      result.push({ asset_group: "investments", name: "תיק השקעות עצמאי", balance: securitiesTotal });
+      result.push({
+        asset_group: "investments",
+        name: "תיק השקעות עצמאי",
+        balance: securitiesTotal,
+      });
     }
 
     if (pensionFunds.length > 0) {
@@ -258,10 +313,7 @@ export default function DashboardPage() {
     // reference). Without this guard, every storage event invalidates the
     // trajectory useMemo (which loops 50 years × 12 months) and forces a
     // full re-render even when nothing has actually changed. (2026-05-18.)
-    const stableSet = <T,>(
-      setter: (updater: (prev: T) => T) => void,
-      next: T
-    ) => {
+    const stableSet = <T,>(setter: (updater: (prev: T) => T) => void, next: T) => {
       setter((prev) => {
         try {
           if (JSON.stringify(prev) === JSON.stringify(next)) return prev;
@@ -447,10 +499,7 @@ export default function DashboardPage() {
   const latestIncome = cashflow[0]?.income_total ?? 0;
   const latestExpense = cashflow[0]?.expense_total ?? 0;
   const isEmpty =
-    !hasOnboardingFields &&
-    cashflow.length === 0 &&
-    totalAssets === 0 &&
-    totalLiabilities === 0;
+    !hasOnboardingFields && cashflow.length === 0 && totalAssets === 0 && totalLiabilities === 0;
 
   // Net worth month-over-month tracking
   const [prevNetWorth, setPrevNetWorth] = useState<number | null>(null);
@@ -698,7 +747,7 @@ export default function DashboardPage() {
       // Tax only the growth portion of liquid (gross - start - contributions)
       const liquidBasis = p.liquidStart + p.liquidContribCum;
       const liquidGrowth = Math.max(0, p.liquid - liquidBasis);
-      const liquidNet = liquidBasis + liquidGrowth * (1 - CGT);
+      const liquidNet = p.liquid - liquidGrowth * CGT;
       const liquidReal = liquidNet / deflator;
       const pensionReal = p.pension / deflator; // pension taxed at annuity stage — ignored here for simplicity
       const reReal = p.realestate / deflator;
@@ -799,6 +848,16 @@ export default function DashboardPage() {
     if (v >= 1_000) return `\u2066${Math.round(v / 1_000)}K ₪\u2069`;
     return `\u2066${v} ₪\u2069`;
   };
+  const chartPlotW = CW - 44;
+  const chartXOfIndex = (i: number, length = chartData.length) => {
+    if (length <= 1) return chartPlotW;
+    return chartPlotW - (i / (length - 1)) * chartPlotW;
+  };
+  const chartIndexFromX = (svgX: number) => {
+    if (chartData.length <= 1) return 0;
+    const boundedX = Math.max(0, Math.min(chartPlotW, svgX));
+    return Math.round(((chartPlotW - boundedX) / chartPlotW) * (chartData.length - 1));
+  };
 
   // ═══════ Empty state — first-time visitor with no data ═══════
   // A new couple landing here would otherwise see a wall of zeros and
@@ -829,8 +888,8 @@ export default function DashboardPage() {
             ברוכים הבאים{familyName ? ` משפחת ${familyName}` : ""}
           </h2>
           <p className="mx-auto mb-7 max-w-md text-[13px] leading-relaxed text-verdant-muted">
-            הדאשבורד יראה את התזרים, הנכסים וההתחייבויות שלכם — אחרי שתספרו לנו על
-            עצמכם. השאלון הקצר לוקח כ-10 דקות, ונשמר אוטומטית.
+            הדאשבורד יראה את התזרים, הנכסים וההתחייבויות שלכם — אחרי שתספרו לנו על עצמכם. השאלון
+            הקצר לוקח כ-10 דקות, ונשמר אוטומטית.
           </p>
           <div className="grid gap-3 sm:grid-cols-3">
             <Link
@@ -878,8 +937,8 @@ export default function DashboardPage() {
               tips_and_updates
             </span>
             <div className="text-[11px] leading-relaxed text-verdant-ink">
-              אין סדר מחייב. אפשר להתחיל מאיפה שמרגיש לכם קל יותר. כל מה שתמלאו —
-              נשמר אוטומטית, ותמיד אפשר לחזור ולערוך.
+              אין סדר מחייב. אפשר להתחיל מאיפה שמרגיש לכם קל יותר. כל מה שתמלאו — נשמר אוטומטית,
+              ותמיד אפשר לחזור ולערוך.
             </div>
           </div>
         </div>
@@ -888,7 +947,10 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl py-4 md:py-8" style={{ fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif" }}>
+    <div
+      className="mx-auto max-w-5xl py-4 md:py-8"
+      style={{ fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif" }}
+    >
       {/* ═══════ AI categorization nudge — only visible when there's work ═══════ */}
       <UnmappedNudge />
       {/* ═══════ Live macro strip + Wealth Report CTA ═══════ */}
@@ -1098,10 +1160,7 @@ export default function DashboardPage() {
                       <span className="material-symbols-outlined text-[22px]">{n.icon}</span>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div
-                        className="text-[11px] font-semibold"
-                        style={{ color: c.chipFg }}
-                      >
+                      <div className="text-[11px] font-semibold" style={{ color: c.chipFg }}>
                         {c.eyebrow}
                       </div>
                       <div
@@ -1147,10 +1206,7 @@ export default function DashboardPage() {
       {/* ═══════ Zone 1 + Zone 2 — Two Cards Side by Side ═══════ */}
       <section className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-2">
         {/* Zone 1 — Monthly Cashflow */}
-        <Link
-          href={"/balance" as any}
-          className="card-pad group transition-all duration-300"
-        >
+        <Link href={"/balance" as any} className="card-pad group transition-all duration-300">
           <div className="mb-5 flex items-start gap-3">
             <div className="icon-sm icon-forest">
               <span className="material-symbols-outlined text-[20px]">account_balance</span>
@@ -1312,14 +1368,14 @@ export default function DashboardPage() {
               >
                 {fmtILS(netWorthVal)}
               </div>
-                {nwChange !== null && (
-                  <div
-                    className="tabular mt-1 text-[11px] font-bold"
-                    style={{ color: "rgba(249,250,242,0.55)" }}
-                  >
+              {nwChange !== null && (
+                <div
+                  className="tabular mt-1 text-[11px] font-bold"
+                  style={{ color: "rgba(249,250,242,0.55)" }}
+                >
                   {fmtILS(nwChange, { signed: true })} מהחודש הקודם
-                  </div>
-                )}
+                </div>
+              )}
               <div className="mt-4 space-y-2">
                 <div className="pill-inner flex items-center justify-between">
                   <span
@@ -1355,38 +1411,32 @@ export default function DashboardPage() {
                 {/* Leverage = liabilities / assets. Light tones to read on the
                     forest-green hero — full saturation (#b91c1c/#D97706/#2C7A5A)
                     disappears against the dark green. */}
-                {totalAssets > 0 && (() => {
-                  const lev = Math.round((totalLiabilities / totalAssets) * 100);
-                  const levColor =
-                    lev > 60 ? "#FCA5A5" : lev > 40 ? "#FCD34D" : "#86EFAC";
-                  const levLabel =
-                    lev === 0
-                      ? "ללא חובות"
-                      : lev <= 40
-                        ? "בריא"
-                        : lev <= 60
-                          ? "סביר"
-                          : "גבוה";
-                  return (
-                    <div className="pill-inner flex items-center justify-between">
-                      <span
-                        className="text-[12px] font-bold"
-                        style={{ color: "rgba(249,250,242,0.72)" }}
-                      >
-                        מינוף · {levLabel}
-                      </span>
-                      <span
-                        className="tabular text-[13px] font-extrabold"
-                        style={{
-                          color: levColor,
-                          fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif",
-                        }}
-                      >
-                        {lev}%
-                      </span>
-                    </div>
-                  );
-                })()}
+                {totalAssets > 0 &&
+                  (() => {
+                    const lev = Math.round((totalLiabilities / totalAssets) * 100);
+                    const levColor = lev > 60 ? "#FCA5A5" : lev > 40 ? "#FCD34D" : "#86EFAC";
+                    const levLabel =
+                      lev === 0 ? "ללא חובות" : lev <= 40 ? "בריא" : lev <= 60 ? "סביר" : "גבוה";
+                    return (
+                      <div className="pill-inner flex items-center justify-between">
+                        <span
+                          className="text-[12px] font-bold"
+                          style={{ color: "rgba(249,250,242,0.72)" }}
+                        >
+                          מינוף · {levLabel}
+                        </span>
+                        <span
+                          className="tabular text-[13px] font-extrabold"
+                          style={{
+                            color: levColor,
+                            fontFamily: "Rubik, Heebo, Assistant, system-ui, sans-serif",
+                          }}
+                        >
+                          {lev}%
+                        </span>
+                      </div>
+                    );
+                  })()}
               </div>
             </div>
 
@@ -1412,15 +1462,28 @@ export default function DashboardPage() {
                 <div className="caption mb-1">
                   {viewMode === "capital" ? "הר העושר" : "הכנסה חודשית בפרישה"}
                 </div>
-                <h3 className="t-lg font-extrabold" style={{ color: "var(--morning-forest)" }}>
-                  {viewMode === "capital" ? "תחזית צמיחה הוליסטית" : "הכנסה חודשית בפרישה"}
-                </h3>
+                <div className="flex items-center gap-3">
+                  <h3 className="t-lg font-extrabold" style={{ color: "var(--morning-forest)" }}>
+                    {viewMode === "capital" ? "תחזית צמיחה הוליסטית" : "הכנסה חודשית בפרישה"}
+                  </h3>
+                  <button
+                    onClick={() => setShowAssumptionsModal(true)}
+                    className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors hover:bg-[#E5EAE8]"
+                    style={{ background: "rgba(44,122,90,0.08)", color: "var(--morning-forest)" }}
+                  >
+                    <span className="material-symbols-outlined text-[14px]">edit</span>
+                    עריכת נתונים
+                  </button>
+                </div>
                 {fireResult.fireAge !== null &&
                   fireResult.yearsToFire !== null &&
                   fireResult.yearsToFire >= 0 && (
                     <div
                       className="mt-2 inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-extrabold"
-                      style={{ background: "var(--morning-leaf-tint)", color: "var(--morning-forest-deep)" }}
+                      style={{
+                        background: "var(--morning-leaf-tint)",
+                        color: "var(--morning-forest-deep)",
+                      }}
                     >
                       <span
                         className="material-symbols-outlined text-[14px]"
@@ -1448,7 +1511,7 @@ export default function DashboardPage() {
                     style={{
                       background:
                         lifeCoverage.planScore >= 75
-                          ? "#2C7A5A"
+                          ? "rgba(44,122,90,0.12)"
                           : lifeCoverage.planScore >= 50
                             ? "rgba(217,119,6,0.12)"
                             : "rgba(220,38,38,0.12)",
@@ -1593,7 +1656,10 @@ export default function DashboardPage() {
             {displayMode === "real" && (
               <span
                 className="rounded-full px-2 py-1 text-[10px] font-bold"
-                style={{ background: "var(--morning-leaf-tint)", color: "var(--morning-forest-deep)" }}
+                style={{
+                  background: "var(--morning-leaf-tint)",
+                  color: "var(--morning-forest-deep)",
+                }}
               >
                 ערכי היום · כולל אינפלציה ומס 25%
               </span>
@@ -1601,9 +1667,25 @@ export default function DashboardPage() {
           </div>
 
           <svg
+            ref={chartRef}
+            onMouseMove={(e) => {
+              if (!chartRef.current || chartData.length === 0) return;
+              const rect = chartRef.current.getBoundingClientRect();
+              const x = e.clientX - rect.left;
+              const scale = CW / rect.width;
+              const svgX = x * scale;
+              const chartW = chartPlotW;
+              if (svgX < 0 || svgX > chartW) {
+                setHoverIdx(null);
+                return;
+              }
+              const idx = chartIndexFromX(svgX);
+              setHoverIdx(idx);
+            }}
+            onMouseLeave={() => setHoverIdx(null)}
             viewBox={`0 0 ${CW} ${CH}`}
-            className="w-full"
-            style={{ height: 280, background: "#F4F5F0", borderRadius: 8 }}
+            className="relative w-full"
+            style={{ height: 280, background: "#F4F5F0", borderRadius: 8, cursor: "crosshair" }}
           >
             <defs>
               <linearGradient id="wm-re" x1="0" x2="0" y1="0" y2="1">
@@ -1618,7 +1700,7 @@ export default function DashboardPage() {
                 <stop offset="0%" stopColor="#2C7A5A" stopOpacity="0.7" />
                 <stop offset="100%" stopColor="#2C7A5A" stopOpacity="0.08" />
               </linearGradient>
-              <linearGradient id="wm-total" x1="0" x2="1" y1="0" y2="0">
+              <linearGradient id="wm-total" x1="1" x2="0" y1="0" y2="0">
                 <stop offset="0%" stopColor="#FFFFFF" />
                 <stop offset="55%" stopColor="#2C7A5A" />
                 <stop offset="100%" stopColor="#059669" />
@@ -1640,7 +1722,7 @@ export default function DashboardPage() {
                 <g key={f}>
                   <line
                     x1="0"
-                    x2={CW - 44}
+                    x2={chartPlotW}
                     y1={yPos}
                     y2={yPos}
                     stroke="#E5E7EB"
@@ -1666,13 +1748,13 @@ export default function DashboardPage() {
 
             {/* Stacked areas: RE base → pension → liquid top — mountain layers */}
             {(() => {
-              const chartW = CW - 44; // leave 44px for Y-axis labels on right
-              const xOf = (i: number) => (i / (chartData.length - 1)) * chartW;
+              const chartW = chartPlotW; // leave 44px for Y-axis labels on right
+              const xOf = chartXOfIndex;
               return (
                 <>
                   <path
                     d={
-                      `M 0 ${CH} ` +
+                      `M ${chartW} ${CH} ` +
                       chartData
                         .map((t, i) => {
                           const x = xOf(i);
@@ -1683,13 +1765,13 @@ export default function DashboardPage() {
                           return `L ${x} ${y}`;
                         })
                         .join(" ") +
-                      ` L ${chartW} ${CH} Z`
+                      ` L 0 ${CH} Z`
                     }
                     fill="url(#wm-liq)"
                   />
                   <path
                     d={
-                      `M 0 ${CH} ` +
+                      `M ${chartW} ${CH} ` +
                       chartData
                         .map((t, i) => {
                           const x = xOf(i);
@@ -1699,13 +1781,13 @@ export default function DashboardPage() {
                           return `L ${x} ${y}`;
                         })
                         .join(" ") +
-                      ` L ${chartW} ${CH} Z`
+                      ` L 0 ${CH} Z`
                     }
                     fill="url(#wm-pen)"
                   />
                   <path
                     d={
-                      `M 0 ${CH} ` +
+                      `M ${chartW} ${CH} ` +
                       chartData
                         .map((t, i) => {
                           const x = xOf(i);
@@ -1714,7 +1796,7 @@ export default function DashboardPage() {
                           return `L ${x} ${y}`;
                         })
                         .join(" ") +
-                      ` L ${chartW} ${CH} Z`
+                      ` L 0 ${CH} Z`
                     }
                     fill="url(#wm-re)"
                   />
@@ -1763,9 +1845,8 @@ export default function DashboardPage() {
             {/* End-point dot */}
             {chartData.length > 0 &&
               (() => {
-                const chartW = CW - 44;
                 const last = chartData[chartData.length - 1];
-                const x = chartW;
+                const x = chartXOfIndex(chartData.length - 1);
                 const y = CHART_PAD_TOP + (CH - CHART_PAD_TOP) * (1 - last.total / maxNW);
                 return (
                   <g>
@@ -1780,12 +1861,12 @@ export default function DashboardPage() {
             {peakPoint &&
               viewMode === "capital" &&
               (() => {
-                const chartW = CW - 44;
+                const chartW = chartPlotW;
                 const peakIdx = chartData.findIndex(
                   (p) => p.age === peakPoint.age && p.year === peakPoint.year
                 );
                 if (peakIdx < 0) return null;
-                const x = (peakIdx / (chartData.length - 1)) * chartW;
+                const x = chartXOfIndex(peakIdx);
                 const y = CHART_PAD_TOP + (CH - CHART_PAD_TOP) * (1 - peakPoint.total / maxNW);
                 const labelW = 120;
                 const labelX = Math.max(0, Math.min(x - labelW / 2, chartW - labelW));
@@ -1821,7 +1902,6 @@ export default function DashboardPage() {
             {buckets.length > 0 &&
               viewMode === "capital" &&
               (() => {
-                const chartW = CW - 44;
                 // Build list of {bucket, year} then dedupe/cluster by year to avoid overlap
                 const pins = buckets
                   .filter((b) => b.targetDate)
@@ -1839,7 +1919,7 @@ export default function DashboardPage() {
                 // Stack vertically if multiple goals share a year
                 const yearCounts: Record<number, number> = {};
                 return pins.map(({ bucket, idx }) => {
-                  const x = (idx / (chartData.length - 1)) * chartW;
+                  const x = chartXOfIndex(idx);
                   const y =
                     CHART_PAD_TOP + (CH - CHART_PAD_TOP) * (1 - chartData[idx].total / maxNW);
                   const stack = yearCounts[idx] || 0;
@@ -1899,10 +1979,9 @@ export default function DashboardPage() {
             {/* FIRE age marker — emerald vertical line at financial independence */}
             {fireResult.fireAge !== null &&
               (() => {
-                const chartW = CW - 44;
                 const fireIdx = chartData.findIndex((p) => p.age === fireResult.fireAge);
                 if (fireIdx <= 0 || fireIdx >= chartData.length) return null;
-                const x = (fireIdx / (chartData.length - 1)) * chartW;
+                const x = chartXOfIndex(fireIdx);
                 const y =
                   CHART_PAD_TOP + (CH - CHART_PAD_TOP) * (1 - chartData[fireIdx].total / maxNW);
                 return (
@@ -1946,10 +2025,9 @@ export default function DashboardPage() {
             {/* Retirement age marker */}
             {assumptions &&
               (() => {
-                const chartW = CW - 44;
                 const retIdx = chartData.findIndex((p) => p.age === assumptions.retirementAge);
                 if (retIdx > 0 && retIdx < chartData.length) {
-                  const x = (retIdx / (chartData.length - 1)) * chartW;
+                  const x = chartXOfIndex(retIdx);
                   const y =
                     CHART_PAD_TOP + (CH - CHART_PAD_TOP) * (1 - chartData[retIdx].total / maxNW);
                   return (
@@ -1978,6 +2056,17 @@ export default function DashboardPage() {
                       />
                       <text
                         x={x}
+                        y={14}
+                        textAnchor="middle"
+                        fontSize="9"
+                        fill="#b45309"
+                        fontWeight="800"
+                        fontFamily="Assistant, sans-serif"
+                      >
+                        {assumptions.retirementAge}
+                      </text>
+                      <text
+                        x={x}
                         y={CHART_PAD_TOP - 8}
                         textAnchor="middle"
                         fontSize="9"
@@ -1997,7 +2086,7 @@ export default function DashboardPage() {
             {viewMode === "income" &&
               targetRetireIncome > 0 &&
               (() => {
-                const chartW = CW - 44;
+                const chartW = chartPlotW;
                 const yTarget =
                   CHART_PAD_TOP + (CH - CHART_PAD_TOP) * (1 - targetRetireIncome / maxNW);
                 return (
@@ -2034,6 +2123,92 @@ export default function DashboardPage() {
                   </g>
                 );
               })()}
+
+            {/* Tooltip Hover Overlay */}
+            {hoverIdx !== null &&
+              chartData[hoverIdx] &&
+              (() => {
+                const p = chartData[hoverIdx];
+                const chartW = chartPlotW;
+                const x = chartXOfIndex(hoverIdx);
+                const yTotal = CHART_PAD_TOP + (CH - CHART_PAD_TOP) * (1 - p.total / maxNW);
+
+                const tooltipTitle = `גיל ${p.age} (${p.year})`;
+                const tooltipValue = fmtILS(Math.round(p.total));
+                const tooltipIncome = viewMode === "income" ? "קצבה חודשית" : "סה״כ הון";
+
+                const anchorLeft = x < chartW / 2;
+                const boxW = 120;
+                const boxH = 60;
+                const boxX = anchorLeft ? x + 10 : x - boxW - 10;
+                const boxY = Math.max(10, Math.min(yTotal - boxH / 2, CH - boxH - 10));
+
+                return (
+                  <g>
+                    <line
+                      x1={x}
+                      x2={x}
+                      y1={CHART_PAD_TOP}
+                      y2={CH}
+                      stroke="#9CA3AF"
+                      strokeWidth="1"
+                      strokeDasharray="4 4"
+                    />
+                    <circle
+                      cx={x}
+                      cy={yTotal}
+                      r="5"
+                      fill="#FFFFFF"
+                      stroke="#2C7A5A"
+                      strokeWidth="2.5"
+                    />
+
+                    <rect
+                      x={boxX}
+                      y={boxY}
+                      width={boxW}
+                      height={boxH}
+                      rx="6"
+                      fill="#FFFFFF"
+                      stroke="#E5E7EB"
+                      strokeWidth="1"
+                      filter="drop-shadow(0 4px 6px rgba(0,0,0,0.1))"
+                    />
+                    <text
+                      x={boxX + boxW / 2}
+                      y={boxY + 22}
+                      textAnchor="middle"
+                      fontSize="13"
+                      fill="#111827"
+                      fontWeight="800"
+                      fontFamily="Assistant, sans-serif"
+                    >
+                      {tooltipTitle}
+                    </text>
+                    <text
+                      x={boxX + boxW / 2}
+                      y={boxY + 40}
+                      textAnchor="middle"
+                      fontSize="14"
+                      fill="#2C7A5A"
+                      fontWeight="800"
+                      fontFamily="Assistant, sans-serif"
+                    >
+                      {tooltipValue}
+                    </text>
+                    <text
+                      x={boxX + boxW / 2}
+                      y={boxY + 54}
+                      textAnchor="middle"
+                      fontSize="10"
+                      fill="#6B7280"
+                      fontFamily="Assistant, sans-serif"
+                    >
+                      {tooltipIncome}
+                    </text>
+                  </g>
+                );
+              })()}
           </svg>
           <div className="mt-2 flex justify-between px-1 text-[9px] font-bold text-verdant-muted">
             {chartData.length > 0 && (
@@ -2065,7 +2240,12 @@ export default function DashboardPage() {
               const shortfall = gap > 0;
               const sev = shortfall ? (gap / targetRetireIncome > 0.3 ? "critical" : "warn") : "ok";
               const color = sev === "critical" ? "#DC2626" : sev === "warn" ? "#B45309" : "#2C7A5A";
-              const bg = sev === "critical" ? "rgba(220,38,38,0.12)" : sev === "warn" ? "rgba(217,119,6,0.12)" : "#2C7A5A";
+              const bg =
+                sev === "critical"
+                  ? "rgba(220,38,38,0.12)"
+                  : sev === "warn"
+                    ? "rgba(217,119,6,0.12)"
+                    : "#2C7A5A";
               return (
                 <div className="mt-4 grid grid-cols-4 gap-3">
                   <div
@@ -2263,16 +2443,10 @@ export default function DashboardPage() {
                       />
                     </div>
                     <div className="mt-1.5 flex items-center justify-between">
-                      <div
-                        className="tabular text-[10px] font-bold"
-                        style={{ color: "#6B7280" }}
-                      >
+                      <div className="tabular text-[10px] font-bold" style={{ color: "#6B7280" }}>
                         {fmtILS(bucket.currentAmount)} / {fmtILS(bucket.targetAmount)}
                       </div>
-                      <div
-                        className="tabular text-[10px] font-bold"
-                        style={{ color: "#1A1A1A" }}
-                      >
+                      <div className="tabular text-[10px] font-bold" style={{ color: "#1A1A1A" }}>
                         {progressPct}%
                       </div>
                     </div>
@@ -2340,6 +2514,18 @@ export default function DashboardPage() {
             })}
           </div>
         </section>
+      )}
+
+      {/* Assumptions / Plan Edit Modal */}
+      {showAssumptionsModal && assumptions && (
+        <AssumptionsEditModal
+          initialCurrentAge={assumptions.currentAge}
+          initialRetirementAge={assumptions.retirementAge}
+          initialMonthlyInvestment={assumptions.monthlyInvestment}
+          initialRetireIncome={initialRetireIncome}
+          onSave={handleSaveAssumptions}
+          onClose={() => setShowAssumptionsModal(false)}
+        />
       )}
     </div>
   );

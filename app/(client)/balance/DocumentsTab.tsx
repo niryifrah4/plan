@@ -39,6 +39,13 @@ import {
   saveDocHistoryAndWait,
   type DocHistoryEntry,
 } from "@/lib/documents-store";
+import {
+  classifyFile,
+  listDocuments,
+  uploadFile,
+  type StoredDocument,
+} from "@/lib/storage/file-storage";
+import { isSupabaseConfigured } from "@/lib/supabase/browser";
 import { learnMerchantCategory } from "@/lib/doc-parser/merchant-category-rules";
 import {
   loadParsedTransactions,
@@ -124,7 +131,32 @@ export function DocumentsTab() {
 
   /* ── Sibling state from elsewhere in the app ── */
   const [docHistory, setDocHistory] = useState<DocHistoryEntry[]>([]);
+  const [storedDocuments, setStoredDocuments] = useState<StoredDocument[]>([]);
   const [businessEnabled, setBusinessEnabled] = useState(false);
+
+  const refreshStoredDocuments = useCallback(async () => {
+    const docs = await listDocuments();
+    setStoredDocuments(docs);
+  }, []);
+
+  const persistSourceFiles = useCallback(
+    async (files: File[]): Promise<string[]> => {
+      if (!isSupabaseConfigured()) return [];
+      const results = await Promise.all(
+        files.map((file) => uploadFile(file, classifyFile(file.name)))
+      );
+      const saved = results.filter(Boolean).length;
+      const failed = results.length - saved;
+      if (saved > 0) await refreshStoredDocuments();
+      if (failed === 0) return [];
+      return [
+        failed === 1
+          ? "קובץ המקור פוענח, אבל לא נשמר לתיק. הנתונים המעובדים נשמרים כרגיל."
+          : `${failed} קבצי מקור פוענחו, אבל לא נשמרו לתיק. הנתונים המעובדים נשמרים כרגיל.`,
+      ];
+    },
+    [refreshStoredDocuments]
+  );
 
   /* ── Business-scope toggle: listen for changes elsewhere in the app ── */
   useEffect(() => {
@@ -141,7 +173,8 @@ export function DocumentsTab() {
   /* ── Load document history on mount ── */
   useEffect(() => {
     setDocHistory(loadDocHistory());
-  }, []);
+    void refreshStoredDocuments();
+  }, [refreshStoredDocuments]);
 
   /* ── Draft restore on mount: bring back unsaved review state ── */
   useEffect(() => {
@@ -308,7 +341,11 @@ export function DocumentsTab() {
         setPhase("idle");
         return;
       }
+      const sourceWarnings = await persistSourceFiles(files);
       const parsed = data as ParsedDocument & { duplicatesRemoved?: number };
+      if (sourceWarnings.length > 0) {
+        parsed.warnings = [...parsed.warnings, ...sourceWarnings];
+      }
       setDoc(parsed);
       setDuplicatesRemoved(parsed.duplicatesRemoved || 0);
       // Merge detected financial instruments into persistent storage AND
@@ -349,7 +386,11 @@ export function DocumentsTab() {
           setPhase("preview");
           return;
         }
+        const sourceWarnings = await persistSourceFiles(files);
         const added = data as ParsedDocument & { duplicatesRemoved?: number };
+        if (sourceWarnings.length > 0) {
+          added.warnings = [...added.warnings, ...sourceWarnings];
+        }
 
         // ── In-memory dedup: suppress new txns that match an existing one ──
         const keyOf = (t: ParsedTransaction) => {
@@ -578,6 +619,8 @@ export function DocumentsTab() {
           }}
           uploadProgress={uploadProgress}
           docHistory={docHistory}
+          storedDocuments={storedDocuments}
+          onStoredDocumentsChanged={refreshStoredDocuments}
           onFiles={uploadFiles}
           onRemoveHistory={handleRemoveHistory}
         />

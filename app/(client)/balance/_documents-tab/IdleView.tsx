@@ -23,6 +23,11 @@ import { loadParsedTransactions } from "@/lib/budget-import";
 import { needsMappingAttention } from "@/lib/documents-categories";
 import { buildExcludedSet, EXCLUDED_EVENT } from "@/lib/doc-parser/excluded-merchants";
 import type { ParsedTransaction } from "@/lib/doc-parser/types";
+import {
+  deleteDocument,
+  getSignedUrl,
+  type StoredDocument,
+} from "@/lib/storage/file-storage";
 
 export function IdleView({
   phase,
@@ -30,6 +35,8 @@ export function IdleView({
   onClearError,
   uploadProgress,
   docHistory,
+  storedDocuments,
+  onStoredDocumentsChanged,
   onFiles,
   onRemoveHistory,
 }: {
@@ -38,6 +45,8 @@ export function IdleView({
   onClearError: () => void;
   uploadProgress: { current: number; total: number; name: string } | null;
   docHistory: DocHistoryEntry[];
+  storedDocuments: StoredDocument[];
+  onStoredDocumentsChanged: () => void | Promise<void>;
   onFiles: (files: File[]) => void;
   onRemoveHistory: (id: string) => void;
 }) {
@@ -163,6 +172,13 @@ export function IdleView({
       {/* ═══ Mapping status — summary + drill-down to uploaded docs ═══ */}
       {isIdle && !error && docHistory.length > 0 && (
         <MappingDrilldown docHistory={docHistory} onRemove={onRemoveHistory} />
+      )}
+
+      {isIdle && !error && storedDocuments.length > 0 && (
+        <StoredDocumentsList
+          documents={storedDocuments}
+          onChanged={onStoredDocumentsChanged}
+        />
       )}
 
     </>
@@ -297,6 +313,114 @@ function ErrorBanner({ error, onRetry }: { error: string; onRetry: () => void })
         נסה שוב
       </button>
     </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────── */
+
+function kindLabel(kind: StoredDocument["kind"]): string {
+  switch (kind) {
+    case "bank_statement":
+      return "בנק / אשראי";
+    case "mortgage_schedule":
+      return "לוח סילוקין";
+    case "pension_report":
+      return "פנסיה / מסלקה";
+    case "broker_report":
+      return "השקעות";
+    case "insurance_policy":
+      return "ביטוח";
+    case "tax_report":
+      return "מס";
+    case "poa_signed":
+      return "ייפוי כח";
+    default:
+      return "מסמך";
+  }
+}
+
+function StoredDocumentsList({
+  documents,
+  onChanged,
+}: {
+  documents: StoredDocument[];
+  onChanged: () => void | Promise<void>;
+}) {
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const openDocument = async (doc: StoredDocument) => {
+    setBusyId(doc.id);
+    try {
+      const url = await getSignedUrl(doc.path);
+      if (url) window.open(url, "_blank", "noopener,noreferrer");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const removeDocument = async (doc: StoredDocument) => {
+    const ok = window.confirm(`למחוק את קובץ המקור "${doc.name}" מהתיק?`);
+    if (!ok) return;
+    setBusyId(doc.id);
+    try {
+      const deleted = await deleteDocument(doc);
+      if (deleted) await onChanged();
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <section className="mt-6 rounded-xl border border-[#E5E7EB] bg-white">
+      <div className="flex items-center justify-between border-b border-[#E5E7EB] px-4 py-3">
+        <div>
+          <h3 className="text-sm font-extrabold text-verdant-ink">קבצי מקור בתיק הלקוח</h3>
+          <p className="mt-0.5 text-[11px] text-verdant-muted">
+            הקבצים שמורים על אותו תיק. הלקוח והיועץ רואים את אותה רשימה.
+          </p>
+        </div>
+        <span className="text-[11px] font-bold text-verdant-muted">
+          {documents.length} קבצים
+        </span>
+      </div>
+      <div className="divide-y divide-[#F1F5F9]">
+        {documents.slice(0, 12).map((doc) => (
+          <div
+            key={doc.id}
+            className="grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-3 md:grid-cols-[1fr_auto_auto]"
+          >
+            <div className="min-w-0">
+              <div className="truncate text-[13px] font-bold text-verdant-ink">{doc.name}</div>
+              <div className="mt-0.5 flex flex-wrap gap-2 text-[10px] font-semibold text-verdant-muted">
+                <span>{kindLabel(doc.kind)}</span>
+                <span>{new Date(doc.uploadedAt).toLocaleDateString("he-IL")}</span>
+                {doc.size > 0 && (
+                  <span>{Math.ceil(doc.size / 1024).toLocaleString("he-IL")}KB</span>
+                )}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => openDocument(doc)}
+              disabled={busyId === doc.id}
+              className="btn btn-secondary btn-sm"
+            >
+              <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+              פתח
+            </button>
+            <button
+              type="button"
+              onClick={() => removeDocument(doc)}
+              disabled={busyId === doc.id}
+              className="hidden rounded-md px-2 py-1 text-[11px] font-bold text-red-700 hover:bg-red-50 md:inline-flex"
+              title="מחיקת קובץ מקור"
+            >
+              מחק
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

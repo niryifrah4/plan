@@ -132,6 +132,20 @@ export default function OnboardingPage() {
   const [initial] = useState(loadInitialOnboardingState);
   const [step, setStep] = useState<number>(initial.step);
 
+  // Allow direct navigation to a specific step via URL query param (e.g. ?step=5)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const s = params.get("step");
+      if (s) {
+        const parsed = parseInt(s, 10);
+        if (parsed >= 1 && parsed <= TOTAL_STEPS) {
+          setStep(parsed);
+        }
+      }
+    }
+  }, []);
+
   /* ── In-memory page state; persisted only on page transitions ── */
   const [fields, setFields] = useState<Fields>(initial.fields);
   const [children, setChildren] = useState<Child[]>(initial.children);

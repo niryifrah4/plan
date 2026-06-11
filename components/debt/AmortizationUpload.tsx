@@ -21,6 +21,8 @@
 import { useRef, useState } from "react";
 import { fmtILS } from "@/lib/format";
 import type { MortgageTrack, IndexationType, RepaymentMethod } from "@/lib/debt-store";
+import { uploadFile } from "@/lib/storage/file-storage";
+import { isSupabaseConfigured } from "@/lib/supabase/browser";
 
 interface ParsedTrack extends MortgageTrack {
   confidence: number;
@@ -69,9 +71,22 @@ export function AmortizationUpload({ onTracksParsed }: Props) {
         setParseError(body.error || `שגיאה ${res.status}`);
         return;
       }
-      setPreview(body);
+      let nextPreview = body;
+      if (isSupabaseConfigured()) {
+        const stored = await uploadFile(file, "mortgage_schedule");
+        if (!stored) {
+          nextPreview = {
+            ...body,
+            warnings: [
+              ...body.warnings,
+              "המסלולים פוענחו, אבל קובץ ה-PDF המקורי לא נשמר לתיק.",
+            ],
+          };
+        }
+      }
+      setPreview(nextPreview);
       setDraft(
-        body.tracks.map((t) => ({
+        nextPreview.tracks.map((t) => ({
           ...t,
           id: uid(),
         })) as ParsedTrack[]

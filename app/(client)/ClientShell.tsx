@@ -170,7 +170,7 @@ export function ClientShell({
       {impersonation && (
         <>
           <div
-            aria-label={`צופה כיועץ בתיק ${impersonation.familyName}`}
+            aria-label={`צופה כיועץ בתיק הלקוח ${impersonation.familyName}`}
             dir="rtl"
             className="fixed inset-x-0 top-0 z-50"
             style={{ background: "#FB923C", height: 4 }}
@@ -178,7 +178,7 @@ export function ClientShell({
           <button
             type="button"
             onClick={handleExitImpersonation}
-            title={`יוצא מתיק ${impersonation.familyName} → לרשימת לקוחות`}
+            title={`יוצא מתיק הלקוח ${impersonation.familyName} → לרשימת לקוחות`}
             className="fixed left-2 top-2 z-50 flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-extrabold shadow-sm transition-opacity hover:opacity-100 opacity-80"
             style={{
               background: "#92400E",
@@ -187,7 +187,7 @@ export function ClientShell({
             }}
           >
             <span className="material-symbols-outlined text-[12px]">logout</span>
-            יציאה
+            יציאה מתיק לקוח
           </button>
         </>
       )}
