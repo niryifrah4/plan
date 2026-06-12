@@ -35,6 +35,7 @@ import {
 import {
   DRAFT_KEY,
   loadDocHistory,
+  pullDocHistoryFromRemote,
   saveDocHistory,
   saveDocHistoryAndWait,
   type DocHistoryEntry,
@@ -49,6 +50,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/browser";
 import { learnMerchantCategory } from "@/lib/doc-parser/merchant-category-rules";
 import {
   loadParsedTransactions,
+  pullParsedTransactionsFromRemote,
   saveParsedTransactionsAndWait,
 } from "@/lib/budget-import";
 import { IdleView } from "./_documents-tab/IdleView";
@@ -88,6 +90,61 @@ function buildEffectiveTransactions(
       return { ...t, scope: scopeVal, _idx: i };
     })
     .filter(Boolean) as (ParsedTransaction & { _idx: number })[];
+}
+
+function transactionDedupeKey(t: ParsedTransaction): string {
+  const amt = Math.abs(Math.round((t.amount || 0) * 100));
+  const supplier = (t.description || "")
+    .toLowerCase()
+    .replace(/["‏‎]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .substring(0, 20);
+  return `${t.date || ""}|${amt}|${supplier}`;
+}
+
+function mergeUniqueTransactions(
+  base: ParsedTransaction[],
+  additions: ParsedTransaction[]
+): { merged: ParsedTransaction[]; fresh: ParsedTransaction[]; skipped: number } {
+  const seen = new Set<string>();
+  const merged: ParsedTransaction[] = [];
+
+  for (const tx of base) {
+    const key = transactionDedupeKey(tx);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(tx);
+  }
+
+  const fresh: ParsedTransaction[] = [];
+  let skipped = 0;
+  for (const tx of additions) {
+    const key = transactionDedupeKey(tx);
+    if (seen.has(key)) {
+      skipped++;
+      continue;
+    }
+    seen.add(key);
+    fresh.push(tx);
+    merged.push(tx);
+  }
+
+  return { merged, fresh, skipped };
+}
+
+function mergeDocHistory(
+  entry: DocHistoryEntry,
+  remote: DocHistoryEntry[] | null,
+  local: DocHistoryEntry[]
+): DocHistoryEntry[] {
+  const byId = new Map<string, DocHistoryEntry>();
+  for (const item of [...(remote || []), ...local, entry]) {
+    byId.set(item.id, item);
+  }
+  return [...byId.values()]
+    .sort((a, b) => Date.parse(b.uploadedAt) - Date.parse(a.uploadedAt))
+    .slice(0, 50);
 }
 
 export function DocumentsTab() {
@@ -139,6 +196,11 @@ export function DocumentsTab() {
     setStoredDocuments(docs);
   }, []);
 
+  const refreshDocumentState = useCallback(async () => {
+    setDocHistory(loadDocHistory());
+    await refreshStoredDocuments();
+  }, [refreshStoredDocuments]);
+
   const persistSourceFiles = useCallback(
     async (files: File[]): Promise<string[]> => {
       if (!isSupabaseConfigured()) return [];
@@ -172,9 +234,21 @@ export function DocumentsTab() {
 
   /* ── Load document history on mount ── */
   useEffect(() => {
-    setDocHistory(loadDocHistory());
-    void refreshStoredDocuments();
-  }, [refreshStoredDocuments]);
+    void refreshDocumentState();
+    const handler = () => {
+      void refreshDocumentState();
+    };
+    window.addEventListener("verdant:docs:updated", handler);
+    window.addEventListener("verdant:parsed_transactions:updated", handler);
+    window.addEventListener("storage", handler);
+    window.addEventListener("focus", handler);
+    return () => {
+      window.removeEventListener("verdant:docs:updated", handler);
+      window.removeEventListener("verdant:parsed_transactions:updated", handler);
+      window.removeEventListener("storage", handler);
+      window.removeEventListener("focus", handler);
+    };
+  }, [refreshDocumentState]);
 
   /* ── Draft restore on mount: bring back unsaved review state ── */
   useEffect(() => {
@@ -393,20 +467,10 @@ export function DocumentsTab() {
         }
 
         // ── In-memory dedup: suppress new txns that match an existing one ──
-        const keyOf = (t: ParsedTransaction) => {
-          const amt = Math.abs(Math.round((t.amount || 0) * 100));
-          const supplier = (t.description || "")
-            .toLowerCase()
-            .replace(/["‏‎]/g, "")
-            .replace(/\s+/g, " ")
-            .trim()
-            .substring(0, 20);
-          return `${t.date || ""}|${amt}|${supplier}`;
-        };
-        const existingKeys = new Set(doc.transactions.map(keyOf));
+        const existingKeys = new Set(doc.transactions.map(transactionDedupeKey));
         let newDups = 0;
         const freshTx = added.transactions.filter((t) => {
-          if (existingKeys.has(keyOf(t))) {
+          if (existingKeys.has(transactionDedupeKey(t))) {
             newDups++;
             return false;
           }
@@ -499,32 +563,21 @@ export function DocumentsTab() {
         sourceDocId: docId,
         sourceFile: currentDoc.filename,
       }));
-      const existing: ParsedTransaction[] = loadParsedTransactions();
+      const remoteTransactions = await pullParsedTransactionsFromRemote();
+      const existing: ParsedTransaction[] = [
+        ...(remoteTransactions || []),
+        ...loadParsedTransactions(),
+      ];
 
       // ── Cross-session dedup ──
       // If a tx was already saved from a previous upload (e.g. credit-card
       // charge appeared in both the bank statement AND the credit statement),
       // suppress the duplicate instead of double-counting.
-      const keyOf = (t: ParsedTransaction) => {
-        const amt = Math.abs(Math.round((t.amount || 0) * 100));
-        const supplier = (t.description || "")
-          .toLowerCase()
-          .replace(/["‏‎]/g, "")
-          .replace(/\s+/g, " ")
-          .trim()
-          .substring(0, 20);
-        return `${t.date || ""}|${amt}|${supplier}`;
-      };
-      const existingKeys = new Set(existing.map(keyOf));
-      let crossDupsSkippedLocal = 0;
-      const fresh = txToSave.filter((t) => {
-        if (existingKeys.has(keyOf(t))) {
-          crossDupsSkippedLocal++;
-          return false;
-        }
-        return true;
-      });
-      const allTransactions = [...existing, ...fresh];
+      const {
+        merged: allTransactions,
+        fresh,
+        skipped: crossDupsSkippedLocal,
+      } = mergeUniqueTransactions(existing, txToSave);
       const txRemoteSaved = await saveParsedTransactionsAndWait(allTransactions);
       if (!txRemoteSaved) {
         setError("שמירת התנועות ל-DB נכשלה. נסה לשמור שוב לפני יציאה.");
@@ -559,7 +612,8 @@ export function DocumentsTab() {
         fullyMapped: unmappedCount === 0,
         crossDupsSkipped: crossDupsSkippedLocal > 0 ? crossDupsSkippedLocal : undefined,
       };
-      const newHistory = [entry, ...loadDocHistory()].slice(0, 50); // keep last 50
+      const remoteHistory = await pullDocHistoryFromRemote();
+      const newHistory = mergeDocHistory(entry, remoteHistory, loadDocHistory());
       const historyRemoteSaved = await saveDocHistoryAndWait(newHistory);
       if (!historyRemoteSaved) {
         setError("התנועות נשמרו, אבל שמירת היסטוריית הקובץ ל-DB נכשלה. נסה שוב.");

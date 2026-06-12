@@ -30,15 +30,37 @@ const ADVISOR_PASSWORD = process.env.PW_ADVISOR_PASSWORD || "";
 // A syntactically valid UUID that belongs to no household.
 const FOREIGN_HOUSEHOLD = "00000000-0000-4000-8000-000000000000";
 const IMPERSONATE_COOKIE = "plan_impersonate_hh";
+const FIXTURE_HOUSEHOLDS = [
+  {
+    familyName: "קרקסון",
+    householdId: "27c9d83e-3abd-4e09-8924-357993db51da",
+    expectedTransactions: 50,
+  },
+  {
+    familyName: "בסר",
+    householdId: "d5635cd0-3cf0-426f-b65d-76a2d36df6e5",
+    expectedTransactions: 0,
+  },
+  {
+    familyName: "יפרח",
+    householdId: "6096d4a0-4b28-4902-bca2-a279e1282d34",
+    expectedTransactions: 72,
+  },
+] as const;
 
 async function loginAsAdvisor(page: Page) {
   await page.goto("/login");
+  if (/\/crm/.test(page.url())) return;
   await page.getByPlaceholder("mail@example.com").fill(ADVISOR_EMAIL);
   await page.locator('input[type="password"]').fill(ADVISOR_PASSWORD);
   // The page has a mode-toggle button ("התחברות") AND a submit button
   // ("כניסה"); target the submit specifically to avoid a strict-mode match.
   await page.locator('button[type="submit"]').click();
   await page.waitForURL(/\/crm/, { timeout: 15_000 });
+}
+
+function scopedTransactionsKey(householdId: string) {
+  return `verdant:c:hh-${householdId.replace(/-/g, "").slice(0, 12)}:parsed_transactions`;
 }
 
 // ── Credential-free: the edge must reject anonymous callers ─────────────────
@@ -101,4 +123,49 @@ test("guard: authed request with missing household_id is rejected (400), no cook
 
   const cookies = await context.cookies();
   expect(cookies.find((c) => c.name === IMPERSONATE_COOKIE)).toBeFalsy();
+});
+
+test("guard: advisor client switch loads the selected household data, not the advisor's first household", async ({
+  page,
+}) => {
+  test.skip(
+    !ADVISOR_PASSWORD,
+    "Set PW_ADVISOR_PASSWORD to the current advisor password to run this."
+  );
+  await loginAsAdvisor(page);
+
+  for (const fixture of FIXTURE_HOUSEHOLDS) {
+    await page.goto(
+      `/api/crm/impersonate/enter?household_id=${fixture.householdId}`
+    );
+    await page.waitForURL(/\/dashboard/, { timeout: 15_000 });
+    await page.goto("/files");
+    await expect(page.getByText(fixture.familyName)).toBeVisible({
+      timeout: 10_000,
+    });
+
+    await expect
+      .poll(
+        async () =>
+          page.evaluate(
+            ({ txKey }) => {
+              const raw = localStorage.getItem(txKey);
+              return {
+                activeHousehold: localStorage.getItem(
+                  "verdant:active_household_id"
+                ),
+                transactions: raw ? JSON.parse(raw).length : 0,
+              };
+            },
+            {
+              txKey: scopedTransactionsKey(fixture.householdId),
+            }
+          ),
+        { timeout: 15_000 }
+      )
+      .toEqual({
+        activeHousehold: fixture.householdId,
+        transactions: fixture.expectedTransactions,
+      });
+  }
 });

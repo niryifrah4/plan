@@ -85,6 +85,9 @@ export default function ClientLayoutInner({
   }, []);
 
   useEffect(() => {
+    const lockedHouseholdId = impersonation?.householdId ?? null;
+    let disposed = false;
+
     // Tenant isolation. The previous "purge legacy + clear current_hh" fix
     // turned out to be a partial mitigation: hydrate*FromRemote functions
     // (debt-store, accounts-store, onboarding-remote, etc.) silently skip
@@ -135,11 +138,23 @@ export default function ClientLayoutInner({
         dispatchAllRefreshEvents();
       }
     }
-    void prepareSessionScopeOnce("desktop-mount").finally(() => {
-      setBootstrapReady(true);
-    });
-    const stopAuthWatch = watchBootstrapAuthState("desktop", setBootstrapReady);
+    setBootstrapReady(false);
+    void (async () => {
+      const ready = await prepareSessionScopeOnce("desktop-mount", lockedHouseholdId);
+      if (
+        lockedHouseholdId &&
+        typeof window !== "undefined" &&
+        localStorage.getItem("verdant:active_household_id") !== lockedHouseholdId
+      ) {
+        wipeForTenantSwitch(lockedHouseholdId);
+        sessionStorage.removeItem("verdant:bootstrap_done");
+        await prepareSessionScopeOnce("desktop-mount:scope-corrected", lockedHouseholdId);
+      }
+      if (!disposed) setBootstrapReady(ready);
+    })();
+    const stopAuthWatch = watchBootstrapAuthState("desktop", setBootstrapReady, lockedHouseholdId);
     return () => {
+      disposed = true;
       stopAuthWatch?.();
     };
   }, [impersonation]);

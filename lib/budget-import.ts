@@ -244,12 +244,17 @@ export async function saveParsedTransactionsAndWait(txs: ParsedTransaction[]): P
   return true;
 }
 
+export async function pullParsedTransactionsFromRemote(): Promise<ParsedTransaction[] | null> {
+  const remote = await pullBlob<ParsedTransaction[]>(TX_BLOB_KEY);
+  return Array.isArray(remote) ? normalizeReviewedTransactions(remote) : null;
+}
+
 /** Bootstrap pull. Called once per session by bootstrap.ts so the
  *  advisor's dashboard hydrates the mobile-logged transactions
  *  before the budget page renders its first frame. */
 export async function hydrateTransactionsFromRemote(): Promise<boolean> {
-  const remote = await pullBlob<ParsedTransaction[]>(TX_BLOB_KEY);
-  if (!remote || !Array.isArray(remote)) return false;
+  const remote = await pullParsedTransactionsFromRemote();
+  if (!remote) return false;
   try {
     localStorage.setItem(scopedKey(TX_KEY), JSON.stringify(remote));
     if (typeof window !== "undefined") {

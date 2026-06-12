@@ -737,7 +737,7 @@ function TrajectoryChart({
               textAnchor="start"
               fill="#6B7280"
               fontWeight="600"
-              dir="ltr"
+              style={{ direction: 'ltr' }}
             >
               {Math.round(t / 1000)}K
             </text>

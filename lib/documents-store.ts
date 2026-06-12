@@ -78,13 +78,19 @@ export async function saveDocHistoryAndWait(history: DocHistoryEntry[]): Promise
   }
 }
 
-export async function hydrateDocHistoryFromRemote(): Promise<boolean> {
+export async function pullDocHistoryFromRemote(): Promise<DocHistoryEntry[] | null> {
   const remote = await pullBlob<DocHistoryEntry[]>(HISTORY_BLOB_KEY);
-  if (!remote || !Array.isArray(remote)) return false;
+  return Array.isArray(remote) ? remote : null;
+}
+
+export async function hydrateDocHistoryFromRemote(): Promise<boolean> {
+  const remote = await pullDocHistoryFromRemote();
+  if (!remote) return false;
   if (typeof window === "undefined") return false;
   try {
     localStorage.setItem(scopedKey(HISTORY_KEY), JSON.stringify(remote));
     window.dispatchEvent(new Event("verdant:docs:updated"));
+    window.dispatchEvent(new Event("storage"));
     return true;
   } catch {
     return false;

@@ -17,9 +17,13 @@ import { CURRENT_HH_KEY, dispatchStoreRefreshEvents } from "@/lib/client-scope";
 const ACTIVE_HH_KEY = "verdant:active_household_id";
 const BOOTSTRAP_FLAG = "verdant:bootstrap_done";
 const BOOTSTRAP_USER_KEY = "verdant:bootstrap_user_id";
+const BOOTSTRAP_HOUSEHOLD_KEY = "verdant:bootstrap_household_id";
 let bootstrapInFlight: Promise<boolean> | null = null;
+let bootstrapInFlightKey: string | null = null;
 let remoteRefreshInFlight: Promise<void> | null = null;
+let remoteRefreshInFlightKey: string | null = null;
 let scopeBootstrapInFlight: Promise<boolean> | null = null;
+let scopeBootstrapInFlightKey: string | null = null;
 
 function clearBootstrapMarkers(): void {
   if (typeof window === "undefined") return;
@@ -28,6 +32,7 @@ function clearBootstrapMarkers(): void {
     sessionStorage.removeItem("verdant:last_impersonated");
     sessionStorage.removeItem("verdant:legacy_purge_done");
     sessionStorage.removeItem(BOOTSTRAP_USER_KEY);
+    sessionStorage.removeItem(BOOTSTRAP_HOUSEHOLD_KEY);
   } catch {}
   try {
     localStorage.removeItem(ACTIVE_HH_KEY);
@@ -118,15 +123,34 @@ async function ensureBootstrapForCurrentUser(): Promise<string | null> {
   return userId;
 }
 
+function readActiveHousehold(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(ACTIVE_HH_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function lockActiveHousehold(householdId: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(ACTIVE_HH_KEY, householdId);
+    localStorage.removeItem(CURRENT_HH_KEY);
+  } catch {}
+}
+
 /**
  * מושך את כל ה-blobs והטבלאות מהשרת → overwrite של cache ב-localStorage.
  * רץ אחרי resolveActiveHousehold. בטוח לקריאה כפולה.
  */
-export async function hydrateAllFromRemote(): Promise<void> {
+export async function hydrateAllFromRemote(lockedHouseholdId?: string | null): Promise<void> {
   if (typeof window === "undefined") return;
   if (!isSupabaseConfigured()) return;
 
-  const hh = localStorage.getItem(ACTIVE_HH_KEY);
+  if (lockedHouseholdId) lockActiveHousehold(lockedHouseholdId);
+
+  const hh = readActiveHousehold();
   if (!hh) return;
 
   // dynamic imports כדי לא לטעון את כל החנויות ב-SSR
@@ -198,6 +222,9 @@ export async function hydrateAllFromRemote(): Promise<void> {
   ]);
 
   await onboarding.hydrateOnboardingFromRemote?.();
+  if (lockedHouseholdId && readActiveHousehold() !== lockedHouseholdId) {
+    lockActiveHousehold(lockedHouseholdId);
+  }
   const { syncOnboardingToStores } = await import("@/lib/onboarding-sync");
   syncOnboardingToStores();
 }
@@ -208,24 +235,37 @@ export async function hydrateAllFromRemote(): Promise<void> {
  * Used by the realtime/polling watcher so changes made in another browser
  * or phone are pulled back into every open client tab.
  */
-export async function refreshAllFromRemote(trigger = "manual"): Promise<void> {
+export async function refreshAllFromRemote(
+  trigger = "manual",
+  lockedHouseholdId?: string | null
+): Promise<void> {
   if (typeof window === "undefined") return;
   if (!isSupabaseConfigured()) return;
-  if (remoteRefreshInFlight) return remoteRefreshInFlight;
+  const taskKey = lockedHouseholdId || readActiveHousehold() || "__auto__";
+  if (remoteRefreshInFlight && remoteRefreshInFlightKey === taskKey) {
+    return remoteRefreshInFlight;
+  }
 
   const task = (async () => {
-    const hh = localStorage.getItem(ACTIVE_HH_KEY);
+    if (lockedHouseholdId) lockActiveHousehold(lockedHouseholdId);
+    const hh = readActiveHousehold();
     if (!hh) {
       await resolveActiveHousehold();
     }
-    await hydrateAllFromRemote();
+    await hydrateAllFromRemote(lockedHouseholdId);
+    if (lockedHouseholdId && readActiveHousehold() !== lockedHouseholdId) {
+      lockActiveHousehold(lockedHouseholdId);
+      await hydrateAllFromRemote(lockedHouseholdId);
+    }
     dispatchStoreRefreshEvents();
     console.info("[bootstrap] remote refresh completed", { trigger });
   })().finally(() => {
     remoteRefreshInFlight = null;
+    remoteRefreshInFlightKey = null;
   });
 
   remoteRefreshInFlight = task;
+  remoteRefreshInFlightKey = taskKey;
   return task;
 }
 
@@ -234,30 +274,46 @@ export async function refreshAllFromRemote(trigger = "manual"): Promise<void> {
  * then hydrate remote stores in the background. This keeps tenant scoping
  * correct without blocking the whole app shell on every first paint.
  */
-export async function prepareSessionScopeOnce(trigger = "manual"): Promise<boolean> {
+export async function prepareSessionScopeOnce(
+  trigger = "manual",
+  lockedHouseholdId?: string | null
+): Promise<boolean> {
   if (typeof window === "undefined") return false;
   if (!isSupabaseConfigured()) return true;
-  if (scopeBootstrapInFlight) return scopeBootstrapInFlight;
+  const taskKey = lockedHouseholdId || readActiveHousehold() || "__auto__";
+  if (scopeBootstrapInFlight && scopeBootstrapInFlightKey === taskKey) {
+    return scopeBootstrapInFlight;
+  }
 
   const task = (async () => {
     const userId = await ensureBootstrapForCurrentUser();
     if (!userId) return false;
+    if (lockedHouseholdId) lockActiveHousehold(lockedHouseholdId);
 
-    const hasHousehold = Boolean(localStorage.getItem(ACTIVE_HH_KEY));
+    const activeHousehold = readActiveHousehold();
+    const hasHousehold = Boolean(activeHousehold);
     const bootstrapped = sessionStorage.getItem(BOOTSTRAP_FLAG) === "1";
     const recordedUserId = sessionStorage.getItem(BOOTSTRAP_USER_KEY);
-    if (bootstrapped && hasHousehold && recordedUserId === userId) {
+    const recordedHousehold = sessionStorage.getItem(BOOTSTRAP_HOUSEHOLD_KEY);
+    if (
+      bootstrapped &&
+      hasHousehold &&
+      recordedUserId === userId &&
+      recordedHousehold === activeHousehold
+    ) {
       console.info("[bootstrap] scope ready; hydration already completed", { trigger });
       return true;
     }
 
-    const hh = await resolveActiveHousehold();
+    const hh = lockedHouseholdId || (await resolveActiveHousehold());
     if (!hh) return false;
+    if (lockedHouseholdId) lockActiveHousehold(lockedHouseholdId);
 
-    void refreshAllFromRemote(`${trigger}:background-hydrate`)
+    void refreshAllFromRemote(`${trigger}:background-hydrate`, lockedHouseholdId)
       .then(() => {
         try {
           sessionStorage.setItem(BOOTSTRAP_FLAG, "1");
+          sessionStorage.setItem(BOOTSTRAP_HOUSEHOLD_KEY, hh);
         } catch {}
       })
       .catch((reason) => {
@@ -271,9 +327,11 @@ export async function prepareSessionScopeOnce(trigger = "manual"): Promise<boole
     return true;
   })().finally(() => {
     scopeBootstrapInFlight = null;
+    scopeBootstrapInFlightKey = null;
   });
 
   scopeBootstrapInFlight = task;
+  scopeBootstrapInFlightKey = taskKey;
   return task;
 }
 
@@ -298,7 +356,7 @@ export function watchRemoteHouseholdChanges(
     if (refreshTimer != null) return;
     refreshTimer = window.setTimeout(() => {
       refreshTimer = null;
-      void refreshAllFromRemote(`${triggerPrefix}:${reason}`).then(() => {
+      void refreshAllFromRemote(`${triggerPrefix}:${reason}`, householdId).then(() => {
         if (!disposed) onReady?.(true);
       });
     }, 350);
@@ -378,41 +436,57 @@ async function hydrateSecurities(blobSync: typeof import("@/lib/sync/blob-sync")
 /**
  * נקודת כניסה: פעם אחת לכל session, מבצע גם resolve וגם hydrate.
  */
-export async function bootstrapSessionOnce(trigger = "manual"): Promise<boolean> {
+export async function bootstrapSessionOnce(
+  trigger = "manual",
+  lockedHouseholdId?: string | null
+): Promise<boolean> {
   if (typeof window === "undefined") return false;
-  if (bootstrapInFlight) return bootstrapInFlight;
+  const taskKey = lockedHouseholdId || readActiveHousehold() || "__auto__";
+  if (bootstrapInFlight && bootstrapInFlightKey === taskKey) return bootstrapInFlight;
 
   const task = (async () => {
     const userId = await ensureBootstrapForCurrentUser();
     if (!userId) {
       return false;
     }
-    const hasHousehold = Boolean(localStorage.getItem(ACTIVE_HH_KEY));
+    if (lockedHouseholdId) lockActiveHousehold(lockedHouseholdId);
+    const activeHousehold = readActiveHousehold();
+    const hasHousehold = Boolean(activeHousehold);
     const bootstrapped = sessionStorage.getItem(BOOTSTRAP_FLAG) === "1";
     const recordedUserId = sessionStorage.getItem(BOOTSTRAP_USER_KEY);
-    if (bootstrapped && hasHousehold && recordedUserId === userId) {
+    const recordedHousehold = sessionStorage.getItem(BOOTSTRAP_HOUSEHOLD_KEY);
+    if (
+      bootstrapped &&
+      hasHousehold &&
+      recordedUserId === userId &&
+      recordedHousehold === activeHousehold
+    ) {
       console.info("[bootstrap] hydration skipped because already bootstrapped", { trigger });
       return true;
     }
 
-    const hh = await resolveActiveHousehold();
+    const hh = lockedHouseholdId || (await resolveActiveHousehold());
     if (!hh) {
       return false;
     }
+    if (lockedHouseholdId) lockActiveHousehold(lockedHouseholdId);
 
-    await hydrateAllFromRemote();
+    await hydrateAllFromRemote(lockedHouseholdId);
 
     try {
       sessionStorage.setItem(BOOTSTRAP_FLAG, "1");
+      sessionStorage.setItem(BOOTSTRAP_HOUSEHOLD_KEY, hh);
     } catch {}
 
     console.info("[bootstrap] hydration completed", { trigger, householdId: hh });
     return true;
   })().finally(() => {
     bootstrapInFlight = null;
+    bootstrapInFlightKey = null;
   });
 
   bootstrapInFlight = task;
+  bootstrapInFlightKey = taskKey;
   return task;
 }
 
@@ -422,7 +496,8 @@ export function clearBootstrapState(): void {
 
 export function watchBootstrapAuthState(
   triggerPrefix: string,
-  onReady?: (ready: boolean) => void
+  onReady?: (ready: boolean) => void,
+  lockedHouseholdId?: string | null
 ): (() => void) | undefined {
   if (typeof window === "undefined" || !isSupabaseConfigured()) return undefined;
   const sb = getSupabaseBrowser();
@@ -438,7 +513,7 @@ export function watchBootstrapAuthState(
     }
 
     if (session?.user) {
-      void bootstrapSessionOnce(`${triggerPrefix}:${event}`).then((ready) => {
+      void bootstrapSessionOnce(`${triggerPrefix}:${event}`, lockedHouseholdId).then((ready) => {
         if (ready) onReady?.(true);
       });
     }

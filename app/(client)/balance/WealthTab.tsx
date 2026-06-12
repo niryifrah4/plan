@@ -45,6 +45,8 @@ import {
 import { NetWorthHistoryChart } from "@/components/balance/NetWorthHistoryChart";
 import { SolidKpi, SolidKpiRow } from "@/components/ui/SolidKpi";
 import { QuickUpdateModal } from "@/components/balance/QuickUpdateModal";
+import { EditAllocationModal } from "@/components/balance/EditAllocationModal";
+
 
 // Groups displayed in the "נכסים לפי קטגוריה" card row. "liquid" is intentionally
 // excluded here — checking/savings live under the Accounts tab. Liquid totals
@@ -140,6 +142,7 @@ export function WealthTab() {
   // Balance history snapshots
   const [snapshots, setSnapshots] = useState<NetWorthSnapshot[]>([]);
   const [showQuickUpdate, setShowQuickUpdate] = useState(false);
+  const [showOnboardingEdit, setShowOnboardingEdit] = useState(false);
   useEffect(() => {
     setSnapshots(loadHistory());
     const handler = () => setSnapshots(loadHistory());
@@ -682,6 +685,14 @@ export function WealthTab() {
                 שווי כולל: {fmtILS(allocationBreakdown.totalValue)}
               </p>
             </div>
+            <button
+              type="button"
+              onClick={() => setShowOnboardingEdit(true)}
+              className="btn btn-secondary btn-sm"
+            >
+              <span className="material-symbols-outlined text-[16px]">tune</span>
+              עריכת אפיון ויעדים
+            </button>
           </div>
 
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -921,6 +932,12 @@ export function WealthTab() {
         <QuickUpdateModal
           onClose={() => setShowQuickUpdate(false)}
           onSaved={() => setSnapshots(loadHistory())}
+        />
+      )}
+      {showOnboardingEdit && (
+        <EditAllocationModal
+          onClose={() => setShowOnboardingEdit(false)}
+          onSaved={() => setRefreshTick((t) => t + 1)}
         />
       )}
     </div>
