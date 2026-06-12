@@ -15,12 +15,13 @@
  *  5. getPendingCount() + אירוע verdant:sync:pending-changed להזנת חיווי UI.
  */
 
-import { pushBlob } from "./blob-sync";
 import { reportError } from "@/lib/report-error";
 import { safeParse } from "@/lib/safe-json";
 
 export const SYNC_PENDING_EVENT = "verdant:sync:pending-changed";
 const QUEUE_LS_KEY = "verdant:push_queue";
+const VERSION_PREFIX = "verdant:__ver:";
+const BROADCAST_NAME = "verdant-sync";
 const MAX_ATTEMPTS = 5;
 const BACKOFF_MS = [2_000, 8_000, 30_000, 30_000, 30_000];
 
@@ -29,6 +30,49 @@ interface QueueItem {
   value: unknown;
   householdId: string;
   attempts: number;
+}
+
+// ── גרסאות אופטימיות ──────────────────────────────────────────────
+// שומרים לכל (household,key) את הגרסה האחרונה שהשרת אישר, כדי לשלוח
+// expectedVersion בכתיבה הבאה ולזהות קונפליקט (טאב/מכשיר אחר שמר בינתיים).
+function versionKey(householdId: string, key: string): string {
+  return `${VERSION_PREFIX}${householdId}::${key}`;
+}
+
+function getLocalVersion(householdId: string, key: string): number | undefined {
+  try {
+    const raw = localStorage.getItem(versionKey(householdId, key));
+    if (raw == null) return undefined;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function setLocalVersion(householdId: string, key: string, version: number): void {
+  try {
+    localStorage.setItem(versionKey(householdId, key), String(version));
+  } catch (e) {
+    reportError("push-queue:setVersion", e);
+  }
+}
+
+let channel: BroadcastChannel | null = null;
+function getChannel(): BroadcastChannel | null {
+  if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") return null;
+  if (!channel) {
+    channel = new BroadcastChannel(BROADCAST_NAME);
+    channel.onmessage = (ev) => {
+      // טאב אחר שמר — מרעננים את ה-stores המקומיים (לא משדרים בחזרה).
+      if (ev.data?.type === "saved") {
+        import("@/lib/client-scope")
+          .then((m) => m.dispatchStoreRefreshEvents())
+          .catch((e) => reportError("push-queue:bc-refresh", e));
+      }
+    };
+  }
+  return channel;
 }
 
 // המפתח הלוגי בתור: כל (household,key) ייחודי.
@@ -88,6 +132,52 @@ function scheduleFlush(delay = 0): void {
   }, delay);
 }
 
+type PushOutcome = "ok" | "conflict" | "retry";
+
+async function pushOne(item: QueueItem): Promise<PushOutcome> {
+  const expected = getLocalVersion(item.householdId, item.key);
+  let res: Response;
+  try {
+    res = await fetch("/api/sync/blob", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        key: item.key,
+        value: item.value ?? null,
+        householdId: item.householdId,
+        ...(expected != null ? { expectedVersion: expected } : {}),
+      }),
+    });
+  } catch (e) {
+    reportError("push-queue:fetch", e);
+    return "retry";
+  }
+
+  if (res.ok) {
+    const body = await res.json().catch(() => null);
+    if (body?.version != null) setLocalVersion(item.householdId, item.key, body.version);
+    getChannel()?.postMessage({ type: "saved", key: item.key });
+    return "ok";
+  }
+
+  if (res.status === 409) {
+    // קונפליקט: טאב/מכשיר אחר שמר גרסה חדשה יותר. השרת מנצח —
+    // מאמצים את גרסת השרת, מושכים נתונים טריים, ומתריעים למשתמש.
+    const body = await res.json().catch(() => null);
+    if (body?.serverVersion != null) {
+      setLocalVersion(item.householdId, item.key, body.serverVersion);
+    }
+    notifyConflict();
+    void import("./bootstrap")
+      .then((m) => m.refreshAllFromRemote("push-queue:conflict", item.householdId))
+      .catch((e) => reportError("push-queue:conflict-refresh", e));
+    return "conflict";
+  }
+
+  // 4xx/5xx אחר — ננסה שוב.
+  return "retry";
+}
+
 async function flush(): Promise<void> {
   if (queue.size === 0) return;
   // snapshot כדי לא להסתבך עם שינויים תוך כדי איטרציה
@@ -95,15 +185,16 @@ async function flush(): Promise<void> {
   let anyDeferred = false;
 
   for (const [id, item] of items) {
-    let ok = false;
+    let outcome: PushOutcome = "retry";
     try {
-      ok = await pushBlob(item.key, item.value, item.householdId);
+      outcome = await pushOne(item);
     } catch (e) {
       reportError("push-queue:flush", e);
-      ok = false;
+      outcome = "retry";
     }
 
-    if (ok) {
+    // ok או conflict — שניהם "טופלו", הפריט יוצא מהתור (בקונפליקט השרת ניצח).
+    if (outcome === "ok" || outcome === "conflict") {
       queue.delete(id);
       emitPending();
       continue;
@@ -131,6 +222,18 @@ async function flush(): Promise<void> {
     const maxAttempts = Math.max(0, ...Array.from(queue.values()).map((i) => i.attempts));
     scheduleFlush(BACKOFF_MS[Math.min(maxAttempts, BACKOFF_MS.length - 1)]);
   }
+}
+
+function notifyConflict(): void {
+  if (typeof window === "undefined") return;
+  import("react-hot-toast")
+    .then((m) =>
+      m.default("הנתונים עודכנו ממקור אחר — טוען מחדש את הגרסה העדכנית.", {
+        id: "sync-conflict",
+        icon: "🔄",
+      })
+    )
+    .catch((e) => reportError("push-queue:toast", e));
 }
 
 function notifyGaveUp(key: string): void {
@@ -167,6 +270,7 @@ function flushOnUnload(): void {
   if (queue.size === 0) return;
   for (const item of queue.values()) {
     try {
+      const expected = getLocalVersion(item.householdId, item.key);
       void fetch("/api/sync/blob", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -174,6 +278,7 @@ function flushOnUnload(): void {
           key: item.key,
           value: item.value ?? null,
           householdId: item.householdId,
+          ...(expected != null ? { expectedVersion: expected } : {}),
         }),
         keepalive: true,
       });
@@ -187,6 +292,7 @@ function ensureListeners(): void {
   if (started || typeof window === "undefined") return;
   started = true;
   hydrate();
+  getChannel(); // מפעיל את המאזין לשמירות מטאבים אחרים
   window.addEventListener("online", () => scheduleFlush(0));
   window.addEventListener("pagehide", flushOnUnload);
   document.addEventListener("visibilitychange", () => {

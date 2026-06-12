@@ -23,11 +23,21 @@ export async function pullBlob<T = any>(key: string): Promise<T | null> {
   try {
     const { data, error } = await sb
       .from("client_state")
-      .select("state_value")
+      .select("state_value, version")
       .eq("household_id", hh)
       .eq("state_key", key)
       .maybeSingle();
     if (error || !data) return null;
+    // שומרים את הגרסה שנמשכה כך שהשמירה הבאה תשלח expectedVersion נכון
+    // (optimistic concurrency). פורמט המפתח חייב להתאים ל-push-queue.
+    try {
+      const v = (data as { version?: number }).version;
+      if (typeof v === "number" && typeof window !== "undefined") {
+        localStorage.setItem(`verdant:__ver:${hh}::${key}`, String(v));
+      }
+    } catch {
+      /* גרסה לא נשמרה — לא קריטי, השמירה הבאה תיפול ל-legacy upsert */
+    }
     return (data.state_value as T) ?? null;
   } catch {
     return null;

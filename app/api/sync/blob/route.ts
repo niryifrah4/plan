@@ -13,6 +13,9 @@ const BodySchema = z.object({
   householdId: z.string().uuid(),
   // value יכול להיות כל JSON; null מותר (מחיקה לוגית).
   value: z.unknown().optional(),
+  // optimistic concurrency: הגרסה שהלקוח חושב שקיימת. חסר = התנהגות
+  // legacy (דריסה), כדי שלקוחות ישנים ימשיכו לעבוד בזמן פריסה הדרגתית.
+  expectedVersion: z.number().int().nonnegative().optional(),
 });
 
 export async function POST(req: Request) {
@@ -27,7 +30,7 @@ export async function POST(req: Request) {
 
   const parsed = await parseBody(req, BodySchema);
   if (!parsed.ok) return parsed.res;
-  const { key, householdId, value } = parsed.data;
+  const { key, householdId, value, expectedVersion } = parsed.data;
 
   // Defense in depth: לא לסמוך רק על RLS — לוודא שהמשתמש שייך/מייעץ
   // ל-household הזה לפני כתיבה.
@@ -36,23 +39,54 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
 
-  const { error } = await sb
-    .from("client_state")
-    .upsert(
-      {
-        household_id: householdId,
-        state_key: key,
-        state_value: (value ?? null) as never,
-      },
-      { onConflict: "household_id,state_key" }
-    );
+  // כתיבה אטומית עם בקרת גרסה. ה-RPC מחזיר conflict=true אם השרת כבר
+  // מחזיק גרסה חדשה יותר מזו שהלקוח עבד עליה.
+  const { data, error } = await sb.rpc("upsert_client_state", {
+    p_household: householdId,
+    p_key: key,
+    p_value: (value ?? null) as never,
+    p_expected: expectedVersion ?? null,
+  });
 
   if (error) {
+    // Fallback בטוח לפריסה הדרגתית: אם ה-migration (0023) עוד לא רץ וה-RPC
+    // לא קיים — נופלים לחזרה ל-upsert הישן כדי לא לאבד שמירות. PGRST202 =
+    // function not found ב-PostgREST; 42883 = undefined_function ב-Postgres.
+    const code = (error as { code?: string }).code;
+    if (code === "PGRST202" || code === "42883") {
+      const { error: upErr } = await sb
+        .from("client_state")
+        .upsert(
+          { household_id: householdId, state_key: key, state_value: (value ?? null) as never },
+          { onConflict: "household_id,state_key" }
+        );
+      if (upErr) {
+        return NextResponse.json(
+          { ok: false, error: "upsert_failed", detail: upErr.message },
+          { status: 500 }
+        );
+      }
+      return NextResponse.json({ ok: true, version: null });
+    }
     return NextResponse.json(
       { ok: false, error: "upsert_failed", detail: error.message },
       { status: 500 }
     );
   }
 
-  return NextResponse.json({ ok: true });
+  const row = Array.isArray(data) ? data[0] : data;
+  if (row?.out_conflict) {
+    // 409 — הלקוח צריך למשוך את serverValue/serverVersion ולמזג.
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "version_conflict",
+        serverVersion: row.out_version,
+        serverValue: row.out_value,
+      },
+      { status: 409 }
+    );
+  }
+
+  return NextResponse.json({ ok: true, version: row?.out_version ?? null });
 }
