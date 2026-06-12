@@ -210,29 +210,52 @@ export function wipeForTenantSwitch(newHouseholdUuid: string | null): number {
   return removed;
 }
 
+/**
+ * מקור אמת יחיד לכל אירועי רענון ה-stores.
+ *
+ * **למה זה קריטי (2026-06-12):** בעבר היו כאן שתי רשימות נפרדות —
+ * dispatchAllRefreshEvents מול dispatchStoreRefreshEvents — והן התבדרו.
+ * חמישה stores (salary_profile, docs, portfolio, special-events,
+ * subscriptions_radar_exclusions) הופיעו רק באחת, ו-investments רק
+ * בשנייה. התוצאה: החלפת לקוח (שקראה ל-dispatchAllRefreshEvents) לא
+ * ריעננה את חלקם, והמשתמש ראה נתוני לקוח קודם עד reload ידני — בדיוק
+ * סוג דליפת-הנתונים-בין-לקוחות שכבר נצרבנו ממנו.
+ *
+ * עכשיו שתי הפונקציות נגזרות מהקבוע הזה, כך שאי אפשר שיתבדרו שוב.
+ * כל store חדש שמוסיף אירוע רענון — מוסיף אותו כאן, פעם אחת.
+ */
+export const STORE_REFRESH_EVENTS = [
+  "verdant:accounts:updated",
+  "verdant:pension:updated",
+  "verdant:realestate:updated",
+  "verdant:debt:updated",
+  "verdant:budgets:updated",
+  "verdant:buckets:updated",
+  "verdant:balance_history:updated",
+  "verdant:assumptions",
+  "verdant:scenarios:updated",
+  "verdant:goals:updated",
+  "verdant:risk:updated",
+  "verdant:securities:updated",
+  "verdant:parsed_transactions:updated",
+  "verdant:insights:updated",
+  "verdant:kids_savings:updated",
+  "verdant:investments:updated",
+  "verdant:salary_profile:updated",
+  "verdant:docs:updated",
+  "verdant:portfolio:updated",
+  "verdant:special-events:updated",
+  "verdant:subscriptions_radar_exclusions:updated",
+] as const;
+
 /** Fires every known store event so pages re-read from new namespace. */
 export function dispatchAllRefreshEvents(): void {
   if (typeof window === "undefined") return;
-  const events = [
-    ACTIVE_CLIENT_CHANGED,
-    "verdant:accounts:updated",
-    "verdant:pension:updated",
-    "verdant:realestate:updated",
-    "verdant:debt:updated",
-    "verdant:budgets:updated",
-    "verdant:buckets:updated",
-    "verdant:balance_history:updated",
-    "verdant:assumptions",
-    "verdant:scenarios:updated",
-    "verdant:goals:updated",
-    "verdant:risk:updated",
-    "verdant:securities:updated",
-    "verdant:parsed_transactions:updated",
-    "verdant:insights:updated",
-    "verdant:kids_savings:updated",
-    "verdant:investments:updated",
-  ];
-  events.forEach((name) => window.dispatchEvent(new Event(name)));
+  // החלפת לקוח: גם ה-ACTIVE_CLIENT_CHANGED (שמסמן "הלקוח השתנה") וגם כל
+  // אירועי ה-stores.
+  [ACTIVE_CLIENT_CHANGED, ...STORE_REFRESH_EVENTS].forEach((name) =>
+    window.dispatchEvent(new Event(name))
+  );
 }
 
 /**
@@ -243,27 +266,5 @@ export function dispatchAllRefreshEvents(): void {
  */
 export function dispatchStoreRefreshEvents(): void {
   if (typeof window === "undefined") return;
-  const events = [
-    "verdant:accounts:updated",
-    "verdant:pension:updated",
-    "verdant:realestate:updated",
-    "verdant:debt:updated",
-    "verdant:budgets:updated",
-    "verdant:buckets:updated",
-    "verdant:balance_history:updated",
-    "verdant:assumptions",
-    "verdant:scenarios:updated",
-    "verdant:goals:updated",
-    "verdant:risk:updated",
-    "verdant:securities:updated",
-    "verdant:parsed_transactions:updated",
-    "verdant:insights:updated",
-    "verdant:kids_savings:updated",
-    "verdant:salary_profile:updated",
-    "verdant:docs:updated",
-    "verdant:portfolio:updated",
-    "verdant:special-events:updated",
-    "verdant:subscriptions_radar_exclusions:updated",
-  ];
-  events.forEach((name) => window.dispatchEvent(new Event(name)));
+  STORE_REFRESH_EVENTS.forEach((name) => window.dispatchEvent(new Event(name)));
 }

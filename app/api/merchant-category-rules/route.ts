@@ -6,6 +6,7 @@ import {
   primeMerchantCategoryRulesCacheFromDb,
   deleteMerchantCategoryVotes,
 } from "@/lib/doc-parser/merchant-category-rules.server";
+import { safeParse } from "@/lib/safe-json";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -106,12 +107,8 @@ export async function DELETE(req: NextRequest) {
     if (merchantKey) {
       keysToDelete.push(merchantKey);
     } else if (merchantKeysRaw) {
-      try {
-        const parsed = JSON.parse(merchantKeysRaw);
-        if (Array.isArray(parsed)) keysToDelete = parsed;
-      } catch (e) {
-        // Ignore
-      }
+      const parsed = safeParse<unknown>(merchantKeysRaw, null, "merchant-rules:DELETE");
+      if (Array.isArray(parsed)) keysToDelete = parsed.filter((k): k is string => typeof k === "string");
     }
 
     if (keysToDelete.length === 0) {

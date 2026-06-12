@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { cookies } from "next/headers";
 import { requireUser } from "@/lib/supabase/require-user";
+import { parseBody } from "@/lib/api/validate";
+
+// רשימת מודלים מותרת — ערך חופשי ב-cookie היה יכול להישמר ולהישלח חזרה
+// ל-Anthropic כשם מודל לא תקין.
+const PrefsSchema = z.object({
+  preferences: z.object({
+    ai_categorizer: z.enum(["haiku", "perplexity"]).optional(),
+  }),
+});
 
 export async function GET() {
   const auth = await requireUser();
@@ -16,20 +26,17 @@ export async function PATCH(req: NextRequest) {
   const auth = await requireUser();
   if ("response" in auth) return auth.response;
 
-  try {
-    const { preferences } = await req.json();
+  const parsed = await parseBody(req, PrefsSchema);
+  if (!parsed.ok) return parsed.res;
 
-    if (preferences && preferences.ai_categorizer) {
-      const cookieStore = await cookies();
-      cookieStore.set("ai_categorizer_model", preferences.ai_categorizer, {
-        path: "/",
-        maxAge: 60 * 60 * 24 * 365, // 1 year
-      });
-    }
-
-    return NextResponse.json({ success: true, preferences });
-  } catch (err) {
-    console.error("[preferences PATCH] Unexpected error:", err);
-    return NextResponse.json({ error: "Invalid request body or unexpected error" }, { status: 500 });
+  const model = parsed.data.preferences.ai_categorizer;
+  if (model) {
+    const cookieStore = await cookies();
+    cookieStore.set("ai_categorizer_model", model, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365, // 1 year
+    });
   }
+
+  return NextResponse.json({ success: true, preferences: parsed.data.preferences });
 }
