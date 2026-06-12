@@ -83,6 +83,7 @@ const __dirname_ = path.dirname(__filename_);
 const nextConfig = {
   reactStrictMode: true,
   turbopack: {},
+  allowedDevOrigins: ["127.0.0.1"],
   // 2026-06-03: type-check is gated to LOCAL builds only.
   // History: it was off for ~3 weeks (a missing-file import — Step0Welcome —
   // slipped to prod and 500'd), so on 2026-05-23 we turned it back ON at build.

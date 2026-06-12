@@ -171,8 +171,16 @@ export default function ClientLayoutInner({
   }, [bootstrapReady, impersonation?.householdId ?? null]);
 
   const loadingScreen = (
-    <div className="flex min-h-screen items-center justify-center text-verdant-muted">
-      טוען...
+    <div
+      className="flex min-h-screen flex-col items-center justify-center gap-4 text-verdant-muted"
+      role="status"
+      aria-live="polite"
+    >
+      <div
+        className="h-10 w-10 animate-spin rounded-full"
+        style={{ border: "3px solid rgba(16,185,129,0.15)", borderTopColor: "#059669" }}
+      />
+      <span className="text-sm">טוען...</span>
     </div>
   );
 

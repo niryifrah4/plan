@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Heebo, Rubik } from "next/font/google";
 import "./globals.css";
 import { logEnvStatus } from "@/lib/env";
+import { RouteProgressBar } from "@/components/ui/RouteProgressBar";
 
 // server-only boot log
 if (typeof window === "undefined") logEnvStatus();
@@ -63,7 +64,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
         />
       </head>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <RouteProgressBar />
+        {children}
+      </body>
     </html>
   );
 }

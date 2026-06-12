@@ -661,6 +661,20 @@ body {
   }
 }
 
+.anim-fade-in {
+  animation: fadeIn 0.35s ease-out both;
+}
+
+/* Indeterminate progress bar — slides a gradient segment edge to edge (RTL) */
+@keyframes indeterminate-slide {
+  from {
+    transform: translateX(150%);
+  }
+  to {
+    transform: translateX(-250%);
+  }
+}
+
 /* Scrollbar polish — light surface */
 ::-webkit-scrollbar {
   width: 8px;

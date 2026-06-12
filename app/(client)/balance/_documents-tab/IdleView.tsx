@@ -233,23 +233,7 @@ function DragDropArea({
       />
       <div className="flex h-full flex-col items-center justify-center py-14">
         {isUploading ? (
-          <>
-            <span className="material-symbols-outlined mb-3 animate-pulse text-[48px] text-verdant-emerald">
-              cloud_sync
-            </span>
-            <div
-              className="mb-1 text-lg font-extrabold text-verdant-ink"
-              style={{ fontFamily: "inherit" }}
-            >
-              מעבד קבצים...
-            </div>
-            {uploadProgress && (
-              <div className="text-sm text-verdant-muted">
-                קובץ {uploadProgress.current} מתוך {uploadProgress.total}:{" "}
-                <span className="font-bold">{uploadProgress.name}</span>
-              </div>
-            )}
-          </>
+          <UploadingIndicator uploadProgress={uploadProgress} />
         ) : (
           <>
             <div
@@ -760,6 +744,77 @@ function DocHistoryRow({ entry: h, onRemove }: { entry: DocHistoryEntry; onRemov
           delete_outline
         </span>
       </button>
+    </div>
+  );
+}
+
+/* ── Uploading indicator: spinner ring + indeterminate bar + cycling stage text ── */
+
+const UPLOAD_STAGES = [
+  "קורא את הקובץ...",
+  "מזהה את הבנק והפורמט...",
+  "מחלץ תנועות...",
+  "מסווג קטגוריות...",
+  "בודק כפילויות...",
+  "עוד רגע, מסיים...",
+];
+
+function UploadingIndicator({
+  uploadProgress,
+}: {
+  uploadProgress: { current: number; total: number; name: string } | null;
+}) {
+  const [stageIdx, setStageIdx] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setStageIdx((i) => Math.min(i + 1, UPLOAD_STAGES.length - 1));
+    }, 2500);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="flex flex-col items-center" role="status" aria-live="polite">
+      {/* Spinner ring around the cloud icon */}
+      <div className="relative mb-4 flex h-20 w-20 items-center justify-center">
+        <div
+          className="absolute inset-0 animate-spin rounded-full"
+          style={{
+            border: "3px solid rgba(16,185,129,0.15)",
+            borderTopColor: "#059669",
+          }}
+        />
+        <span className="material-symbols-outlined text-[36px] text-verdant-emerald">
+          cloud_sync
+        </span>
+      </div>
+
+      <div className="mb-1 text-lg font-extrabold text-verdant-ink" style={{ fontFamily: "inherit" }}>
+        מעבד קבצים...
+      </div>
+
+      {/* Cycling stage message so long parses never look stuck */}
+      <div key={stageIdx} className="anim-fade-in mb-3 text-sm text-verdant-muted">
+        {UPLOAD_STAGES[stageIdx]}
+      </div>
+
+      {uploadProgress && (
+        <div className="mb-3 text-xs text-verdant-muted">
+          קובץ {uploadProgress.current} מתוך {uploadProgress.total}:{" "}
+          <span className="font-bold">{uploadProgress.name}</span>
+        </div>
+      )}
+
+      {/* Indeterminate shimmer bar */}
+      <div className="h-1.5 w-56 overflow-hidden rounded-full" style={{ background: "rgba(16,185,129,0.12)" }}>
+        <div
+          className="h-full w-1/3 rounded-full"
+          style={{
+            background: "linear-gradient(90deg, #059669, #34d399)",
+            animation: "indeterminate-slide 1.4s ease-in-out infinite",
+          }}
+        />
+      </div>
     </div>
   );
 }
