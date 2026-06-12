@@ -13,6 +13,7 @@
  */
 
 import { scopedKey } from "./client-scope";
+import { safeSetItem } from "@/lib/safe-storage";
 import { pullBlob, pushBlob, pushBlobInBackground } from "./sync/blob-sync";
 import { reportError } from "@/lib/report-error";
 
@@ -62,7 +63,7 @@ export function loadDocHistory(): DocHistoryEntry[] {
 export function saveDocHistory(history: DocHistoryEntry[]): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(scopedKey(HISTORY_KEY), JSON.stringify(history));
+    safeSetItem(scopedKey(HISTORY_KEY), JSON.stringify(history));
     pushBlobInBackground(HISTORY_BLOB_KEY, history);
   } catch (e) { reportError("documents-store", e); }
 }
@@ -72,7 +73,7 @@ export async function saveDocHistoryAndWait(history: DocHistoryEntry[]): Promise
   try {
     const remoteSaved = await pushBlob(HISTORY_BLOB_KEY, history);
     if (!remoteSaved) return false;
-    localStorage.setItem(scopedKey(HISTORY_KEY), JSON.stringify(history));
+    safeSetItem(scopedKey(HISTORY_KEY), JSON.stringify(history));
     return true;
   } catch {
     return false;
@@ -89,7 +90,7 @@ export async function hydrateDocHistoryFromRemote(): Promise<boolean> {
   if (!remote) return false;
   if (typeof window === "undefined") return false;
   try {
-    localStorage.setItem(scopedKey(HISTORY_KEY), JSON.stringify(remote));
+    safeSetItem(scopedKey(HISTORY_KEY), JSON.stringify(remote));
     window.dispatchEvent(new Event("verdant:docs:updated"));
     window.dispatchEvent(new Event("storage"));
     return true;

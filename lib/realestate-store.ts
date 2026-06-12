@@ -12,6 +12,7 @@
  */
 
 import { scopedKey } from "./client-scope";
+import { safeSetItem } from "@/lib/safe-storage";
 import { pushBlobInBackground, pullBlob } from "./sync/blob-sync";
 
 const STORAGE_KEY = "verdant:realestate_properties";
@@ -127,7 +128,7 @@ export function loadProperties(): Property[] {
     // tenant switch (wipeForTenantSwitch). Push race-safely.
     const migrated = migrateFromOnboarding();
     if (migrated.length > 0) {
-      localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(migrated));
+      safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(migrated));
       pushBlobInBackground(BLOB_KEY, migrated);
       return migrated;
     }
@@ -144,7 +145,7 @@ export function saveProperties(props: Property[]) {
   // Enforce primary-residence uniqueness on every save so the tax logic
   // never sees an inconsistent state.
   const safe = dedupePrimaryFlags(props);
-  localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(safe));
+  safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(safe));
   window.dispatchEvent(new Event(EVENT_NAME));
   pushBlobInBackground(BLOB_KEY, safe);
 }
@@ -154,7 +155,7 @@ export async function hydratePropertiesFromRemote(): Promise<boolean> {
   const remote = await pullBlob<Property[]>(BLOB_KEY);
   if (!remote || !Array.isArray(remote)) return false;
   try {
-    localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(remote));
+    safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(remote));
     window.dispatchEvent(new Event(EVENT_NAME));
     return true;
   } catch {

@@ -40,6 +40,7 @@
  */
 
 import { scopedKey } from "./client-scope";
+import { safeSetItem } from "@/lib/safe-storage";
 import { fireSync } from "./sync-engine";
 import { pushBlobInBackground, pullBlob } from "./sync/blob-sync";
 import { reportError } from "@/lib/report-error";
@@ -349,7 +350,7 @@ export function loadKidsSavings(): KidSavings[] {
 
 export function saveKidsSavings(items: KidSavings[]): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(items));
+  safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(items));
   fireSync(KIDS_SAVINGS_EVENT);
   pushBlobInBackground(BLOB_KEY, items);
 }
@@ -358,7 +359,7 @@ export async function hydrateKidsSavingsFromRemote(): Promise<boolean> {
   const remote = await pullBlob<KidSavings[]>(BLOB_KEY);
   if (!remote || !Array.isArray(remote)) return false;
   try {
-    localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(remote));
+    safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(remote));
     fireSync(KIDS_SAVINGS_EVENT);
     return true;
   } catch {

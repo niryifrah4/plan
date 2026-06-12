@@ -15,6 +15,7 @@
  * thin wrappers around supabase-js and everything else stays identical.
  */
 
+import { safeSetItem } from "@/lib/safe-storage";
 import {
   type Bucket,
   type BucketContribution,
@@ -125,7 +126,7 @@ export function loadBuckets(): Bucket[] {
         // see the truth, not the dirty copy.
         if (deduped.length < active.length) {
           try {
-            localStorage.setItem(scopedKey(BUCKETS_STORAGE_KEY), JSON.stringify(deduped));
+            safeSetItem(scopedKey(BUCKETS_STORAGE_KEY), JSON.stringify(deduped));
           } catch (e) { reportError("buckets-store", e); }
         }
         return deduped;
@@ -170,7 +171,7 @@ export function saveBuckets(buckets: Bucket[]): void {
     // dirty list. Paired with the dedup in `loadBuckets`, this guarantees the
     // storage never accumulates duplicate goals across sync runs.
     const clean = dedupeBuckets(buckets);
-    localStorage.setItem(scopedKey(BUCKETS_STORAGE_KEY), JSON.stringify(clean));
+    safeSetItem(scopedKey(BUCKETS_STORAGE_KEY), JSON.stringify(clean));
     fireSync(BUCKETS_EVENT_NAME);
   } catch (err) {
     console.error("[buckets-store] save failed:", err);

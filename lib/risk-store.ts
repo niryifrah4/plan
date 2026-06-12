@@ -16,6 +16,7 @@
  */
 
 import { scopedKey } from "./client-scope";
+import { safeSetItem } from "@/lib/safe-storage";
 
 import { pushBlobInBackground, pullBlob } from "./sync/blob-sync";
 import { reportError } from "@/lib/report-error";
@@ -170,7 +171,7 @@ export function loadRiskItems(): RiskItem[] {
           ];
           // Persist quietly so next load is consistent.
           try {
-            localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(augmented));
+            safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(augmented));
           } catch (e) { reportError("risk-store", e); }
           return augmented;
         }
@@ -184,7 +185,7 @@ export function loadRiskItems(): RiskItem[] {
 
 export function saveRiskItems(items: RiskItem[]) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(items));
+  safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(items));
   window.dispatchEvent(new Event(RISK_EVENT));
   pushBlobInBackground(BLOB_KEY, items);
 }
@@ -193,7 +194,7 @@ export async function hydrateRiskFromRemote(): Promise<boolean> {
   const remote = await pullBlob<RiskItem[]>(BLOB_KEY);
   if (!remote || !Array.isArray(remote)) return false;
   try {
-    localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(remote));
+    safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(remote));
     if (typeof window !== "undefined") window.dispatchEvent(new Event(RISK_EVENT));
     return true;
   } catch {

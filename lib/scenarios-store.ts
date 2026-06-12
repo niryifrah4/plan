@@ -27,6 +27,7 @@ export interface Scenario {
 }
 
 import { scopedKey } from "./client-scope";
+import { safeSetItem } from "@/lib/safe-storage";
 import { pushBlobInBackground, pullBlob } from "./sync/blob-sync";
 
 const STORAGE_KEY = "verdant:scenarios";
@@ -57,7 +58,7 @@ function readAll(): Scenario[] {
 function writeAll(list: Scenario[]): void {
   if (!hasWindow()) return;
   try {
-    window.localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(list));
+    safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(list));
   } catch {
     // שקט
   }

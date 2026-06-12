@@ -18,6 +18,7 @@
  */
 
 import { scopedKey } from "./client-scope";
+import { safeSetItem } from "@/lib/safe-storage";
 import { loadAccounts } from "./accounts-store";
 import { loadDebtData } from "./debt-store";
 import { getMonthlyNetIncome } from "./income";
@@ -86,7 +87,7 @@ export function loadDailyCashflow(): DailyCashflow {
 export function saveDailyCashflow(data: DailyCashflow): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(data));
+    safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(data));
     window.dispatchEvent(new CustomEvent(DAILY_CASHFLOW_EVENT));
   } catch (e) {
     console.warn("[daily-cashflow-store] save failed:", e);

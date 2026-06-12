@@ -77,6 +77,7 @@ export interface PensionFund {
 }
 
 import { scopedKey } from "./client-scope";
+import { safeSetItem } from "@/lib/safe-storage";
 import { pushToRemoteInBackground, pullFromRemote, type SyncConfig } from "./sync/remote-sync";
 import { reportError } from "@/lib/report-error";
 
@@ -155,7 +156,7 @@ export async function hydratePensionFundsFromRemote(): Promise<boolean> {
   const remote = await pullFromRemote(SYNC_CFG);
   if (!remote) return false;
   try {
-    localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(remote));
+    safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(remote));
     window.dispatchEvent(new Event(EVENT_NAME));
     return true;
   } catch {
@@ -220,7 +221,7 @@ export function loadPensionFunds(): PensionFund[] {
 }
 
 export function savePensionFunds(funds: PensionFund[]) {
-  localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(funds));
+  safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(funds));
   window.dispatchEvent(new Event(EVENT_NAME));
   // Fire-and-forget push to Supabase (no-op in demo mode)
   pushToRemoteInBackground(SYNC_CFG, funds);

@@ -19,6 +19,7 @@
  */
 
 import { scopedKey } from "./client-scope";
+import { safeSetItem } from "@/lib/safe-storage";
 import { loadPensionFunds, savePensionFunds, type PensionFund } from "./pension-store";
 import { reportError } from "@/lib/report-error";
 
@@ -108,7 +109,7 @@ export function loadPlans(): DepositPlan[] {
 export function savePlans(plans: DepositPlan[]): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(scopedKey(PLANS_KEY), JSON.stringify(plans));
+    safeSetItem(scopedKey(PLANS_KEY), JSON.stringify(plans));
     window.dispatchEvent(new Event(DEPOSITS_EVENT));
   } catch (e) { reportError("deposits-store", e); }
 }
@@ -156,7 +157,7 @@ export function loadEntries(): DepositEntry[] {
 export function saveEntries(entries: DepositEntry[]): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(scopedKey(LOG_KEY), JSON.stringify(entries));
+    safeSetItem(scopedKey(LOG_KEY), JSON.stringify(entries));
     window.dispatchEvent(new Event(DEPOSITS_EVENT));
   } catch (e) { reportError("deposits-store", e); }
 }
@@ -431,7 +432,7 @@ function syncConfirmedTotalToBudget(month: string): void {
     if (idx < 0) return;
 
     rows[idx] = { ...rows[idx], actual: total };
-    localStorage.setItem(key, JSON.stringify(data));
+    safeSetItem(key, JSON.stringify(data));
     window.dispatchEvent(new Event("storage"));
   } catch (e) { reportError("deposits-store", e); }
 }

@@ -11,6 +11,7 @@
  */
 
 import { loadAccounts, totalBankBalance, totalCreditCharges } from "./accounts-store";
+import { safeSetItem } from "@/lib/safe-storage";
 import { loadPensionFunds } from "./pension-store";
 import { loadProperties } from "./realestate-store";
 import { getTotalLiabilities, loadDebtData, getAllMortgageTracks } from "./debt-store";
@@ -175,7 +176,7 @@ export function loadHistory(): NetWorthSnapshot[] {
 export function saveHistory(snapshots: NetWorthSnapshot[]): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(snapshots));
+    safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(snapshots));
     window.dispatchEvent(new CustomEvent(BALANCE_HISTORY_EVENT));
     pushBlobInBackground("balance_history", snapshots);
   } catch (e) {
@@ -187,7 +188,7 @@ export async function hydrateHistoryFromRemote(): Promise<boolean> {
   const remote = await pullBlob<NetWorthSnapshot[]>("balance_history");
   if (!remote || !Array.isArray(remote)) return false;
   try {
-    localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(remote));
+    safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(remote));
     if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(BALANCE_HISTORY_EVENT));
     return true;
   } catch {

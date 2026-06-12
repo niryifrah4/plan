@@ -7,6 +7,7 @@
  */
 
 import { scopedKey } from "./client-scope";
+import { safeSetItem } from "@/lib/safe-storage";
 import { pushBlobInBackground, pullBlob } from "./sync/blob-sync";
 import { reportError } from "@/lib/report-error";
 
@@ -86,7 +87,7 @@ export function loadAccounts(): AccountsData {
 
 function save(data: AccountsData) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(data));
+  safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(data));
   window.dispatchEvent(new Event(ACCOUNTS_EVENT));
   pushBlobInBackground(BLOB_KEY, data);
 }
@@ -96,7 +97,7 @@ export async function hydrateAccountsFromRemote(): Promise<boolean> {
   const remote = await pullBlob<AccountsData>(BLOB_KEY);
   if (!remote) return false;
   try {
-    localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(remote));
+    safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(remote));
     if (typeof window !== "undefined") {
       window.dispatchEvent(new Event(ACCOUNTS_EVENT));
     }

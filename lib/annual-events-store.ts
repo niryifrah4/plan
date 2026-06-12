@@ -17,6 +17,7 @@
  */
 
 import { scopedKey } from "./client-scope";
+import { safeSetItem } from "@/lib/safe-storage";
 import { pushBlobInBackground, pullBlob } from "./sync/blob-sync";
 
 export type AnnualEventKind = "income" | "expense";
@@ -98,7 +99,7 @@ export function saveAnnualEvents(year: number, events: AnnualEvent[]): void {
       ...e,
       updatedAt: e.updatedAt ?? new Date().toISOString(),
     }));
-    localStorage.setItem(scopedKey(storageKey(year)), JSON.stringify(stamped));
+    safeSetItem(scopedKey(storageKey(year)), JSON.stringify(stamped));
     window.dispatchEvent(new Event(STORAGE_EVENT));
     // Blob sync — one blob per year so the desktop can show the same data.
     pushBlobInBackground(`${BLOB_KEY}_${year}`, stamped);
@@ -145,7 +146,7 @@ export async function hydrateAnnualEventsFromRemote(): Promise<void> {
     try {
       const remote = await pullBlob<AnnualEvent[]>(`${BLOB_KEY}_${y}`);
       if (!Array.isArray(remote)) continue;
-      localStorage.setItem(scopedKey(storageKey(y)), JSON.stringify(remote));
+      safeSetItem(scopedKey(storageKey(y)), JSON.stringify(remote));
     } catch {
       /* offline — keep local data */
     }

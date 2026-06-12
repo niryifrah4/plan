@@ -10,6 +10,7 @@
  */
 
 import { scopedKey } from "@/lib/client-scope";
+import { safeSetItem } from "@/lib/safe-storage";
 import { reportError } from "@/lib/report-error";
 
 export type EquityType = "rsu" | "espp" | "options";
@@ -58,7 +59,7 @@ export function loadGrants(): EquityGrant[] {
 export function saveGrants(grants: EquityGrant[]): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(grants));
+    safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(grants));
     window.dispatchEvent(new Event(EQUITY_EVENT));
   } catch (e) { reportError("equity-store", e); }
 }

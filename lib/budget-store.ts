@@ -10,6 +10,7 @@
  */
 
 import { scopedKey } from "./client-scope";
+import { safeSetItem } from "@/lib/safe-storage";
 
 import { pushBlobInBackground, pullBlob, pullBlobsByPrefix } from "./sync/blob-sync";
 import { reportError } from "@/lib/report-error";
@@ -83,7 +84,7 @@ export function loadBudgets(): BudgetCategory[] {
 
 export function saveBudgets(budgets: BudgetCategory[]) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(budgets));
+  safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(budgets));
   window.dispatchEvent(new Event("verdant:budgets:updated"));
   pushBlobInBackground(BLOB_KEY, budgets);
 }
@@ -92,7 +93,7 @@ export async function hydrateBudgetsFromRemote(): Promise<boolean> {
   const remote = await pullBlob<BudgetCategory[]>(BLOB_KEY);
   if (!remote || !Array.isArray(remote)) return false;
   try {
-    localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(remote));
+    safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(remote));
     window.dispatchEvent(new Event("verdant:budgets:updated"));
     return true;
   } catch {
@@ -121,7 +122,7 @@ export async function hydrateMonthlyBudgetsFromRemote(): Promise<boolean> {
     // key format: `budget_YYYY_MM`. The local key uses `verdant:` prefix.
     if (!/^budget_\d{4}_\d{2}$/.test(key)) continue;
     try {
-      localStorage.setItem(scopedKey(`verdant:${key}`), JSON.stringify(value));
+      safeSetItem(scopedKey(`verdant:${key}`), JSON.stringify(value));
       wrote = true;
     } catch (e) { reportError("budget-store", e); }
   }

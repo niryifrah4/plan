@@ -182,6 +182,7 @@ export function createStableDebtId(seed: string): string {
 }
 
 import { scopedKey } from "./client-scope";
+import { safeSetItem } from "./safe-storage";
 import { pushBlobInBackground, pullBlob } from "./sync/blob-sync";
 import {
   pushDebtToTablesInBackground,
@@ -298,7 +299,7 @@ export function saveDebtData(data: DebtData): void {
       installments: data.installments || [],
       mortgages: data.mortgages || [],
     };
-    localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(clean));
+    safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(clean));
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("verdant:debt:updated"));
     }
@@ -319,7 +320,7 @@ export async function hydrateDebtFromRemote(): Promise<boolean> {
   if (!remote) return false;
   try {
     const migrated = migrateDebtShape(remote);
-    localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(migrated));
+    safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(migrated));
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("verdant:debt:updated"));
     }

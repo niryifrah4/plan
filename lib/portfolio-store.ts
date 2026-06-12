@@ -20,6 +20,7 @@
  */
 
 import { scopedKey } from "./client-scope";
+import { safeSetItem } from "@/lib/safe-storage";
 import { pushBlobInBackground, pullBlob } from "./sync/blob-sync";
 import { reportError } from "@/lib/report-error";
 
@@ -211,7 +212,7 @@ export function loadAccounts(): Account[] {
 export function saveAccounts(accounts: Account[]): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(scopedKey(ACCOUNTS_KEY), JSON.stringify(accounts));
+    safeSetItem(scopedKey(ACCOUNTS_KEY), JSON.stringify(accounts));
     window.dispatchEvent(new Event(PORTFOLIO_EVENT));
     // 2026-05-27 — portfolio data was localStorage-only and did not survive
     // tenant switch (wipe-on-switch leaves the new tenant with no
@@ -263,7 +264,7 @@ export function loadPositions(): Position[] {
 export function savePositions(positions: Position[]): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(scopedKey(POSITIONS_KEY), JSON.stringify(positions));
+    safeSetItem(scopedKey(POSITIONS_KEY), JSON.stringify(positions));
     window.dispatchEvent(new Event(PORTFOLIO_EVENT));
     pushBlobInBackground(POSITIONS_BLOB_KEY, positions);
   } catch (e) { reportError("portfolio-store", e); }
@@ -279,14 +280,14 @@ export async function hydratePortfolioFromRemote(): Promise<boolean> {
   try {
     const accounts = await pullBlob<Account[]>(ACCOUNTS_BLOB_KEY);
     if (Array.isArray(accounts)) {
-      localStorage.setItem(scopedKey(ACCOUNTS_KEY), JSON.stringify(accounts));
+      safeSetItem(scopedKey(ACCOUNTS_KEY), JSON.stringify(accounts));
       wrote = true;
     }
   } catch (e) { reportError("portfolio-store", e); }
   try {
     const positions = await pullBlob<Position[]>(POSITIONS_BLOB_KEY);
     if (Array.isArray(positions)) {
-      localStorage.setItem(scopedKey(POSITIONS_KEY), JSON.stringify(positions));
+      safeSetItem(scopedKey(POSITIONS_KEY), JSON.stringify(positions));
       wrote = true;
     }
   } catch (e) { reportError("portfolio-store", e); }

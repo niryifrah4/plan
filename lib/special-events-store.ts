@@ -10,6 +10,7 @@
  */
 
 import { fireSync } from "./sync-engine";
+import { safeSetItem } from "@/lib/safe-storage";
 import { scopedKey } from "./client-scope";
 import { pullBlob, pushBlobInBackground } from "./sync/blob-sync";
 import { reportError } from "@/lib/report-error";
@@ -55,7 +56,7 @@ export function loadSpecialEvents(): SpecialEvent[] {
 export function saveSpecialEvents(events: SpecialEvent[]): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(scopedKey(SPECIAL_EVENTS_STORAGE_KEY), JSON.stringify(events));
+    safeSetItem(scopedKey(SPECIAL_EVENTS_STORAGE_KEY), JSON.stringify(events));
     fireSync(SPECIAL_EVENTS_EVENT);
     pushBlobInBackground(SPECIAL_EVENTS_BLOB_KEY, events);
   } catch (e) { reportError("special-events-store", e); }
@@ -65,7 +66,7 @@ export async function hydrateSpecialEventsFromRemote(): Promise<boolean> {
   const remote = await pullBlob<SpecialEvent[]>(SPECIAL_EVENTS_BLOB_KEY);
   if (!remote || !Array.isArray(remote)) return false;
   try {
-    localStorage.setItem(scopedKey(SPECIAL_EVENTS_STORAGE_KEY), JSON.stringify(remote));
+    safeSetItem(scopedKey(SPECIAL_EVENTS_STORAGE_KEY), JSON.stringify(remote));
     fireSync(SPECIAL_EVENTS_EVENT);
     return true;
   } catch {
