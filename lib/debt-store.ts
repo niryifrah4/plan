@@ -338,7 +338,19 @@ export async function hydrateDebtFromRemote(): Promise<boolean> {
 
 export function loanElapsedMonths(startDate: string): number {
   if (!startDate) return 0;
-  const [y, m] = startDate.split("-").map(Number);
+  // ולידציה של פורמט YYYY-MM[-DD]. קלט לא תקין החזיר בעבר NaN שהתפשט
+  // שקט לחישובי ההלוואה (תשלומים שנותרו וכו'). עכשיו מחזירים 0 + דיווח.
+  const match = /^(\d{4})-(\d{1,2})/.exec(startDate);
+  if (!match) {
+    reportError("debt-store:loanElapsedMonths", new Error(`bad startDate: ${startDate}`));
+    return 0;
+  }
+  const y = Number(match[1]);
+  const m = Number(match[2]);
+  if (!Number.isFinite(y) || !Number.isFinite(m) || m < 1 || m > 12) {
+    reportError("debt-store:loanElapsedMonths", new Error(`bad startDate: ${startDate}`));
+    return 0;
+  }
   const now = new Date();
   return (now.getFullYear() - y) * 12 + (now.getMonth() + 1 - m);
 }
