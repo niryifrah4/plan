@@ -16,6 +16,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { cookies } from "next/headers";
 import { requireUser } from "@/lib/supabase/require-user";
 import { rateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
@@ -24,12 +25,20 @@ import {
   type TxToClassify,
   type PastCorrection,
 } from "@/lib/doc-parser/ai-categorizer";
+import { parseBody } from "@/lib/api/validate";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 /** Cap per request — 200 keeps the Haiku call under ~6K input tokens. */
 const MAX_TXS = 200;
+
+// סכימה מתירנית בכוונה — מאמתת מבנה (מערכים של אובייקטים) ומגבילה כמות/גודל
+// בלי לכפות סכימה מדויקת על כל שדות התנועה, כדי לא לשבור קלט קיים.
+const BodySchema = z.object({
+  transactions: z.array(z.record(z.string(), z.unknown())).max(MAX_TXS).optional(),
+  pastCorrections: z.array(z.record(z.string(), z.unknown())).max(2000).optional(),
+});
 
 export async function POST(req: NextRequest) {
   try {
@@ -49,24 +58,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let body: { transactions?: TxToClassify[]; pastCorrections?: PastCorrection[] };
-    try {
-      body = await req.json();
-    } catch {
-      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-    }
+    const parsed = await parseBody(req, BodySchema);
+    if (!parsed.ok) return parsed.res;
 
-    const txs = Array.isArray(body.transactions) ? body.transactions : [];
-    const corrections = Array.isArray(body.pastCorrections) ? body.pastCorrections : [];
+    const txs = (parsed.data.transactions ?? []) as unknown as TxToClassify[];
+    const corrections = (parsed.data.pastCorrections ?? []) as unknown as PastCorrection[];
 
     if (txs.length === 0) {
       return NextResponse.json({ suggestions: [] });
-    }
-    if (txs.length > MAX_TXS) {
-      return NextResponse.json(
-        { error: `Max ${MAX_TXS} transactions per request` },
-        { status: 413 }
-      );
     }
 
     const cookieStore = await cookies();

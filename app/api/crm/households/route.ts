@@ -11,7 +11,14 @@
  */
 
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { parseBody } from "@/lib/api/validate";
+
+const BodySchema = z.object({
+  familyName: z.string().trim().min(1).max(200),
+  membersCount: z.number().int().positive().max(20).optional(),
+});
 
 export async function POST(req: NextRequest) {
   const sb = await createClient();
@@ -27,21 +34,11 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
   if (!advisor) return NextResponse.json({ error: "not_advisor" }, { status: 403 });
 
-  let body: { familyName?: string; membersCount?: number };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad_json" }, { status: 400 });
-  }
+  const parsed = await parseBody(req, BodySchema);
+  if (!parsed.ok) return parsed.res;
 
-  const familyName = (body.familyName || "").trim();
-  if (!familyName) return NextResponse.json({ error: "missing_family_name" }, { status: 400 });
-
-  const rawMembers = body.membersCount;
-  const membersCount =
-    typeof rawMembers === "number" && Number.isFinite(rawMembers) && rawMembers > 0
-      ? Math.min(20, Math.floor(rawMembers))
-      : 2;
+  const familyName = parsed.data.familyName.trim();
+  const membersCount = parsed.data.membersCount ?? 2;
 
   const { data: created, error } = await sb
     .from("households")

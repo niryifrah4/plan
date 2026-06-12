@@ -13,12 +13,19 @@
  */
 
 import crypto from "node:crypto";
+import { z } from "zod";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { reportError } from "@/lib/report-error";
+import { parseBody } from "@/lib/api/validate";
 
 const BINANCE_BASE = "https://api.binance.com";
 const RECV_WINDOW = 10_000;
+
+const BodySchema = z.object({
+  apiKey: z.string().trim().min(1).max(256),
+  secret: z.string().trim().min(1).max(256),
+});
 
 interface BinanceBalance {
   asset: string;
@@ -38,14 +45,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
   }
 
-  let body: { apiKey?: string; secret?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-
-  const { apiKey, secret } = body;
+  const parsed = await parseBody(req, BodySchema);
+  if (!parsed.ok) return parsed.res;
+  const { apiKey, secret } = parsed.data;
   if (!apiKey || !secret) {
     return NextResponse.json(
       { error: "Missing apiKey or secret" },

@@ -3,6 +3,13 @@ import { cookies } from "next/headers";
 import { requireUser } from "@/lib/supabase/require-user";
 import { rateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
 import { interactiveCategorizeWithAI } from "@/lib/doc-parser/ai-categorizer";
+import { parseBody } from "@/lib/api/validate";
+import { z } from "zod";
+
+const BodySchema = z.object({
+  merchantKey: z.string().trim().min(1).max(500),
+  description: z.string().trim().min(1).max(2000),
+});
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -24,21 +31,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let body: { merchantKey?: string; description?: string };
-    try {
-      body = await req.json();
-    } catch {
-      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-    }
-
-    if (!body.merchantKey || !body.description) {
-      return NextResponse.json({ error: "Missing merchantKey or description" }, { status: 400 });
-    }
+    const parsed = await parseBody(req, BodySchema);
+    if (!parsed.ok) return parsed.res;
+    const { merchantKey, description } = parsed.data;
 
     const cookieStore = await cookies();
     const aiModel = cookieStore.get("ai_categorizer_model")?.value === "perplexity" ? "perplexity" : "haiku";
 
-    const result = await interactiveCategorizeWithAI(body.merchantKey, body.description, aiModel);
+    const result = await interactiveCategorizeWithAI(merchantKey, description, aiModel);
     
     if (!result) {
       return NextResponse.json({ error: "שגיאה בקבלת תשובה מה-AI" }, { status: 500 });

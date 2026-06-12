@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { fetchUpcomingEvents, createCalendarEvent } from "@/lib/google-calendar";
 import { requireUser } from "@/lib/supabase/require-user";
+import { parseBody } from "@/lib/api/validate";
+import { z } from "zod";
+
+const EventSchema = z.object({
+  summary: z.string().trim().min(1).max(500),
+  description: z.string().max(5000).optional(),
+  startDateTime: z.string().min(1),
+  endDateTime: z.string().min(1),
+});
 
 /**
  * GET /api/gcal/events — fetch upcoming calendar events
@@ -43,13 +52,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Not connected to Google Calendar" }, { status: 401 });
   }
 
+  const parsed = await parseBody(req, EventSchema);
+  if (!parsed.ok) return parsed.res;
+
   try {
-    const body = await req.json();
     const event = await createCalendarEvent(accessToken, refreshToken, {
-      summary: body.summary,
-      description: body.description || "",
-      startDateTime: body.startDateTime,
-      endDateTime: body.endDateTime,
+      summary: parsed.data.summary,
+      description: parsed.data.description || "",
+      startDateTime: parsed.data.startDateTime,
+      endDateTime: parsed.data.endDateTime,
     });
     return NextResponse.json({ event });
   } catch (e: any) {
