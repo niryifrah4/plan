@@ -42,6 +42,7 @@ import {
 } from "@shared/buckets-core";
 import { fireSync } from "./sync-engine";
 import { scopedKey } from "./client-scope";
+import { reportError } from "@/lib/report-error";
 
 const ONBOARDING_GOALS_KEY = "verdant:onboarding:goals";
 
@@ -125,12 +126,12 @@ export function loadBuckets(): Bucket[] {
         if (deduped.length < active.length) {
           try {
             localStorage.setItem(scopedKey(BUCKETS_STORAGE_KEY), JSON.stringify(deduped));
-          } catch {}
+          } catch (e) { reportError("buckets-store", e); }
         }
         return deduped;
       }
     }
-  } catch {}
+  } catch (e) { reportError("buckets-store", e); }
 
   // Fall back to legacy and migrate
   try {
@@ -143,7 +144,7 @@ export function loadBuckets(): Bucket[] {
         return migrated;
       }
     }
-  } catch {}
+  } catch (e) { reportError("buckets-store", e); }
 
   // Try onboarding goals as last resort
   try {
@@ -156,7 +157,7 @@ export function loadBuckets(): Bucket[] {
         return mapped;
       }
     }
-  } catch {}
+  } catch (e) { reportError("buckets-store", e); }
 
   return [];
 }

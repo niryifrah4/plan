@@ -25,6 +25,7 @@ import {
   updatePosition,
   type Position,
 } from "./portfolio-store";
+import { reportError } from "@/lib/report-error";
 
 /* ─── Asset code → CoinGecko id mapping ────────────────────── */
 
@@ -126,7 +127,7 @@ export async function syncBinance(
         typeof errJson?.detail === "object"
           ? JSON.stringify(errJson.detail)
           : errJson?.detail || errJson?.error || "";
-    } catch {}
+    } catch (e) { reportError("crypto-sync", e); }
     const tag = res.status === 401 ? "אימות נכשל" : `שגיאה ${res.status}`;
     throw new Error(`${tag}${detail ? ` — ${detail}` : ""}`);
   }

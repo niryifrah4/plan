@@ -23,6 +23,7 @@ import {
 } from "./market-providers";
 import type { PriceQuote } from "./market-providers";
 import { scopedKey } from "./client-scope";
+import { reportError } from "@/lib/report-error";
 
 export interface TickerQuote {
   symbol: string;
@@ -177,7 +178,7 @@ export function recordSnapshot(totalValue: number) {
     // Keep last 365 entries
     const trimmed = filtered.slice(-365);
     localStorage.setItem(scopedKey(SNAPSHOT_KEY), JSON.stringify(trimmed));
-  } catch {}
+  } catch (e) { reportError("market-sync", e); }
 }
 
 export function getSnapshots(): Snapshot[] {

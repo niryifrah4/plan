@@ -33,6 +33,7 @@ import { householdNetSalary } from "./salary-engine";
 import { getPassiveIncomeSummary } from "./passive-income";
 import { getDebtSummary } from "./debt-store";
 import { scopedKey } from "./client-scope";
+import { reportError } from "@/lib/report-error";
 
 /* ─────────────────────────────────────────────── */
 /* Types                                           */
@@ -102,7 +103,7 @@ function saveDismissed(d: DismissMap): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(scopedKey(DISMISS_KEY), JSON.stringify(d));
-  } catch {}
+  } catch (e) { reportError("insights-engine", e); }
 }
 
 export function dismissInsight(id: string): void {
@@ -337,22 +338,22 @@ export function computeTopInsight(): Insight | null {
   let lines: BudgetLine[] = [];
   try {
     lines = buildBudgetLines(0);
-  } catch {}
+  } catch (e) { reportError("insights-engine", e); }
 
   let buckets: Bucket[] = [];
   try {
     buckets = loadBuckets();
-  } catch {}
+  } catch (e) { reportError("insights-engine", e); }
 
   let loans: Loan[] = [];
   try {
     loans = loadDebtData().loans.filter(isLoanActive);
-  } catch {}
+  } catch (e) { reportError("insights-engine", e); }
 
   let history: NetWorthSnapshot[] = [];
   try {
     history = loadHistory();
-  } catch {}
+  } catch (e) { reportError("insights-engine", e); }
 
   const candidates: (Insight | null)[] = [
     ruleNegativeCashflow(lines),

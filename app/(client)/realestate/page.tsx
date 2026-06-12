@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SaveStatus } from "@/components/ui/SaveStatus";
@@ -17,6 +17,7 @@ import {
   EVENT_NAME,
   type Property,
 } from "@/lib/realestate-store";
+import { INSURANCE_PROFILE_EVENT, loadInsuranceProfile } from "@/lib/insurance-needs";
 import {
   loadDebtData,
   getMortgagesForProperty,
@@ -32,6 +33,7 @@ import { AcquisitionSimulator } from "@/components/realestate/AcquisitionSimulat
 import { SaleSimulator } from "@/components/realestate/SaleSimulator";
 import { RefinanceAlerts } from "@/components/debt/RefinanceAlerts";
 import { GoalLinker } from "@/components/GoalLinker";
+import { CityAutocomplete } from "@/components/ui/CityAutocomplete";
 import { removeLinksForAsset } from "@/lib/asset-goal-linking";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 
@@ -83,34 +85,7 @@ function PropertyMortgagePanel({
 
   // No mortgages assigned to this property
   if (linked.length === 0) {
-    const hasUnassigned = getUnassignedMortgages(debt).length > 0;
-    return (
-      <div
-        className="v-divider border-t px-5 py-3"
-        style={{ background: "#FAFAF7" }}
-      >
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span
-              className="material-symbols-outlined text-[14px]"
-              style={{ color: "#6B7280" }}
-            >
-              link_off
-            </span>
-            <span className="text-[11px] font-bold" style={{ color: "#6B7280" }}>
-              {hasUnassigned ? "יש משכנתאות לא משויכות" : "אין משכנתא משויכת לנכס זה"}
-            </span>
-          </div>
-          <Link
-            href="/debt"
-            className="text-[11px] font-extrabold hover:underline"
-            style={{ color: "#2C7A5A" }}
-          >
-            {hasUnassigned ? "שייך משכנתא" : "הוסף משכנתא"} ←
-          </Link>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   // One or more mortgages — render each
@@ -142,10 +117,7 @@ function PropertyMortgagePanel({
                 >
                   home_work
                 </span>
-                <span
-                  className="text-[12px] font-extrabold"
-                  style={{ color: "#1A1A1A" }}
-                >
+                <span className="text-[12px] font-extrabold" style={{ color: "#1A1A1A" }}>
                   משכנתא — {mortgage.bank || "לא צוין בנק"}
                 </span>
                 {tracks.length > 0 && (
@@ -183,7 +155,7 @@ function PropertyMortgagePanel({
                     >
                       <div className="flex items-center gap-2 truncate">
                         <span
-                          className="text-[12px] font-bold truncate"
+                          className="truncate text-[12px] font-bold"
                           style={{ color: "#1A1A1A" }}
                         >
                           {t.name || "מסלול"}
@@ -300,6 +272,340 @@ const TYPE_LABELS: Record<Property["type"], string> = {
   land: "קרקע",
 };
 
+type NumericFieldKey =
+  | "rooms"
+  | "purchasePrice"
+  | "currentValue"
+  | "monthlyRent"
+  | "monthlyMortgage"
+  | "mortgageBalance"
+  | "monthlyExpenses"
+  | "annualAppreciation"
+  | "oneTimeAppreciation"
+  | "oneTimeAppreciationYear"
+  | "holdingYears"
+  | "annualRentGrowth";
+
+type NumericFieldKind = "money-millions" | "money" | "percent" | "integer";
+
+type NumericEditorState = {
+  key: NumericFieldKey;
+  label: string;
+  kind: NumericFieldKind;
+  value: string;
+  placeholder: string;
+  helper?: string;
+};
+
+function formatMoneyMillions(raw: string): string {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return raw ? raw : "—";
+  const inMillions = n / 1_000_000;
+  const pretty = Number.isInteger(inMillions)
+    ? inMillions.toFixed(0)
+    : inMillions.toFixed(inMillions >= 10 ? 1 : 2);
+  return `${pretty} מ׳ ₪`;
+}
+
+function formatMoney(raw: string): string {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return raw ? raw : "—";
+  return fmtILS(n);
+}
+
+function formatPercent(raw: string): string {
+  const n = Number(raw);
+  if (!Number.isFinite(n) && raw) return raw;
+  if (!raw) return "—";
+  return `${n}%`;
+}
+
+function formatInteger(raw: string): string {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return raw ? raw : "—";
+  return n.toLocaleString("he-IL");
+}
+
+function cleanNumericInput(raw: string): string {
+  return raw.replace(/,/g, "").replace(/[^\d.-]/g, "");
+}
+
+function parseMoneyMillions(raw: string): string {
+  const cleaned = cleanNumericInput(raw);
+  if (!cleaned) return "";
+  const n = Number(cleaned);
+  if (!Number.isFinite(n)) return "";
+  return String(Math.round(n * 1_000_000));
+}
+
+function parseMoney(raw: string): string {
+  const cleaned = cleanNumericInput(raw);
+  if (!cleaned) return "";
+  const n = Number(cleaned);
+  if (!Number.isFinite(n)) return "";
+  return String(Math.round(n));
+}
+
+function parsePercent(raw: string): string {
+  const cleaned = cleanNumericInput(raw);
+  if (!cleaned) return "";
+  const n = Number(cleaned);
+  if (!Number.isFinite(n)) return "";
+  return String(n);
+}
+
+function parseInteger(raw: string): string {
+  const cleaned = cleanNumericInput(raw);
+  if (!cleaned) return "";
+  const n = Number(cleaned);
+  if (!Number.isFinite(n)) return "";
+  return String(Math.max(1, Math.round(n)));
+}
+
+function fieldMeta(key: NumericFieldKey): Omit<NumericEditorState, "value"> {
+  switch (key) {
+    case "rooms":
+      return {
+        key,
+        label: "חדרים",
+        kind: "integer",
+        placeholder: "3",
+        helper: "הקלדה חופשית בלבד, בלי שינוי בגלגלת.",
+      };
+    case "purchasePrice":
+      return {
+        key,
+        label: "מחיר רכישה",
+        kind: "money-millions",
+        placeholder: "1.6",
+        helper: "הזן במיליוני שקלים, למשל 1.6 = ₪1,600,000.",
+      };
+    case "currentValue":
+      return {
+        key,
+        label: "שווי נוכחי",
+        kind: "money-millions",
+        placeholder: "2.0",
+        helper: "הזן במיליוני שקלים.",
+      };
+    case "monthlyRent":
+      return {
+        key,
+        label: 'הכנסה משכ"ד חודשי',
+        kind: "money",
+        placeholder: "5,000",
+      };
+    case "monthlyMortgage":
+      return {
+        key,
+        label: "החזר משכנתא חודשי",
+        kind: "money",
+        placeholder: "3,500",
+      };
+    case "mortgageBalance":
+      return {
+        key,
+        label: "יתרת משכנתא",
+        kind: "money-millions",
+        placeholder: "0.5",
+        helper: "הזן במיליוני שקלים.",
+      };
+    case "monthlyExpenses":
+      return {
+        key,
+        label: "הוצאות חודשיות",
+        kind: "money",
+        placeholder: "800",
+      };
+    case "annualAppreciation":
+      return {
+        key,
+        label: "עליית ערך שנתית",
+        kind: "percent",
+        placeholder: "3",
+      };
+    case "oneTimeAppreciation":
+      return {
+        key,
+        label: "עליית ערך חד-פעמית",
+        kind: "money-millions",
+        placeholder: "0.2",
+        helper: "למשל 0.2 = ₪200,000.",
+      };
+    case "oneTimeAppreciationYear":
+      return {
+        key,
+        label: "באיזו שנה",
+        kind: "integer",
+        placeholder: "3",
+      };
+    case "holdingYears":
+      return {
+        key,
+        label: "תקופת החזקה מתוכננת",
+        kind: "integer",
+        placeholder: "10",
+      };
+    case "annualRentGrowth":
+      return {
+        key,
+        label: 'גידול שכ"ד שנתי',
+        kind: "percent",
+        placeholder: "3",
+      };
+  }
+}
+
+function formatNumericValue(key: NumericFieldKey, value: string): string {
+  const meta = fieldMeta(key);
+  switch (meta.kind) {
+    case "money-millions":
+      return formatMoneyMillions(value);
+    case "money":
+      return formatMoney(value);
+    case "percent":
+      return formatPercent(value);
+    case "integer":
+      return formatInteger(value);
+  }
+}
+
+function parseNumericValue(key: NumericFieldKey, value: string): string {
+  const meta = fieldMeta(key);
+  switch (meta.kind) {
+    case "money-millions":
+      return parseMoneyMillions(value);
+    case "money":
+      return parseMoney(value);
+    case "percent":
+      return parsePercent(value);
+    case "integer":
+      return parseInteger(value);
+  }
+}
+
+function NumericEditorModal({
+  editor,
+  onCancel,
+  onSave,
+}: {
+  editor: NumericEditorState | null;
+  onCancel: () => void;
+  onSave: (key: NumericFieldKey, value: string) => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!editor) return;
+    setDraft(editor.value ? editor.value : "");
+    const id = window.setTimeout(() => inputRef.current?.focus(), 0);
+    return () => window.clearTimeout(id);
+  }, [editor]);
+
+  if (!editor) return null;
+
+  const handleSave = () => {
+    onSave(editor.key, parseNumericValue(editor.key, draft));
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 px-4"
+      onClick={onCancel}
+    >
+      <div
+        dir="rtl"
+        className="w-full max-w-md rounded-3xl bg-white shadow-soft"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b px-5 py-4">
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-verdant-muted">
+              עריכת מספר
+            </div>
+            <div className="mt-1 text-sm font-extrabold text-verdant-ink">{editor.label}</div>
+          </div>
+          <button type="button" onClick={onCancel} className="rounded-full p-2 hover:bg-gray-100">
+            <span className="material-symbols-outlined text-[18px] text-verdant-muted">close</span>
+          </button>
+        </div>
+        <div className="space-y-4 px-5 py-5">
+          {editor.helper && (
+            <div className="text-[11px] leading-relaxed text-verdant-muted">{editor.helper}</div>
+          )}
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-bold text-verdant-muted">ערך</span>
+            <input
+              ref={inputRef}
+              type="text"
+              inputMode={
+                editor.kind === "integer" || editor.kind === "money" ? "numeric" : "decimal"
+              }
+              value={draft}
+              onChange={(e) => setDraft(cleanNumericInput(e.target.value))}
+              onWheel={(e) => e.preventDefault()}
+              className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-right text-base font-bold text-verdant-ink outline-none focus:border-verdant-emerald focus:ring-2 focus:ring-verdant-emerald/20"
+              placeholder={editor.placeholder}
+              dir="ltr"
+            />
+          </label>
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-[10px] font-bold text-verdant-muted">
+              {formatNumericValue(editor.key, draft || editor.value)}
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold text-verdant-ink hover:bg-gray-50"
+              >
+                ביטול
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                className="rounded-xl bg-verdant-emerald px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700"
+              >
+                שמור
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditableNumericRow({
+  label,
+  value,
+  onEdit,
+}: {
+  label: string;
+  value: string;
+  onEdit: () => void;
+}) {
+  return (
+    <div>
+      <label className="mb-1 block text-[11px] font-bold text-verdant-muted">{label}</label>
+      <div className="flex items-stretch gap-2">
+        <div className="flex min-h-11 flex-1 items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-right text-sm font-bold text-verdant-ink shadow-sm">
+          <span className="tabular-nums">{value}</span>
+        </div>
+        <button
+          type="button"
+          onClick={onEdit}
+          className="flex items-center gap-1 rounded-xl border border-gray-200 bg-[#FAFAF7] px-3 text-[11px] font-bold text-verdant-ink transition-colors hover:bg-gray-100"
+        >
+          <span className="material-symbols-outlined text-[16px]">edit</span>
+          עריכה
+        </button>
+      </div>
+    </div>
+  );
+}
+
 interface PropertyFormProps {
   initial?: Property;
   onSave: (p: Property) => void;
@@ -350,6 +656,54 @@ function PropertyForm({ initial, onSave, onCancel }: PropertyFormProps) {
   const [includeInRetirement, setIncludeInRetirement] = useState(
     initial?.includeInRetirement ?? (initial?.type ? initial.type === "investment" : false)
   );
+  const [editor, setEditor] = useState<NumericEditorState | null>(null);
+
+  const openEditor = (key: NumericFieldKey, value: string) => {
+    const meta = fieldMeta(key);
+    setEditor({ ...meta, value });
+  };
+
+  const saveEditor = (key: NumericFieldKey, nextValue: string) => {
+    switch (key) {
+      case "rooms":
+        setRooms(nextValue);
+        break;
+      case "purchasePrice":
+        setPurchasePrice(nextValue);
+        break;
+      case "currentValue":
+        setCurrentValue(nextValue);
+        break;
+      case "monthlyRent":
+        setMonthlyRent(nextValue);
+        break;
+      case "monthlyMortgage":
+        setMonthlyMortgage(nextValue);
+        break;
+      case "mortgageBalance":
+        setMortgageBalance(nextValue);
+        break;
+      case "monthlyExpenses":
+        setMonthlyExpenses(nextValue);
+        break;
+      case "annualAppreciation":
+        setAnnualAppreciation(nextValue);
+        break;
+      case "oneTimeAppreciation":
+        setOneTimeAppreciation(nextValue);
+        break;
+      case "oneTimeAppreciationYear":
+        setOneTimeAppreciationYear(nextValue);
+        break;
+      case "holdingYears":
+        setHoldingYears(nextValue);
+        break;
+      case "annualRentGrowth":
+        setAnnualRentGrowth(nextValue);
+        break;
+    }
+    setEditor(null);
+  };
 
   const handleSubmit = () => {
     if (!name.trim() || !purchasePrice) return;
@@ -434,13 +788,7 @@ function PropertyForm({ initial, onSave, onCancel }: PropertyFormProps) {
           </div>
           {/* עיר */}
           <div>
-            <label className={labelCls}>עיר</label>
-            <input
-              className={inputCls}
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder="תל אביב"
-            />
+            <CityAutocomplete label="עיר" value={city} onChange={setCity} />
           </div>
           {/* כתובת */}
           <div className="col-span-2">
@@ -501,69 +849,51 @@ function PropertyForm({ initial, onSave, onCancel }: PropertyFormProps) {
           </div>
           {/* חדרים */}
           <div>
-            <label className={labelCls}>חדרים</label>
-            <input
-              className={inputCls}
-              type="number"
-              value={rooms}
-              onChange={(e) => setRooms(e.target.value)}
-              placeholder="3"
+            <EditableNumericRow
+              label="חדרים"
+              value={formatNumericValue("rooms", rooms)}
+              onEdit={() => openEditor("rooms", rooms)}
             />
           </div>
           {/* מחיר רכישה */}
           <div>
-            <label className={labelCls}>מחיר רכישה (₪)</label>
-            <input
-              className={inputCls}
-              type="number"
-              value={purchasePrice}
-              onChange={(e) => setPurchasePrice(e.target.value)}
-              placeholder="1,500,000"
+            <EditableNumericRow
+              label="מחיר רכישה (₪)"
+              value={formatNumericValue("purchasePrice", purchasePrice)}
+              onEdit={() => openEditor("purchasePrice", purchasePrice)}
             />
           </div>
           {/* שווי נוכחי */}
           <div>
-            <label className={labelCls}>שווי נוכחי (₪)</label>
-            <input
-              className={inputCls}
-              type="number"
-              value={currentValue}
-              onChange={(e) => setCurrentValue(e.target.value)}
-              placeholder="2,000,000"
+            <EditableNumericRow
+              label="שווי נוכחי (₪)"
+              value={formatNumericValue("currentValue", currentValue)}
+              onEdit={() => openEditor("currentValue", currentValue)}
             />
           </div>
           {/* שכ"ד — רק להשקעה */}
           {(type === "investment" || type === "commercial") && (
             <div>
-              <label className={labelCls}>הכנסה משכ&quot;ד חודשי (₪)</label>
-              <input
-                className={inputCls}
-                type="number"
-                value={monthlyRent}
-                onChange={(e) => setMonthlyRent(e.target.value)}
-                placeholder="5,000"
+              <EditableNumericRow
+                label={'הכנסה משכ"ד חודשי (₪)'}
+                value={formatNumericValue("monthlyRent", monthlyRent)}
+                onEdit={() => openEditor("monthlyRent", monthlyRent)}
               />
             </div>
           )}
           {/* משכנתא */}
           <div>
-            <label className={labelCls}>החזר משכנתא חודשי (₪)</label>
-            <input
-              className={inputCls}
-              type="number"
-              value={monthlyMortgage}
-              onChange={(e) => setMonthlyMortgage(e.target.value)}
-              placeholder="3,500"
+            <EditableNumericRow
+              label="החזר משכנתא חודשי (₪)"
+              value={formatNumericValue("monthlyMortgage", monthlyMortgage)}
+              onEdit={() => openEditor("monthlyMortgage", monthlyMortgage)}
             />
           </div>
           <div>
-            <label className={labelCls}>יתרת משכנתא (₪)</label>
-            <input
-              className={inputCls}
-              type="number"
-              value={mortgageBalance}
-              onChange={(e) => setMortgageBalance(e.target.value)}
-              placeholder="500,000"
+            <EditableNumericRow
+              label="יתרת משכנתא (₪)"
+              value={formatNumericValue("mortgageBalance", mortgageBalance)}
+              onEdit={() => openEditor("mortgageBalance", mortgageBalance)}
             />
           </div>
           {/* לוח סילוקין PDF — parser still pending; hidden from clients so the
@@ -571,71 +901,50 @@ function PropertyForm({ initial, onSave, onCancel }: PropertyFormProps) {
               Restore when /api/documents/parse handles mortgage schedules. */}
           {/* הוצאות */}
           <div>
-            <label className={labelCls}>הוצאות חודשיות (₪)</label>
-            <input
-              className={inputCls}
-              type="number"
-              value={monthlyExpenses}
-              onChange={(e) => setMonthlyExpenses(e.target.value)}
-              placeholder="800"
+            <EditableNumericRow
+              label="הוצאות חודשיות (₪)"
+              value={formatNumericValue("monthlyExpenses", monthlyExpenses)}
+              onEdit={() => openEditor("monthlyExpenses", monthlyExpenses)}
             />
           </div>
           {/* עליית ערך */}
           <div>
-            <label className={labelCls}>עליית ערך שנתית (%)</label>
-            <input
-              className={inputCls}
-              type="number"
-              step="0.1"
-              value={annualAppreciation}
-              onChange={(e) => setAnnualAppreciation(e.target.value)}
-              placeholder="3"
+            <EditableNumericRow
+              label="עליית ערך שנתית (%)"
+              value={formatNumericValue("annualAppreciation", annualAppreciation)}
+              onEdit={() => openEditor("annualAppreciation", annualAppreciation)}
             />
           </div>
           {/* עליית ערך חד-פעמית */}
           <div>
-            <label className={labelCls}>עליית ערך חד-פעמית — שיפוץ/תמ&quot;א (₪)</label>
-            <input
-              className={inputCls}
-              type="number"
-              value={oneTimeAppreciation}
-              onChange={(e) => setOneTimeAppreciation(e.target.value)}
-              placeholder="200,000"
+            <EditableNumericRow
+              label={'עליית ערך חד-פעמית — שיפוץ/תמ"א (₪)'}
+              value={formatNumericValue("oneTimeAppreciation", oneTimeAppreciation)}
+              onEdit={() => openEditor("oneTimeAppreciation", oneTimeAppreciation)}
             />
           </div>
           <div>
-            <label className={labelCls}>באיזו שנה? (1 = השנה הראשונה)</label>
-            <input
-              className={inputCls}
-              type="number"
-              value={oneTimeAppreciationYear}
-              onChange={(e) => setOneTimeAppreciationYear(e.target.value)}
-              placeholder="3"
+            <EditableNumericRow
+              label="באיזו שנה? (1 = השנה הראשונה)"
+              value={formatNumericValue("oneTimeAppreciationYear", oneTimeAppreciationYear)}
+              onEdit={() => openEditor("oneTimeAppreciationYear", oneTimeAppreciationYear)}
             />
           </div>
           {/* תקופת החזקה מתוכננת */}
           <div>
-            <label className={labelCls}>תקופת החזקה מתוכננת (שנים)</label>
-            <input
-              className={inputCls}
-              type="number"
-              min="1"
-              value={holdingYears}
-              onChange={(e) => setHoldingYears(e.target.value)}
-              placeholder="10"
+            <EditableNumericRow
+              label="תקופת החזקה מתוכננת (שנים)"
+              value={formatNumericValue("holdingYears", holdingYears)}
+              onEdit={() => openEditor("holdingYears", holdingYears)}
             />
           </div>
           {/* גידול שנתי של שכ״ד */}
           {(type === "investment" || type === "commercial") && (
             <div>
-              <label className={labelCls}>גידול שכ&quot;ד שנתי (%)</label>
-              <input
-                className={inputCls}
-                type="number"
-                step="0.1"
-                value={annualRentGrowth}
-                onChange={(e) => setAnnualRentGrowth(e.target.value)}
-                placeholder="3"
+              <EditableNumericRow
+                label={'גידול שכ"ד שנתי (%)'}
+                value={formatNumericValue("annualRentGrowth", annualRentGrowth)}
+                onEdit={() => openEditor("annualRentGrowth", annualRentGrowth)}
               />
               <div className="mt-0.5 text-[9px] text-verdant-muted">
                 ברירת מחדל: מותאם לעליית הערך
@@ -643,6 +952,7 @@ function PropertyForm({ initial, onSave, onCancel }: PropertyFormProps) {
             </div>
           )}
         </div>
+        <NumericEditorModal editor={editor} onCancel={() => setEditor(null)} onSave={saveEditor} />
 
         <div className="flex gap-3 px-6 pb-5">
           <button onClick={handleSubmit} className="btn-botanical flex-1 !py-2.5 text-sm">
@@ -817,9 +1127,11 @@ export default function RealEstatePage() {
   // only at display time.
   const primeRate = assumptions.primeRate;
   const { confirm, modal: confirmModal } = useConfirm();
+  const [insuranceProfile, setInsuranceProfile] = useState(loadInsuranceProfile());
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingPropId, setEditingPropId] = useState<string | null>(null);
   const [salePropId, setSalePropId] = useState<string | null>(null);
+  const [expandedPropId, setExpandedPropId] = useState<string | null>(null);
 
   /* Forecast sliders */
   const [forecastYears, setForecastYears] = useState(15);
@@ -844,6 +1156,17 @@ export default function RealEstatePage() {
       window.removeEventListener(EVENT_NAME, refresh);
       window.removeEventListener("storage", refresh);
       window.removeEventListener("verdant:debt:updated", refresh);
+    };
+  }, []);
+
+  useEffect(() => {
+    const refreshInsurance = () => setInsuranceProfile(loadInsuranceProfile());
+    refreshInsurance();
+    window.addEventListener(INSURANCE_PROFILE_EVENT, refreshInsurance);
+    window.addEventListener("storage", refreshInsurance);
+    return () => {
+      window.removeEventListener(INSURANCE_PROFILE_EVENT, refreshInsurance);
+      window.removeEventListener("storage", refreshInsurance);
     };
   }, []);
 
@@ -925,6 +1248,14 @@ export default function RealEstatePage() {
     roi = (weightedAppreciationCAGR + cashflowYield) * 100;
   }
 
+  const hasMortgageExposure = totalMortgageBalance > 0 || totalMonthlyMortgage > 0;
+  const showLtvKpi = hasMortgageExposure && totalValue > 0;
+  const showInsuranceBadge = hasMortgageExposure && !insuranceProfile.hasMortgageLifeInsurance;
+  const showAnnualReturnBadge = totalEquityInvested > 0;
+  const kpiGridClassName = showLtvKpi
+    ? "grid grid-cols-2 gap-3 md:grid-cols-3"
+    : "grid grid-cols-2 gap-3 md:grid-cols-2";
+
   /* ── Forecast ── */
   const forecast = useMemo(() => {
     const years: ForecastRow[] = [];
@@ -1003,9 +1334,7 @@ export default function RealEstatePage() {
 
   const handleDelete = async (id: string) => {
     const prop = properties.find((p) => p.id === id);
-    const valueText = prop?.currentValue
-      ? ` בשווי ${fmtILS(prop.currentValue)}`
-      : "";
+    const valueText = prop?.currentValue ? ` בשווי ${fmtILS(prop.currentValue)}` : "";
     const ok = await confirm({
       title: "למחוק את הנכס?",
       body: `הנכס "${prop?.name ?? "ללא שם"}"${valueText} יימחק יחד עם הקישורים שלו ליעדים. הפעולה בלתי הפיכה.`,
@@ -1026,9 +1355,9 @@ export default function RealEstatePage() {
   /* ── KPI data ── */
   const kpis = [
     {
-      label: "שווי נכסים",
-      value: fmtILS(totalValue),
-      sub: `הון עצמי: ${fmtILS(equity)}`,
+      label: "שווי נכסים נטו",
+      value: fmtILS(equity),
+      sub: totalValue > 0 ? `שווי ברוטו: ${fmtILS(totalValue)}` : undefined,
       icon: "home",
       color: "#2C7A5A",
     },
@@ -1042,38 +1371,34 @@ export default function RealEstatePage() {
       icon: netCashflow >= 0 ? "trending_up" : "trending_down",
       color: netCashflow >= 0 ? "#2C7A5A" : "#DC2626",
     },
-    {
-      label: "תשואה שנתית",
-      value: totalEquityInvested > 0 ? `${roi.toFixed(1)}%` : "—",
-      sub:
-        totalEquityInvested > 0
-          ? `על הון עצמי של ${fmtILS(totalEquityInvested)}`
-          : undefined,
-      icon: "monitoring",
-      color: roi > 10 ? "#2C7A5A" : roi > 0 ? "#D97706" : "#DC2626",
-    },
-    {
-      label: "כיסוי החזר",
-      value: totalMonthlyMortgage > 0 ? dscr.toFixed(2) : "—",
-      sub:
-        totalMonthlyMortgage > 0
-          ? dscr >= 1.25
-            ? "השכ\"ד מכסה את החוב"
-            : dscr >= 1.0
-              ? "השכ\"ד בקושי מכסה"
-              : "השכ\"ד לא מספיק"
-          : "אין משכנתא",
-      icon: "shield",
-      color: dscr >= 1.25 ? "#2C7A5A" : dscr >= 1.0 ? "#D97706" : "#DC2626",
-    },
-    {
-      label: "מימון מהבנק",
+  ];
+
+  if (showLtvKpi) {
+    kpis.push({
+      label: "מימון מהבנק (LTV ממוצע)",
       value: `${ltv.toFixed(0)}%`,
       sub: ltv <= 60 ? "רמת מינוף בריאה" : ltv <= 75 ? "מינוף סביר" : "מינוף גבוה",
       icon: "percent",
       color: ltv <= 60 ? "#2C7A5A" : ltv <= 75 ? "#D97706" : "#DC2626",
-    },
-  ];
+    });
+  }
+
+  const kpiBadges = [
+    showInsuranceBadge
+      ? {
+          label: "אין כיסוי ביטוחי",
+          icon: "shield",
+          tone: "amber" as const,
+        }
+      : null,
+    showAnnualReturnBadge
+      ? {
+          label: `תשואה שנתית ${roi.toFixed(1)}%`,
+          icon: "trending_up",
+          tone: roi >= 0 ? ("emerald" as const) : ("red" as const),
+        }
+      : null,
+  ].filter(Boolean) as Array<{ label: string; icon: string; tone: KpiTone }>;
 
   const editingProp = editingPropId ? properties.find((p) => p.id === editingPropId) : undefined;
 
@@ -1087,7 +1412,7 @@ export default function RealEstatePage() {
       <PageHeader
         subtitle="שלב 6"
         title="נדל״ן"
-        description={`שווי נכסים: ${fmtILS(totalValue)}`}
+        description={`שווי נטו: ${fmtILS(equity)} · תזרים חודשי: ${fmtILS(netCashflow)}`}
       />
       {/* אינדיקטור שמירה */}
       <div className="-mt-4 mb-3 flex min-h-[18px] justify-end">
@@ -1095,7 +1420,7 @@ export default function RealEstatePage() {
       </div>
 
       {/* ── 2. KPI Row ── */}
-      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+      <div className={`mb-3 ${kpiGridClassName}`}>
         {kpis.map((k) => {
           const tone: KpiTone =
             k.color === "#2C7A5A"
@@ -1118,6 +1443,32 @@ export default function RealEstatePage() {
         })}
       </div>
 
+      {kpiBadges.length > 0 && (
+        <div className="mb-6 flex flex-wrap justify-end gap-2">
+          {kpiBadges.map((badge) => (
+            <span
+              key={badge.label}
+              className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-bold"
+              style={{
+                borderColor:
+                  badge.tone === "amber" ? "#F59E0B" : badge.tone === "red" ? "#DC2626" : "#2C7A5A",
+                background:
+                  badge.tone === "amber"
+                    ? "rgba(245,158,11,0.10)"
+                    : badge.tone === "red"
+                      ? "rgba(220,38,38,0.08)"
+                      : "rgba(44,122,90,0.08)",
+                color:
+                  badge.tone === "amber" ? "#B45309" : badge.tone === "red" ? "#DC2626" : "#2C7A5A",
+              }}
+            >
+              <span className="material-symbols-outlined text-[13px]">{badge.icon}</span>
+              {badge.label}
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* Recommendations moved to bottom of page (2026-04-28 per Nir):
           "המרכז חייב להיות נקי לנתונים ותכנון". See section at end of page. */}
 
@@ -1126,238 +1477,473 @@ export default function RealEstatePage() {
 
       {properties.map((prop) => {
         const propRecs = recommendations.filter((r) => r.propertyId === prop.id);
+
+        const isExpanded = expandedPropId === prop.id;
+        const mtgBal = prop.mortgageBalance ?? 0;
+        const netEquity = prop.currentValue - mtgBal;
+        const equityPct = prop.currentValue > 0 ? (netEquity / prop.currentValue) * 100 : 100;
+        const appreciationPct =
+          prop.purchasePrice > 0
+            ? (((prop.currentValue - prop.purchasePrice) / prop.purchasePrice) * 100).toFixed(1)
+            : "0.0";
+        const hasHoldingYears = prop.holdingYears != null && prop.holdingYears > 0;
+
+        const tx = propertyTaxStatus(prop, properties);
+        const isMissingTax =
+          (prop.type === "residence" || prop.type === "investment") && tx.status === "unknown";
+        const linkedMortgages = getMortgagesForProperty(debtData, prop.id);
+        const hasUnassignedMortgage =
+          linkedMortgages.length === 0 && getUnassignedMortgages(debtData).length > 0;
+        const showFooter = isMissingTax || hasUnassignedMortgage;
+
         return (
-          <section key={prop.id} className="v-card mb-4">
-            <div className="flex items-center justify-between px-5 py-4">
-              <div className="flex items-center gap-3">
-                <div
-                  className="relative flex h-10 w-10 items-center justify-center rounded-xl"
-                  style={{
-                    background: prop.type === "investment" ? "#FAFAF7" : "#ecfdf5",
-                    border: "1.5px solid #d1fae5",
-                  }}
-                >
-                  <span className="material-symbols-outlined text-[22px] text-verdant-emerald">
-                    {prop.type === "investment"
-                      ? "apartment"
-                      : prop.type === "commercial"
-                        ? "store"
-                        : prop.type === "land"
-                          ? "landscape"
-                          : "home"}
-                  </span>
-                  {propRecs.length > 0 && (
-                    <div className="absolute -left-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-white">
-                      {propRecs.length}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <div className="text-sm font-extrabold text-verdant-ink">{prop.name}</div>
-                    {(() => {
-                      // Tax-status badge — Israeli capital-gains exemption logic.
-                      // Hides for "land" + "commercial" (different rules apply).
-                      if (prop.type !== "residence" && prop.type !== "investment") return null;
-                      const tx = propertyTaxStatus(prop, properties);
-                      const styleByStatus: Record<typeof tx.status, { bg: string; fg: string }> = {
-                        exempt: { bg: "#D1FAE5", fg: "#065F46" },
-                        overlap: { bg: "rgba(217,119,6,0.12)", fg: "#92400E" },
-                        taxable: { bg: "rgba(220,38,38,0.12)", fg: "#B91C1C" },
-                        unknown: { bg: "#E5E7EB", fg: "#374151" },
-                      };
-                      const s = styleByStatus[tx.status];
-                      return (
-                        <span
-                          className="rounded-full px-2 py-0.5 text-[10px] font-bold"
-                          style={{ background: s.bg, color: s.fg }}
-                          title={tx.message}
-                        >
-                          {tx.message}
-                        </span>
-                      );
-                    })()}
-                  </div>
-                  <div className="text-[10px] text-verdant-muted">
-                    {TYPE_LABELS[prop.type]}
-                    {prop.city && ` · ${prop.city}`}
-                    {prop.rooms && ` · ${prop.rooms} חד׳`}
-                    {prop.area && ` · ${prop.area} מ"ר`}
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <div className="text-[10px] font-bold text-verdant-muted">שווי נוכחי</div>
-                  <div className="tabular text-base font-extrabold text-verdant-ink">
-                    {fmtILS(prop.currentValue)}
-                  </div>
-                  {(() => {
-                    const r = propertyCAGR(prop);
-                    if (!r) return null;
-                    if (r.cagrPct == null) {
-                      return (
-                        <div className="text-[10px] text-verdant-muted">
-                          חזקה{" "}
-                          {r.yearsHeld < 1 / 12 ? "פחות מחודש" : `${r.yearsHeld.toFixed(1)} שנים`}
-                        </div>
-                      );
-                    }
-                    const color = r.cagrPct >= 0 ? "#2C7A5A" : "#DC2626";
-                    return (
-                      <div
-                        className="mt-0.5 text-[10px] font-bold tabular-nums"
-                        style={{ color }}
-                        title={`סה"כ תשואה ${r.totalReturnPct.toFixed(1)}% מאז הרכישה (${r.yearsHeld.toFixed(1)} שנים)`}
-                      >
-                        תשואה שנתית {r.cagrPct >= 0 ? "+" : ""}
-                        {r.cagrPct.toFixed(1)}%
+          <div key={prop.id}>
+            <section className="v-card mb-4 hidden overflow-hidden md:block">
+              <div className="flex items-center justify-between px-5 pb-2 pt-4">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                    style={{
+                      background: prop.type === "investment" ? "#FAFAF7" : "#E1F5EE",
+                      border: "1px solid #9FE1CB",
+                    }}
+                  >
+                    <span
+                      className="material-symbols-outlined text-[20px]"
+                      style={{ color: prop.type === "investment" ? "#374151" : "#0F6E56" }}
+                    >
+                      {prop.type === "investment"
+                        ? "apartment"
+                        : prop.type === "commercial"
+                          ? "store"
+                          : prop.type === "land"
+                            ? "landscape"
+                            : "home"}
+                    </span>
+                    {propRecs.length > 0 && (
+                      <div className="absolute -left-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-white">
+                        {propRecs.length}
                       </div>
-                    );
-                  })()}
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-[13px] font-extrabold text-verdant-ink">
+                      {prop.name}
+                      <span className="ml-1 font-normal text-verdant-muted">
+                        · {TYPE_LABELS[prop.type]}
+                      </span>
+                    </div>
+                    <div className="mt-0.5 text-[16px] font-extrabold tabular-nums leading-tight text-verdant-ink">
+                      {fmtILS(prop.currentValue)}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1">
                   <button
                     onClick={() => setSalePropId(prop.id)}
-                    title="סימולציית מכירה — מה יישאר ביד אם תמכור"
-                    className="flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[11px] font-bold hover:bg-[#FAFAF7]"
+                    title="סימולציית מכירה"
+                    className="mr-2 flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[11px] font-bold hover:bg-[#FAFAF7]"
                     style={{ color: "#2C7A5A", borderColor: "#E5E7EB" }}
                   >
-                    <span className="material-symbols-outlined text-[16px]">sell</span>
+                    <span className="material-symbols-outlined text-[14px]">sell</span>
                     מכירה
                   </button>
                   <button
                     onClick={() => setEditingPropId(prop.id)}
                     title="עריכה"
-                    aria-label="עריכת נכס"
-                    className="rounded-lg p-2.5 hover:bg-[#FAFAF7] min-h-[44px] min-w-[44px] flex items-center justify-center"
+                    className="flex shrink-0 items-center justify-center rounded-lg p-2.5 hover:bg-[#FAFAF7]"
                   >
-                    <span className="material-symbols-outlined text-[18px] text-verdant-muted">
+                    <span className="material-symbols-outlined text-[16px] text-verdant-muted">
                       edit
                     </span>
                   </button>
                   <button
                     onClick={() => handleDelete(prop.id)}
                     title="מחיקה"
-                    aria-label="מחיקת נכס"
-                    className="rounded-lg p-2.5 hover:bg-red-50 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                    className="flex shrink-0 items-center justify-center rounded-lg p-2.5 hover:bg-red-50"
                   >
-                    <span className="material-symbols-outlined text-[18px] text-red-400">
+                    <span className="material-symbols-outlined text-[16px] text-red-400">
                       delete
                     </span>
                   </button>
                 </div>
               </div>
-            </div>
 
-            {/* Property details grid */}
-            {(() => {
-              const rent = prop.monthlyRent ?? 0;
-              const expenses = prop.monthlyExpenses ?? 0;
-              const mtg = prop.monthlyMortgage ?? 0;
-              const mtgBal = prop.mortgageBalance ?? 0;
-              const propCashflow = rent - expenses - mtg;
-              const propNoi = rent - expenses;
-              const propDscr = mtg > 0 ? propNoi / mtg : 0;
-              const netEquity = prop.currentValue - mtgBal;
-              const equityPct = prop.currentValue > 0 ? (netEquity / prop.currentValue) * 100 : 100;
-              const annualCashflow = propCashflow * 12;
-              const equityInvested =
-                prop.purchasePrice - (prop.purchasePrice - mtgBal > 0 ? mtgBal : 0);
-              const coc = equityInvested > 0 ? (annualCashflow / equityInvested) * 100 : 0;
-              const isInvestment = prop.type === "investment" || prop.type === "commercial";
-              return (
-                <div className="grid grid-cols-2 gap-3 px-5 pb-4 md:grid-cols-4">
-                  <MiniStat label="מחיר רכישה" value={fmtILS(prop.purchasePrice)} />
-                  <MiniStat
-                    label="עליית ערך"
-                    value={`${(((prop.currentValue - prop.purchasePrice) / (prop.purchasePrice || 1)) * 100).toFixed(1)}%`}
-                    color={prop.currentValue >= prop.purchasePrice ? "#2C7A5A" : "#DC2626"}
-                  />
-                  <MiniStat label="הון עצמי נטו" value={fmtILS(netEquity)} color="#2C7A5A" />
-                  <MiniStat
-                    label="אחוז הון"
-                    value={`${equityPct.toFixed(0)}%`}
-                    color={equityPct > 70 ? "#2C7A5A" : equityPct > 50 ? "#D97706" : "#DC2626"}
-                  />
-                  {rent > 0 && <MiniStat label="שכ״ד חודשי" value={fmtILS(rent)} />}
-                  {rent > 0 && (
-                    <MiniStat
-                      label="תשואת שכירות"
-                      value={`${(((rent * 12) / (prop.currentValue || 1)) * 100).toFixed(1)}%`}
-                    />
-                  )}
-                  {mtg > 0 && <MiniStat label="החזר משכנתא" value={fmtILS(mtg)} />}
-                  {mtgBal > 0 && (
-                    <MiniStat label="יתרת משכנתא" value={fmtILS(mtgBal)} color="#DC2626" />
-                  )}
-                  {isInvestment && rent > 0 && (
-                    <MiniStat
-                      label="תזרים חודשי נטו"
-                      value={`${propCashflow >= 0 ? "+" : ""}${fmtILS(propCashflow)}`}
-                      color={propCashflow >= 0 ? "#2C7A5A" : "#DC2626"}
-                    />
-                  )}
-                  {isInvestment && mtg > 0 && rent > 0 && (
-                    <MiniStat
-                      label="כיסוי החזר"
-                      value={propDscr.toFixed(2)}
-                      color={propDscr >= 1.25 ? "#2C7A5A" : propDscr >= 1.0 ? "#D97706" : "#DC2626"}
-                    />
-                  )}
-                  {isInvestment && rent > 0 && (
-                    <MiniStat
-                      label="תשואה על הון"
-                      value={`${coc.toFixed(1)}%`}
-                      color={coc > 5 ? "#2C7A5A" : coc > 0 ? "#D97706" : "#DC2626"}
-                    />
-                  )}
-                  {prop.holdingYears != null && prop.holdingYears > 0 && (
-                    <MiniStat label="תקופת החזקה" value={`${prop.holdingYears} שנים`} />
-                  )}
-                  {isInvestment &&
-                    rent > 0 &&
-                    prop.holdingYears &&
-                    prop.holdingYears > 0 &&
-                    (() => {
-                      const g = prop.annualRentGrowth ?? prop.annualAppreciation ?? 0.03;
-                      const rentAtExit = rent * Math.pow(1 + g, prop.holdingYears);
-                      return (
-                        <MiniStat
-                          label={`שכ״ד בעוד ${prop.holdingYears} שנים`}
-                          value={fmtILS(Math.round(rentAtExit))}
-                          color="#2C7A5A"
-                        />
-                      );
-                    })()}
+              <div className="flex items-center gap-3 px-5 pb-3">
+                <div className="flex-1">
+                  <div className="text-[10px] text-verdant-muted">הון עצמי</div>
+                  <div className="text-[13px] font-bold tabular-nums" style={{ color: "#0F6E56" }}>
+                    {fmtILS(netEquity)} · {equityPct.toFixed(0)}%
+                  </div>
                 </div>
-              );
-            })()}
-            {/* Linked mortgages for this property — multi-mortgage model */}
-            <PropertyMortgagePanel
-              propertyId={prop.id}
-              debt={debtData}
-              primeRate={primeRate}
-            />
-            {/* Goal linking — color this property's equity to specific buckets */}
-            <div className="v-divider border-t px-5 pb-5 pt-1">
-              <div className="mb-2 flex items-center gap-2">
-                <span
-                  className="material-symbols-outlined text-[14px]"
-                  style={{ color: "#2C7A5A" }}
+                <div className="h-4 w-px shrink-0 bg-gray-200"></div>
+                <div className="flex-1">
+                  <div className="text-[10px] text-verdant-muted">עליית ערך</div>
+                  <div className="text-[13px] font-bold tabular-nums text-verdant-muted">
+                    {appreciationPct}% {hasHoldingYears ? ` / ${prop.holdingYears} שנים` : ""}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setExpandedPropId(isExpanded ? null : prop.id)}
+                  className="mr-auto flex items-center gap-1 text-[11px] text-verdant-muted hover:text-verdant-ink"
                 >
-                  flag
-                </span>
-                <span className="text-[11px] font-bold text-verdant-muted">שיוך הון עצמי ליעד</span>
+                  <span className="material-symbols-outlined text-[14px]">
+                    {isExpanded ? "expand_less" : "expand_more"}
+                  </span>
+                  פרטים
+                </button>
               </div>
-              <GoalLinker
-                assetType="realestate"
-                assetId={prop.id}
-                assetValue={prop.currentValue - (prop.mortgageBalance ?? 0)}
-                variant="card"
-              />
-            </div>
-          </section>
+
+              {isExpanded && (
+                <div className="v-divider border-t bg-[#FAFAF7]/30 pb-2 pt-3">
+                  {(() => {
+                    const rent = prop.monthlyRent ?? 0;
+                    const expenses = prop.monthlyExpenses ?? 0;
+                    const mtg = prop.monthlyMortgage ?? 0;
+                    const propCashflow = rent - expenses - mtg;
+                    const propNoi = rent - expenses;
+                    const propDscr = mtg > 0 ? propNoi / mtg : 0;
+                    const annualCashflow = propCashflow * 12;
+                    const equityInvested =
+                      prop.purchasePrice - (prop.purchasePrice - mtgBal > 0 ? mtgBal : 0);
+                    const coc = equityInvested > 0 ? (annualCashflow / equityInvested) * 100 : 0;
+                    const isInvestment = prop.type === "investment" || prop.type === "commercial";
+                    return (
+                      <div className="grid grid-cols-2 gap-3 px-5 pb-2 md:grid-cols-4">
+                        <MiniStat label="מחיר רכישה" value={fmtILS(prop.purchasePrice)} />
+                        {rent > 0 && <MiniStat label="שכ״ד חודשי" value={fmtILS(rent)} />}
+                        {rent > 0 && (
+                          <MiniStat
+                            label="תשואת שכירות"
+                            value={`${(((rent * 12) / (prop.currentValue || 1)) * 100).toFixed(1)}%`}
+                          />
+                        )}
+                        {mtg > 0 && <MiniStat label="החזר משכנתא" value={fmtILS(mtg)} />}
+                        {mtgBal > 0 && (
+                          <MiniStat label="יתרת משכנתא" value={fmtILS(mtgBal)} color="#DC2626" />
+                        )}
+                        {isInvestment && rent > 0 && (
+                          <MiniStat
+                            label="תזרים חודשי נטו"
+                            value={`${propCashflow >= 0 ? "+" : ""}${fmtILS(propCashflow)}`}
+                            color={propCashflow >= 0 ? "#2C7A5A" : "#DC2626"}
+                          />
+                        )}
+                        {isInvestment && mtg > 0 && rent > 0 && (
+                          <MiniStat
+                            label="כיסוי החזר"
+                            value={propDscr.toFixed(2)}
+                            color={
+                              propDscr >= 1.25 ? "#2C7A5A" : propDscr >= 1.0 ? "#D97706" : "#DC2626"
+                            }
+                          />
+                        )}
+                        {isInvestment && rent > 0 && (
+                          <MiniStat
+                            label="תשואה על הון"
+                            value={`${coc.toFixed(1)}%`}
+                            color={coc > 5 ? "#2C7A5A" : coc > 0 ? "#D97706" : "#DC2626"}
+                          />
+                        )}
+                        {prop.city && <MiniStat label="עיר" value={prop.city} />}
+                        {prop.rooms && <MiniStat label="חדרים" value={`${prop.rooms}`} />}
+                        {prop.area && <MiniStat label='שטח במ"ר' value={`${prop.area}`} />}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Linked mortgages for this property — multi-mortgage model */}
+                  <PropertyMortgagePanel
+                    propertyId={prop.id}
+                    debt={debtData}
+                    primeRate={primeRate}
+                  />
+
+                  {/* Goal linking */}
+                  <div className="v-divider mt-2 border-t px-5 pb-3 pt-3">
+                    <div className="mb-2 flex items-center gap-2">
+                      <span
+                        className="material-symbols-outlined text-[14px]"
+                        style={{ color: "#2C7A5A" }}
+                      >
+                        flag
+                      </span>
+                      <span className="text-[11px] font-bold text-verdant-muted">
+                        שיוך הון עצמי ליעד
+                      </span>
+                    </div>
+                    <GoalLinker
+                      assetType="realestate"
+                      assetId={prop.id}
+                      assetValue={netEquity}
+                      variant="card"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {showFooter && (
+                <div className="v-divider flex items-center justify-between border-t bg-[#FAFAF7] px-5 py-2.5">
+                  <div className="flex items-center gap-2">
+                    {isMissingTax && (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-[#FAEEDA] px-2 py-0.5 text-[10px] font-bold text-[#633806]">
+                        <span className="material-symbols-outlined text-[12px]">warning</span>
+                        מס שבח חסר
+                      </span>
+                    )}
+                    {hasUnassignedMortgage && (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-[#FCEBEB] px-2 py-0.5 text-[10px] font-bold text-[#791F1F]">
+                        <span className="material-symbols-outlined text-[12px]">link_off</span>
+                        משכנתא לא משויכת
+                      </span>
+                    )}
+                  </div>
+                  <Link
+                    href={hasUnassignedMortgage ? "/debt" : "#"}
+                    className="rounded-md border border-[#0F6E56] bg-white px-3 py-1 text-[11px] font-bold text-[#0F6E56] shadow-sm transition-colors hover:bg-[#0F6E56] hover:text-white"
+                    onClick={(e) => {
+                      if (!hasUnassignedMortgage) {
+                        e.preventDefault();
+                        setEditingPropId(prop.id);
+                      }
+                    }}
+                  >
+                    תיקון ←
+                  </Link>
+                </div>
+              )}
+            </section>
+            <section className="v-card mb-4 block overflow-hidden rounded-2xl border-[0.5px] border-gray-200 md:hidden">
+              <div className="p-3.5">
+                {/* Header Row */}
+                <div className="mb-3 flex items-start justify-between gap-2.5">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <div
+                      className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                      style={{
+                        background: prop.type === "investment" ? "#FAFAF7" : "#E1F5EE",
+                        border: "1px solid #9FE1CB",
+                      }}
+                    >
+                      <span
+                        className="material-symbols-outlined text-[20px]"
+                        style={{ color: prop.type === "investment" ? "#374151" : "#0F6E56" }}
+                      >
+                        {prop.type === "investment"
+                          ? "apartment"
+                          : prop.type === "commercial"
+                            ? "store"
+                            : prop.type === "land"
+                              ? "landscape"
+                              : "home"}
+                      </span>
+                      {propRecs.length > 0 && (
+                        <div className="absolute -left-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-white">
+                          {propRecs.length}
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[14px] font-medium text-verdant-ink">
+                        {prop.name}
+                        <span className="ml-1 font-normal text-verdant-muted">
+                          · {TYPE_LABELS[prop.type]}
+                        </span>
+                      </div>
+                      <div className="mt-0.5 text-[20px] font-medium tabular-nums leading-tight text-verdant-ink">
+                        {fmtILS(prop.currentValue)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      onClick={() => setEditingPropId(prop.id)}
+                      title="עריכה"
+                      className="flex h-10 w-10 items-center justify-center rounded-xl border-[0.5px] border-gray-200 bg-transparent text-gray-500 hover:bg-gray-50"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">edit</span>
+                    </button>
+                    <button
+                      onClick={() => handleDelete(prop.id)}
+                      title="מחיקה"
+                      className="flex h-10 w-10 items-center justify-center rounded-xl border-[0.5px] border-gray-200 bg-transparent text-[#E24B4A] hover:bg-red-50"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">delete</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Metrics Row */}
+                <div className="mb-3 grid grid-cols-2 gap-2">
+                  <div className="rounded-xl bg-[#FAFAF7] px-3 py-2">
+                    <div className="mb-0.5 text-[10px] text-verdant-muted">הון עצמי</div>
+                    <div className="text-[13px] font-medium tabular-nums text-[#085041]">
+                      {fmtILS(netEquity)} · {equityPct.toFixed(0)}%
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-[#FAFAF7] px-3 py-2">
+                    <div className="mb-0.5 text-[10px] text-verdant-muted">
+                      עליית ערך{hasHoldingYears ? ` · ${prop.holdingYears} שנים` : ""}
+                    </div>
+                    <div className="text-[13px] font-medium tabular-nums text-gray-600">
+                      {appreciationPct}%
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions Row */}
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={() => setSalePropId(prop.id)}
+                    title="סימולציית מכירה"
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-[#1D9E75] bg-transparent p-2.5 text-[13px] font-medium text-[#0F6E56] hover:bg-gray-50"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">sell</span>
+                    סימולציית מכירה
+                  </button>
+                  <button
+                    onClick={() => setExpandedPropId(isExpanded ? null : prop.id)}
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-[0.5px] border-gray-300 text-gray-500 hover:bg-gray-50"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">
+                      {isExpanded ? "expand_less" : "expand_more"}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {isExpanded && (
+                <div className="v-divider border-t border-gray-200 bg-[#FAFAF7]/30 pb-2 pt-3">
+                  {(() => {
+                    const rent = prop.monthlyRent ?? 0;
+                    const expenses = prop.monthlyExpenses ?? 0;
+                    const mtg = prop.monthlyMortgage ?? 0;
+                    const propCashflow = rent - expenses - mtg;
+                    const propNoi = rent - expenses;
+                    const propDscr = mtg > 0 ? propNoi / mtg : 0;
+                    const annualCashflow = propCashflow * 12;
+                    const equityInvested =
+                      prop.purchasePrice - (prop.purchasePrice - mtgBal > 0 ? mtgBal : 0);
+                    const coc = equityInvested > 0 ? (annualCashflow / equityInvested) * 100 : 0;
+                    const isInvestment = prop.type === "investment" || prop.type === "commercial";
+                    return (
+                      <div className="grid grid-cols-2 gap-3 px-4 pb-2 md:grid-cols-4">
+                        <MiniStat label="מחיר רכישה" value={fmtILS(prop.purchasePrice)} />
+                        {rent > 0 && <MiniStat label="שכ״ד חודשי" value={fmtILS(rent)} />}
+                        {rent > 0 && (
+                          <MiniStat
+                            label="תשואת שכירות"
+                            value={`${(((rent * 12) / (prop.currentValue || 1)) * 100).toFixed(1)}%`}
+                          />
+                        )}
+                        {mtg > 0 && <MiniStat label="החזר משכנתא" value={fmtILS(mtg)} />}
+                        {mtgBal > 0 && (
+                          <MiniStat label="יתרת משכנתא" value={fmtILS(mtgBal)} color="#DC2626" />
+                        )}
+                        {isInvestment && rent > 0 && (
+                          <MiniStat
+                            label="תזרים חודשי נטו"
+                            value={`${propCashflow >= 0 ? "+" : ""}${fmtILS(propCashflow)}`}
+                            color={propCashflow >= 0 ? "#2C7A5A" : "#DC2626"}
+                          />
+                        )}
+                        {isInvestment && mtg > 0 && rent > 0 && (
+                          <MiniStat
+                            label="כיסוי החזר"
+                            value={propDscr.toFixed(2)}
+                            color={
+                              propDscr >= 1.25 ? "#2C7A5A" : propDscr >= 1.0 ? "#D97706" : "#DC2626"
+                            }
+                          />
+                        )}
+                        {isInvestment && rent > 0 && (
+                          <MiniStat
+                            label="תשואה על הון"
+                            value={`${coc.toFixed(1)}%`}
+                            color={coc > 5 ? "#2C7A5A" : coc > 0 ? "#D97706" : "#DC2626"}
+                          />
+                        )}
+                        {prop.city && <MiniStat label="עיר" value={prop.city} />}
+                        {prop.rooms && <MiniStat label="חדרים" value={`${prop.rooms}`} />}
+                        {prop.area && <MiniStat label='שטח במ"ר' value={`${prop.area}`} />}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Linked mortgages for this property — multi-mortgage model */}
+                  <PropertyMortgagePanel
+                    propertyId={prop.id}
+                    debt={debtData}
+                    primeRate={primeRate}
+                  />
+
+                  {/* Goal linking */}
+                  <div className="v-divider mt-2 border-t border-gray-200 px-4 pb-3 pt-3">
+                    <div className="mb-2 flex items-center gap-2">
+                      <span
+                        className="material-symbols-outlined text-[14px]"
+                        style={{ color: "#2C7A5A" }}
+                      >
+                        flag
+                      </span>
+                      <span className="text-[11px] font-bold text-verdant-muted">
+                        שיוך הון עצמי ליעד
+                      </span>
+                    </div>
+                    <GoalLinker
+                      assetType="realestate"
+                      assetId={prop.id}
+                      assetValue={netEquity}
+                      variant="card"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {showFooter && (
+                <div className="flex flex-col gap-2 border-t border-gray-200 bg-[#FAFAF7] px-3.5 py-2.5">
+                  {isMissingTax && (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#FAEEDA] px-2.5 py-1 text-[11px] font-medium text-[#633806]">
+                        <span className="material-symbols-outlined text-[13px]">warning</span>
+                        מס שבח חסר
+                      </span>
+                      <Link
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setEditingPropId(prop.id);
+                        }}
+                        className="flex items-center gap-1 whitespace-nowrap rounded-lg border-[1.5px] border-[#1D9E75] bg-transparent px-2.5 py-1.5 text-[11px] font-medium text-[#0F6E56] hover:bg-gray-50"
+                      >
+                        <span className="material-symbols-outlined scale-x-[-1] text-[13px]">
+                          arrow_right_alt
+                        </span>
+                        תיקון
+                      </Link>
+                    </div>
+                  )}
+                  {hasUnassignedMortgage && (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#FCEBEB] px-2.5 py-1 text-[11px] font-medium text-[#791F1F]">
+                        <span className="material-symbols-outlined text-[13px]">link_off</span>
+                        משכנתא לא משויכת
+                      </span>
+                      <Link
+                        href="/debt"
+                        className="flex items-center gap-1 whitespace-nowrap rounded-lg border-[1.5px] border-[#1D9E75] bg-transparent px-2.5 py-1.5 text-[11px] font-medium text-[#0F6E56] hover:bg-gray-50"
+                      >
+                        <span className="material-symbols-outlined scale-x-[-1] text-[13px]">
+                          arrow_right_alt
+                        </span>
+                        תיקון
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+          </div>
         );
       })}
 
@@ -1665,7 +2251,10 @@ export default function RealEstatePage() {
               </span>
               <span>נותר: {fmtILS(totalMortgageBalance)}</span>
             </div>
-            <div className="h-2.5 w-full rounded-full" style={{ background: "rgba(220,38,38,0.12)" }}>
+            <div
+              className="h-2.5 w-full rounded-full"
+              style={{ background: "rgba(220,38,38,0.12)" }}
+            >
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{

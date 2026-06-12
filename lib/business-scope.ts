@@ -14,6 +14,7 @@
  */
 
 import { scopedKey } from "./client-scope";
+import { reportError } from "@/lib/report-error";
 
 const OVERRIDE_KEY = "verdant:business_scope_override";
 const ONBOARDING_KEY = "verdant:onboarding:fields";
@@ -56,7 +57,7 @@ export function isBusinessScopeEnabled(): boolean {
       const banks = Array.isArray(data?.banks) ? data.banks : [];
       if (banks.some((b: any) => b?.accountType === "business")) return true;
     }
-  } catch {}
+  } catch (e) { reportError("business-scope", e); }
   return false;
 }
 
@@ -71,7 +72,7 @@ export function setBusinessScopeOverride(value: boolean | null): void {
       localStorage.setItem(key, String(value));
     }
     window.dispatchEvent(new CustomEvent(BUSINESS_SCOPE_EVENT));
-  } catch {}
+  } catch (e) { reportError("business-scope", e); }
 }
 
 /** Get current manual override state (null = auto/unset). */
@@ -81,7 +82,7 @@ export function getBusinessScopeOverride(): boolean | null {
     const v = localStorage.getItem(scopedKey(OVERRIDE_KEY));
     if (v === "true") return true;
     if (v === "false") return false;
-  } catch {}
+  } catch (e) { reportError("business-scope", e); }
   return null;
 }
 

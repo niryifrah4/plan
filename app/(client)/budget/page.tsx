@@ -59,6 +59,7 @@ import {
   BUSINESS_SCOPE_EVENT,
 } from "@/lib/business-scope";
 import { useConfirm } from "@/components/ui/ConfirmModal";
+import { reportError } from "@/lib/report-error";
 
 /* ═══════════════════════════════════════════════════════════
    Types & Constants
@@ -503,7 +504,7 @@ function loadBudget(year: number, month: number): BudgetData | null {
   try {
     const raw = localStorage.getItem(scopedKey(budgetKey(year, month)));
     if (raw) return migrateBudget(JSON.parse(raw));
-  } catch {}
+  } catch (e) { reportError("client/budget/page", e); }
   return null;
 }
 

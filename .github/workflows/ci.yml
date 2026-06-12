@@ -1,0 +1,59 @@
+name: CI
+
+# שומר הסף של הקוד.
+# היסטוריה: ה-build ב-Render מדלג על type-check (process.env.RENDER) בגלל OOM
+# בשלב "Checking validity of types". כדי לא לוותר על הבדיקה, מריצים אותה כאן
+# על ראנר נקי של GitHub — בלי תלות ב-pre-push hook מקומי שאפשר לעקוף.
+# כל merge ל-main חייב לעבור את ה-job הזה (ראו branch protection).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# מבטל ריצות ישנות על אותו branch כשנדחף commit חדש.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    name: Type check (blocking)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - name: tsc --noEmit
+        run: npm run typecheck
+
+  format:
+    name: Prettier check (non-blocking)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - name: prettier --check
+        run: npm run format:check
+
+  lint:
+    name: ESLint (blocking)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - name: eslint
+        run: npm run lint

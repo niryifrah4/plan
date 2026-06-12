@@ -6,6 +6,7 @@
  */
 
 import { scopedKey } from "../client-scope";
+import { reportError } from "@/lib/report-error";
 
 const STORAGE_KEY = "verdant:excluded_merchant_keys";
 export const EXCLUDED_MERCHANT_KEYS_EVENT = "verdant:excluded_merchant_keys:updated";
@@ -35,7 +36,7 @@ function writeKeys(keys: string[]): void {
   try {
     localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(keys));
     window.dispatchEvent(new Event(EXCLUDED_MERCHANT_KEYS_EVENT));
-  } catch {}
+  } catch (e) { reportError("doc-parser/excluded-merchant-keys", e); }
 }
 
 export function loadExcludedMerchantKeys(): Set<string> {

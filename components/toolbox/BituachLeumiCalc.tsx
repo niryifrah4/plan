@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { fmtILS } from "@/lib/format";
 import { bituachLeumiEstimate, OLD_AGE_ALLOWANCE_DEFAULTS } from "@/lib/assumptions";
+import { ToolboxNumberField } from "@/components/toolbox/ToolboxNumberField";
 
 export function BituachLeumiCalc() {
   const [monthlyGross, setMonthlyGross] = useState(28500);
@@ -45,56 +46,34 @@ export function BituachLeumiCalc() {
 
         <div className="mb-5 grid grid-cols-3 gap-4">
           <div>
-            <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
-              ברוטו חודשי
-            </label>
-            <div
-              className="flex items-center rounded-lg border px-3 py-2"
-              style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
-            >
-              <input
-                type="number"
-                value={monthlyGross}
-                onChange={(e) => setMonthlyGross(Number(e.target.value))}
-                className="tabular flex-1 bg-transparent text-sm font-bold text-verdant-ink outline-none"
-                dir="ltr"
-              />
-              <span className="text-xs font-bold text-verdant-muted">₪</span>
-            </div>
+            <ToolboxNumberField
+              label="ברוטו חודשי"
+              value={monthlyGross}
+              onChange={setMonthlyGross}
+              suffix="₪"
+              min={0}
+              compact
+            />
           </div>
           <div>
-            <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
-              גיל
-            </label>
-            <div
-              className="flex items-center rounded-lg border px-3 py-2"
-              style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
-            >
-              <input
-                type="number"
-                value={age}
-                onChange={(e) => setAge(Number(e.target.value))}
-                className="tabular flex-1 bg-transparent text-sm font-bold text-verdant-ink outline-none"
-                dir="ltr"
-              />
-            </div>
+            <ToolboxNumberField
+              label="גיל"
+              value={age}
+              onChange={setAge}
+              min={0}
+              steps={[1, 5, 10]}
+              compact
+            />
           </div>
           <div>
-            <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
-              ילדים מתחת 18
-            </label>
-            <div
-              className="flex items-center rounded-lg border px-3 py-2"
-              style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
-            >
-              <input
-                type="number"
-                value={childrenUnder18}
-                onChange={(e) => setChildrenUnder18(Number(e.target.value))}
-                className="tabular flex-1 bg-transparent text-sm font-bold text-verdant-ink outline-none"
-                dir="ltr"
-              />
-            </div>
+            <ToolboxNumberField
+              label="ילדים מתחת 18"
+              value={childrenUnder18}
+              onChange={setChildrenUnder18}
+              min={0}
+              steps={[1, 2, 5]}
+              compact
+            />
           </div>
         </div>
       </div>
@@ -142,7 +121,10 @@ export function BituachLeumiCalc() {
           </div>
 
           {childrenUnder18 > 0 && (
-            <div className="flex items-start gap-3 rounded-lg p-2" style={{ background: "#FFFFFF" }}>
+            <div
+              className="flex items-start gap-3 rounded-lg p-2"
+              style={{ background: "#FFFFFF" }}
+            >
               <span
                 className="material-symbols-outlined mt-0.5 text-[18px]"
                 style={{ color: "#059669" }}

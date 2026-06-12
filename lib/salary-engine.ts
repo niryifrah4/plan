@@ -60,6 +60,7 @@ const SPOUSE_SALARY_BLOB_KEY = "salary_profile_spouse";
 export const SALARY_PROFILE_EVENT = "verdant:salary_profile:updated";
 
 import { pushBlobInBackground, pullBlob } from "./sync/blob-sync";
+import { reportError } from "@/lib/report-error";
 
 /* ═══════════════════════════════════════════════════════════
    Breakdown result
@@ -260,7 +261,7 @@ export function saveSalaryProfile(profile: SalaryProfile): void {
     // survive `wipeForTenantSwitch` on tenant switch. Push to Supabase
     // with race-safe household snapshot.
     pushBlobInBackground(SALARY_BLOB_KEY, toSave);
-  } catch {}
+  } catch (e) { reportError("salary-engine", e); }
 }
 
 /** True only after explicit user save (default profile returns false). */
@@ -313,7 +314,7 @@ export function saveSpouseSalaryProfile(profile: SalaryProfile | null): void {
       pushBlobInBackground(SPOUSE_SALARY_BLOB_KEY, toSave);
     }
     window.dispatchEvent(new Event(SALARY_PROFILE_EVENT));
-  } catch {}
+  } catch (e) { reportError("salary-engine", e); }
 }
 
 export function hasSavedSpouseSalaryProfile(): boolean {
@@ -334,14 +335,14 @@ export async function hydrateSalaryFromRemote(): Promise<boolean> {
       localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(remote));
       wrote = true;
     }
-  } catch {}
+  } catch (e) { reportError("salary-engine", e); }
   try {
     const remote = await pullBlob<SalaryProfile | null>(SPOUSE_SALARY_BLOB_KEY);
     if (remote && typeof remote === "object") {
       localStorage.setItem(scopedKey(SPOUSE_STORAGE_KEY), JSON.stringify(remote));
       wrote = true;
     }
-  } catch {}
+  } catch (e) { reportError("salary-engine", e); }
   if (wrote && typeof window !== "undefined") {
     window.dispatchEvent(new Event(SALARY_PROFILE_EVENT));
   }

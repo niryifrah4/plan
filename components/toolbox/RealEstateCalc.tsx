@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { fmtILS } from "@/lib/format";
 import { analyzeRealEstate, type RealEstateInputs } from "@/lib/financial-math";
+import { ToolboxNumberField } from "@/components/toolbox/ToolboxNumberField";
 
 const DEFAULTS: RealEstateInputs = {
   purchasePrice: 1_600_000,
@@ -183,18 +184,20 @@ function Field({
   onChange: (v: string) => void;
   step?: string;
 }) {
+  const numericStep = Number(step);
   return (
-    <label className="block">
-      <span className="text-[11px] font-bold text-verdant-muted">{label}</span>
-      <input
-        type="number"
-        step={step}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="v-divider tabular mt-1 w-full rounded-lg border bg-[#FFFFFF] px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
-        dir="ltr"
-      />
-    </label>
+    <ToolboxNumberField
+      label={label}
+      value={value}
+      onChange={(nextValue) => onChange(String(nextValue))}
+      min={0}
+      steps={
+        Number.isFinite(numericStep) ? [numericStep, numericStep * 5, numericStep * 10] : undefined
+      }
+      labelClassName="text-[11px] font-bold text-verdant-muted"
+      buttonClassName="v-divider mt-1 flex w-full items-center justify-between rounded-lg border bg-[#FFFFFF] px-3 py-2 text-left text-sm font-bold text-verdant-ink transition-colors hover:bg-[#FAFAF7]"
+      compact
+    />
   );
 }
 

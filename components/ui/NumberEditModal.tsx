@@ -11,7 +11,14 @@ interface Props {
   onClose: () => void;
 }
 
-export function NumberEditModal({ initialValue, title = "עריכת סכום", steps = [100, 500, 1000], min, onSave, onClose }: Props) {
+export function NumberEditModal({
+  initialValue,
+  title = "עריכת סכום",
+  steps = [100, 500, 1000],
+  min,
+  onSave,
+  onClose,
+}: Props) {
   const [text, setText] = useState<string>(
     initialValue === undefined || initialValue === null ? "" : String(initialValue)
   );
@@ -25,11 +32,9 @@ export function NumberEditModal({ initialValue, title = "עריכת סכום", s
     }
   }, []);
 
-
-
   const handleAdd = (amount: number) => {
     let current = Number(text.replace(/,/g, "")) || 0;
-    current += amount;
+    current = Number((current + amount).toFixed(6));
     if (min !== undefined && current < min) {
       current = min;
     }
@@ -81,7 +86,7 @@ export function NumberEditModal({ initialValue, title = "עריכת סכום", s
         }
       `}</style>
       <div
-        className="w-full max-w-sm rounded-2xl bg-[#FFFFFF] p-6 shadow-xl mx-4"
+        className="mx-4 w-full max-w-sm rounded-2xl bg-[#FFFFFF] p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-6 flex items-center justify-between">
@@ -120,12 +125,24 @@ export function NumberEditModal({ initialValue, title = "עריכת סכום", s
 
           <div className="mb-6 grid grid-cols-3 gap-2">
             {steps.map((amount) => (
-              <button key={`plus-${amount}`} type="button" dir="ltr" onClick={() => handleAdd(amount)} className="rounded-lg bg-[#FAFAF7] py-2 text-sm font-bold text-[#2C7A5A] transition-colors hover:bg-[#E5E7EB]">
+              <button
+                key={`plus-${amount}`}
+                type="button"
+                dir="ltr"
+                onClick={() => handleAdd(amount)}
+                className="rounded-lg bg-[#FAFAF7] py-2 text-sm font-bold text-[#2C7A5A] transition-colors hover:bg-[#E5E7EB]"
+              >
                 {shiftLabel(amount)}
               </button>
             ))}
             {steps.map((amount) => (
-              <button key={`minus-${amount}`} type="button" dir="ltr" onClick={() => handleAdd(-amount)} className="rounded-lg bg-[#FAFAF7] py-2 text-sm font-bold text-[#DC2626] transition-colors hover:bg-[#E5E7EB]">
+              <button
+                key={`minus-${amount}`}
+                type="button"
+                dir="ltr"
+                onClick={() => handleAdd(-amount)}
+                className="rounded-lg bg-[#FAFAF7] py-2 text-sm font-bold text-[#DC2626] transition-colors hover:bg-[#E5E7EB]"
+              >
                 {shiftLabel(-amount)}
               </button>
             ))}

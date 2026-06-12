@@ -19,6 +19,7 @@ import { loadProperties } from "./realestate-store";
 import { loadBuckets } from "./buckets-store";
 import { loadAssumptions } from "./assumptions";
 import { getTotalLiabilities } from "./debt-store";
+import { reportError } from "@/lib/report-error";
 
 export interface AnnualSnapshot {
   /** Calendar year — e.g. 2026. */
@@ -65,7 +66,7 @@ export function loadAnnualSnapshots(): AnnualSnapshot[] {
   try {
     const raw = localStorage.getItem(scopedKey(SNAPSHOTS_KEY));
     if (raw) return JSON.parse(raw) as AnnualSnapshot[];
-  } catch {}
+  } catch (e) { reportError("annual-review", e); }
   return [];
 }
 
@@ -73,10 +74,10 @@ function saveSnapshots(snaps: AnnualSnapshot[]): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(scopedKey(SNAPSHOTS_KEY), JSON.stringify(snaps));
-  } catch {}
+  } catch (e) { reportError("annual-review", e); }
   try {
     window.dispatchEvent(new Event(ANNUAL_REVIEW_EVENT));
-  } catch {}
+  } catch (e) { reportError("annual-review", e); }
 }
 
 /** Compute the "forecast" inputs for a given snapshot using whatever the

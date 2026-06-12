@@ -5,6 +5,7 @@
  */
 
 import { scopedKey } from "./client-scope";
+import { reportError } from "@/lib/report-error";
 
 const STORAGE_KEY = "verdant:assumptions";
 
@@ -137,7 +138,7 @@ export function loadAssumptions(): Assumptions {
       }
       return merged;
     }
-  } catch {}
+  } catch (e) { reportError("assumptions", e); }
   return { ...DEFAULT_ASSUMPTIONS };
 }
 
@@ -148,7 +149,7 @@ export function saveAssumptions(a: Assumptions): void {
     if (typeof window !== "undefined") {
       window.dispatchEvent(new Event("verdant:assumptions"));
     }
-  } catch {}
+  } catch (e) { reportError("assumptions", e); }
 }
 
 /** Patch specific fields. */

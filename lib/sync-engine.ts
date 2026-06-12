@@ -1,3 +1,4 @@
+import { reportError } from "@/lib/report-error";
 /**
  * Verdant Ledger · Cross-Page Sync Engine
  *
@@ -101,7 +102,7 @@ const TIMESTAMP_PREFIX = "verdant:sync_ts:";
 export function markUpdated(domain: string) {
   try {
     localStorage.setItem(TIMESTAMP_PREFIX + domain, String(Date.now()));
-  } catch {}
+  } catch (e) { reportError("sync-engine", e); }
 }
 
 export function lastUpdated(domain: string): number {

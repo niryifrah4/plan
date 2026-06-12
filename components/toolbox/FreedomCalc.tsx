@@ -5,6 +5,7 @@ import { fmtILS } from "@/lib/format";
 import { futureValue } from "@/lib/financial-math";
 import { loadAssumptions, freedomNumber } from "@/lib/assumptions";
 import { dynamicFreedomNumber } from "@/lib/intelligence-engine";
+import { ToolboxNumberField } from "@/components/toolbox/ToolboxNumberField";
 
 export function FreedomCalc() {
   const [monthlyExpense, setMonthlyExpense] = useState(27000);
@@ -309,23 +310,14 @@ function Field({
   suffix: string;
 }) {
   return (
-    <div>
-      <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
-        {label}
-      </label>
-      <div
-        className="flex items-center gap-1 rounded-lg border px-3 py-2"
-        style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
-      >
-        <input
-          type="number"
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className="tabular flex-1 bg-transparent text-sm font-bold text-verdant-ink outline-none"
-          dir="ltr"
-        />
-        <span className="text-xs font-bold text-verdant-muted">{suffix}</span>
-      </div>
-    </div>
+    <ToolboxNumberField
+      label={label}
+      value={value}
+      onChange={onChange}
+      suffix={suffix}
+      min={0}
+      steps={suffix === "%" ? [0.1, 0.5, 1] : undefined}
+      compact
+    />
   );
 }

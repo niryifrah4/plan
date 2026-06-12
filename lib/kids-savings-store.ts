@@ -42,6 +42,7 @@
 import { scopedKey } from "./client-scope";
 import { fireSync } from "./sync-engine";
 import { pushBlobInBackground, pullBlob } from "./sync/blob-sync";
+import { reportError } from "@/lib/report-error";
 
 const STORAGE_KEY = "verdant:kids_savings";
 const BLOB_KEY = "kids_savings";
@@ -342,7 +343,7 @@ export function loadKidsSavings(): KidSavings[] {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) return parsed;
     }
-  } catch {}
+  } catch (e) { reportError("kids-savings-store", e); }
   return [];
 }
 

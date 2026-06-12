@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { fmtILS } from "@/lib/format";
+import { ToolboxNumberField } from "@/components/toolbox/ToolboxNumberField";
 
 interface VestingTranche {
   date: string;
@@ -256,24 +257,15 @@ function Field({
   suffix?: string;
 }) {
   return (
-    <div>
-      <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
-        {label}
-      </label>
-      <div
-        className="flex items-center rounded-lg border px-3 py-2"
-        style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
-      >
-        <input
-          type="number"
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className="tabular flex-1 bg-transparent text-sm font-bold text-verdant-ink outline-none"
-          dir="ltr"
-        />
-        {suffix && <span className="mr-1 text-xs font-bold text-verdant-muted">{suffix}</span>}
-      </div>
-    </div>
+    <ToolboxNumberField
+      label={label}
+      value={value}
+      onChange={onChange}
+      suffix={suffix}
+      min={0}
+      steps={suffix === "$" ? [1, 5, 10] : [1, 10, 100]}
+      compact
+    />
   );
 }
 

@@ -23,6 +23,7 @@
 
 import { scopedKey } from "./client-scope";
 import { pushBlobInBackground, pullBlob } from "./sync/blob-sync";
+import { reportError } from "@/lib/report-error";
 
 /* ═══════════════════════════════════════════════════════════
    Profile — the inputs the rest of the system doesn't know
@@ -101,7 +102,7 @@ export function loadInsuranceProfile(): InsuranceProfile {
       const parsed = JSON.parse(raw);
       return { ...DEFAULT_INSURANCE_PROFILE, ...parsed };
     }
-  } catch {}
+  } catch (e) { reportError("insurance-needs", e); }
   return { ...DEFAULT_INSURANCE_PROFILE };
 }
 
@@ -111,7 +112,7 @@ export function saveInsuranceProfile(p: InsuranceProfile): void {
     localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(p));
     window.dispatchEvent(new Event(INSURANCE_PROFILE_EVENT));
     pushBlobInBackground(BLOB_KEY, p);
-  } catch {}
+  } catch (e) { reportError("insurance-needs", e); }
 }
 
 export async function hydrateInsuranceProfileFromRemote(): Promise<boolean> {

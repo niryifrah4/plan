@@ -52,6 +52,7 @@ import { Step4Goals } from "./page-files/Step4Goals";
 import { Step5Retirement } from "./page-files/Step5Retirement";
 import { Navigation } from "./page-files/Navigation";
 import { Step0Welcome, shouldShowWelcome } from "./page-files/Step0Welcome";
+import { reportError } from "@/lib/report-error";
 
 const ONBOARDING_STEP_KEY = "verdant:onboarding:step";
 const ONBOARDING_FIELDS_KEY = "verdant:onboarding:fields";
@@ -120,7 +121,7 @@ export default function OnboardingPage() {
           window.location.reload();
           return;
         }
-      } catch {}
+      } catch (e) { reportError("client/onboarding/page", e); }
       if (alive) setHydrated(true);
     })();
     return () => {

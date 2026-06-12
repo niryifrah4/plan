@@ -13,6 +13,7 @@
  */
 
 import { scopedKey } from "./client-scope";
+import { reportError } from "@/lib/report-error";
 
 export type CryptoExchange = "binance" | "coinbase";
 
@@ -59,7 +60,7 @@ export function saveCryptoCredentials(creds: CryptoCredentials[]): void {
   try {
     localStorage.setItem(scopedKey(CREDS_KEY), JSON.stringify(creds));
     window.dispatchEvent(new Event(CRYPTO_CREDS_EVENT));
-  } catch {}
+  } catch (e) { reportError("crypto-credentials", e); }
 }
 
 export function addCryptoCredential(

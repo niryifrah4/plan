@@ -13,6 +13,7 @@ import {
   setActiveClientId,
 } from "@/lib/client-scope";
 import type { LocalClient } from "@/lib/client-context";
+import { reportError } from "@/lib/report-error";
 
 export interface ClientExportPayload {
   version: 1;
@@ -44,7 +45,7 @@ function saveRegistry(list: LocalClient[]): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(CLIENTS_REGISTRY_KEY, JSON.stringify(list));
-  } catch {}
+  } catch (e) { reportError("client-io", e); }
 }
 
 function clientPrefix(id: number): string {
@@ -60,7 +61,7 @@ function scanClientKeys(id: number): string[] {
       const k = localStorage.key(i);
       if (k && k.startsWith(prefix)) keys.push(k);
     }
-  } catch {}
+  } catch (e) { reportError("client-io", e); }
   return keys;
 }
 
@@ -79,7 +80,7 @@ function collectClientData(id: number): Record<string, unknown> {
       } catch {
         out[subKey] = raw;
       }
-    } catch {}
+    } catch (e) { reportError("client-io", e); }
   }
   return out;
 }
@@ -91,7 +92,7 @@ function writeClientData(id: number, data: Record<string, unknown>): void {
     try {
       const raw = typeof value === "string" ? value : JSON.stringify(value);
       localStorage.setItem(prefix + subKey, raw);
-    } catch {}
+    } catch (e) { reportError("client-io", e); }
   }
 }
 
@@ -101,7 +102,7 @@ function deleteClientData(id: number): void {
   for (const k of keys) {
     try {
       localStorage.removeItem(k);
-    } catch {}
+    } catch (e) { reportError("client-io", e); }
   }
 }
 
@@ -254,7 +255,7 @@ export function deleteClient(id: number): void {
     saveRegistry([fresh]);
     try {
       localStorage.setItem(CURRENT_HH_KEY, String(fresh.id));
-    } catch {}
+    } catch (e) { reportError("client-io", e); }
     setActiveClientId(fresh.id);
     return;
   }

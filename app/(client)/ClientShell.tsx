@@ -8,6 +8,7 @@ import { startSessionWatcher } from "@/lib/session-security";
 import { isSupabaseConfigured } from "@/lib/supabase/browser";
 import { getCurrentUser } from "@/lib/auth";
 import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
+import { reportError } from "@/lib/report-error";
 
 interface ImpersonationInfo {
   householdId: string;
@@ -144,14 +145,14 @@ export function ClientShell({
         requestAnimationFrame(() => {
           try {
             target.select();
-          } catch {}
+          } catch (e) { reportError("client/ClientShell", e); }
         });
       } else if (target instanceof HTMLTextAreaElement) {
         if (target.dataset.noAutoselect === "true") return;
         requestAnimationFrame(() => {
           try {
             target.select();
-          } catch {}
+          } catch (e) { reportError("client/ClientShell", e); }
         });
       }
     };

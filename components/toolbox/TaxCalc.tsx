@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { fmtILS, fmtPct } from "@/lib/format";
 import { israeliIncomeTax, bituachLeumiEstimate } from "@/lib/assumptions";
 import { capitalGainsTax } from "@/lib/financial-math";
+import { ToolboxNumberField } from "@/components/toolbox/ToolboxNumberField";
 
 type IncomeType = "employment" | "passive";
 
@@ -53,18 +54,14 @@ export function TaxCalc() {
 
   const incomeTax = useMemo(
     () =>
-      passiveFloorApplies
-        ? passiveIncomeTaxUnder60(annualIncome)
-        : israeliIncomeTax(annualIncome),
+      passiveFloorApplies ? passiveIncomeTaxUnder60(annualIncome) : israeliIncomeTax(annualIncome),
     [annualIncome, passiveFloorApplies]
   );
   // Bituach Leumi applies to earned income only — passive income has separate (lower) rates
   // not modeled here, so we surface 0 for passive to avoid double-counting.
   const bituachLeumi = useMemo(
     () =>
-      incomeType === "employment"
-        ? bituachLeumiEstimate(monthlyGross)
-        : { monthly: 0, annual: 0 },
+      incomeType === "employment" ? bituachLeumiEstimate(monthlyGross) : { monthly: 0, annual: 0 },
     [monthlyGross, incomeType]
   );
   const cgt = useMemo(
@@ -93,61 +90,24 @@ export function TaxCalc() {
 
         <div className="mb-5 grid grid-cols-2 gap-4 md:grid-cols-4">
           <div>
-            <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
-              {incomeType === "employment" ? "משכורת ברוטו חודשית" : "הכנסה חודשית ברוטו"}
-            </label>
-            <div
-              className="flex items-center rounded-lg border px-3 py-2"
-              style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
-            >
-              <input
-                type="number"
-                value={monthlyGross}
-                onChange={(e) => setMonthlyGross(Number(e.target.value))}
-                className="tabular flex-1 bg-transparent text-sm font-bold text-verdant-ink outline-none"
-                dir="ltr"
-              />
-              <span className="text-xs font-bold text-verdant-muted">₪</span>
-            </div>
+            <TaxNumberField
+              label={incomeType === "employment" ? "משכורת ברוטו חודשית" : "הכנסה חודשית ברוטו"}
+              value={monthlyGross}
+              onChange={setMonthlyGross}
+              suffix="₪"
+            />
           </div>
           <div>
-            <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
-              נקודות זיכוי
-            </label>
-            <div
-              className="flex items-center rounded-lg border px-3 py-2"
-              style={{
-                borderColor: "#E5E7EB",
-                background: incomeType === "passive" ? "#F3F4F6" : "#FFFFFF",
-              }}
-            >
-              <input
-                type="number"
-                value={creditPoints}
-                onChange={(e) => setCreditPoints(Number(e.target.value))}
-                step="0.25"
-                disabled={incomeType === "passive"}
-                className="tabular flex-1 bg-transparent text-sm font-bold text-verdant-ink outline-none disabled:opacity-50"
-                dir="ltr"
-              />
-            </div>
+            <TaxNumberField
+              label="נקודות זיכוי"
+              value={creditPoints}
+              onChange={setCreditPoints}
+              disabled={incomeType === "passive"}
+              steps={[0.25, 0.5, 1]}
+            />
           </div>
           <div>
-            <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
-              גיל
-            </label>
-            <div
-              className="flex items-center rounded-lg border px-3 py-2"
-              style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
-            >
-              <input
-                type="number"
-                value={age}
-                onChange={(e) => setAge(Number(e.target.value))}
-                className="tabular flex-1 bg-transparent text-sm font-bold text-verdant-ink outline-none"
-                dir="ltr"
-              />
-            </div>
+            <TaxNumberField label="גיל" value={age} onChange={setAge} steps={[1, 5, 10]} />
           </div>
           <div>
             <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
@@ -215,40 +175,20 @@ export function TaxCalc() {
 
         <div className="mb-5 grid grid-cols-2 gap-4">
           <div>
-            <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
-              עלות מקורית
-            </label>
-            <div
-              className="flex items-center rounded-lg border px-3 py-2"
-              style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
-            >
-              <input
-                type="number"
-                value={costBasis}
-                onChange={(e) => setCostBasis(Number(e.target.value))}
-                className="tabular flex-1 bg-transparent text-sm font-bold text-verdant-ink outline-none"
-                dir="ltr"
-              />
-              <span className="text-xs font-bold text-verdant-muted">₪</span>
-            </div>
+            <TaxNumberField
+              label="עלות מקורית"
+              value={costBasis}
+              onChange={setCostBasis}
+              suffix="₪"
+            />
           </div>
           <div>
-            <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
-              רווח הון
-            </label>
-            <div
-              className="flex items-center rounded-lg border px-3 py-2"
-              style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
-            >
-              <input
-                type="number"
-                value={capitalGains}
-                onChange={(e) => setCapitalGains(Number(e.target.value))}
-                className="tabular flex-1 bg-transparent text-sm font-bold text-verdant-ink outline-none"
-                dir="ltr"
-              />
-              <span className="text-xs font-bold text-verdant-muted">₪</span>
-            </div>
+            <TaxNumberField
+              label="רווח הון"
+              value={capitalGains}
+              onChange={setCapitalGains}
+              suffix="₪"
+            />
           </div>
         </div>
 
@@ -283,5 +223,34 @@ function Row({
         {value}
       </span>
     </div>
+  );
+}
+
+function TaxNumberField({
+  label,
+  value,
+  onChange,
+  suffix,
+  steps,
+  disabled,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  suffix?: string;
+  steps?: number[];
+  disabled?: boolean;
+}) {
+  return (
+    <ToolboxNumberField
+      label={label}
+      value={value}
+      onChange={onChange}
+      suffix={suffix}
+      steps={steps}
+      min={0}
+      disabled={disabled}
+      compact
+    />
   );
 }

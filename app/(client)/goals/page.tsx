@@ -42,6 +42,7 @@ import { AddGoalModal } from "./page-files/AddGoalModal";
 import { EditGoalModal } from "./page-files/EditGoalModal";
 import { RecommendationsStrip } from "./page-files/RecommendationsStrip";
 import { useConfirm } from "@/components/ui/ConfirmModal";
+import { reportError } from "@/lib/report-error";
 
 function buildAssetValueLookup(): (type: AssetType, id: string) => number {
   if (typeof window === "undefined") return () => 0;
@@ -52,7 +53,7 @@ function buildAssetValueLookup(): (type: AssetType, id: string) => number {
       const arr = JSON.parse(raw) as Array<{ id: string; market_value_ils?: number }>;
       for (const s of arr) secIndex.set(s.id, s.market_value_ils || 0);
     }
-  } catch {}
+  } catch (e) { reportError("client/goals/page", e); }
   const reIndex = new Map<string, number>();
   try {
     const props = loadProperties();
@@ -60,7 +61,7 @@ function buildAssetValueLookup(): (type: AssetType, id: string) => number {
       const netEquity = (p.currentValue || 0) - (p.mortgageBalance || 0);
       reIndex.set(p.id, Math.max(0, netEquity));
     }
-  } catch {}
+  } catch (e) { reportError("client/goals/page", e); }
   const penIndex = new Map<string, number>();
   try {
     const raw = localStorage.getItem(scopedKey("verdant:pension:funds"));
@@ -68,7 +69,7 @@ function buildAssetValueLookup(): (type: AssetType, id: string) => number {
       const arr = JSON.parse(raw) as Array<{ id: string; balance?: number }>;
       for (const f of arr) penIndex.set(f.id, f.balance || 0);
     }
-  } catch {}
+  } catch (e) { reportError("client/goals/page", e); }
   return (type, id) => {
     switch (type) {
       case "security":
@@ -123,7 +124,7 @@ export default function GoalsPage() {
       try {
         const last = Number(localStorage.getItem(scopedKey(GOALS_CHECKIN_KEY)) || 0);
         if (last && Date.now() - last < MS_30_DAYS_GOALS) return false;
-      } catch {}
+      } catch (e) { reportError("client/goals/page", e); }
       return true;
     })();
     setNeedsCheckIn(shouldShow);
@@ -348,7 +349,7 @@ export default function GoalsPage() {
             onClick={() => {
               try {
                 localStorage.setItem(scopedKey(GOALS_CHECKIN_KEY), String(Date.now()));
-              } catch {}
+              } catch (e) { reportError("client/goals/page", e); }
               setCheckInOpen(true);
             }}
             className="shrink-0 rounded-xl px-5 py-2.5 text-[12px] font-extrabold text-white transition-colors hover:opacity-90"
@@ -364,14 +365,14 @@ export default function GoalsPage() {
         onClose={() => {
           try {
             localStorage.setItem(scopedKey(GOALS_CHECKIN_KEY), String(Date.now()));
-          } catch {}
+          } catch (e) { reportError("client/goals/page", e); }
           setCheckInOpen(false);
           setNeedsCheckIn(false);
         }}
         onDone={() => {
           try {
             localStorage.setItem(scopedKey(GOALS_CHECKIN_KEY), String(Date.now()));
-          } catch {}
+          } catch (e) { reportError("client/goals/page", e); }
           setBuckets(loadBuckets());
           setNeedsCheckIn(false);
         }}

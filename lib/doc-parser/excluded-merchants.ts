@@ -20,6 +20,7 @@
 
 import { scopedKey } from "../client-scope";
 import { normalizeSupplier } from "./normalizer";
+import { reportError } from "@/lib/report-error";
 
 const STORAGE_KEY = "verdant:excluded_merchants";
 export const EXCLUDED_EVENT = "verdant:excluded_merchants:updated";
@@ -64,7 +65,7 @@ function saveExcludedMerchants(items: ExcludedMerchant[]): void {
   try {
     localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(items));
     window.dispatchEvent(new Event(EXCLUDED_EVENT));
-  } catch {}
+  } catch (e) { reportError("doc-parser/excluded-merchants", e); }
 }
 
 /**

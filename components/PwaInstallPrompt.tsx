@@ -23,6 +23,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { reportError } from "@/lib/report-error";
 
 const SEEN_KEY = "plan:pwa_install_seen";
 const SNOOZE_KEY = "plan:pwa_install_snoozed_until";
@@ -76,14 +77,14 @@ export function PwaInstallPrompt() {
     try {
       visits = parseInt(localStorage.getItem(VISIT_COUNT_KEY) || "0", 10) || 0;
       localStorage.setItem(VISIT_COUNT_KEY, String(visits + 1));
-    } catch {}
+    } catch (e) { reportError("PwaInstallPrompt", e); }
 
     // Dismissed permanently?
     try {
       if (localStorage.getItem(SEEN_KEY) === "1") return;
       const snoozedUntil = Number(localStorage.getItem(SNOOZE_KEY) || 0);
       if (snoozedUntil && Date.now() < snoozedUntil) return;
-    } catch {}
+    } catch (e) { reportError("PwaInstallPrompt", e); }
 
     // Capture Android Chrome's beforeinstallprompt event
     const handler = (e: Event) => {
@@ -110,14 +111,14 @@ export function PwaInstallPrompt() {
   const handleInstalled = () => {
     try {
       localStorage.setItem(SEEN_KEY, "1");
-    } catch {}
+    } catch (e) { reportError("PwaInstallPrompt", e); }
     setShow(false);
   };
 
   const handleSnooze = () => {
     try {
       localStorage.setItem(SNOOZE_KEY, String(Date.now() + SNOOZE_MS));
-    } catch {}
+    } catch (e) { reportError("PwaInstallPrompt", e); }
     setShow(false);
   };
 

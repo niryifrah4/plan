@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
+import { reportError } from "@/lib/report-error";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -45,7 +46,7 @@ export function useAutoSave({ table, idField = "id", debounceMs = 1500 }: AutoSa
           try {
             const key = `verdant:${table}:${data[idField] ?? "draft"}`;
             localStorage.setItem(key, JSON.stringify(data));
-          } catch {}
+          } catch (e) { reportError("hooks/useAutoSave", e); }
         }
       } else {
         // No Supabase — use localStorage

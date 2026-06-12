@@ -344,10 +344,10 @@ export function AnnualReportUpload() {
   return (
     <Card>
       <div className="mb-4 flex items-baseline justify-between">
+        <h3 className="text-lg font-extrabold text-verdant-ink">העלאת נתוני פנסיה</h3>
         <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-verdant-muted">
           {mode === "xml" ? "מסלקה" : "PDF / XML"}
         </span>
-        <h3 className="text-lg font-extrabold text-verdant-ink">העלאת נתוני פנסיה</h3>
       </div>
 
       <label

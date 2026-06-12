@@ -26,6 +26,7 @@ import {
   watchRemoteHouseholdChanges,
   watchBootstrapAuthState,
 } from "@/lib/sync/bootstrap";
+import { reportError } from "@/lib/report-error";
 
 interface Props {
   householdId: string | null;
@@ -46,7 +47,7 @@ export function MobileBootstrap({ householdId, children }: Props) {
     if (householdId) {
       try {
         localStorage.setItem("verdant:active_household_id", householdId);
-      } catch {}
+      } catch (e) { reportError("m/MobileBootstrap", e); }
     }
     void bootstrapSessionOnce("mobile-mount").finally(() => {
       setBootstrapReady(true);

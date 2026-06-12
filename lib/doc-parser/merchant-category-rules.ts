@@ -7,6 +7,7 @@
 
 import { scopedKey } from "../client-scope";
 import { extractBitRecipient, normalizeSupplier } from "./normalizer";
+import { reportError } from "@/lib/report-error";
 
 const STORAGE_KEY = "verdant:merchant_category_rules";
 const MIGRATED_KEY = "verdant:merchant_category_rules_migrated";
@@ -86,7 +87,7 @@ function writeRulesToStorage(rules: MerchantCategoryRule[]): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(rules));
-  } catch {}
+  } catch (e) { reportError("doc-parser/merchant-category-rules", e); }
 }
 
 function dispatchRulesUpdated(): void {
@@ -163,7 +164,7 @@ export function clearMerchantCategoryRulesCache(): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.removeItem(scopedKey(STORAGE_KEY));
-  } catch {}
+  } catch (e) { reportError("doc-parser/merchant-category-rules", e); }
 }
 
 export function findMerchantCategoryRule(
@@ -218,7 +219,7 @@ async function migrateLegacyLocalRulesToRemote(): Promise<boolean> {
   if (localRules.length === 0) {
     try {
       localStorage.setItem(scopedKey(MIGRATED_KEY), "true");
-    } catch {}
+    } catch (e) { reportError("doc-parser/merchant-category-rules", e); }
     return false;
   }
 
@@ -234,7 +235,7 @@ async function migrateLegacyLocalRulesToRemote(): Promise<boolean> {
     if (!result.ok) return false;
     try {
       localStorage.setItem(scopedKey(MIGRATED_KEY), "true");
-    } catch {}
+    } catch (e) { reportError("doc-parser/merchant-category-rules", e); }
     await refreshMerchantCategoryRulesFromServer(true);
     return true;
   } catch {

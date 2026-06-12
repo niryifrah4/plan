@@ -33,6 +33,7 @@ import {
   type Currency,
   type Position,
 } from "./portfolio-store";
+import { reportError } from "@/lib/report-error";
 
 const MIGRATED_FLAG_KEY = "verdant:portfolio:migrated";
 const LEGACY_SECURITIES_KEY = "verdant:securities";
@@ -104,7 +105,7 @@ function markMigrated(): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(scopedKey(MIGRATED_FLAG_KEY), "1");
-  } catch {}
+  } catch (e) { reportError("portfolio-migration", e); }
 }
 
 /**
@@ -115,7 +116,7 @@ export function resetMigrationFlag(): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.removeItem(scopedKey(MIGRATED_FLAG_KEY));
-  } catch {}
+  } catch (e) { reportError("portfolio-migration", e); }
 }
 
 function readJsonArray<T>(key: string): T[] {

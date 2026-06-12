@@ -49,6 +49,7 @@ import { migrateOnboardingGoals } from "@shared/buckets-core";
 import { loadSalaryProfile, saveSalaryProfile, DEFAULT_SALARY_PROFILE } from "./salary-engine";
 import { loadBudgets, saveBudgets, DEFAULT_BUDGETS, type BudgetCategory } from "./budget-store";
 import { scopedKey } from "./client-scope";
+import { reportError } from "@/lib/report-error";
 
 /* ── Onboarding localStorage keys ── */
 const ONB_FIELDS = "verdant:onboarding:fields";
@@ -764,7 +765,7 @@ function syncFieldsToAssumptions(fields: OnbField): void {
         income = list.reduce((s, r) => s + (parseFloat(r.value || "0") || 0), 0);
       }
     }
-  } catch {}
+  } catch (e) { reportError("onboarding-sync", e); }
   if (income === 0) {
     income =
       n("inc_salary1") +

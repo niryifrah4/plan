@@ -1,3 +1,4 @@
+import { reportError } from "@/lib/report-error";
 /**
  * ═══════════════════════════════════════════════════════════
  *  SINGLE SOURCE OF TRUTH — Debt & Liability Data Store
@@ -285,7 +286,7 @@ export function loadDebtData(): DebtData {
   try {
     const raw = localStorage.getItem(scopedKey(STORAGE_KEY));
     if (raw) return migrateDebtShape(JSON.parse(raw));
-  } catch {}
+  } catch (e) { reportError("debt-store", e); }
   return { loans: [], installments: [], mortgages: [] };
 }
 

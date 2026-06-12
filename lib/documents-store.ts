@@ -14,6 +14,7 @@
 
 import { scopedKey } from "./client-scope";
 import { pullBlob, pushBlob, pushBlobInBackground } from "./sync/blob-sync";
+import { reportError } from "@/lib/report-error";
 
 /** Parsed transactions array (scoped). */
 export const STORAGE_KEY = "verdant:parsed_transactions";
@@ -63,7 +64,7 @@ export function saveDocHistory(history: DocHistoryEntry[]): void {
   try {
     localStorage.setItem(scopedKey(HISTORY_KEY), JSON.stringify(history));
     pushBlobInBackground(HISTORY_BLOB_KEY, history);
-  } catch {}
+  } catch (e) { reportError("documents-store", e); }
 }
 
 export async function saveDocHistoryAndWait(history: DocHistoryEntry[]): Promise<boolean> {

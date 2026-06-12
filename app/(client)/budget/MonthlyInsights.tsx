@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { fmtILS } from "@/lib/format";
 import { scopedKey } from "@/lib/client-scope";
+import { reportError } from "@/lib/report-error";
 
 /* ═══════════════════════════════════════════════════════════
    Types
@@ -415,7 +416,7 @@ function loadOnboardingChildren(): OnboardingChild[] {
       // Filter out empty placeholder rows
       return children.filter((c) => c.name.trim() !== "" || c.age.trim() !== "");
     }
-  } catch {}
+  } catch (e) { reportError("client/budget/MonthlyInsights", e); }
   return [];
 }
 
@@ -423,7 +424,7 @@ function loadOnboardingFields(): Record<string, string> {
   try {
     const raw = localStorage.getItem(scopedKey("verdant:onboarding:fields"));
     if (raw) return JSON.parse(raw);
-  } catch {}
+  } catch (e) { reportError("client/budget/MonthlyInsights", e); }
   return {};
 }
 

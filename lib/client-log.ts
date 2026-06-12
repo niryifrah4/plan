@@ -8,6 +8,7 @@
  */
 
 import { scopedKey } from "@/lib/client-scope";
+import { reportError } from "@/lib/report-error";
 
 export type LogEntryType = "meeting" | "feeling" | "task" | "note";
 
@@ -51,7 +52,7 @@ export function saveLog(entries: LogEntry[]): void {
   try {
     localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(entries));
     window.dispatchEvent(new Event(CLIENT_LOG_EVENT));
-  } catch {}
+  } catch (e) { reportError("client-log", e); }
 }
 
 export function addEntry(entry: Omit<LogEntry, "id" | "createdAt">): LogEntry {

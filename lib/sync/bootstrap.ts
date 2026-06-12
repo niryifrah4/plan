@@ -13,6 +13,7 @@
 
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/browser";
 import { CURRENT_HH_KEY, dispatchStoreRefreshEvents } from "@/lib/client-scope";
+import { reportError } from "@/lib/report-error";
 
 const ACTIVE_HH_KEY = "verdant:active_household_id";
 const BOOTSTRAP_FLAG = "verdant:bootstrap_done";
@@ -33,11 +34,11 @@ function clearBootstrapMarkers(): void {
     sessionStorage.removeItem("verdant:legacy_purge_done");
     sessionStorage.removeItem(BOOTSTRAP_USER_KEY);
     sessionStorage.removeItem(BOOTSTRAP_HOUSEHOLD_KEY);
-  } catch {}
+  } catch (e) { reportError("sync/bootstrap", e); }
   try {
     localStorage.removeItem(ACTIVE_HH_KEY);
     localStorage.removeItem(CURRENT_HH_KEY);
-  } catch {}
+  } catch (e) { reportError("sync/bootstrap", e); }
 }
 
 export async function resolveActiveHousehold(): Promise<string | null> {
@@ -66,7 +67,7 @@ export async function resolveActiveHousehold(): Promise<string | null> {
       const hh = clientHousehold.household_id;
       try {
         localStorage.setItem(ACTIVE_HH_KEY, hh);
-      } catch {}
+      } catch (e) { reportError("sync/bootstrap", e); }
       return hh;
     }
 
@@ -88,7 +89,7 @@ export async function resolveActiveHousehold(): Promise<string | null> {
     }
     try {
       localStorage.setItem(ACTIVE_HH_KEY, data.id);
-    } catch {}
+    } catch (e) { reportError("sync/bootstrap", e); }
     return data.id;
   } catch {
     return null;
@@ -119,7 +120,7 @@ async function ensureBootstrapForCurrentUser(): Promise<string | null> {
       clearBootstrapMarkers();
     }
     sessionStorage.setItem(BOOTSTRAP_USER_KEY, userId);
-  } catch {}
+  } catch (e) { reportError("sync/bootstrap", e); }
   return userId;
 }
 
@@ -137,7 +138,7 @@ function lockActiveHousehold(householdId: string): void {
   try {
     localStorage.setItem(ACTIVE_HH_KEY, householdId);
     localStorage.removeItem(CURRENT_HH_KEY);
-  } catch {}
+  } catch (e) { reportError("sync/bootstrap", e); }
 }
 
 /**
@@ -314,7 +315,7 @@ export async function prepareSessionScopeOnce(
         try {
           sessionStorage.setItem(BOOTSTRAP_FLAG, "1");
           sessionStorage.setItem(BOOTSTRAP_HOUSEHOLD_KEY, hh);
-        } catch {}
+        } catch (e) { reportError("sync/bootstrap", e); }
       })
       .catch((reason) => {
         console.warn("[bootstrap] background hydration failed", { trigger, reason });
@@ -476,7 +477,7 @@ export async function bootstrapSessionOnce(
     try {
       sessionStorage.setItem(BOOTSTRAP_FLAG, "1");
       sessionStorage.setItem(BOOTSTRAP_HOUSEHOLD_KEY, hh);
-    } catch {}
+    } catch (e) { reportError("sync/bootstrap", e); }
 
     console.info("[bootstrap] hydration completed", { trigger, householdId: hh });
     return true;

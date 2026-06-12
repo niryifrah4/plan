@@ -29,6 +29,7 @@ import {
   updateCreditCard,
   ACCOUNTS_EVENT,
 } from "./accounts-store";
+import { reportError } from "@/lib/report-error";
 
 const SYNCED_KEY = "verdant:accounts_synced_instruments";
 
@@ -63,7 +64,7 @@ function saveSynced(reg: SyncedRegistry) {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(scopedKey(SYNCED_KEY), JSON.stringify(reg));
-  } catch {}
+  } catch (e) { reportError("accounts-sync", e); }
 }
 
 /**
@@ -171,5 +172,5 @@ export function resetAccountsSync(): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.removeItem(scopedKey(SYNCED_KEY));
-  } catch {}
+  } catch (e) { reportError("accounts-sync", e); }
 }

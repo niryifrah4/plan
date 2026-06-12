@@ -11,6 +11,7 @@ import { InviteClientButton } from "@/components/crm/InviteClientButton";
 import { SolidKpi } from "@/components/ui/SolidKpi";
 import { clearGoogleCalendarSession } from "@/lib/auth";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
+import { reportError } from "@/lib/report-error";
 
 /* ═══════════════════════════════════════════════════════════════════
    Types
@@ -569,7 +570,7 @@ export default function CrmPage() {
     // the click→tenant binding can NEVER be stale.
     try {
       localStorage.removeItem("verdant:clients");
-    } catch {}
+    } catch (e) { reportError("crm/page", e); }
     setClients([]);
 
     return () => {

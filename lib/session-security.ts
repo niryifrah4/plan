@@ -9,6 +9,7 @@
  */
 
 import { signOut } from "@/lib/auth";
+import { reportError } from "@/lib/report-error";
 
 const IDLE_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
 const WARNING_BEFORE_MS = 60 * 1000; // 1 minute warning
@@ -25,7 +26,7 @@ function touchActivity() {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(ACTIVITY_KEY, String(Date.now()));
-  } catch {}
+  } catch (e) { reportError("session-security", e); }
   resetTimers();
 }
 

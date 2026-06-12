@@ -26,6 +26,7 @@ import {
   type ClientExportPayload,
 } from "@/lib/client-io";
 import type { LocalClient } from "@/lib/client-context";
+import { reportError } from "@/lib/report-error";
 
 function loadClients(): LocalClient[] {
   if (typeof window === "undefined") return [];
@@ -41,7 +42,7 @@ function loadClients(): LocalClient[] {
 function saveClients(list: LocalClient[]) {
   try {
     localStorage.setItem(CLIENTS_REGISTRY_KEY, JSON.stringify(list));
-  } catch {}
+  } catch (e) { reportError("ClientSwitcher", e); }
 }
 
 function todayISO(): string {

@@ -37,6 +37,7 @@ import { loadAssumptions, type Assumptions } from "@/lib/assumptions";
 import { buildBudgetLines, totalBudget, type BudgetLine } from "@/lib/budget-store";
 import { SCOPE_COLORS, effectiveScope, type Scope } from "@/lib/scope-types";
 import { exportFullPlanToExcel } from "@/lib/excel-export";
+import { reportError } from "@/lib/report-error";
 
 /* ── localStorage keys for form persistence ── */
 const LS_NAME_KEY = "verdant:report_client_name";
@@ -93,7 +94,7 @@ export default function ReportPage() {
           localStorage.getItem(scopedKey(LS_RECS_KEY)) ||
             "• לסיים תהליך איחוד חסכונות פנסיונים\n• להגדיל חיסכון חודשי ב-5% השנה הבאה\n• לבחון משכנתא לטובת מיחזור\n• להשלים קרן חירום של 6 חודשי הוצאות"
         );
-      } catch {}
+      } catch (e) { reportError("client/report/page", e); }
 
       const accounts = loadAccounts();
       const pension = loadPensionFunds();
@@ -134,12 +135,12 @@ export default function ReportPage() {
   useEffect(() => {
     try {
       localStorage.setItem(scopedKey(LS_NAME_KEY), clientName);
-    } catch {}
+    } catch (e) { reportError("client/report/page", e); }
   }, [clientName]);
   useEffect(() => {
     try {
       localStorage.setItem(scopedKey(LS_RECS_KEY), recommendations);
-    } catch {}
+    } catch (e) { reportError("client/report/page", e); }
   }, [recommendations]);
 
   const today = formatHebDate();
@@ -400,7 +401,7 @@ function CashflowSection({ data }: { data: ReportData }) {
         }
         if (has) scopeSplit = { personal: p, business: b };
       }
-    } catch {}
+    } catch (e) { reportError("client/report/page", e); }
   }
 
   return (

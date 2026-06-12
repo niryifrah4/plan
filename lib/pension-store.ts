@@ -78,6 +78,7 @@ export interface PensionFund {
 
 import { scopedKey } from "./client-scope";
 import { pushToRemoteInBackground, pullFromRemote, type SyncConfig } from "./sync/remote-sync";
+import { reportError } from "@/lib/report-error";
 
 const STORAGE_KEY = "verdant:pension_funds";
 export const EVENT_NAME = "verdant:pension:updated";
@@ -214,7 +215,7 @@ export function loadPensionFunds(): PensionFund[] {
     if (!raw) return []; // No data yet — return empty, NOT demo
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) return parsed;
-  } catch {}
+  } catch (e) { reportError("pension-store", e); }
   return [];
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { fmtILS } from "@/lib/format";
 import {
   loadDebtData as loadDebt,
@@ -22,6 +22,8 @@ import { FullRefinanceSimulator } from "@/components/debt/FullRefinanceSimulator
 import { PayoffSimulator } from "@/components/debt/PayoffSimulator";
 import { AmortizationUpload } from "@/components/debt/AmortizationUpload";
 import { MortgageHealthCard } from "@/components/debt/MortgageHealthCard";
+import { MortgageShellModal } from "@/components/debt/MortgageShellModal";
+import { scopedKey } from "@/lib/client-scope";
 import { type IndexationType, type RepaymentMethod } from "@/lib/debt-store";
 import { useAssumptions } from "@/lib/hooks/useAssumptions";
 import { getMonthlyNetIncome } from "@/lib/income";
@@ -128,6 +130,8 @@ export default function DebtPage() {
   const [expandedInstallments, setExpandedInstallments] = useState(true);
   const [expandedSources, setExpandedSources] = useState<Record<string, boolean>>({});
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  const [editingShellId, setEditingShellId] = useState<string | null>(null);
 
   // Properties — populates the "שייך משכנתא לנכס" dropdown on each mortgage.
   const [properties, setProperties] = useState<Property[]>([]);
@@ -260,6 +264,7 @@ export default function DebtPage() {
    * take a `mortgageId` to know which mortgage to mutate. */
   const mortgages = data.mortgages;
   const [expandedMortgageIds, setExpandedMortgageIds] = useState<Record<string, boolean>>({});
+  const [expandedTrackIds, setExpandedTrackIds] = useState<Record<string, boolean>>({});
 
   const addMortgage = useCallback(() => {
     update((prev) => {
@@ -600,661 +605,429 @@ export default function DebtPage() {
       {/* ═══ Mortgages Section (multi-mortgage, since 2026-05-18) ═══
           Each mortgage = its own card, with a property dropdown so the user
           links it to a specific Property from /realestate. */}
-      <section
-        className="mb-5 overflow-hidden rounded-2xl bg-[#FFFFFF]"
-        style={{ border: "1px solid #FAFAF7", boxShadow: "none" }}
-      >
-        {/* Aggregate header */}
-        <div
-          className="flex items-center gap-3 px-5 py-5 md:px-7"
-          style={{ background: "#FAFAF7" }}
-        >
-          <span
-            className="flex h-9 w-9 flex-shrink-0 items-center justify-center"
-            style={{ background: "#FFFFFF", borderRadius: "0.75rem" }}
-          >
-            <span className="material-symbols-outlined text-[18px]" style={{ color: "#2C7A5A" }}>
-              home
-            </span>
-          </span>
-          <div className="flex-1">
-            <h2 className="text-base font-extrabold" style={{ color: "#1A1A1A" }}>
-              משכנתאות
-            </h2>
-            <div className="text-[11px] font-semibold" style={{ color: "#6B7280" }}>
-              {mortgageTotals.mortgagesCount > 0
-                ? `${mortgageTotals.mortgagesCount} משכנתאות · ${mortgageTotals.tracksCount} מסלולים`
-                : "אין משכנתאות"}
-              {mortgageTotals.monthlyTotal > 0 && (
-                <>
-                  {" · החזר חודשי "}
-                  <span style={{ color: "#2C7A5A", fontFamily: "inherit" }}>
-                    {fmtILS(mortgageTotals.monthlyTotal)}
-                  </span>
-                </>
-              )}
-              {mortgageTotals.balanceTotal > 0 && (
-                <>
-                  {" · יתרה "}
-                  <span style={{ color: "#2C7A5A", fontFamily: "inherit" }}>
-                    {fmtILS(mortgageTotals.balanceTotal)}
-                  </span>
-                </>
-              )}
-              {mortgageTotals.interestRemaining > 0 && (
-                <>
-                  {" · ריבית צפויה לתשלום "}
-                  <span style={{ color: "#DC2626", fontFamily: "inherit" }}>
-                    {fmtILS(mortgageTotals.interestRemaining)}
-                  </span>
-                </>
-              )}
+              <div className="w-full">
+          {/* ================= DESKTOP VIEW ================= */}
+          <div dir="rtl" className="hidden md:block mx-auto pb-8" style={{ fontFamily: "var(--font-sans)", maxWidth: "680px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 0" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span className="material-symbols-outlined" style={{ fontSize: "18px", color: "#0F6E56" }} aria-hidden="true">home</span>
+                <span style={{ fontSize: "16px", fontWeight: 500 }}>משכנתאות</span>
+                <span style={{ fontSize: "12px", color: "#6B7280" }}>
+                  · {mortgages.length > 0 ? `${mortgageTotals.mortgagesCount} משכנתאות · יתרה ${fmtILS(mortgageTotals.balanceTotal)}` : "אין משכנתאות"}
+                </span>
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Empty state — first-time users */}
-        {mortgages.length === 0 && (
-          <div className="px-5 pb-7 pt-5 text-center md:px-7">
-            <span className="material-symbols-outlined text-[40px]" style={{ color: "#6B7280" }}>
-              home
-            </span>
-            <h3 className="mt-2 text-sm font-extrabold" style={{ color: "#1A1A1A" }}>
-              אין משכנתאות רשומות
-            </h3>
-            <p
-              className="mx-auto mb-3 mt-1 max-w-xs text-[11px] leading-relaxed"
-              style={{ color: "#6B7280" }}
-            >
-              לכל נכס שיש לו משכנתא — הוסף משכנתא משלו עם המסלולים, הריביות והיתרות.
-            </p>
-            <button onClick={addMortgage} className="btn btn-secondary btn-sm">
-              <span className="material-symbols-outlined text-[14px]">add</span>
-              הוסף משכנתא
-            </button>
-          </div>
-        )}
-
-        {/* Per-mortgage cards */}
-        {mortgages.map((mortgage) => {
-          const isOpen = expandedMortgageIds[mortgage.id] ?? true;
-          const m_tracks = mortgage.tracks || [];
-          const m_monthly = m_tracks.reduce((s, t) => s + (t.monthlyPayment || 0), 0);
-          const m_balance = m_tracks.reduce((s, t) => s + (t.remainingBalance || 0), 0);
-          const m_original = m_tracks.reduce((s, t) => s + (t.originalAmount || 0), 0);
-          const m_progress = m_original > 0 ? (m_original - m_balance) / m_original : 0;
-          const linkedProperty = mortgage.propertyId
-            ? properties.find((p) => p.id === mortgage.propertyId)
-            : undefined;
-
-          return (
-            <article
-              key={mortgage.id}
-              className="border-t"
-              style={{ borderColor: "#FAFAF7" }}
-            >
-              {/* Mortgage card header */}
-              <div
-                className="flex items-start gap-3 px-5 py-4 md:px-7"
-                style={{ background: "#FFFFFF" }}
-              >
-                <button
-                  onClick={() =>
-                    setExpandedMortgageIds((cur) => ({
-                      ...cur,
-                      [mortgage.id]: !isOpen,
-                    }))
-                  }
-                  className="mt-1 rounded-lg p-1 hover:bg-[#FAFAF7]"
-                  title={isOpen ? "סגור" : "פתח"}
-                >
-                  <span
-                    className="material-symbols-outlined text-[18px] transition-transform"
-                    style={{
-                      color: "#6B7280",
-                      transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)",
-                    }}
-                  >
-                    expand_more
-                  </span>
-                </button>
-                <div className="flex-1">
-                  {/* Bank name + property dropdown */}
-                  <div className="mb-2 flex flex-wrap items-center gap-3">
-                    <input
-                      type="text"
-                      value={mortgage.bank}
-                      onChange={(e) =>
-                        updateMortgageField(mortgage.id, "bank", e.target.value)
-                      }
-                      placeholder="שם הבנק"
-                      className="border-none bg-transparent text-[15px] font-extrabold focus:outline-none"
-                      style={{
-                        color: "#1A1A1A",
-                        borderBottom: "1px dotted transparent",
-                      }}
-                      onFocus={(e) => {
-                        e.currentTarget.style.borderBottomColor = "#059669";
-                      }}
-                      onBlur={(e) => {
-                        e.currentTarget.style.borderBottomColor = "transparent";
-                      }}
-                    />
-                    {/* Property linker — central to the new model */}
-                    <div
-                      className="flex items-center gap-2 rounded-full px-3 py-1.5"
-                      style={{
-                        background: linkedProperty ? "#FAFAF7" : "rgba(180, 83, 9, 0.12)",
-                        border: linkedProperty
-                          ? "1px solid #E5E7EB"
-                          : "1px solid rgba(180, 83, 9, 0.4)",
-                      }}
-                    >
-                      <span
-                        className="material-symbols-outlined text-[14px]"
-                        style={{
-                          color: linkedProperty ? "#2C7A5A" : "#B45309",
-                        }}
-                      >
-                        {linkedProperty ? "link" : "link_off"}
-                      </span>
-                      <select
-                        value={mortgage.propertyId || ""}
-                        onChange={(e) =>
-                          updateMortgageField(mortgage.id, "propertyId", e.target.value)
-                        }
-                        className="cursor-pointer border-none bg-transparent text-[12px] font-bold focus:outline-none"
-                        style={{
-                          color: linkedProperty ? "#1A1A1A" : "#B45309",
-                        }}
-                        title="שייך משכנתא זו לנכס מ-/realestate"
-                      >
-                        <option value="">לא משויך לנכס — בחר</option>
-                        {properties.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                            {p.city ? ` · ${p.city}` : ""}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    {/* LTV badge — uses linked property's currentValue when available */}
-                    {(() => {
-                      const valueForLtv = linkedProperty?.currentValue || mortgage.propertyValue;
-                      if (!valueForLtv || !m_balance) return null;
-                      const ltv = (m_balance / valueForLtv) * 100;
-                      const source = linkedProperty
-                        ? "מבוסס על שווי הנכס המקושר"
-                        : 'מבוסס על שדה "שווי נכס" מקומי';
-                      return (
-                        <div
-                          className="rounded-full px-3 py-1.5 text-[11px] font-extrabold"
-                          style={{ background: "#FAFAF7", color: "#2C7A5A" }}
-                          title={
-                            `LTV = יתרת המשכנתא ÷ שווי הנכס × 100. ${source}.\n` +
-                            "פחות מ-60% — מצב טוב, יותר מקום למשכנתא נוספת.\n" +
-                            "60%-75% — נורמלי לרוב משקי הבית.\n" +
-                            "מעל 75% — מקסימום במשכנתא ראשונה, עלולה להוריד את התנאים."
-                          }
-                        >
-                          LTV {ltv.toFixed(0)}%
-                        </div>
-                      );
-                    })()}
-                  </div>
-                  {/* Mortgage micro-summary */}
-                  <div className="text-[11px] font-semibold" style={{ color: "#6B7280" }}>
-                    {m_tracks.length} מסלולים
-                    {m_monthly > 0 && (
-                      <>
-                        {" · "}
-                        <span style={{ color: "#2C7A5A", fontFamily: "inherit" }}>
-                          {fmtILS(m_monthly)}
-                        </span>
-                        {" /חודש"}
-                      </>
-                    )}
-                    {m_balance > 0 && (
-                      <>
-                        {" · יתרה "}
-                        <span style={{ color: "#2C7A5A", fontFamily: "inherit" }}>
-                          {fmtILS(m_balance)}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                {/* Delete mortgage button */}
-                <button
-                  onClick={async () => {
-                    if (m_tracks.length > 0) {
-                      const ok = await confirm({
-                        title: `למחוק את המשכנתא של ${mortgage.bank || "בנק זה"}?`,
-                        body: "כל המסלולים יימחקו. פעולה זו אינה הפיכה.",
-                        confirmLabel: "כן, מחק",
-                        cancelLabel: "ביטול",
-                        variant: "danger",
-                      });
-                      if (!ok) return;
-                    }
-                    deleteMortgage(mortgage.id);
-                  }}
-                  className="rounded-lg p-1 hover:bg-red-50"
-                  style={{ color: "#6B7280" }}
-                  title="מחק משכנתא"
-                >
-                  <span className="material-symbols-outlined text-[16px] hover:text-red-600">
-                    delete
-                  </span>
+            {mortgages.length === 0 && (
+              <div style={{ background: "#FFFFFF", border: "0.5px solid #E5E7EB", borderRadius: "16px", padding: "1.5rem", textAlign: "center" }}>
+                <span className="material-symbols-outlined text-[40px]" style={{ color: "#6B7280" }}>home</span>
+                <h3 className="mt-2 text-sm font-extrabold" style={{ color: "#1A1A1A" }}>אין משכנתאות רשומות</h3>
+                <button onClick={addMortgage} className="mt-3 btn btn-secondary btn-sm">
+                  <span className="material-symbols-outlined text-[14px]">add</span> הוסף משכנתא
                 </button>
               </div>
+            )}
 
-              {isOpen && (
-                <div className="px-5 pb-5 pt-1 md:px-7">
-                  {/* Mortgage's own propertyValue input — kept for backward compat;
-                      surfaces when no linked property is selected. */}
-                  {!linkedProperty && (
-                    <div className="mb-4">
-                      <label
-                        className="mb-1 block text-[11px] font-bold"
-                        style={{ color: "#6B7280" }}
-                      >
-                        שווי נכס (לצורך LTV, אם לא משויך לנכס)
-                      </label>
-                      <input
-                        type="number"
-                        value={mortgage.propertyValue || ""}
-                        onChange={(e) =>
-                          updateMortgageField(mortgage.id, "propertyValue", e.target.value)
-                        }
-                        placeholder="0"
-                        className="rounded-lg border bg-transparent px-3 py-1.5 text-[13px] font-bold tabular-nums focus:outline-none"
-                        style={{
-                          color: "#1A1A1A",
-                          borderColor: "#E5E7EB",
-                          fontFamily: "inherit",
+            {mortgages.map((mortgage) => {
+              const m_tracks = mortgage.tracks || [];
+              const m_monthly = m_tracks.reduce((s, t) => s + (t.monthlyPayment || 0), 0);
+              const m_balance = m_tracks.reduce((s, t) => s + (t.remainingBalance || 0), 0);
+              const m_original = m_tracks.reduce((s, t) => s + (t.originalAmount || 0), 0);
+              const m_progress = m_original > 0 ? (m_original - m_balance) / m_original : 0;
+              const linkedProperty = mortgage.propertyId ? properties.find((p) => p.id === mortgage.propertyId) : undefined;
+
+              return (
+                <div key={mortgage.id} style={{ background: "#FFFFFF", border: "0.5px solid #E5E7EB", borderRadius: "16px", padding: "1.25rem", marginBottom: "12px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                      <div className="flex items-center gap-2">
+                        <span style={{ fontSize: "16px", fontWeight: 500, color: "#1A1A1A" }}>{mortgage.bank || "ללא שם בנק"}</span>
+                        <button onClick={() => setEditingShellId(mortgage.id)} className="flex items-center justify-center rounded-md p-1 transition-colors hover:bg-[#E5E7EB]" title="ערוך פרטי משכנתא">
+                          <span className="material-symbols-outlined text-[16px] text-[#6B7280]">edit</span>
+                        </button>
+                      </div>
+                      <div className="relative group">
+                        <select
+                          value={mortgage.propertyId || ""}
+                          onChange={(e) => updateMortgageField(mortgage.id, "propertyId", e.target.value)}
+                          style={{ display: "flex", alignItems: "center", gap: "6px", padding: "5px 10px", paddingLeft: "24px", background: linkedProperty ? "#FAFAF7" : "#FFFBEB", color: linkedProperty ? "#2C7A5A" : "#B45309", border: "none", fontSize: "12px", borderRadius: "8px", outline: "none", appearance: "none", cursor: "pointer" }}
+                        >
+                          <option value="">לא משויך לנכס — בחר</option>
+                          {properties.map((p) => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                        <span className="material-symbols-outlined" style={{ fontSize: "13px", position: "absolute", left: "8px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: linkedProperty ? "#2C7A5A" : "#B45309" }}>
+                          {linkedProperty ? "link" : "link_off"}
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                      <span style={{ fontSize: "12px", color: "#6B7280" }}>
+                        שולם <span style={{ color: "#059669", fontWeight: 500 }}>{(m_progress * 100).toFixed(0)}%</span>
+                      </span>
+                      <button
+                        onClick={async () => {
+                          if (m_tracks.length > 0) {
+                            const ok = await confirm({ title: "למחוק את המשכנתא?", body: "כל המסלולים יימחקו. פעולה זו אינה הפיכה.", confirmLabel: "כן, מחק", cancelLabel: "ביטול", variant: "danger" });
+                            if (!ok) return;
+                          }
+                          deleteMortgage(mortgage.id);
                         }}
-                      />
-                    </div>
-                  )}
-
-                  {/* Mortgage progress bar */}
-                  {m_original > 0 && (
-                    <div className="mb-4">
-                      <div className="mb-1 flex items-center justify-between">
-                        <span className="text-[10px] font-bold" style={{ color: "#2C7A5A" }}>
-                          התקדמות
-                        </span>
-                        <span
-                          className="text-[11px] font-extrabold tabular-nums"
-                          style={{ color: "#2C7A5A", fontFamily: "inherit" }}
-                        >
-                          {(m_progress * 100).toFixed(1)}% שולם
-                        </span>
-                      </div>
-                      <div
-                        className="h-2 overflow-hidden rounded-full"
-                        style={{ background: "#FAFAF7" }}
+                        title="מחק משכנתא"
+                        style={{ border: "none", background: "transparent", cursor: "pointer" }}
                       >
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{
-                            width: `${m_progress * 100}%`,
-                            background: "linear-gradient(90deg, #059669, #2C7A5A)",
-                          }}
-                        />
+                        <span className="material-symbols-outlined hover:text-red-600 transition-colors" style={{ fontSize: "16px", color: "#9CA3AF" }}>delete</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ height: "4px", background: "#FAFAF7", borderRadius: "2px", marginBottom: "18px", overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${m_progress * 100}%`, background: "#059669", borderRadius: "2px" }}></div>
+                  </div>
+
+                  {m_tracks.length > 0 && (
+                    <table style={{ width: "100%", fontSize: "13px", borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr style={{ color: "#6B7280", fontWeight: 500, borderBottom: "0.5px solid #E5E7EB" }}>
+                          <th style={{ padding: "0 0 8px", textAlign: "right", fontWeight: "normal" }}>מסלול</th>
+                          <th style={{ padding: "0 0 8px", textAlign: "left", fontWeight: "normal" }}>ריבית</th>
+                          <th style={{ padding: "0 0 8px", textAlign: "left", fontWeight: "normal" }}>יתרה</th>
+                          <th style={{ padding: "0 0 8px", textAlign: "left", fontWeight: "normal" }}>החזר/חודש</th>
+                          <th style={{ padding: "0 0 8px", width: "32px" }}></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {m_tracks.map((track) => {
+                          const isTrackOpen = expandedTrackIds[track.id] || false;
+                          return (
+                            <React.Fragment key={track.id}>
+                              <tr style={{ borderBottom: isTrackOpen ? "none" : "0.5px solid #E5E7EB" }}>
+                                <td style={{ padding: "10px 0" }}>
+                                  <input
+                                    type="text"
+                                    value={track.name}
+                                    onChange={(e) => updateMortgageTrack(mortgage.id, track.id, "name", e.target.value)}
+                                    placeholder="שם מסלול"
+                                    style={{ fontWeight: 500, background: "transparent", border: "none", outline: "none", width: "100%", color: "#1A1A1A" }}
+                                  />
+                                </td>
+                                <td style={{ padding: "10px 0", textAlign: "left" }}>
+                                  <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "2px" }} dir="ltr">
+                                    <span style={{ fontSize: "11px", color: "#9CA3AF" }}>%</span>
+                                    <input
+                                      type="number" step="0.01"
+                                      value={typeof track.margin === "number" ? (effectiveTrackRate(track, primeRate) * 100).toFixed(2) : track.interestRate ? (track.interestRate * 100).toFixed(2) : ""}
+                                      onChange={(e) => { const pct = parseFloat(e.target.value); updateMortgageTrack(mortgage.id, track.id, "interestRate", Number.isFinite(pct) ? String(pct/100) : ""); }}
+                                      readOnly={typeof track.margin === "number"}
+                                      style={{ width: "45px", background: "transparent", border: "none", textAlign: "right", outline: "none", fontWeight: 500, color: "#1A1A1A" }}
+                                    />
+                                  </div>
+                                </td>
+                                <td style={{ padding: "10px 0", textAlign: "left" }}>
+                                  <input
+                                    type="number"
+                                    value={track.remainingBalance || ""}
+                                    onChange={(e) => updateMortgageTrack(mortgage.id, track.id, "remainingBalance", e.target.value)}
+                                    placeholder="0"
+                                    style={{ width: "100%", background: "transparent", border: "none", textAlign: "left", fontWeight: 500, outline: "none", color: "#1A1A1A" }}
+                                  />
+                                </td>
+                                <td style={{ padding: "10px 0", textAlign: "left" }}>
+                                  <input
+                                    type="number"
+                                    value={track.monthlyPayment || ""}
+                                    onChange={(e) => updateMortgageTrack(mortgage.id, track.id, "monthlyPayment", e.target.value)}
+                                    placeholder="0"
+                                    style={{ width: "100%", background: "transparent", border: "none", textAlign: "left", outline: "none", color: "#6B7280" }}
+                                  />
+                                </td>
+                                <td style={{ padding: "10px 0", textAlign: "left" }}>
+                                  <button
+                                    onClick={() => setExpandedTrackIds(prev => ({...prev, [track.id]: !isTrackOpen}))}
+                                    style={{ background: "transparent", border: "none", cursor: "pointer", color: "#9CA3AF" }}
+                                    className="hover:text-verdant-ink"
+                                  >
+                                    <span className="material-symbols-outlined transition-transform" style={{ fontSize: "18px", transform: isTrackOpen ? "rotate(180deg)" : "rotate(0deg)" }}>expand_more</span>
+                                  </button>
+                                </td>
+                              </tr>
+                              {isTrackOpen && (
+                                <tr style={{ borderBottom: "0.5px solid #E5E7EB", background: "#FAFAF7" }}>
+                                  <td colSpan={5} style={{ padding: "12px 10px", borderRadius: "8px" }}>
+                                    <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "flex-end" }}>
+                                      <div>
+                                        <label style={{ display: "block", fontSize: "10px", color: "#6B7280", marginBottom: "4px" }}>הצמדה</label>
+                                        <select
+                                          value={track.indexation}
+                                          onChange={(e) => updateMortgageTrack(mortgage.id, track.id, "indexation", e.target.value)}
+                                          style={{ background: "transparent", border: "none", outline: "none", fontSize: "12px", color: "#1A1A1A", fontWeight: 500, cursor: "pointer" }}
+                                        >
+                                          <option value="לא צמוד">לא צמוד</option><option value="מדד">מדד</option><option value="דולר">דולר</option><option value="אחר">אחר</option>
+                                        </select>
+                                      </div>
+                                      <div>
+                                        <label style={{ display: "block", fontSize: "10px", color: "#6B7280", marginBottom: "4px" }}>סכום מקורי</label>
+                                        <input
+                                          type="number" value={track.originalAmount || ""}
+                                          onChange={(e) => updateMortgageTrack(mortgage.id, track.id, "originalAmount", e.target.value)}
+                                          placeholder="0"
+                                          style={{ width: "80px", background: "transparent", border: "none", outline: "none", fontSize: "12px", color: "#1A1A1A", fontWeight: 500 }}
+                                        />
+                                      </div>
+                                      <div>
+                                        <label style={{ display: "block", fontSize: "10px", color: "#6B7280", marginBottom: "4px" }}>תאריך סיום</label>
+                                        <input
+                                          type="month" value={track.endDate || ""}
+                                          onChange={(e) => updateMortgageTrack(mortgage.id, track.id, "endDate", e.target.value)}
+                                          style={{ background: "transparent", border: "none", outline: "none", fontSize: "12px", color: "#1A1A1A", fontWeight: 500 }}
+                                        />
+                                      </div>
+                                      {(!linkedProperty) && (
+                                        <div>
+                                          <label style={{ display: "block", fontSize: "10px", color: "#6B7280", marginBottom: "4px" }}>שווי נכס ל-LTV</label>
+                                          <input
+                                            type="number" value={mortgage.propertyValue || ""}
+                                            onChange={(e) => updateMortgageField(mortgage.id, "propertyValue", e.target.value)}
+                                            placeholder="0"
+                                            style={{ width: "80px", background: "transparent", border: "none", outline: "none", fontSize: "12px", color: "#1A1A1A", fontWeight: 500 }}
+                                          />
+                                        </div>
+                                      )}
+                                      <div style={{ flex: 1, display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+                                        <button onClick={() => setRefiTrackId(track.id)} className="hover:bg-[#E1F5EE] transition-colors" style={{ display: "flex", alignItems: "center", gap: "4px", background: "transparent", border: "none", cursor: "pointer", color: "#0F6E56", fontSize: "11px", fontWeight: 500, padding: "4px 8px", borderRadius: "6px" }}>
+                                          <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>savings</span> סימולציה
+                                        </button>
+                                        <button onClick={() => deleteMortgageTrack(mortgage.id, track.id)} className="hover:bg-red-50 transition-colors" style={{ display: "flex", alignItems: "center", gap: "4px", background: "transparent", border: "none", cursor: "pointer", color: "#EF4444", fontSize: "11px", fontWeight: 500, padding: "4px 8px", borderRadius: "6px" }}>
+                                          <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>close</span> מחיקה
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  )}
+                  {m_tracks.length > 0 && (
+                    <div style={{ fontSize: "11px", color: "#9CA3AF", paddingTop: "8px", textAlign: "right" }}>לחיצה על חץ ההרחבה במסלול תציג הצמדה, סכום מקורי, תאריך סיום ועוד</div>
+                  )}
+
+                  <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
+                    <button onClick={() => addMortgageTrack(mortgage.id)} className="hover:bg-[#FAFAF7] transition-colors border border-gray-200" style={{ fontSize: "13px", display: "flex", alignItems: "center", gap: "6px", background: "transparent", cursor: "pointer", padding: "6px 12px", borderRadius: "8px", fontWeight: 500, color: "#1A1A1A" }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>add</span> הוסף מסלול
+                    </button>
+                    <div className="flex items-center">
+                      <AmortizationUpload onTracksParsed={(tracks) => addParsedTracksToMortgage(mortgage.id, tracks)} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {mortgages.length > 0 && (
+              <div style={{ paddingTop: "12px" }}>
+                <button onClick={addMortgage} className="hover:bg-[#FAFAF7] transition-colors" style={{ fontSize: "13px", display: "flex", alignItems: "center", gap: "6px", background: "#FFFFFF", border: "0.5px solid #E5E7EB", padding: "8px 16px", borderRadius: "12px", cursor: "pointer", fontWeight: 500, color: "#1A1A1A" }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>add</span> הוסף משכנתא נוספת
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* ================= MOBILE VIEW ================= */}
+          <div dir="rtl" className="block md:hidden mx-auto" style={{ background: "#FAFAF7", borderRadius: "20px", padding: "1rem", maxWidth: "380px", fontFamily: "var(--font-sans)", marginBottom: "20px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span className="material-symbols-outlined" style={{ fontSize: "18px", color: "#0F6E56" }} aria-hidden="true">home</span>
+                <span style={{ fontSize: "16px", fontWeight: 500, color: "#1A1A1A" }}>משכנתאות</span>
+              </div>
+              <span style={{ fontSize: "12px", color: "#6B7280" }}>{mortgageTotals.mortgagesCount} משכנתאות</span>
+            </div>
+
+            {mortgages.length === 0 && (
+              <div style={{ background: "#FFFFFF", border: "0.5px solid #E5E7EB", borderRadius: "16px", padding: "1.5rem", textAlign: "center", marginBottom: "0.75rem" }}>
+                <h3 className="mt-2 text-sm font-extrabold" style={{ color: "#1A1A1A" }}>אין משכנתאות רשומות</h3>
+                <button onClick={addMortgage} className="mt-3 btn btn-secondary btn-sm" style={{ margin: "12px auto 0" }}>
+                  <span className="material-symbols-outlined text-[14px]">add</span> הוסף משכנתא
+                </button>
+              </div>
+            )}
+
+            {mortgages.map((mortgage) => {
+              const m_tracks = mortgage.tracks || [];
+              const m_monthly = m_tracks.reduce((s, t) => s + (t.monthlyPayment || 0), 0);
+              const m_balance = m_tracks.reduce((s, t) => s + (t.remainingBalance || 0), 0);
+              const m_original = m_tracks.reduce((s, t) => s + (t.originalAmount || 0), 0);
+              const m_progress = m_original > 0 ? (m_original - m_balance) / m_original : 0;
+              const linkedProperty = mortgage.propertyId ? properties.find((p) => p.id === mortgage.propertyId) : undefined;
+
+              return (
+                <div key={mortgage.id} style={{ background: "#FFFFFF", border: "0.5px solid #E5E7EB", borderRadius: "16px", padding: "1rem", marginBottom: "0.75rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
+                    <div style={{ flex: 1, paddingLeft: "10px" }}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span style={{ fontSize: "15px", fontWeight: 500, color: "#1A1A1A" }}>{mortgage.bank || "ללא שם בנק"}</span>
+                        <button onClick={() => setEditingShellId(mortgage.id)} className="flex items-center justify-center rounded-md p-1 transition-colors hover:bg-[#E5E7EB]" title="ערוך פרטי משכנתא">
+                          <span className="material-symbols-outlined text-[15px] text-[#6B7280]">edit</span>
+                        </button>
+                      </div>
+                      <div style={{ fontSize: "12px", color: "#6B7280" }}>
+                        יתרה כוללת {fmtILS(m_balance)} · שולם {(m_progress * 100).toFixed(0)}%
                       </div>
                     </div>
-                  )}
-
-                  {/* Track column headers — 2026-05-18 visual cleanup:
-                      bigger fonts, dropped uppercase (broken in Hebrew),
-                      wider columns for breathing room. */}
-                  {m_tracks.length > 0 && (
-                    <div
-                      className="mb-2 grid items-center pb-2 text-[12px] font-extrabold"
-                      style={{
-                        gridTemplateColumns:
-                          "minmax(110px,1.3fr) 84px 84px 110px 110px 110px 92px 56px",
-                        color: "#2C7A5A",
-                        borderBottom: "1px solid #FAFAF7",
-                        columnGap: "10px",
+                    <button
+                      onClick={async () => {
+                        if (m_tracks.length > 0) {
+                          const ok = await confirm({ title: "למחוק את המשכנתא?", body: "פעולה זו אינה הפיכה.", confirmLabel: "כן, מחק", cancelLabel: "ביטול", variant: "danger" });
+                          if (!ok) return;
+                        }
+                        deleteMortgage(mortgage.id);
                       }}
+                      style={{ border: "none", background: "transparent", cursor: "pointer", padding: "4px" }}
                     >
-                      <div>מסלול</div>
-                      <div className="text-left">ריבית</div>
-                      <div className="text-left">הצמדה</div>
-                      <div className="text-left">סכום מקורי</div>
-                      <div className="text-left">יתרה</div>
-                      <div className="text-left">החזר/חודש</div>
-                      <div className="text-left">סיום</div>
-                      <div />
-                    </div>
-                  )}
+                      <span className="material-symbols-outlined" style={{ fontSize: "16px", color: "#9CA3AF" }}>delete</span>
+                    </button>
+                  </div>
 
-                  {/* Track rows — bigger fonts, more space, clearer hierarchy */}
+                  <div className="relative w-full mb-[10px]">
+                    <select
+                      value={mortgage.propertyId || ""}
+                      onChange={(e) => updateMortgageField(mortgage.id, "propertyId", e.target.value)}
+                      style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", paddingLeft: "28px", background: linkedProperty ? "#FAFAF7" : "#FFFBEB", border: linkedProperty ? "0.5px solid #E5E7EB" : "none", borderRadius: "8px", fontSize: "12px", color: linkedProperty ? "#2C7A5A" : "#B45309", outline: "none", appearance: "none", cursor: "pointer", fontWeight: 500 }}
+                    >
+                      <option value="">לא משויך לנכס — בחר נכס</option>
+                      {properties.map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                    <span className="material-symbols-outlined" style={{ fontSize: "16px", position: "absolute", left: "8px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: linkedProperty ? "#2C7A5A" : "#B45309" }}>
+                      chevron_left
+                    </span>
+                  </div>
+
+                  <div style={{ height: "4px", background: "#FAFAF7", borderRadius: "2px", marginBottom: "14px", overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${m_progress * 100}%`, background: "#059669", borderRadius: "2px" }}></div>
+                  </div>
+
                   {m_tracks.map((track) => {
-                    const trackProgress =
-                      track.originalAmount > 0
-                        ? Math.min(
-                            1,
-                            (track.originalAmount - track.remainingBalance) / track.originalAmount
-                          )
-                        : 0;
+                    const isTrackOpen = expandedTrackIds[track.id] || false;
                     return (
-                      <div key={track.id}>
-                        <div
-                          className="group grid items-center py-3"
-                          style={{
-                            gridTemplateColumns:
-                              "minmax(110px,1.3fr) 84px 84px 110px 110px 110px 92px 56px",
-                            borderBottom: "1px solid #FAFAF7",
-                            columnGap: "10px",
-                          }}
-                        >
-                          {/* Track name — bumped to 14px, primary hierarchy */}
-                          <input
-                            type="text"
-                            value={track.name}
-                            onChange={(e) =>
-                              updateMortgageTrack(mortgage.id, track.id, "name", e.target.value)
-                            }
-                            placeholder="פריים / קל״צ..."
-                            className="w-full border-none bg-transparent text-[14px] font-bold focus:outline-none"
-                            style={{
-                              color: "#1A1A1A",
-                              borderBottom: "1px dotted transparent",
-                            }}
-                            onFocus={(e) => {
-                              e.currentTarget.style.borderBottomColor = "#059669";
-                            }}
-                            onBlur={(e) => {
-                              e.currentTarget.style.borderBottomColor = "transparent";
-                            }}
-                          />
-                          {/* Interest rate — 14px, prominent.
-                              Rates are stored as DECIMAL (0.048) in the model
-                              but typed/displayed as PERCENT (4.8) in the UI.
-                              2026-05-21 Phase 3: tooltip surfaces effective
-                              nominal rate for CPI-linked tracks so a "low"
-                              stated 2.5% indexed rate is shown alongside its
-                              real-world ~5% nominal equivalent. */}
-                          <div
-                            className="flex items-center gap-0.5"
-                            title={(() => {
-                              const realRate = effectiveTrackRate(track, primeRate);
-                              const cpi = trackCpiRate(track, assumptions.inflationRate);
-                              const effNominal = effectiveNominalRate(realRate, cpi);
-                              const lines: string[] = [];
-                              if (typeof track.margin === "number") {
-                                lines.push(
-                                  `פריים (${(primeRate * 100).toFixed(2)}%) + ${(track.margin * 100).toFixed(2)}%`
-                                );
-                              }
-                              if (cpi > 0) {
-                                lines.push(
-                                  `ריבית נקובה: ${(realRate * 100).toFixed(2)}%`,
-                                  `מדד צפוי: ${(cpi * 100).toFixed(1)}%`,
-                                  `ריבית אפקטיבית (כולל מדד): ${(effNominal * 100).toFixed(2)}%`
-                                );
-                              }
-                              return lines.join("\n");
-                            })()}
-                          >
+                      <div key={track.id} style={{ border: "0.5px solid #E5E7EB", borderRadius: "8px", padding: "10px 12px", marginBottom: "8px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <div style={{ flex: 1, paddingLeft: "8px" }}>
+                            <input
+                              type="text"
+                              value={track.name}
+                              onChange={(e) => updateMortgageTrack(mortgage.id, track.id, "name", e.target.value)}
+                              placeholder="מסלול"
+                              style={{ fontSize: "14px", fontWeight: 500, background: "transparent", border: "none", outline: "none", width: "100%", color: "#1A1A1A" }}
+                            />
+                            <div style={{ display: "flex", alignItems: "center", gap: "2px", fontSize: "12px", color: "#6B7280", marginTop: "2px" }}>
+                              ריבית
+                              <div style={{ display: "flex", alignItems: "center" }} dir="ltr">
+                                <span style={{ fontSize: "11px" }}>%</span>
+                                <input
+                                  type="number" step="0.01"
+                                  value={typeof track.margin === "number" ? (effectiveTrackRate(track, primeRate) * 100).toFixed(2) : track.interestRate ? (track.interestRate * 100).toFixed(2) : ""}
+                                  onChange={(e) => { const pct = parseFloat(e.target.value); updateMortgageTrack(mortgage.id, track.id, "interestRate", Number.isFinite(pct) ? String(pct/100) : ""); }}
+                                  readOnly={typeof track.margin === "number"}
+                                  style={{ width: "35px", background: "transparent", border: "none", textAlign: "right", outline: "none", color: "#6B7280", padding: 0 }}
+                                />
+                              </div>
+                              <span className="mx-1">·</span>
+                              <select
+                                value={track.indexation}
+                                onChange={(e) => updateMortgageTrack(mortgage.id, track.id, "indexation", e.target.value)}
+                                style={{ background: "transparent", border: "none", outline: "none", color: "#6B7280", padding: 0, cursor: "pointer" }}
+                              >
+                                <option value="לא צמוד">לא צמוד</option><option value="מדד">מדד</option><option value="דולר">דולר</option><option value="אחר">אחר</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div style={{ textAlign: "left" }}>
                             <input
                               type="number"
-                              step="0.01"
-                              value={
-                                typeof track.margin === "number"
-                                  ? (effectiveTrackRate(track, primeRate) * 100).toFixed(2)
-                                  : track.interestRate
-                                    ? (track.interestRate * 100).toFixed(2)
-                                    : ""
-                              }
-                              onChange={(e) => {
-                                const pct = parseFloat(e.target.value);
-                                updateMortgageTrack(
-                                  mortgage.id,
-                                  track.id,
-                                  "interestRate",
-                                  Number.isFinite(pct) ? String(pct / 100) : ""
-                                );
-                              }}
-                              readOnly={typeof track.margin === "number"}
+                              value={track.remainingBalance || ""}
+                              onChange={(e) => updateMortgageTrack(mortgage.id, track.id, "remainingBalance", e.target.value)}
                               placeholder="0"
-                              className="w-full border-none bg-transparent text-left text-[14px] font-extrabold tabular-nums focus:outline-none"
-                              style={{ color: "#2C7A5A", fontFamily: "inherit" }}
+                              style={{ fontSize: "14px", fontWeight: 500, background: "transparent", border: "none", outline: "none", width: "70px", textAlign: "left", color: "#1A1A1A" }}
                             />
-                            <span className="text-[11px]" style={{ color: "#9ca3af" }}>
-                              %
-                            </span>
-                          </div>
-                          {/* Indexation — 12px, was 10 */}
-                          <select
-                            value={track.indexation}
-                            onChange={(e) =>
-                              updateMortgageTrack(
-                                mortgage.id,
-                                track.id,
-                                "indexation",
-                                e.target.value
-                              )
-                            }
-                            className="cursor-pointer border-none bg-transparent text-[12px] font-bold focus:outline-none"
-                            style={{ color: "#6B7280" }}
-                          >
-                            <option value="לא צמוד">לא צמוד</option>
-                            <option value="מדד">מדד</option>
-                            <option value="דולר">דולר</option>
-                            <option value="אחר">אחר</option>
-                          </select>
-                          {/* Original amount — 13px */}
-                          <input
-                            type="number"
-                            value={track.originalAmount || ""}
-                            onChange={(e) =>
-                              updateMortgageTrack(
-                                mortgage.id,
-                                track.id,
-                                "originalAmount",
-                                e.target.value
-                              )
-                            }
-                            placeholder="0"
-                            className="w-full border-none bg-transparent text-left text-[13px] font-bold tabular-nums focus:outline-none"
-                            style={{ color: "#1A1A1A", fontFamily: "inherit" }}
-                          />
-                          {/* Remaining balance — 13px */}
-                          <input
-                            type="number"
-                            value={track.remainingBalance || ""}
-                            onChange={(e) =>
-                              updateMortgageTrack(
-                                mortgage.id,
-                                track.id,
-                                "remainingBalance",
-                                e.target.value
-                              )
-                            }
-                            placeholder="0"
-                            className="w-full border-none bg-transparent text-left text-[13px] font-extrabold tabular-nums focus:outline-none"
-                            style={{ color: "#2C7A5A", fontFamily: "inherit" }}
-                          />
-                          {/* Monthly payment — 13px */}
-                          <input
-                            type="number"
-                            value={track.monthlyPayment || ""}
-                            onChange={(e) =>
-                              updateMortgageTrack(
-                                mortgage.id,
-                                track.id,
-                                "monthlyPayment",
-                                e.target.value
-                              )
-                            }
-                            placeholder="0"
-                            className="w-full border-none bg-transparent text-left text-[13px] font-extrabold tabular-nums focus:outline-none"
-                            style={{ color: "#2C7A5A", fontFamily: "inherit" }}
-                          />
-                          {/* End date — 12px */}
-                          <input
-                            type="month"
-                            value={track.endDate}
-                            onChange={(e) =>
-                              updateMortgageTrack(
-                                mortgage.id,
-                                track.id,
-                                "endDate",
-                                e.target.value
-                              )
-                            }
-                            className="w-full border-none bg-transparent text-[12px] font-semibold focus:outline-none"
-                            style={{ color: "#6B7280" }}
-                          />
-                          {/* Refi simulator + Delete — both visible at 18px */}
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => setRefiTrackId(track.id)}
-                              className="rounded p-1 hover:bg-[#FAFAF7]"
-                              style={{ color: "#2C7A5A" }}
-                              title="סימולציית מיחזור / פירעון מואץ"
-                            >
-                              <span className="material-symbols-outlined text-[18px] transition-colors hover:text-verdant-emerald">
-                                savings
-                              </span>
-                            </button>
-                            <button
-                              onClick={() => deleteMortgageTrack(mortgage.id, track.id)}
-                              className="rounded p-1 opacity-100 transition-opacity hover:bg-red-50 sm:opacity-0 sm:group-hover:opacity-100"
-                              style={{ color: "#6B7280" }}
-                              title="מחק מסלול"
-                            >
-                              <span className="material-symbols-outlined text-[16px] transition-colors hover:text-red-600">
-                                close
-                              </span>
-                            </button>
+                            <div style={{ fontSize: "11px", color: "#9CA3AF" }}>יתרה</div>
                           </div>
                         </div>
-                        {/* Track progress bar */}
-                        {track.originalAmount > 0 && (
-                          <div className="flex items-center gap-2 pb-2 pr-1">
-                            <div
-                              className="h-1.5 flex-1 overflow-hidden rounded-full"
-                              style={{ background: "#FAFAF7" }}
-                            >
-                              <div
-                                className="h-full rounded-full"
-                                style={{
-                                  width: `${trackProgress * 100}%`,
-                                  background: "#059669",
-                                }}
-                              />
+
+                        {isTrackOpen && (
+                          <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "0.5px solid #F3F4F6", display: "flex", flexDirection: "column", gap: "8px", fontSize: "12px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between" }}>
+                              <span style={{ color: "#6B7280" }}>החזר חודשי</span>
+                              <input type="number" value={track.monthlyPayment || ""} onChange={(e) => updateMortgageTrack(mortgage.id, track.id, "monthlyPayment", e.target.value)} style={{ textAlign: "left", fontWeight: 500, outline: "none", background: "transparent", width: "80px", color: "#1A1A1A" }} placeholder="0" />
                             </div>
-                            <span
-                              className="text-[12px] font-bold tabular-nums"
-                              style={{ color: "#9ca3af", fontFamily: "inherit" }}
-                            >
-                              {(trackProgress * 100).toFixed(0)}%
-                            </span>
+                            <div style={{ display: "flex", justifyContent: "space-between" }}>
+                              <span style={{ color: "#6B7280" }}>סכום מקורי</span>
+                              <input type="number" value={track.originalAmount || ""} onChange={(e) => updateMortgageTrack(mortgage.id, track.id, "originalAmount", e.target.value)} style={{ textAlign: "left", fontWeight: 500, outline: "none", background: "transparent", width: "80px", color: "#1A1A1A" }} placeholder="0" />
+                            </div>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <span style={{ color: "#6B7280" }}>תאריך סיום</span>
+                              <input type="month" value={track.endDate || ""} onChange={(e) => updateMortgageTrack(mortgage.id, track.id, "endDate", e.target.value)} style={{ fontWeight: 500, outline: "none", background: "transparent", color: "#1A1A1A" }} />
+                            </div>
+                            {(!linkedProperty) && (
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                <span style={{ color: "#6B7280" }}>שווי נכס ל-LTV</span>
+                                <input type="number" value={mortgage.propertyValue || ""} onChange={(e) => updateMortgageField(mortgage.id, "propertyValue", e.target.value)} style={{ textAlign: "left", fontWeight: 500, outline: "none", background: "transparent", width: "80px", color: "#1A1A1A" }} placeholder="0" />
+                              </div>
+                            )}
+                            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "8px" }}>
+                              <button onClick={() => setRefiTrackId(track.id)} className="hover:bg-[#E1F5EE]" style={{ color: "#0F6E56", padding: "4px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: 500, display: "flex", alignItems: "center", gap: "4px", background: "transparent", border: "none", cursor: "pointer" }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: "13px" }}>savings</span> סימולציה
+                              </button>
+                              <button onClick={() => deleteMortgageTrack(mortgage.id, track.id)} className="hover:bg-red-50" style={{ color: "#EF4444", padding: "4px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: 500, display: "flex", alignItems: "center", gap: "4px", background: "transparent", border: "none", cursor: "pointer" }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: "13px" }}>close</span> מחיקה
+                              </button>
+                            </div>
                           </div>
                         )}
-                        {/* Phase 7 — variable-rate reset metadata. Surfaces
-                            inline only for variable / משתנה tracks, or when
-                            the user has already entered a reset date. */}
-                        {(/משתנה|variable|ל[״"']?מ|משק[״"']?ל/.test(track.name) ||
-                          track.nextResetDate) && (
-                          <div
-                            className="mb-1 flex flex-wrap items-center gap-3 rounded-md px-2 py-1.5"
-                            style={{ background: "#FAFAF7" }}
-                          >
-                            <span
-                              className="text-[10px] font-bold uppercase tracking-[0.08em]"
-                              style={{ color: "#6B7280" }}
-                            >
-                              עדכון ריבית הבא
-                            </span>
-                            <input
-                              type="month"
-                              value={track.nextResetDate || ""}
-                              onChange={(e) =>
-                                updateMortgageTrack(
-                                  mortgage.id,
-                                  track.id,
-                                  "nextResetDate" as keyof MortgageTrack,
-                                  e.target.value
-                                )
-                              }
-                              className="border-none bg-transparent text-[11px] font-semibold focus:outline-none"
-                              style={{ color: "#1A1A1A" }}
-                              title="התאריך שבו הבנק יקבע מחדש את הריבית במסלול משתנה. המערכת תתריע 90 ימים לפני."
-                            />
-                            <span
-                              className="text-[10px] font-bold uppercase tracking-[0.08em]"
-                              style={{ color: "#6B7280" }}
-                            >
-                              · תקופה (שנים)
-                            </span>
-                            <input
-                              type="number"
-                              min={1}
-                              max={30}
-                              value={track.resetPeriodYears ?? ""}
-                              onChange={(e) =>
-                                updateMortgageTrack(
-                                  mortgage.id,
-                                  track.id,
-                                  "resetPeriodYears" as keyof MortgageTrack,
-                                  e.target.value
-                                )
-                              }
-                              placeholder="5"
-                              className="w-12 border-none bg-transparent text-left text-[11px] font-bold tabular-nums focus:outline-none"
-                              style={{ color: "#1A1A1A" }}
-                              title="כל כמה שנים הריבית נקבעת מחדש (לדוגמה 5 ל-משתנה כל 5)."
-                            />
-                          </div>
-                        )}
+
+                        <button
+                          onClick={() => setExpandedTrackIds(prev => ({...prev, [track.id]: !isTrackOpen}))}
+                          style={{ width: "100%", display: "flex", alignItems: "center", justifyItems: "center", justifyContent: "center", gap: "4px", marginTop: "10px", paddingTop: "6px", fontSize: "12px", color: "#6B7280", borderTop: "0.5px solid #F3F4F6", background: "transparent", borderLeft: "none", borderRight: "none", borderBottom: "none", cursor: "pointer", borderRadius: 0 }}
+                        >
+                          {isTrackOpen ? "פחות פרטים" : "פרטים נוספים"} <span className="material-symbols-outlined transition-transform" style={{ fontSize: "14px", transform: isTrackOpen ? "rotate(180deg)" : "rotate(0deg)" }}>expand_more</span>
+                        </button>
                       </div>
                     );
                   })}
 
-                  {/* Add track manually OR auto-import from PDF amortization */}
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
                     <button
                       onClick={() => addMortgageTrack(mortgage.id)}
-                      className="btn btn-secondary btn-sm"
+                      className="hover:bg-[#FAFAF7]"
+                      style={{ flex: 1, fontSize: "13px", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px", background: "transparent", border: "0.5px solid #E5E7EB", padding: "6px", borderRadius: "8px", cursor: "pointer", color: "#1A1A1A" }}
                     >
-                      <span className="material-symbols-outlined text-[14px]">add</span>
-                      הוסף מסלול
+                      <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>add</span> הוסף מסלול
                     </button>
-                    <AmortizationUpload
-                      onTracksParsed={(tracks) =>
-                        addParsedTracksToMortgage(mortgage.id, tracks)
-                      }
-                    />
+                    <div style={{ flex: 1, display: "flex", justifyContent: "center" }} className="[&>button]:w-full [&>button]:text-[13px] [&>button]:!px-2 [&>button]:h-auto [&>button]:py-1.5 [&>button]:!gap-1">
+                      <AmortizationUpload onTracksParsed={(tracks) => addParsedTracksToMortgage(mortgage.id, tracks)} />
+                    </div>
                   </div>
                 </div>
-              )}
-            </article>
-          );
-        })}
+              );
+            })}
 
-        {/* Add another mortgage. Per-mortgage "טען לוח סילוקין" lives inside
-            each card so the parsed tracks land in the right mortgage. The old
-            global link to /balance#amortization (a static promise card with
-            no upload handler) was removed 2026-05-21 in Phase 4. */}
-        {mortgages.length > 0 && (
-          <div
-            className="flex flex-wrap items-center gap-2 px-5 py-4 md:px-7"
-            style={{ background: "#FAFAF7", borderTop: "1px solid #E5E7EB" }}
-          >
-            <button onClick={addMortgage} className="btn btn-secondary btn-sm">
-              <span className="material-symbols-outlined text-[14px]">add_home</span>
-              הוסף משכנתא נוספת
-            </button>
+            {mortgages.length > 0 && (
+              <button
+                onClick={addMortgage}
+                className="hover:bg-[#E5E7EB]/50"
+                style={{ width: "100%", fontSize: "13px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", background: "transparent", border: "0.5px solid #D1D5DB", padding: "8px", borderRadius: "12px", cursor: "pointer", color: "#1A1A1A" }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>add</span> הוסף משכנתא נוספת
+              </button>
+            )}
           </div>
-        )}
-      </section>
+        </div>
+
 
       {/* ═══ Full Refinance Simulator (since 2026-05-18) ═══
           Multi-track mortgage refinance — picks a mortgage, projects 3 mix
@@ -1742,7 +1515,6 @@ export default function DebtPage() {
         </section>
       )}
 
-      {/* Refinance simulator modal — pops on row "savings" icon click. */}
       {refiTrackId &&
         (() => {
           const tr = mortgages
@@ -1751,6 +1523,65 @@ export default function DebtPage() {
           if (!tr) return null;
           return <RefinanceSimulator track={tr} onClose={() => setRefiTrackId(null)} />;
         })()}
+
+      {editingShellId && (() => {
+        const m = mortgages.find((x) => x.id === editingShellId);
+        if (!m) return null;
+        return (
+          <MortgageShellModal
+            mortgage={m}
+            onClose={() => setEditingShellId(null)}
+            onSave={(newBank, newBalance, newMonthly) => {
+              const oldBank = m.bank;
+              // 1. Update debt state
+              update((prev) => {
+                const next = { ...prev, mortgages: [...prev.mortgages] };
+                const idx = next.mortgages.findIndex(x => x.id === m.id);
+                if (idx >= 0) {
+                  const updatedM = { ...next.mortgages[idx], bank: newBank };
+                  // If it has only the default track, update it
+                  if (updatedM.tracks && updatedM.tracks.length === 1) {
+                    updatedM.tracks = [{
+                      ...updatedM.tracks[0],
+                      remainingBalance: newBalance,
+                      originalAmount: newBalance,
+                      monthlyPayment: newMonthly,
+                    }];
+                  }
+                  next.mortgages[idx] = updatedM;
+                }
+                return next;
+              });
+
+              // 2. Backwards sync to Onboarding store
+              try {
+                const raw = localStorage.getItem(scopedKey("verdant:onboarding:liabilities"));
+                if (raw) {
+                  const liabilities = JSON.parse(raw);
+                  const index = liabilities.findIndex((l: any) => l.type === "משכנתא" && (!oldBank || l.lender === oldBank));
+                  if (index >= 0) {
+                    liabilities[index].lender = newBank;
+                    liabilities[index].balance = String(newBalance);
+                    liabilities[index].monthly = String(newMonthly);
+                    localStorage.setItem(scopedKey("verdant:onboarding:liabilities"), JSON.stringify(liabilities));
+                  } else {
+                    const firstIndex = liabilities.findIndex((l: any) => l.type === "משכנתא");
+                    if (firstIndex >= 0) {
+                      liabilities[firstIndex].lender = newBank;
+                      liabilities[firstIndex].balance = String(newBalance);
+                      liabilities[firstIndex].monthly = String(newMonthly);
+                      localStorage.setItem(scopedKey("verdant:onboarding:liabilities"), JSON.stringify(liabilities));
+                    }
+                  }
+                }
+              } catch (err) {
+                console.error("Failed to sync mortgage shell to onboarding", err);
+              }
+              setEditingShellId(null);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }

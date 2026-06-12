@@ -10,6 +10,7 @@
  */
 
 import { clearGoogleCalendarSession } from "./auth";
+import { reportError } from "@/lib/report-error";
 
 const VERSION_KEY = "verdant:factory_reset_version";
 /**
@@ -47,7 +48,7 @@ function seedFreshClient(): void {
     };
     localStorage.setItem("verdant:clients", JSON.stringify([fresh]));
     localStorage.setItem("verdant:current_hh", "1");
-  } catch {}
+  } catch (e) { reportError("factory-reset", e); }
 }
 
 /** Remove every verdant:* key from localStorage. Returns # of keys removed. */
@@ -64,7 +65,7 @@ export function wipeAllVerdantKeys(): number {
       localStorage.removeItem(k);
       n++;
     }
-  } catch {}
+  } catch (e) { reportError("factory-reset", e); }
   return n;
 }
 
@@ -85,7 +86,7 @@ async function wipeBrowserState(opts: { keepAuth?: boolean } = {}): Promise<void
   // sessionStorage — drop everything (we don't rely on session-scoped state).
   try {
     sessionStorage.clear();
-  } catch {}
+  } catch (e) { reportError("factory-reset", e); }
 
   // IndexedDB — Supabase auth caches its session there. When the advisor
   // is just resetting a client's data we must SKIP this, or the advisor
@@ -98,7 +99,7 @@ async function wipeBrowserState(opts: { keepAuth?: boolean } = {}): Promise<void
           if (db?.name) {
             try {
               indexedDB.deleteDatabase(db.name);
-            } catch {}
+            } catch (e) { reportError("factory-reset", e); }
           }
         }
       } else {
@@ -106,10 +107,10 @@ async function wipeBrowserState(opts: { keepAuth?: boolean } = {}): Promise<void
         ["supabase-auth-token", "verdant-cache"].forEach((name) => {
           try {
             indexedDB.deleteDatabase(name);
-          } catch {}
+          } catch (e) { reportError("factory-reset", e); }
         });
       }
-    } catch {}
+    } catch (e) { reportError("factory-reset", e); }
 
     // Supabase explicit sign-out (also kills the auth cookie).
     try {
@@ -119,7 +120,7 @@ async function wipeBrowserState(opts: { keepAuth?: boolean } = {}): Promise<void
         const supabase = getSupabaseBrowser();
         if (supabase) await supabase.auth.signOut();
       }
-    } catch {}
+    } catch (e) { reportError("factory-reset", e); }
   }
 }
 
@@ -179,13 +180,13 @@ export async function manualFactoryResetAsync(
   seedFreshClient();
   try {
     localStorage.setItem(VERSION_KEY, FACTORY_RESET_VERSION);
-  } catch {}
+  } catch (e) { reportError("factory-reset", e); }
 
   // Step 5: notify any live React tree
   try {
     window.dispatchEvent(new Event(FACTORY_RESET_EVENT));
     window.dispatchEvent(new Event("storage"));
-  } catch {}
+  } catch (e) { reportError("factory-reset", e); }
 
   return { wiped, remoteDeleted };
 }
@@ -226,7 +227,7 @@ export function runFactoryResetIfNeeded(): void {
       sessionStorage.removeItem("verdant:bootstrap_done");
       sessionStorage.removeItem("verdant:last_impersonated");
       sessionStorage.removeItem("verdant:legacy_purge_done");
-    } catch {}
+    } catch (e) { reportError("factory-reset", e); }
     seedFreshClient();
     localStorage.setItem(VERSION_KEY, FACTORY_RESET_VERSION);
     // eslint-disable-next-line no-console
@@ -234,5 +235,5 @@ export function runFactoryResetIfNeeded(): void {
       "[factory-reset] wiped all verdant:* keys + cleared session flags + seeded fresh client →",
       FACTORY_RESET_VERSION
     );
-  } catch {}
+  } catch (e) { reportError("factory-reset", e); }
 }

@@ -1,3 +1,4 @@
+import { reportError } from "@/lib/report-error";
 /**
  * Per-client storage namespace.
  * Every financial store routes reads/writes through scopedKey() so
@@ -86,7 +87,7 @@ export function setActiveClientId(id: number): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(CURRENT_HH_KEY, String(id));
-  } catch {}
+  } catch (e) { reportError("client-scope", e); }
   dispatchAllRefreshEvents();
 }
 
@@ -128,7 +129,7 @@ export function purgeLegacyScopedKeys(): number {
       localStorage.removeItem(k);
       removed++;
     }
-  } catch {}
+  } catch (e) { reportError("client-scope", e); }
   return removed;
 }
 
@@ -182,7 +183,7 @@ export function wipeForTenantSwitch(newHouseholdUuid: string | null): number {
       try {
         const v = localStorage.getItem(k);
         if (v != null) preserved[k] = v;
-      } catch {}
+      } catch (e) { reportError("client-scope", e); }
     }
     const toDelete: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -193,19 +194,19 @@ export function wipeForTenantSwitch(newHouseholdUuid: string | null): number {
       try {
         localStorage.removeItem(k);
         removed++;
-      } catch {}
+      } catch (e) { reportError("client-scope", e); }
     }
     for (const [k, v] of Object.entries(preserved)) {
       try {
         localStorage.setItem(k, v);
-      } catch {}
+      } catch (e) { reportError("client-scope", e); }
     }
     if (newHouseholdUuid) {
       try {
         localStorage.setItem(ACTIVE_HOUSEHOLD_UUID_KEY, newHouseholdUuid);
-      } catch {}
+      } catch (e) { reportError("client-scope", e); }
     }
-  } catch {}
+  } catch (e) { reportError("client-scope", e); }
   return removed;
 }
 

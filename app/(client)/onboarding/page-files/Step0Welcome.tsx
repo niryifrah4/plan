@@ -13,6 +13,7 @@
 
 import { useCallback } from "react";
 import { scopedKey } from "@/lib/client-scope";
+import { reportError } from "@/lib/report-error";
 
 const WELCOME_SEEN_KEY = "verdant:onboarding:welcome_seen";
 
@@ -37,7 +38,7 @@ export function markWelcomeSeen(): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(scopedKey(WELCOME_SEEN_KEY), new Date().toISOString());
-  } catch {}
+  } catch (e) { reportError("client/onboarding/page-files/Step0Welcome", e); }
 }
 
 interface Props {

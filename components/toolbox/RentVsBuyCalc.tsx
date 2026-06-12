@@ -21,6 +21,7 @@
 import { useState, useMemo } from "react";
 import { fmtILS } from "@/lib/format";
 import { pmt } from "@/lib/financial-math";
+import { ToolboxNumberField } from "@/components/toolbox/ToolboxNumberField";
 
 interface YearPoint {
   year: number;
@@ -129,16 +130,29 @@ export function RentVsBuyCalc() {
           >
             home_work
           </span>
-          <h3 className="text-base font-extrabold text-verdant-ink">
-            שכירות מול רכישה
-          </h3>
+          <h3 className="text-base font-extrabold text-verdant-ink">שכירות מול רכישה</h3>
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Field label="מחיר הדירה (₪)" value={homePrice} onChange={setHomePrice} />
-          <Field label="הון עצמי (%)" value={downPaymentPct} onChange={setDownPaymentPct} step={1} />
-          <Field label="ריבית משכנתא (%)" value={mortgageRate} onChange={setMortgageRate} step={0.1} />
-          <Field label="תקופת משכנתא (שנים)" value={mortgageYears} onChange={setMortgageYears} step={1} />
+          <Field
+            label="הון עצמי (%)"
+            value={downPaymentPct}
+            onChange={setDownPaymentPct}
+            step={1}
+          />
+          <Field
+            label="ריבית משכנתא (%)"
+            value={mortgageRate}
+            onChange={setMortgageRate}
+            step={0.1}
+          />
+          <Field
+            label="תקופת משכנתא (שנים)"
+            value={mortgageYears}
+            onChange={setMortgageYears}
+            step={1}
+          />
           <Field
             label="עלויות נלוות (% — מס רכישה, עו״ד, תיווך)"
             value={closingCostsPct}
@@ -146,10 +160,30 @@ export function RentVsBuyCalc() {
             step={0.5}
           />
           <Field label="שכ״ד חודשי כיום (₪)" value={monthlyRent} onChange={setMonthlyRent} />
-          <Field label="עליית ערך נדל״ן שנתית (%)" value={appreciationPct} onChange={setAppreciationPct} step={0.5} />
-          <Field label="תשואת תיק השקעות (%)" value={investReturnPct} onChange={setInvestReturnPct} step={0.5} />
-          <Field label="עליית שכ״ד שנתית (%)" value={rentGrowthPct} onChange={setRentGrowthPct} step={0.5} />
-          <Field label="טווח תכנון (שנים)" value={holdingYears} onChange={setHoldingYears} step={1} />
+          <Field
+            label="עליית ערך נדל״ן שנתית (%)"
+            value={appreciationPct}
+            onChange={setAppreciationPct}
+            step={0.5}
+          />
+          <Field
+            label="תשואת תיק השקעות (%)"
+            value={investReturnPct}
+            onChange={setInvestReturnPct}
+            step={0.5}
+          />
+          <Field
+            label="עליית שכ״ד שנתית (%)"
+            value={rentGrowthPct}
+            onChange={setRentGrowthPct}
+            step={0.5}
+          />
+          <Field
+            label="טווח תכנון (שנים)"
+            value={holdingYears}
+            onChange={setHoldingYears}
+            step={1}
+          />
         </div>
       </div>
 
@@ -175,20 +209,14 @@ export function RentVsBuyCalc() {
           <Stat
             label="נקודת איזון"
             value={breakEvenYear ? `שנה ${breakEvenYear}` : "אין השוואה"}
-            sub={
-              breakEvenYear
-                ? "השנה שבה רכישה משתווה לשכירות"
-                : "השכירות מקדימה לאורך כל הטווח"
-            }
+            sub={breakEvenYear ? "השנה שבה רכישה משתווה לשכירות" : "השכירות מקדימה לאורך כל הטווח"}
           />
         </div>
       </div>
 
       {/* ── Per-year table ── */}
       <div className="card-pad">
-        <div className="mb-3 text-[13px] font-extrabold text-verdant-ink">
-          השוואה שנה אחר שנה
-        </div>
+        <div className="mb-3 text-[13px] font-extrabold text-verdant-ink">השוואה שנה אחר שנה</div>
         <div className="overflow-x-auto">
           <table className="w-full text-right text-[12px]">
             <thead>
@@ -201,7 +229,11 @@ export function RentVsBuyCalc() {
             </thead>
             <tbody>
               {projection.map((p) => (
-                <tr key={p.year} className="border-b" style={{ borderColor: "var(--morning-border, #e5e9dc)33" }}>
+                <tr
+                  key={p.year}
+                  className="border-b"
+                  style={{ borderColor: "var(--morning-border, #e5e9dc)33" }}
+                >
                   <td className="py-1.5 font-bold tabular-nums">{p.year}</td>
                   <td className="py-1.5 tabular-nums">{fmtILS(p.buyNetWorth)}</td>
                   <td className="py-1.5 tabular-nums">{fmtILS(p.rentNetWorth)}</td>
@@ -220,8 +252,8 @@ export function RentVsBuyCalc() {
       </div>
 
       <div className="text-[11px] text-verdant-muted">
-        החישוב מתעלם מהוצאות תחזוקה ומס שבח במכירה (מסלול רכישה) ומס רווחי הון
-        (מסלול שכירות). השווה לסדר גודל, לא לאמת מוחלטת.
+        החישוב מתעלם מהוצאות תחזוקה ומס שבח במכירה (מסלול רכישה) ומס רווחי הון (מסלול שכירות). השווה
+        לסדר גודל, לא לאמת מוחלטת.
       </div>
     </div>
   );
@@ -239,20 +271,16 @@ function Field({
   step?: number;
 }) {
   return (
-    <div>
-      <label className="mb-1 block text-[11px] font-bold text-verdant-muted">{label}</label>
-      <input
-        type="number"
-        value={value}
-        step={step}
-        onChange={(e) => {
-          const n = parseFloat(e.target.value);
-          if (!Number.isNaN(n)) onChange(n);
-        }}
-        className="w-full rounded-lg border bg-white px-3 py-2 text-[14px] font-bold text-verdant-ink"
-        style={{ borderColor: "var(--morning-border, #e5e9dc)" }}
-      />
-    </div>
+    <ToolboxNumberField
+      label={label}
+      value={value}
+      onChange={onChange}
+      min={0}
+      steps={step < 1 ? [step, step * 5, step * 10] : [step, step * 5, step * 10]}
+      labelClassName="mb-1 block text-[11px] font-bold text-verdant-muted"
+      buttonClassName="flex w-full items-center justify-between rounded-lg border bg-white px-3 py-2 text-left text-[14px] font-bold text-verdant-ink transition-colors hover:bg-[#FAFAF7]"
+      compact
+    />
   );
 }
 

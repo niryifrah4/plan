@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { fmtILS } from "@/lib/format";
 import { futureValue } from "@/lib/financial-math";
 import { loadAssumptions } from "@/lib/assumptions";
+import { ToolboxNumberField } from "@/components/toolbox/ToolboxNumberField";
 
 export function CompoundCalc() {
   const [lump, setLump] = useState(50000);
@@ -48,47 +49,35 @@ export function CompoundCalc() {
           </button>
         </div>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <label className="block">
-            <span className="text-[11px] font-bold text-verdant-muted">סכום פתיחה</span>
-            <input
-              type="number"
-              value={lump}
-              onChange={(e) => setLump(Number(e.target.value))}
-              className="v-divider tabular mt-1 w-full rounded-lg border bg-[#FFFFFF] px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
-              dir="ltr"
-            />
-          </label>
-          <label className="block">
-            <span className="text-[11px] font-bold text-verdant-muted">הפקדה חודשית</span>
-            <input
-              type="number"
-              value={monthly}
-              onChange={(e) => setMonthly(Number(e.target.value))}
-              className="v-divider tabular mt-1 w-full rounded-lg border bg-[#FFFFFF] px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
-              dir="ltr"
-            />
-          </label>
-          <label className="block">
-            <span className="text-[11px] font-bold text-verdant-muted">תשואה שנתית (%)</span>
-            <input
-              type="number"
-              step="0.5"
-              value={rate}
-              onChange={(e) => setRate(Number(e.target.value))}
-              className="v-divider tabular mt-1 w-full rounded-lg border bg-[#FFFFFF] px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
-              dir="ltr"
-            />
-          </label>
-          <label className="block">
-            <span className="text-[11px] font-bold text-verdant-muted">שנות חיסכון</span>
-            <input
-              type="number"
-              value={years}
-              onChange={(e) => setYears(Number(e.target.value))}
-              className="v-divider tabular mt-1 w-full rounded-lg border bg-[#FFFFFF] px-3 py-2 text-sm font-bold text-verdant-ink focus:outline-none focus:ring-2 focus:ring-verdant-accent/40"
-              dir="ltr"
-            />
-          </label>
+          <ToolboxNumberField
+            label="סכום פתיחה"
+            value={lump}
+            onChange={setLump}
+            suffix="₪"
+            min={0}
+          />
+          <ToolboxNumberField
+            label="הפקדה חודשית"
+            value={monthly}
+            onChange={setMonthly}
+            suffix="₪"
+            min={0}
+          />
+          <ToolboxNumberField
+            label="תשואה שנתית"
+            value={rate}
+            onChange={setRate}
+            suffix="%"
+            min={0}
+            steps={[0.1, 0.5, 1]}
+          />
+          <ToolboxNumberField
+            label="שנות חיסכון"
+            value={years}
+            onChange={setYears}
+            min={0}
+            steps={[1, 5, 10]}
+          />
         </div>
       </Card>
 

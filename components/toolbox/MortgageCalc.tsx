@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { fmtILS } from "@/lib/format";
 import { pmt, amortSchedule } from "@/lib/financial-math";
+import { ToolboxNumberField } from "@/components/toolbox/ToolboxNumberField";
 
 export function MortgageCalc() {
   const [principal, setPrincipal] = useState(1500000);
@@ -156,25 +157,15 @@ function Field({
   step?: number;
 }) {
   return (
-    <div>
-      <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted">
-        {label}
-      </label>
-      <div
-        className="flex items-center rounded-lg border px-3 py-2"
-        style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
-      >
-        <input
-          type="number"
-          step={step}
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className="tabular flex-1 bg-transparent text-sm font-bold text-verdant-ink outline-none"
-          dir="ltr"
-        />
-        {suffix && <span className="mr-1 text-xs font-bold text-verdant-muted">{suffix}</span>}
-      </div>
-    </div>
+    <ToolboxNumberField
+      label={label}
+      value={value}
+      onChange={onChange}
+      suffix={suffix}
+      min={0}
+      steps={step && step < 1 ? [step, step * 5, step * 10] : undefined}
+      compact
+    />
   );
 }
 

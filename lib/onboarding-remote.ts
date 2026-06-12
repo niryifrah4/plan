@@ -23,6 +23,7 @@
 
 import { pullBlob, pushBlobInBackground } from "./sync/blob-sync";
 import { scopedKey } from "./client-scope";
+import { reportError } from "@/lib/report-error";
 
 const BLOB_KEY = "onboarding_snapshot";
 
@@ -66,7 +67,7 @@ function writeLocalSavedAt(iso: string): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(scopedKey(SAVED_AT_KEY), iso);
-  } catch {}
+  } catch (e) { reportError("onboarding-remote", e); }
 }
 
 function canReadLegacyOnboardingKeys(): boolean {
@@ -109,7 +110,7 @@ function readLocalSnapshot(): OnboardingBlob | null {
       if (raw !== null && scoped !== k) {
         try {
           localStorage.setItem(scoped, raw);
-        } catch {}
+        } catch (e) { reportError("onboarding-remote", e); }
       }
     }
     if (raw !== null) {
@@ -158,7 +159,7 @@ export async function hydrateOnboardingFromRemote(): Promise<boolean> {
     try {
       localStorage.setItem(scopedKey(k), v);
       wrote = true;
-    } catch {}
+    } catch (e) { reportError("onboarding-remote", e); }
   }
   // After successful hydrate, adopt the remote's savedAt so subsequent
   // comparisons reflect that local now matches remote.

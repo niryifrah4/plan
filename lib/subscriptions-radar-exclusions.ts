@@ -1,6 +1,7 @@
 import { scopedKey } from "@/lib/client-scope";
 import { pullBlob, pushBlobInBackground } from "@/lib/sync/blob-sync";
 import { normalizeRecurringDescription, type RecurringGroup } from "@/lib/doc-parser/recurring";
+import { reportError } from "@/lib/report-error";
 
 const STORAGE_KEY = "verdant:subscriptions_radar_exclusions";
 const BLOB_KEY = "subscriptions_radar_exclusions";
@@ -67,7 +68,7 @@ export function saveSubscriptionRadarExclusions(
     localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(sanitized));
     window.dispatchEvent(new Event(SUBSCRIPTIONS_RADAR_EXCLUSIONS_EVENT));
     pushBlobInBackground(BLOB_KEY, sanitized);
-  } catch {}
+  } catch (e) { reportError("subscriptions-radar-exclusions", e); }
   return sanitized;
 }
 

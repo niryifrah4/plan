@@ -5,6 +5,8 @@ import { pmt } from "@/lib/financial-math";
 import { loadAssumptions } from "@/lib/assumptions";
 import { fmtILS } from "@/lib/format";
 import { scopedKey } from "@/lib/client-scope";
+import { ToolboxNumberField } from "@/components/toolbox/ToolboxNumberField";
+import { reportError } from "@/lib/report-error";
 
 const TASK_INSIGHTS_KEY = "verdant:task_insights";
 
@@ -96,7 +98,7 @@ export function AffordabilityCalc() {
       window.dispatchEvent(new Event("verdant:insights:updated"));
       setExported(true);
       setTimeout(() => setExported(false), 2500);
-    } catch {}
+    } catch (e) { reportError("toolbox/AffordabilityCalc", e); }
   };
 
   return (
@@ -266,22 +268,16 @@ function InputField({
   step?: number;
 }) {
   return (
-    <div>
-      <div className="mb-1.5 text-[10px] font-bold text-verdant-muted">{label}</div>
-      <div
-        className="flex items-center gap-2 rounded-xl border px-4 py-2.5"
-        style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
-      >
-        <input
-          type="number"
-          value={value}
-          step={step}
-          onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-          className="tabular flex-1 bg-transparent text-[13px] font-extrabold text-verdant-ink outline-none"
-        />
-        <span className="text-[10px] font-bold text-verdant-muted">{suffix}</span>
-      </div>
-    </div>
+    <ToolboxNumberField
+      label={label}
+      value={value}
+      onChange={onChange}
+      suffix={suffix}
+      min={0}
+      steps={step < 1 ? [step, step * 5, step * 10] : undefined}
+      labelClassName="mb-1.5 text-[10px] font-bold text-verdant-muted"
+      buttonClassName="flex w-full items-center justify-between gap-2 rounded-xl border bg-white px-4 py-2.5 text-left text-[13px] font-extrabold text-verdant-ink transition-colors hover:bg-[#FAFAF7]"
+    />
   );
 }
 

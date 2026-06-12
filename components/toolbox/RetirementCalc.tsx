@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { fmtILS } from "@/lib/format";
 import { israeliIncomeTax } from "@/lib/assumptions";
+import { ToolboxNumberField } from "@/components/toolbox/ToolboxNumberField";
 
 function computeTax(annualIncome: number): number {
   return israeliIncomeTax(annualIncome).tax;
@@ -92,8 +93,6 @@ export function RetirementCalc() {
   }, [grantCalc, yearsOfService]);
 
   /* ── Inputs ── */
-  const inputCls = "flex-1 text-sm font-bold text-verdant-ink bg-transparent outline-none tabular";
-  const wrapCls = "flex items-center border rounded-lg px-3 py-2";
   const labelCls = "text-[10px] font-bold text-verdant-muted uppercase tracking-[0.1em] block mb-1";
 
   return (
@@ -107,79 +106,70 @@ export function RetirementCalc() {
 
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
           <div>
-            <label className={labelCls}>שנות ותק</label>
-            <div className={wrapCls} style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}>
-              <input
-                type="number"
-                value={yearsOfService}
-                onChange={(e) => setYearsOfService(Number(e.target.value))}
-                className={inputCls}
-                dir="ltr"
-              />
-            </div>
+            <ToolboxNumberField
+              label="שנות ותק"
+              value={yearsOfService}
+              onChange={setYearsOfService}
+              min={0}
+              steps={[1, 5, 10]}
+              labelClassName={labelCls}
+              compact
+            />
           </div>
           <div>
-            <label className={labelCls}>שכר אחרון (חודשי)</label>
-            <div className={wrapCls} style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}>
-              <input
-                type="number"
-                value={salary}
-                onChange={(e) => setSalary(Number(e.target.value))}
-                className={inputCls}
-                dir="ltr"
-              />
-              <span className="text-xs font-bold text-verdant-muted">&#8362;</span>
-            </div>
+            <ToolboxNumberField
+              label="שכר אחרון (חודשי)"
+              value={salary}
+              onChange={setSalary}
+              suffix="₪"
+              min={0}
+              labelClassName={labelCls}
+              compact
+            />
           </div>
           <div>
-            <label className={labelCls}>מענק פרישה כולל</label>
-            <div className={wrapCls} style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}>
-              <input
-                type="number"
-                value={totalGrant}
-                onChange={(e) => setTotalGrant(Number(e.target.value))}
-                className={inputCls}
-                dir="ltr"
-              />
-              <span className="text-xs font-bold text-verdant-muted">&#8362;</span>
-            </div>
+            <ToolboxNumberField
+              label="מענק פרישה כולל"
+              value={totalGrant}
+              onChange={setTotalGrant}
+              suffix="₪"
+              min={0}
+              labelClassName={labelCls}
+              compact
+            />
           </div>
           <div>
-            <label className={labelCls}>קצבה צפויה (חודשית)</label>
-            <div className={wrapCls} style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}>
-              <input
-                type="number"
-                value={monthlyPension}
-                onChange={(e) => setMonthlyPension(Number(e.target.value))}
-                className={inputCls}
-                dir="ltr"
-              />
-              <span className="text-xs font-bold text-verdant-muted">&#8362;</span>
-            </div>
+            <ToolboxNumberField
+              label="קצבה צפויה (חודשית)"
+              value={monthlyPension}
+              onChange={setMonthlyPension}
+              suffix="₪"
+              min={0}
+              labelClassName={labelCls}
+              compact
+            />
           </div>
           <div>
-            <label className={labelCls}>גיל בפרישה</label>
-            <div className={wrapCls} style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}>
-              <input
-                type="number"
-                value={retireAge}
-                onChange={(e) => setRetireAge(Number(e.target.value))}
-                className={inputCls}
-                dir="ltr"
-              />
-            </div>
+            <ToolboxNumberField
+              label="גיל בפרישה"
+              value={retireAge}
+              onChange={setRetireAge}
+              min={0}
+              steps={[1, 5, 10]}
+              labelClassName={labelCls}
+              compact
+            />
           </div>
           <div>
-            <label className={labelCls}>שנת פרישה</label>
-            <div className={wrapCls} style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}>
-              <input
-                type="number"
-                value={retireYear}
-                onChange={(e) => setRetireYear(Number(e.target.value))}
-                className={inputCls}
-                dir="ltr"
-              />
-            </div>
+            <ToolboxNumberField
+              label="שנת פרישה"
+              value={retireYear}
+              onChange={setRetireYear}
+              min={0}
+              steps={[1, 5, 10]}
+              labelClassName={labelCls}
+              compact
+            />
           </div>
         </div>
       </div>

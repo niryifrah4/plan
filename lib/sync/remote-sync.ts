@@ -15,6 +15,7 @@
  */
 
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/browser";
+import { reportError } from "@/lib/report-error";
 
 /**
  * Get the currently active household ID (the "client" the planner is viewing).
@@ -26,7 +27,7 @@ export function getHouseholdId(): string | null {
   try {
     const raw = localStorage.getItem("verdant:active_household_id");
     if (raw && raw.trim()) return raw.trim();
-  } catch {}
+  } catch (e) { reportError("sync/remote-sync", e); }
   return null;
 }
 
@@ -35,7 +36,7 @@ export function setHouseholdId(id: string | null) {
   try {
     if (id) localStorage.setItem("verdant:active_household_id", id);
     else localStorage.removeItem("verdant:active_household_id");
-  } catch {}
+  } catch (e) { reportError("sync/remote-sync", e); }
 }
 
 export interface SyncConfig<TLocal, TRow> {

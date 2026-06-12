@@ -57,6 +57,7 @@ import { IdleView } from "./_documents-tab/IdleView";
 import { PreviewView } from "./_documents-tab/PreviewView";
 import { SavedView } from "./_documents-tab/SavedView";
 import type { Scope } from "@/lib/scope-types";
+import { reportError } from "@/lib/report-error";
 
 type Phase = "idle" | "uploading" | "preview" | "saved";
 
@@ -263,7 +264,7 @@ export function DocumentsTab() {
         setDeletedIndices(new Set(draft.deletedIndices || []));
         setPhase("preview");
       }
-    } catch {}
+    } catch (e) { reportError("client/balance/DocumentsTab", e); }
   }, []);
 
   /* ── Draft auto-save whenever doc/overrides/deletes change in preview phase ── */
@@ -280,7 +281,7 @@ export function DocumentsTab() {
           savedAt: new Date().toISOString(),
         })
       );
-    } catch {}
+    } catch (e) { reportError("client/balance/DocumentsTab", e); }
   }, [doc, overrides, scopeOverrides, deletedIndices, phase]);
 
   /* ── Warn on navigation if unsaved draft exists ── */
@@ -643,7 +644,7 @@ export function DocumentsTab() {
     setDeletedIndices(new Set());
     try {
       localStorage.removeItem(scopedKey(DRAFT_KEY));
-    } catch {}
+    } catch (e) { reportError("client/balance/DocumentsTab", e); }
   }, []);
 
   /* ── Remove a history entry (doesn't delete transactions, just the record) ── */

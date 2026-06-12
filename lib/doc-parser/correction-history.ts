@@ -22,6 +22,7 @@
  */
 
 import { scopedKey } from "../client-scope";
+import { reportError } from "@/lib/report-error";
 
 const STORAGE_KEY = "verdant:category_corrections";
 const MAX_ENTRIES = 500;
@@ -59,7 +60,7 @@ function saveCorrections(items: CategoryCorrection[]): void {
     // Cap from the newest end — drop oldest entries first.
     const trimmed = items.slice(-MAX_ENTRIES);
     localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(trimmed));
-  } catch {}
+  } catch (e) { reportError("doc-parser/correction-history", e); }
 }
 
 /**
@@ -111,5 +112,5 @@ export function clearCorrections(): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.removeItem(scopedKey(STORAGE_KEY));
-  } catch {}
+  } catch (e) { reportError("doc-parser/correction-history", e); }
 }

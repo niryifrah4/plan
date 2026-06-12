@@ -18,6 +18,7 @@ import { loadBuckets, totalBucketBalance } from "./buckets-store";
 import { totalSecuritiesValue } from "./securities-store";
 import { scopedKey } from "./client-scope";
 import { pushBlobInBackground, pullBlob } from "./sync/blob-sync";
+import { reportError } from "@/lib/report-error";
 
 const STORAGE_KEY = "verdant:balance_history";
 export const BALANCE_HISTORY_EVENT = "verdant:balance_history:updated";
@@ -80,25 +81,25 @@ export function computeCurrentNetWorth(): NetWorthBreakdown {
   try {
     const acc = loadAccounts();
     cash = totalBankBalance(acc) - totalCreditCharges(acc);
-  } catch {}
+  } catch (e) { reportError("balance-history-store", e); }
 
   // Pension: sum of fund balances
   let pension = 0;
   try {
     pension = loadPensionFunds().reduce((s, f) => s + (f.balance || 0), 0);
-  } catch {}
+  } catch (e) { reportError("balance-history-store", e); }
 
   // Real estate: sum of currentValue
   let realestate = 0;
   try {
     realestate = loadProperties().reduce((s, p) => s + (p.currentValue || 0), 0);
-  } catch {}
+  } catch (e) { reportError("balance-history-store", e); }
 
   // Goals: sum of bucket current amounts
   let goals = 0;
   try {
     goals = totalBucketBalance(loadBuckets());
-  } catch {}
+  } catch (e) { reportError("balance-history-store", e); }
 
   // Debt split: mortgages vs other
   let debt = 0;
@@ -108,13 +109,13 @@ export function computeCurrentNetWorth(): NetWorthBreakdown {
     mortgages = getAllMortgageTracks(d).reduce((s, t) => s + (t.remainingBalance || 0), 0);
     const totalAll = getTotalLiabilities();
     debt = Math.max(0, totalAll - mortgages);
-  } catch {}
+  } catch (e) { reportError("balance-history-store", e); }
 
   // Investments: sum of market_value_ils across all securities.
   let investments = 0;
   try {
     investments = totalSecuritiesValue();
-  } catch {}
+  } catch (e) { reportError("balance-history-store", e); }
 
   return { cash, investments, pension, realestate, goals, debt, mortgages };
 }

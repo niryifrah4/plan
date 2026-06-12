@@ -8,6 +8,7 @@
 
 import { scopedKey } from "./client-scope";
 import { pushBlobInBackground, pullBlob } from "./sync/blob-sync";
+import { reportError } from "@/lib/report-error";
 
 const STORAGE_KEY = "verdant:accounts";
 export const ACCOUNTS_EVENT = "verdant:accounts:updated";
@@ -79,7 +80,7 @@ export function loadAccounts(): AccountsData {
       const parsed = JSON.parse(raw);
       return { banks: parsed.banks || [], creditCards: parsed.creditCards || [] };
     }
-  } catch {}
+  } catch (e) { reportError("accounts-store", e); }
   return { banks: [], creditCards: [] };
 }
 

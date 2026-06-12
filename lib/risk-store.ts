@@ -18,6 +18,7 @@
 import { scopedKey } from "./client-scope";
 
 import { pushBlobInBackground, pullBlob } from "./sync/blob-sync";
+import { reportError } from "@/lib/report-error";
 
 const STORAGE_KEY = "verdant:risk_items";
 const BLOB_KEY = "risk_items";
@@ -170,13 +171,13 @@ export function loadRiskItems(): RiskItem[] {
           // Persist quietly so next load is consistent.
           try {
             localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(augmented));
-          } catch {}
+          } catch (e) { reportError("risk-store", e); }
           return augmented;
         }
         return parsed; // empty array = valid user state
       }
     }
-  } catch {}
+  } catch (e) { reportError("risk-store", e); }
   // No data saved yet — seed with defaults (first visit only).
   return DEFAULT_RISK_ITEMS.map((i) => ({ ...i }));
 }

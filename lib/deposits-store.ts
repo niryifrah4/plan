@@ -20,6 +20,7 @@
 
 import { scopedKey } from "./client-scope";
 import { loadPensionFunds, savePensionFunds, type PensionFund } from "./pension-store";
+import { reportError } from "@/lib/report-error";
 
 /* ─────────────────────────────────────────────────────────────
    Types
@@ -100,7 +101,7 @@ export function loadPlans(): DepositPlan[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) return parsed as DepositPlan[];
-  } catch {}
+  } catch (e) { reportError("deposits-store", e); }
   return [];
 }
 
@@ -109,7 +110,7 @@ export function savePlans(plans: DepositPlan[]): void {
   try {
     localStorage.setItem(scopedKey(PLANS_KEY), JSON.stringify(plans));
     window.dispatchEvent(new Event(DEPOSITS_EVENT));
-  } catch {}
+  } catch (e) { reportError("deposits-store", e); }
 }
 
 export function addPlan(input: Omit<DepositPlan, "id" | "createdAt" | "updatedAt">): DepositPlan {
@@ -148,7 +149,7 @@ export function loadEntries(): DepositEntry[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) return parsed as DepositEntry[];
-  } catch {}
+  } catch (e) { reportError("deposits-store", e); }
   return [];
 }
 
@@ -157,7 +158,7 @@ export function saveEntries(entries: DepositEntry[]): void {
   try {
     localStorage.setItem(scopedKey(LOG_KEY), JSON.stringify(entries));
     window.dispatchEvent(new Event(DEPOSITS_EVENT));
-  } catch {}
+  } catch (e) { reportError("deposits-store", e); }
 }
 
 /** Entries for a given month (YYYY-MM). */
@@ -432,7 +433,7 @@ function syncConfirmedTotalToBudget(month: string): void {
     rows[idx] = { ...rows[idx], actual: total };
     localStorage.setItem(key, JSON.stringify(data));
     window.dispatchEvent(new Event("storage"));
-  } catch {}
+  } catch (e) { reportError("deposits-store", e); }
 }
 
 /* ─────────────────────────────────────────────────────────────

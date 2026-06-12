@@ -54,8 +54,8 @@ test.describe("Hebrew-first labels — no English jargon visible", () => {
     await page.goto("/realestate", { waitUntil: "networkidle" });
     const body = (await page.textContent("body")) || "";
     // KPIs we relabeled in this sprint.
-    expect(body).toContain("תשואה שנתית");
-    expect(body).toContain("כיסוי החזר");
+    expect(body).toContain("שווי נכסים נטו");
+    expect(body).toContain("תזרים חודשי נטו");
     expect(body).toContain("מימון מהבנק");
     // The placeholder "פרסור PDF — בקרוב" button is hidden now.
     expect(body).not.toContain("פרסור PDF");

@@ -16,6 +16,7 @@ import {
   purgeLegacyScopedKeys,
   wipeForTenantSwitch,
 } from "@/lib/client-scope";
+import { reportError } from "@/lib/report-error";
 
 interface Impersonation {
   householdId: string;
@@ -59,7 +60,7 @@ export default function ClientLayoutInner({
         // back through the legacy `verdant:c:<digit>:*` namespace.
         localStorage.removeItem(CURRENT_HH_KEY);
       }
-    } catch {}
+    } catch (e) { reportError("client/ClientLayoutInner", e); }
   }
 
   useEffect(() => {
@@ -81,7 +82,7 @@ export default function ClientLayoutInner({
         }
         sessionStorage.setItem(PURGE_FLAG, "1");
       }
-    } catch {}
+    } catch (e) { reportError("client/ClientLayoutInner", e); }
   }, []);
 
   useEffect(() => {
@@ -121,7 +122,7 @@ export default function ClientLayoutInner({
         // keep the active-household pointer current. No wipe needed.
         try {
           localStorage.setItem("verdant:active_household_id", impersonation.householdId);
-        } catch {}
+        } catch (e) { reportError("client/ClientLayoutInner", e); }
       }
     } else {
       // Exiting impersonation (advisor went back to /crm and re-entered a

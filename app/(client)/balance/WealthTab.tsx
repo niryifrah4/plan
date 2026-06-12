@@ -46,6 +46,7 @@ import { NetWorthHistoryChart } from "@/components/balance/NetWorthHistoryChart"
 import { SolidKpi, SolidKpiRow } from "@/components/ui/SolidKpi";
 import { QuickUpdateModal } from "@/components/balance/QuickUpdateModal";
 import { EditAllocationModal } from "@/components/balance/EditAllocationModal";
+import { reportError } from "@/lib/report-error";
 
 
 // Groups displayed in the "נכסים לפי קטגוריה" card row. "liquid" is intentionally
@@ -327,7 +328,7 @@ export function WealthTab() {
       if (totals.actual > 0) return totals.actual;
       const a = loadAssumptions();
       if (a.monthlyExpenses > 0) return a.monthlyExpenses;
-    } catch {}
+    } catch (e) { reportError("client/balance/WealthTab", e); }
     return 0;
   }, [refreshTick]);
   const emergencyMonths = liquidTotal > 0 ? liquidTotal / monthlyExpense : 0;

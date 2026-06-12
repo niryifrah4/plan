@@ -41,6 +41,7 @@ import {
   type DiscoverChoiceMap,
 } from "@/lib/discover-to-budget";
 import type { CategoryRow } from "@/lib/discover-aggregator";
+import { reportError } from "@/lib/report-error";
 
 const SUBS_FLAGGED_KEY = "verdant:subs_flagged_for_review";
 
@@ -93,7 +94,7 @@ export function DiscoverTab() {
       try {
         const raw = localStorage.getItem(scopedKey(SUBS_FLAGGED_KEY));
         if (raw) setFlagged(new Set(JSON.parse(raw)));
-      } catch {}
+      } catch (e) { reportError("client/budget/DiscoverTab", e); }
     };
     refresh();
     window.addEventListener("storage", refresh);
@@ -126,7 +127,7 @@ export function DiscoverTab() {
       else next.add(key);
       try {
         localStorage.setItem(scopedKey(SUBS_FLAGGED_KEY), JSON.stringify(Array.from(next)));
-      } catch {}
+      } catch (e) { reportError("client/budget/DiscoverTab", e); }
       return next;
     });
   };

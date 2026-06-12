@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { reportError } from "@/lib/report-error";
 
 export default function ClearStoragePage() {
   const [step, setStep] = useState<"running" | "done">("running");
@@ -20,10 +21,10 @@ export default function ClearStoragePage() {
   useEffect(() => {
     try {
       localStorage.clear();
-    } catch {}
+    } catch (e) { reportError("clear-storage/page", e); }
     try {
       sessionStorage.clear();
-    } catch {}
+    } catch (e) { reportError("clear-storage/page", e); }
     try {
       document.cookie.split(";").forEach((c) => {
         const eq = c.indexOf("=");
@@ -35,7 +36,7 @@ export default function ClearStoragePage() {
           "=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=" +
           location.hostname;
       });
-    } catch {}
+    } catch (e) { reportError("clear-storage/page", e); }
     setStep("done");
     const t = setTimeout(() => {
       window.location.replace("/login");

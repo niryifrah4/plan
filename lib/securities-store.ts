@@ -14,6 +14,7 @@
 
 import { scopedKey } from "./client-scope";
 import { loadAccounts, loadPositions, valuePosition, type Position } from "./portfolio-store";
+import { reportError } from "@/lib/report-error";
 
 export const SECURITIES_KEY = "verdant:securities";
 
@@ -87,7 +88,7 @@ export function loadSecurities(): SecurityRow[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) return parsed as SecurityRow[];
-  } catch {}
+  } catch (e) { reportError("securities-store", e); }
   return [];
 }
 

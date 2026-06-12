@@ -6,6 +6,7 @@ import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import type { Household, Profile } from "@/types/db";
 import { runClientMigration } from "@/lib/client-migration";
 import { ACTIVE_CLIENT_CHANGED, dispatchAllRefreshEvents, scopedKey } from "@/lib/client-scope";
+import { reportError } from "@/lib/report-error";
 
 const ONB_CHILDREN_KEY = "verdant:onboarding:children";
 
@@ -157,7 +158,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     const scopeChanged = prevId !== String(clientId);
     try {
       localStorage.setItem(LS_CURRENT, String(clientId));
-    } catch {}
+    } catch (e) { reportError("client-context", e); }
 
     // 1. Load from localStorage
     const localClient = getLocalClient(clientId);

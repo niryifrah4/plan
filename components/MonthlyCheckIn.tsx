@@ -24,6 +24,7 @@ import { useState, useMemo, useEffect } from "react";
 import { loadBuckets, saveBuckets, recordCheckIn, type Bucket } from "@/lib/buckets-store";
 import { fmtILS } from "@/lib/format";
 import { scopedKey } from "@/lib/client-scope";
+import { reportError } from "@/lib/report-error";
 
 const CHECKIN_KEY = "verdant:monthly_checkin";
 
@@ -75,7 +76,7 @@ function markCheckedIn() {
       scopedKey(CHECKIN_KEY),
       JSON.stringify({ lastMonth: currentMonth(), at: new Date().toISOString() })
     );
-  } catch {}
+  } catch (e) { reportError("MonthlyCheckIn", e); }
 }
 
 /* ═══════════════════════════════════════════════════════════ */

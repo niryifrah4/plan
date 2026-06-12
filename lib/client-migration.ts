@@ -7,6 +7,7 @@
  */
 
 import { CLIENTS_REGISTRY_KEY, CURRENT_HH_KEY } from "./client-scope";
+import { reportError } from "@/lib/report-error";
 
 const UNSCOPED_BASE = new Set<string>([
   CURRENT_HH_KEY,
@@ -59,7 +60,7 @@ function readRegistry(): LocalClientShape[] {
 function writeRegistry(list: LocalClientShape[]) {
   try {
     localStorage.setItem(CLIENTS_REGISTRY_KEY, JSON.stringify(list));
-  } catch {}
+  } catch (e) { reportError("client-migration", e); }
 }
 
 /**

@@ -10,6 +10,7 @@
  */
 
 import { scopedKey } from "@/lib/client-scope";
+import { reportError } from "@/lib/report-error";
 
 export type EquityType = "rsu" | "espp" | "options";
 
@@ -59,7 +60,7 @@ export function saveGrants(grants: EquityGrant[]): void {
   try {
     localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(grants));
     window.dispatchEvent(new Event(EQUITY_EVENT));
-  } catch {}
+  } catch (e) { reportError("equity-store", e); }
 }
 
 /** Section 102 capital-gains tax rate (long-term, standard route). */

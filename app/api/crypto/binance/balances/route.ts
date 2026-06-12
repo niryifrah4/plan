@@ -15,6 +15,7 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { reportError } from "@/lib/report-error";
 
 const BINANCE_BASE = "https://api.binance.com";
 const RECV_WINDOW = 10_000;
@@ -71,7 +72,7 @@ export async function POST(req: Request) {
       let parsed: unknown = text;
       try {
         parsed = JSON.parse(text);
-      } catch {}
+      } catch (e) { reportError("api/crypto/binance/balances/route", e); }
       return NextResponse.json(
         {
           error: `Binance returned ${res.status}`,

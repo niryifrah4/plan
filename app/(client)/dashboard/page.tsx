@@ -72,6 +72,7 @@ import { SCOPE_COLORS, effectiveScope, type Scope } from "@/lib/scope-types";
 import { MacroStrip } from "@/components/MacroStrip";
 import { UnmappedNudge } from "@/components/UnmappedNudge";
 import { refreshDashboardFromRemote } from "@/lib/dashboard-remote-sync";
+import { reportError } from "@/lib/report-error";
 
 const TRACK_COLOR: Record<string, string> = {
   on: "#2C7A5A",
@@ -157,7 +158,7 @@ function DashboardClient() {
         const fields = JSON.parse(raw);
         setInitialRetireIncome(Number(fields.retire_income) || 0);
       }
-    } catch {}
+    } catch (e) { reportError("client/dashboard/page", e); }
   }, []);
 
   const handleSaveAssumptions = (data: {
@@ -178,7 +179,7 @@ function DashboardClient() {
       fields.retire_income = String(data.retireIncome);
       fields.retire_age = String(data.retirementAge);
       localStorage.setItem(actualKey, JSON.stringify(fields));
-    } catch {}
+    } catch (e) { reportError("client/dashboard/page", e); }
     setShowAssumptionsModal(false);
     window.location.reload();
   };
@@ -415,7 +416,7 @@ function DashboardClient() {
   const dismissCheckin = () => {
     try {
       localStorage.setItem(scopedKey(CHECKIN_LAST_DISMISSED_KEY), String(Date.now()));
-    } catch {}
+    } catch (e) { reportError("client/dashboard/page", e); }
     setShowCheckin(false);
     setCheckinDismissed(true);
   };
@@ -475,7 +476,7 @@ function DashboardClient() {
   const dismissDepositsBanner = () => {
     try {
       localStorage.setItem(scopedKey(DEPOSITS_DISMISSED_KEY), currentMonthKey());
-    } catch {}
+    } catch (e) { reportError("client/dashboard/page", e); }
     setDepositsBannerDismissed(true);
   };
 
@@ -523,7 +524,7 @@ function DashboardClient() {
       // Keep last 24 months
       const trimmed = history.sort((a, b) => b.month.localeCompare(a.month)).slice(0, 24);
       localStorage.setItem(scopedKey(NW_KEY), JSON.stringify(trimmed));
-    } catch {}
+    } catch (e) { reportError("client/dashboard/page", e); }
   }, [netWorthVal]);
 
   // Business/personal cashflow split, read from current month's budget JSON.

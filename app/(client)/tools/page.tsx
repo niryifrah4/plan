@@ -137,7 +137,7 @@ export default function ToolboxPage() {
   const [filter, setFilter] = useState<Category | "all">("all");
 
   const selected = useMemo(
-    () => (selectedId ? CALCULATORS.find((c) => c.id === selectedId) ?? null : null),
+    () => (selectedId ? (CALCULATORS.find((c) => c.id === selectedId) ?? null) : null),
     [selectedId]
   );
 
@@ -156,27 +156,8 @@ export default function ToolboxPage() {
     return (
       <div className="mx-auto max-w-6xl">
         {/* Back bar */}
-        <div className="mb-6 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => setSelectedId(null)}
-            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors"
-            style={{
-              background: "var(--morning-surface)",
-              color: "var(--morning-ink)",
-              border: "1px solid var(--morning-border)",
-            }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.background = "var(--morning-surface-2)")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.background = "var(--morning-surface)")
-            }
-          >
-            <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-            חזרה לכל המחשבונים
-          </button>
-          <div className="flex items-center gap-3">
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3" dir="ltr">
             <div className="text-right">
               <div className="text-[15px] font-bold" style={{ color: "var(--morning-ink)" }}>
                 {selected.name}
@@ -192,6 +173,22 @@ export default function ToolboxPage() {
               <span className="material-symbols-outlined text-[20px]">{selected.icon}</span>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={() => setSelectedId(null)}
+            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors"
+            dir="ltr"
+            style={{
+              background: "var(--morning-surface)",
+              color: "var(--morning-ink)",
+              border: "1px solid var(--morning-border)",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--morning-surface-2)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "var(--morning-surface)")}
+          >
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            חזרה לכל המחשבונים
+          </button>
         </div>
 
         {/* Calculator content */}
@@ -234,7 +231,7 @@ export default function ToolboxPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="חפשו מחשבון..."
-            className="w-full rounded-lg py-2.5 pr-10 pl-3 text-[14px] outline-none transition-all"
+            className="w-full rounded-lg py-2.5 pl-3 pr-10 text-[14px] outline-none transition-all"
             style={{
               background: "var(--morning-surface)",
               border: "1px solid var(--morning-border)",
@@ -287,10 +284,7 @@ export default function ToolboxPage() {
           >
             search_off
           </span>
-          <div
-            className="mt-2 text-[15px] font-semibold"
-            style={{ color: "var(--morning-ink)" }}
-          >
+          <div className="mt-2 text-[15px] font-semibold" style={{ color: "var(--morning-ink)" }}>
             לא נמצאו מחשבונים
           </div>
           <div className="mt-1 text-[13px]" style={{ color: "var(--morning-muted)" }}>

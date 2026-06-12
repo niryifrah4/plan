@@ -21,6 +21,7 @@
 
 import { scopedKey } from "./client-scope";
 import { pushBlobInBackground, pullBlob } from "./sync/blob-sync";
+import { reportError } from "@/lib/report-error";
 
 /* ─────────────────────────────────────────────────────────────
    Types
@@ -217,7 +218,7 @@ export function saveAccounts(accounts: Account[]): void {
     // portfolio data). pushBlobInBackground snapshots household_id
     // synchronously so the async push cannot leak to a different tenant.
     pushBlobInBackground(ACCOUNTS_BLOB_KEY, accounts);
-  } catch {}
+  } catch (e) { reportError("portfolio-store", e); }
 }
 
 export function addAccount(input: Omit<Account, "id" | "createdAt" | "updatedAt">): Account {
@@ -265,7 +266,7 @@ export function savePositions(positions: Position[]): void {
     localStorage.setItem(scopedKey(POSITIONS_KEY), JSON.stringify(positions));
     window.dispatchEvent(new Event(PORTFOLIO_EVENT));
     pushBlobInBackground(POSITIONS_BLOB_KEY, positions);
-  } catch {}
+  } catch (e) { reportError("portfolio-store", e); }
 }
 
 /**
@@ -281,14 +282,14 @@ export async function hydratePortfolioFromRemote(): Promise<boolean> {
       localStorage.setItem(scopedKey(ACCOUNTS_KEY), JSON.stringify(accounts));
       wrote = true;
     }
-  } catch {}
+  } catch (e) { reportError("portfolio-store", e); }
   try {
     const positions = await pullBlob<Position[]>(POSITIONS_BLOB_KEY);
     if (Array.isArray(positions)) {
       localStorage.setItem(scopedKey(POSITIONS_KEY), JSON.stringify(positions));
       wrote = true;
     }
-  } catch {}
+  } catch (e) { reportError("portfolio-store", e); }
   if (wrote && typeof window !== "undefined") {
     window.dispatchEvent(new Event(PORTFOLIO_EVENT));
   }

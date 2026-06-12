@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { NAV_SECTIONS, type NavGroup, type NavItem } from "@/lib/nav";
 import { manualFactoryResetAsync } from "@/lib/factory-reset";
 import { useConfirm } from "@/components/ui/ConfirmModal";
+import { reportError } from "@/lib/report-error";
 
 interface SidebarProps {
   familyName: string;
@@ -37,7 +38,7 @@ function saveGroupState(state: Record<string, boolean>): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(state));
-  } catch {}
+  } catch (e) { reportError("Sidebar", e); }
 }
 
 function buildDefaultGroupState(
@@ -147,7 +148,7 @@ export function Sidebar({
       console.info(
         `[manual-reset] wiped ${wiped} local keys + ${remoteDeleted} remote rows — reloading`
       );
-    } catch {}
+    } catch (e) { reportError("Sidebar", e); }
     window.location.href = isAdvisor ? "/crm" : "/login";
   };
 

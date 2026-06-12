@@ -12,6 +12,7 @@
 import { scopedKey } from "./client-scope";
 
 import { pushBlobInBackground, pullBlob, pullBlobsByPrefix } from "./sync/blob-sync";
+import { reportError } from "@/lib/report-error";
 
 const STORAGE_KEY = "verdant:budgets";
 const BLOB_KEY = "budgets";
@@ -76,7 +77,7 @@ export function loadBudgets(): BudgetCategory[] {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
-  } catch {}
+  } catch (e) { reportError("budget-store", e); }
   return DEFAULT_BUDGETS;
 }
 
@@ -122,7 +123,7 @@ export async function hydrateMonthlyBudgetsFromRemote(): Promise<boolean> {
     try {
       localStorage.setItem(scopedKey(`verdant:${key}`), JSON.stringify(value));
       wrote = true;
-    } catch {}
+    } catch (e) { reportError("budget-store", e); }
   }
   if (wrote && typeof window !== "undefined") {
     window.dispatchEvent(new Event("verdant:budgets:updated"));
