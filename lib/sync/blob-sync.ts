@@ -157,7 +157,16 @@ export function pushBlobInBackground<T = any>(
   // Snapshot the household synchronously when no override given so the
   // async push can't pick up a post-switch UUID.
   const hh = householdIdOverride ?? getHouseholdId();
-  void pushBlob(key, value, hh);
+  if (!hh) return;
+  // 2026-06-12: עובר דרך תור ה-retry במקום fire-and-forget. אם הדחיפה
+  // נכשלת היא תנוסה שוב אוטומטית, והחיווי ב-UI יציג "ממתין לסנכרון".
+  // ייבוא עצל כדי להימנע מתלות מעגלית בזמן module-eval.
+  import("./push-queue")
+    .then((m) => m.enqueuePush(key, value, hh))
+    .catch(() => {
+      // אם התור לא נטען משום מה — נופלים חזרה לדחיפה הישירה הישנה.
+      void pushBlob(key, value, hh);
+    });
 }
 
 /**

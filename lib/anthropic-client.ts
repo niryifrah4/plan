@@ -35,5 +35,8 @@ export function getAnthropicKey(): string | null {
 export function createAnthropicClient(): Anthropic | null {
   const apiKey = getAnthropicKey();
   if (!apiKey) return null;
-  return new Anthropic({ apiKey });
+  // timeout + maxRetries מפורשים: בלעדיהם בקשה תקועה יכולה לתלות route
+  // ללא קצה (categorize/insights). 60s לכל ניסיון, 2 retries על שגיאות
+  // רשת/429/5xx — ה-SDK עושה backoff בעצמו.
+  return new Anthropic({ apiKey, timeout: 60_000, maxRetries: 2 });
 }

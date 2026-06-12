@@ -8,6 +8,7 @@ import { startSessionWatcher } from "@/lib/session-security";
 import { isSupabaseConfigured } from "@/lib/supabase/browser";
 import { getCurrentUser } from "@/lib/auth";
 import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
+import { SyncStatusBadge } from "@/components/SyncStatusBadge";
 import { reportError } from "@/lib/report-error";
 
 interface ImpersonationInfo {
@@ -162,6 +163,8 @@ export function ClientShell({
 
   return (
     <>
+      {/* חיווי סנכרון צף — "מסונכרן / ממתין לסנכרון" */}
+      <SyncStatusBadge />
       {/* Impersonation safety strip — 2026-05-27 per Nir: the full row
           "צפייה כיועץ בתיק X" plus exit button was eating screen height on
           every page. Shrunk to a 4px orange band at the very top + a small
