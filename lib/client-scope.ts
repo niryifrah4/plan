@@ -248,6 +248,8 @@ export const STORE_REFRESH_EVENTS = [
   "verdant:subscriptions_radar_exclusions:updated",
   "verdant:subscription_overrides:updated",
   "verdant:subscription_catalog:updated",
+  "verdant:hidden_merchant_overrides:updated",
+  "verdant:hidden_merchants_catalog:updated",
 ] as const;
 
 /** Fires every known store event so pages re-read from new namespace. */

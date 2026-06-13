@@ -101,7 +101,7 @@ export default function ManageSubscriptionsPage() {
           href="/settings"
           className="mb-2 inline-flex items-center gap-1 text-[13px] font-semibold text-verdant-muted hover:text-verdant-ink"
         >
-          <span className="material-symbols-rounded text-[18px]">arrow_forward</span>
+          <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
           חזרה להגדרות
         </Link>
         <h1 className="text-2xl font-extrabold text-verdant-ink">ניהול מנויים</h1>

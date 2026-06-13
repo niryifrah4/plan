@@ -54,6 +54,15 @@ import {
   loadExcludedMerchantKeys,
   EXCLUDED_MERCHANT_KEYS_EVENT,
 } from "@/lib/doc-parser/excluded-merchant-keys";
+import {
+  setHiddenOverride,
+  clearHiddenOverride,
+  loadHiddenOverrides,
+  HIDDEN_OVERRIDES_EVENT,
+} from "@/lib/hidden-merchants/overrides-store";
+import { loadHiddenCatalog, HIDDEN_CATALOG_EVENT } from "@/lib/hidden-merchants/catalog-store";
+import { buildEffectiveHiddenSet } from "@/lib/hidden-merchants/classify";
+import { hiddenMerchantKey } from "@/lib/hidden-merchants/normalize";
 import type { AISuggestion } from "@/lib/doc-parser/ai-categorizer";
 import { fmtILS } from "@/lib/format";
 import {
@@ -137,13 +146,25 @@ export function UnmappedQueueTab() {
   }, []);
 
   // Excluded merchants — keep an in-memory Set so per-tx lookups are O(1).
+  // The effective set merges three sources: the legacy per-household exclude
+  // list, the system default-hide catalog, and the new DB-backed client
+  // overrides (a "visible" override always un-hides, even against the catalog).
   useEffect(() => {
-    setExcludedSet(buildExcludedSet());
-    const handler = () => setExcludedSet(buildExcludedSet());
+    const compute = () =>
+      buildEffectiveHiddenSet(
+        { overrides: loadHiddenOverrides(), catalog: loadHiddenCatalog() },
+        buildExcludedSet()
+      );
+    setExcludedSet(compute());
+    const handler = () => setExcludedSet(compute());
     window.addEventListener(EXCLUDED_EVENT, handler);
+    window.addEventListener(HIDDEN_OVERRIDES_EVENT, handler);
+    window.addEventListener(HIDDEN_CATALOG_EVENT, handler);
     window.addEventListener("storage", handler);
     return () => {
       window.removeEventListener(EXCLUDED_EVENT, handler);
+      window.removeEventListener(HIDDEN_OVERRIDES_EVENT, handler);
+      window.removeEventListener(HIDDEN_CATALOG_EVENT, handler);
       window.removeEventListener("storage", handler);
     };
   }, []);
@@ -572,9 +593,16 @@ export function UnmappedQueueTab() {
   const handleExcludeMerchant = useCallback((group: MerchantGroup) => {
     if (isExcludedIn(excludedSet, group.displaySample)) {
       unexcludeMerchant(getExcludedMerchantKey(group.displaySample));
+      // DB-backed layer: clear any "hidden" override and explicitly mark
+      // visible so a catalog default-hide doesn't immediately re-hide it.
+      clearHiddenOverride(hiddenMerchantKey(group.displaySample));
+      setHiddenOverride(group.displaySample, "visible");
       return;
     }
     excludeMerchant(group.displaySample);
+    // Mirror the decision into the DB-backed store (cross-device sync +
+    // Settings → עסקים מוסתרים + the admin learning signal).
+    setHiddenOverride(group.displaySample, "hidden");
     // The buildExcludedSet event handler will refresh excludedSet → memo re-runs → group disappears.
   }, [excludedSet]);
 
@@ -582,9 +610,13 @@ export function UnmappedQueueTab() {
     (normalizedKey: string) => {
       if (excludedSet.has(normalizedKey)) {
         unexcludeMerchant(normalizedKey);
+        // DB-backed: clear the override by its exact key (the modal already
+        // works in normalized-key space, so this matches precisely).
+        clearHiddenOverride(normalizedKey);
         return;
       }
       excludeMerchant(normalizedKey);
+      setHiddenOverride(normalizedKey, "hidden");
     },
     [excludedSet]
   );

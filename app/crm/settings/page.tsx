@@ -120,6 +120,38 @@ export default function SettingsPage() {
                 </div>
               </div>
             </Link>
+
+            <Link
+              href="/crm/settings/subscriptions"
+              className="card-pad flex flex-col gap-3 hover:shadow-md transition-shadow group"
+              style={{ background: "#FFFFFF" }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-verdant-bg text-verdant-accent group-hover:bg-verdant-accent group-hover:text-white transition-colors">
+                  <span className="material-symbols-outlined">subscriptions</span>
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-verdant-ink">קטלוג מנויים</h2>
+                  <p className="text-xs text-verdant-muted mt-0.5">בתי עסק שנחשבים מנוי לכל הלקוחות</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link
+              href="/crm/settings/hidden-merchants"
+              className="card-pad flex flex-col gap-3 hover:shadow-md transition-shadow group"
+              style={{ background: "#FFFFFF" }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-verdant-bg text-verdant-accent group-hover:bg-verdant-accent group-hover:text-white transition-colors">
+                  <span className="material-symbols-outlined">visibility_off</span>
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-verdant-ink">קטלוג עסקים מוסתרים</h2>
+                  <p className="text-xs text-verdant-muted mt-0.5">בתי עסק שמוסתרים כברירת מחדל לכולם</p>
+                </div>
+              </div>
+            </Link>
           </div>
 
           <div className="card-pad max-w-xl" style={{ background: "#FFFFFF" }}>

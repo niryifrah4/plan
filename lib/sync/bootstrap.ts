@@ -197,9 +197,11 @@ export async function hydrateAllFromRemote(lockedHouseholdId?: string | null): P
     import("@/lib/sync/blob-sync"),
   ]);
 
-  const [subOverrides, subCatalog] = await Promise.all([
+  const [subOverrides, subCatalog, hiddenOverrides, hiddenCatalog] = await Promise.all([
     import("@/lib/subscriptions/overrides-store"),
     import("@/lib/subscriptions/catalog-store"),
+    import("@/lib/hidden-merchants/overrides-store"),
+    import("@/lib/hidden-merchants/catalog-store"),
   ]);
 
   // הרץ במקביל — כל אחד עצמאי, כישלון אחד לא מפיל אחרים
@@ -225,6 +227,8 @@ export async function hydrateAllFromRemote(lockedHouseholdId?: string | null): P
     subscriptionsRadar.hydrateSubscriptionRadarExclusionsFromRemote?.(),
     subOverrides.hydrateOverridesFromRemote?.(),
     subCatalog.hydrateCatalogFromRemote?.(),
+    hiddenOverrides.hydrateHiddenOverridesFromRemote?.(),
+    hiddenCatalog.hydrateHiddenCatalogFromRemote?.(),
     hydrateSecurities(blobSync),
     specialEvents.hydrateSpecialEventsFromRemote?.(),
   ]);
