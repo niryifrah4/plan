@@ -47,7 +47,22 @@ import {
   type StoredDocument,
 } from "@/lib/storage/file-storage";
 import { isSupabaseConfigured } from "@/lib/supabase/browser";
-import { learnMerchantCategory } from "@/lib/doc-parser/merchant-category-rules";
+import { learnMerchantCategory, getMerchantKey } from "@/lib/doc-parser/merchant-category-rules";
+import {
+  excludeMerchant,
+  unexcludeMerchant,
+  buildExcludedSet,
+  EXCLUDED_EVENT,
+} from "@/lib/doc-parser/excluded-merchants";
+import {
+  setHiddenOverride,
+  loadHiddenOverrides,
+  HIDDEN_OVERRIDES_EVENT,
+} from "@/lib/hidden-merchants/overrides-store";
+import { loadHiddenCatalog, HIDDEN_CATALOG_EVENT } from "@/lib/hidden-merchants/catalog-store";
+import { buildEffectiveHiddenSet } from "@/lib/hidden-merchants/classify";
+import { hiddenMerchantKey } from "@/lib/hidden-merchants/normalize";
+import { setSubscriptionOverride } from "@/lib/subscriptions/overrides-store";
 import {
   loadParsedTransactions,
   pullParsedTransactionsFromRemote,
@@ -65,11 +80,20 @@ function buildEffectiveTransactions(
   doc: ParsedDocument,
   overrides: Record<number, { key: string; label: string }>,
   scopeOverrides: Record<number, Scope | undefined>,
-  deletedIndices: Set<number>
+  deletedIndices: Set<number>,
+  hiddenSet: Set<string> = new Set(),
+  forceInclude: Set<number> = new Set()
 ): (ParsedTransaction & { _idx: number })[] {
   return doc.transactions
     .map((t, i) => {
       if (deletedIndices.has(i)) return null;
+      // Auto-skip merchants the client already marked hidden (or the system
+      // catalog default-hides). They never reach the preview or the save, so
+      // a credit-card payment that's hidden once stays out of every future
+      // upload's cashflow. `forceInclude` is the per-row escape hatch: the
+      // client re-included this specific line from the hidden-list modal,
+      // without changing the merchant's hidden status.
+      if (!forceInclude.has(i) && hiddenSet.has(hiddenMerchantKey(t.description || ""))) return null;
       const ov = overrides[i];
       const scopeOv = scopeOverrides[i];
       // scopeOv undefined = use original; null-marker semantics: we explicitly store
@@ -165,11 +189,15 @@ export function DocumentsTab() {
   const [overrides, setOverrides] = useState<Record<number, { key: string; label: string }>>({});
   const [scopeOverrides, setScopeOverrides] = useState<Record<number, Scope | undefined>>({});
   const [deletedIndices, setDeletedIndices] = useState<Set<number>>(new Set());
+  // Rows the client pulled back into the cashflow from the hidden-list modal,
+  // even though their merchant is hidden. Keyed by doc.transactions index.
+  const [forceIncludeIndices, setForceIncludeIndices] = useState<Set<number>>(new Set());
   const [expandedMappedCats, setExpandedMappedCats] = useState<Set<string>>(new Set());
   const docRef = useRef<ParsedDocument | null>(null);
   const overridesRef = useRef<Record<number, { key: string; label: string }>>({});
   const scopeOverridesRef = useRef<Record<number, Scope | undefined>>({});
   const deletedIndicesRef = useRef<Set<number>>(new Set());
+  const forceIncludeRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     docRef.current = doc;
@@ -187,10 +215,38 @@ export function DocumentsTab() {
     deletedIndicesRef.current = deletedIndices;
   }, [deletedIndices]);
 
+  useEffect(() => {
+    forceIncludeRef.current = forceIncludeIndices;
+  }, [forceIncludeIndices]);
+
   /* ── Sibling state from elsewhere in the app ── */
   const [docHistory, setDocHistory] = useState<DocHistoryEntry[]>([]);
   const [storedDocuments, setStoredDocuments] = useState<StoredDocument[]>([]);
   const [businessEnabled, setBusinessEnabled] = useState(false);
+
+  /* Effective hidden-merchant key set — client overrides + system catalog +
+     legacy excludes. Used to auto-drop already-hidden merchants from new
+     uploads so they never re-enter the preview or the cashflow. */
+  const [hiddenSet, setHiddenSet] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    const compute = () =>
+      buildEffectiveHiddenSet(
+        { overrides: loadHiddenOverrides(), catalog: loadHiddenCatalog() },
+        buildExcludedSet()
+      );
+    setHiddenSet(compute());
+    const handler = () => setHiddenSet(compute());
+    window.addEventListener(EXCLUDED_EVENT, handler);
+    window.addEventListener(HIDDEN_OVERRIDES_EVENT, handler);
+    window.addEventListener(HIDDEN_CATALOG_EVENT, handler);
+    window.addEventListener("storage", handler);
+    return () => {
+      window.removeEventListener(EXCLUDED_EVENT, handler);
+      window.removeEventListener(HIDDEN_OVERRIDES_EVENT, handler);
+      window.removeEventListener(HIDDEN_CATALOG_EVENT, handler);
+      window.removeEventListener("storage", handler);
+    };
+  }, []);
 
   const refreshStoredDocuments = useCallback(async () => {
     const docs = await listDocuments();
@@ -262,6 +318,7 @@ export function DocumentsTab() {
         setOverrides(draft.overrides || {});
         setScopeOverrides(draft.scopeOverrides || {});
         setDeletedIndices(new Set(draft.deletedIndices || []));
+        setForceIncludeIndices(new Set(draft.forceIncludeIndices || []));
         setPhase("preview");
       }
     } catch (e) { reportError("client/balance/DocumentsTab", e); }
@@ -278,11 +335,12 @@ export function DocumentsTab() {
           overrides,
           scopeOverrides,
           deletedIndices: Array.from(deletedIndices),
+          forceIncludeIndices: Array.from(forceIncludeIndices),
           savedAt: new Date().toISOString(),
         })
       );
     } catch (e) { reportError("client/balance/DocumentsTab", e); }
-  }, [doc, overrides, scopeOverrides, deletedIndices, phase]);
+  }, [doc, overrides, scopeOverrides, deletedIndices, forceIncludeIndices, phase]);
 
   /* ── Warn on navigation if unsaved draft exists ── */
   useEffect(() => {
@@ -298,8 +356,30 @@ export function DocumentsTab() {
   /* ── Effective transactions (with overrides + deletes applied) ── */
   const effectiveTx = useMemo(() => {
     if (!doc) return [];
-    return buildEffectiveTransactions(doc, overrides, scopeOverrides, deletedIndices);
-  }, [doc, overrides, scopeOverrides, deletedIndices]);
+    return buildEffectiveTransactions(
+      doc,
+      overrides,
+      scopeOverrides,
+      deletedIndices,
+      hiddenSet,
+      forceIncludeIndices
+    );
+  }, [doc, overrides, scopeOverrides, deletedIndices, hiddenSet, forceIncludeIndices]);
+
+  /* The actual rows auto-dropped because their merchant is hidden (and not
+     yet pulled back via forceInclude). Surfaced in the preview so nothing
+     "vanishes" silently, and as the contents of the hidden-list modal. */
+  const autoHiddenRows = useMemo(() => {
+    if (!doc || hiddenSet.size === 0) return [];
+    const rows: { idx: number; description: string; amount: number; date: string }[] = [];
+    doc.transactions.forEach((t, i) => {
+      if (deletedIndices.has(i) || forceIncludeIndices.has(i)) return;
+      if (hiddenSet.has(hiddenMerchantKey(t.description || ""))) {
+        rows.push({ idx: i, description: t.description || "—", amount: t.amount || 0, date: t.date });
+      }
+    });
+    return rows;
+  }, [doc, deletedIndices, forceIncludeIndices, hiddenSet]);
 
   /* ── Split into review / mapped, sort א-ת ──
      Review = anything the user should touch: unmapped categories OR low-confidence.
@@ -378,6 +458,95 @@ export function DocumentsTab() {
     [doc]
   );
 
+  /* ── Mark a row as a subscription ──
+     One click puts the transaction (and look-alikes) into the regular
+     subscription route: category → "subscriptions" so it surfaces under
+     מנויים in the budget, plus a per-client override so the subscription
+     radar treats this merchant as a confirmed subscription going forward. */
+  const handleMarkSubscription = useCallback(
+    async (idx: number) => {
+      const cat = CAT_OPTIONS.find((c) => c.key === "subscriptions");
+      if (!cat || !doc) return;
+      const { learnOverride, findSimilarIndices } = await import("@/lib/doc-parser/categorizer");
+      const similarIndices = findSimilarIndices(doc.transactions, idx);
+      const nextOverrides = { ...overridesRef.current };
+      for (const i of similarIndices) {
+        if (!deletedIndicesRef.current.has(i)) nextOverrides[i] = { key: cat.key, label: cat.label };
+      }
+      overridesRef.current = nextOverrides;
+      setOverrides(nextOverrides);
+      const desc = doc.transactions[idx]?.description;
+      if (desc) {
+        learnOverride(desc, cat.key);
+        await learnMerchantCategory(desc, cat.key, 1);
+        // The normal subscription route — confirmed subscription, incl. past.
+        setSubscriptionOverride(desc, "subscription", true);
+      }
+    },
+    [doc]
+  );
+
+  /* ── Mark a row as a business to hide ──
+     Two effects, both part of the regular hide route:
+       1. Future uploads of this merchant are auto-hidden (excludeMerchant +
+          per-client hidden override).
+       2. The existing rows in THIS file are dropped from the save so the
+          double-counted charge never reaches the cashflow. `applyToFile`
+          decides whether to drop every same-merchant row in the file or only
+          the one the user clicked. */
+  const handleMarkHidden = useCallback(
+    (idx: number, applyToFile: boolean) => {
+      if (!doc) return;
+      const desc = doc.transactions[idx]?.description || "";
+      if (desc) {
+        // Future rule — auto-hide this merchant on the next upload + triage.
+        excludeMerchant(desc, "marked from upload preview");
+        setHiddenOverride(desc, "hidden");
+      }
+      const nextDeleted = new Set(deletedIndicesRef.current);
+      nextDeleted.add(idx);
+      if (applyToFile && desc) {
+        const merchantKey = getMerchantKey(desc);
+        doc.transactions.forEach((t, i) => {
+          if (getMerchantKey(t.description || "") === merchantKey) nextDeleted.add(i);
+        });
+      }
+      deletedIndicesRef.current = nextDeleted;
+      setDeletedIndices(nextDeleted);
+      const nextOverrides = { ...overridesRef.current };
+      for (const i of nextDeleted) delete nextOverrides[i];
+      overridesRef.current = nextOverrides;
+      setOverrides(nextOverrides);
+    },
+    [doc]
+  );
+
+  const handleIncludeHiddenRow = useCallback((idx: number) => {
+    const next = new Set(forceIncludeRef.current);
+    next.add(idx);
+    forceIncludeRef.current = next;
+    setForceIncludeIndices(next);
+  }, []);
+
+  const handleMakeHiddenMerchantVisible = useCallback(
+    (idx: number) => {
+      if (!doc) return;
+      const desc = doc.transactions[idx]?.description || "";
+      if (!desc) return;
+      setHiddenOverride(desc, "visible");
+      unexcludeMerchant(desc);
+
+      const key = hiddenMerchantKey(desc);
+      const next = new Set(forceIncludeRef.current);
+      doc.transactions.forEach((t, i) => {
+        if (hiddenMerchantKey(t.description || "") === key) next.add(i);
+      });
+      forceIncludeRef.current = next;
+      setForceIncludeIndices(next);
+    },
+    [doc]
+  );
+
   const toggleMappedCat = useCallback((catKey: string) => {
     setExpandedMappedCats((prev) => {
       const next = new Set(prev);
@@ -394,9 +563,11 @@ export function DocumentsTab() {
     overridesRef.current = {};
     scopeOverridesRef.current = {};
     deletedIndicesRef.current = new Set();
+    forceIncludeRef.current = new Set();
     setOverrides({});
     setScopeOverrides({});
     setDeletedIndices(new Set());
+    setForceIncludeIndices(new Set());
     setDuplicatesRemoved(0);
     setCrossDupsSkipped(0);
     setExpandedMappedCats(new Set());
@@ -558,7 +729,9 @@ export function DocumentsTab() {
         currentDoc,
         overridesRef.current,
         scopeOverridesRef.current,
-        deletedIndicesRef.current
+        deletedIndicesRef.current,
+        hiddenSet,
+        forceIncludeRef.current
       ).map(({ _idx, ...rest }) => ({
         ...rest,
         sourceDocId: docId,
@@ -629,7 +802,7 @@ export function DocumentsTab() {
     } catch {
       setError("שגיאה בשמירה");
     }
-  }, []);
+  }, [hiddenSet]);
 
   /* ── Reset everything back to idle ── */
   const resetToIdle = useCallback(() => {
@@ -637,11 +810,13 @@ export function DocumentsTab() {
     overridesRef.current = {};
     scopeOverridesRef.current = {};
     deletedIndicesRef.current = new Set();
+    forceIncludeRef.current = new Set();
     setPhase("idle");
     setDoc(null);
     setOverrides({});
     setScopeOverrides({});
     setDeletedIndices(new Set());
+    setForceIncludeIndices(new Set());
     try {
       localStorage.removeItem(scopedKey(DRAFT_KEY));
     } catch (e) { reportError("client/balance/DocumentsTab", e); }
@@ -655,6 +830,7 @@ export function DocumentsTab() {
   }, []);
 
   const overrideCount = Object.keys(overrides).length;
+  const autoHiddenCount = autoHiddenRows.length;
 
   return (
     <div className="mx-auto max-w-5xl" dir="rtl">
@@ -691,12 +867,18 @@ export function DocumentsTab() {
           deletedIndicesSize={deletedIndices.size}
           overrideCount={overrideCount}
           duplicatesRemoved={duplicatesRemoved}
+          autoHiddenCount={autoHiddenCount}
+          autoHiddenRows={autoHiddenRows}
           expandedMappedCats={expandedMappedCats}
           businessEnabled={businessEnabled}
           onAppendFiles={appendFiles}
           onCategoryChange={handleCategoryChange}
           onDelete={handleDelete}
           onToggleBusiness={toggleRowBusiness}
+          onMarkSubscription={handleMarkSubscription}
+          onMarkHidden={handleMarkHidden}
+          onIncludeHiddenRow={handleIncludeHiddenRow}
+          onMakeHiddenMerchantVisible={handleMakeHiddenMerchantVisible}
           onToggleMappedCat={toggleMappedCat}
           onCancel={resetToIdle}
           onSave={handleTransfer}

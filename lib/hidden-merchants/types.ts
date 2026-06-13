@@ -26,3 +26,12 @@ export interface HiddenLearningSuggestion {
   clientCount: number;
   inCatalog: boolean;
 }
+
+/** Advisor view — clients who explicitly chose to show a catalog-hidden merchant. */
+export interface HiddenVisibleClient {
+  normalizedKey: string;
+  householdId: string;
+  familyName: string;
+  label: string;
+  updatedAt: string;
+}

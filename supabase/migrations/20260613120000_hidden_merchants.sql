@@ -118,3 +118,32 @@ $$;
 
 revoke all on function public.hidden_merchant_learning_suggestions() from public;
 grant execute on function public.hidden_merchant_learning_suggestions() to authenticated;
+
+-- ── Advisor visibility overrides: clients who chose to show catalog-hidden merchants ──
+create or replace function public.hidden_merchant_visible_clients()
+returns table (
+  normalized_key text,
+  household_id   uuid,
+  family_name    text,
+  label          text,
+  updated_at     timestamptz
+)
+language sql
+security definer
+set search_path = public
+as $$
+  select
+    o.normalized_key,
+    h.id as household_id,
+    h.family_name,
+    coalesce(o.label, o.normalized_key) as label,
+    o.updated_at
+  from public.hidden_merchant_overrides o
+  join public.households h on h.id = o.household_id
+  where o.decision = 'visible'
+    and h.advisor_id = auth.uid()
+  order by o.updated_at desc;
+$$;
+
+revoke all on function public.hidden_merchant_visible_clients() from public;
+grant execute on function public.hidden_merchant_visible_clients() to authenticated;

@@ -52,9 +52,11 @@ import { Step4Goals } from "./page-files/Step4Goals";
 import { Step5Retirement } from "./page-files/Step5Retirement";
 import { Navigation } from "./page-files/Navigation";
 import { Step0Welcome, shouldShowWelcome } from "./page-files/Step0Welcome";
+import { OnboardingSummary, isOnboardingFilled } from "./page-files/OnboardingSummary";
 import { reportError } from "@/lib/report-error";
 
 const ONBOARDING_STEP_KEY = "verdant:onboarding:step";
+const ONBOARDING_UPDATED_KEY = "verdant:onboarding:updated_at";
 const ONBOARDING_FIELDS_KEY = "verdant:onboarding:fields";
 const ONBOARDING_CHILDREN_KEY = "verdant:onboarding:children";
 const ONBOARDING_ASSETS_KEY = "verdant:onboarding:assets";
@@ -75,6 +77,15 @@ function readScopedJSON<T>(key: string, fallback: T): T {
 
 function writeScopedJSON(key: string, value: unknown): void {
   localStorage.setItem(scopedKey(key), JSON.stringify(value));
+}
+
+function readScopedString(key: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(scopedKey(key));
+  } catch {
+    return null;
+  }
 }
 
 function loadInitialOnboardingState() {
@@ -109,6 +120,10 @@ export default function OnboardingPage() {
   useEffect(() => {
     setShowWelcome(shouldShowWelcome());
   }, []);
+  // When the questionnaire was already filled, we show a summary screen first
+  // and only enter the form once the user clicks "edit". `editing` flips that.
+  const [editing, setEditing] = useState(false);
+  const [lastUpdated] = useState<string | null>(() => readScopedString(ONBOARDING_UPDATED_KEY));
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -294,6 +309,7 @@ export default function OnboardingPage() {
         writeScopedJSON(ONBOARDING_INSURANCE_KEY, insurance);
         writeScopedJSON(ONBOARDING_GOALS_KEY, goals);
         writeScopedJSON(ONBOARDING_INCOMES_KEY, incomes);
+        localStorage.setItem(scopedKey(ONBOARDING_UPDATED_KEY), new Date().toISOString());
       } catch (e) {
         console.warn("[onboarding] snapshot save failed:", e);
         return;
@@ -351,6 +367,32 @@ export default function OnboardingPage() {
           טוען שאלון...
         </div>
       </div>
+    );
+  }
+
+  // Already-filled gate: if the snapshot holds real user data, show a summary
+  // screen instead of the welcome / empty form. The user opts into editing via
+  // the CTA. A `?step=` deep-link bypasses this (advisor jumping to a section).
+  const filled = isOnboardingFilled(fields, children, assets, goals, incomes);
+  const hasStepParam =
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).has("step");
+  if (filled && !editing && !hasStepParam) {
+    return (
+      <OnboardingSummary
+        fields={fields}
+        children={children}
+        assets={assets}
+        goals={goals}
+        incomes={incomes}
+        lastUpdated={lastUpdated}
+        familyName={activeClient?.family || impersonation?.familyName}
+        onEdit={() => {
+          setShowWelcome(false);
+          setStep(1);
+          setEditing(true);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+      />
     );
   }
 

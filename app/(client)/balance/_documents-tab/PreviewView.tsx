@@ -13,16 +13,18 @@
  * State stays in the parent (DocumentsTab) — this view is pure presentation.
  */
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { ParsedDocument, ParsedTransaction } from "@/lib/doc-parser/types";
 import { CAT_OPTIONS } from "@/lib/documents-categories";
 import { groupOptionsByParent } from "@/lib/doc-parser/category-tree";
+import { getMerchantKey } from "@/lib/doc-parser/merchant-category-rules";
 import { fmtILS } from "@/lib/format";
 import { MoneyText } from "@/components/ui/MoneyText";
 import { getBankIcon } from "./banks";
 import { MiniKPI } from "./MiniKPI";
 
 type TxWithIdx = ParsedTransaction & { _idx: number };
+type AutoHiddenRow = { idx: number; description: string; amount: number; date: string };
 
 export function PreviewView({
   doc,
@@ -33,12 +35,18 @@ export function PreviewView({
   deletedIndicesSize,
   overrideCount,
   duplicatesRemoved,
+  autoHiddenCount,
+  autoHiddenRows,
   expandedMappedCats,
   businessEnabled,
   onAppendFiles,
   onCategoryChange,
   onDelete,
   onToggleBusiness,
+  onMarkSubscription,
+  onMarkHidden,
+  onIncludeHiddenRow,
+  onMakeHiddenMerchantVisible,
   onToggleMappedCat,
   onCancel,
   onSave,
@@ -51,17 +59,35 @@ export function PreviewView({
   deletedIndicesSize: number;
   overrideCount: number;
   duplicatesRemoved: number;
+  autoHiddenCount: number;
+  autoHiddenRows: AutoHiddenRow[];
   expandedMappedCats: Set<string>;
   businessEnabled: boolean;
   onAppendFiles: (files: File[]) => void;
   onCategoryChange: (idx: number, newKey: string) => void;
   onDelete: (idx: number) => void;
   onToggleBusiness: (idx: number) => void;
+  onMarkSubscription: (idx: number) => void;
+  onMarkHidden: (idx: number, applyToFile: boolean) => void;
+  onIncludeHiddenRow: (idx: number) => void;
+  onMakeHiddenMerchantVisible: (idx: number) => void;
   onToggleMappedCat: (key: string) => void;
   onCancel: () => void;
   onSave: () => void;
 }) {
   const appendInputRef = useRef<HTMLInputElement>(null);
+  // Pending "hide this business" confirmation — when set, the RTL modal asks
+  // whether to also drop the merchant's other rows in this same file.
+  const [hideConfirm, setHideConfirm] = useState<TxWithIdx | null>(null);
+  const [showAutoHidden, setShowAutoHidden] = useState(false);
+  const requestHide = (tx: TxWithIdx) => setHideConfirm(tx);
+  const sameMerchantCount = hideConfirm
+    ? effectiveTx.filter(
+        (t) =>
+          t._idx !== hideConfirm._idx &&
+          getMerchantKey(t.description || "") === getMerchantKey(hideConfirm.description || "")
+      ).length
+    : 0;
   const bankHint = doc.bankHint || "לא זוהה";
   const bankIcon = getBankIcon(bankHint);
   const allMapped = toReview.length === 0;
@@ -164,11 +190,24 @@ export function PreviewView({
       {/* ── Compact info strip: warnings + dedup + reconciliation ── */}
       {(doc.warnings.length > 0 ||
         duplicatesRemoved > 0 ||
+        autoHiddenCount > 0 ||
         (doc.reconciliation && doc.reconciliation.severity !== "skipped")) && (
         <div
           className="flex flex-wrap items-start gap-2 rounded-xl px-4 py-2 text-[11px] font-bold"
           style={{ background: "#FFFFFF", color: "#5a6b52" }}
         >
+          {autoHiddenCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowAutoHidden(true)}
+              className="flex items-center gap-1 rounded-full px-2 py-1 transition hover:bg-red-50"
+              style={{ color: "#DC2626" }}
+              title="הצג עסקאות שהוסתרו אוטומטית"
+            >
+              <span className="material-symbols-outlined text-[13px]">visibility_off</span>
+              {autoHiddenCount} עסקאות הוסתרו אוטומטית (עסקים מוסתרים)
+            </button>
+          )}
           {duplicatesRemoved > 0 && (
             <span className="flex items-center gap-1">
               <span className="material-symbols-outlined text-[13px]">merge</span>
@@ -213,6 +252,8 @@ export function PreviewView({
           onCategoryChange={onCategoryChange}
           onDelete={onDelete}
           onToggleBusiness={onToggleBusiness}
+          onMarkSubscription={onMarkSubscription}
+          onRequestHide={requestHide}
         />
       )}
 
@@ -226,6 +267,8 @@ export function PreviewView({
           onCategoryChange={onCategoryChange}
           onDelete={onDelete}
           onToggleBusiness={onToggleBusiness}
+          onMarkSubscription={onMarkSubscription}
+          onRequestHide={requestHide}
         />
       )}
 
@@ -236,6 +279,363 @@ export function PreviewView({
         onCancel={onCancel}
         onSave={onSave}
       />
+
+      {hideConfirm && (
+        <HideMerchantModal
+          tx={hideConfirm}
+          sameMerchantCount={sameMerchantCount}
+          onClose={() => setHideConfirm(null)}
+          onConfirm={(applyToFile) => {
+            onMarkHidden(hideConfirm._idx, applyToFile);
+            setHideConfirm(null);
+          }}
+        />
+      )}
+
+      {showAutoHidden && (
+        <AutoHiddenTransactionsModal
+          rows={autoHiddenRows}
+          onClose={() => setShowAutoHidden(false)}
+          onIncludeRow={(idx) => {
+            onIncludeHiddenRow(idx);
+            if (autoHiddenRows.length <= 1) setShowAutoHidden(false);
+          }}
+          onMakeMerchantVisible={(idx) => {
+            onMakeHiddenMerchantVisible(idx);
+            if (autoHiddenRows.length <= 1) setShowAutoHidden(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* Per-row quick actions: mark as subscription, hide this business.
+   Shared by both the "לבדיקה" and "מופה" rows. */
+function RowActions({
+  tx,
+  onMarkSubscription,
+  onRequestHide,
+}: {
+  tx: TxWithIdx;
+  onMarkSubscription: (idx: number) => void;
+  onRequestHide: (tx: TxWithIdx) => void;
+}) {
+  return (
+    <div className="flex items-center justify-center gap-1">
+      <button
+        onClick={() => onMarkSubscription(tx._idx)}
+        title="סמן כמנוי — ייכנס למסלול המנויים הרגיל"
+        className="flex h-7 w-7 items-center justify-center rounded-md border transition-all hover:bg-verdant-bg"
+        style={{ borderColor: "#E5E7EB", color: "#7C3AED" }}
+      >
+        <span className="material-symbols-outlined text-[15px]">autorenew</span>
+      </button>
+      <button
+        onClick={() => onRequestHide(tx)}
+        title="סמן כעסק להסתרה — לא ייכלל בתזרים"
+        className="flex h-7 w-7 items-center justify-center rounded-md border transition-all hover:bg-red-50"
+        style={{ borderColor: "#E5E7EB", color: "#DC2626" }}
+      >
+        <span className="material-symbols-outlined text-[15px]">visibility_off</span>
+      </button>
+    </div>
+  );
+}
+
+/* ─────────── HIDE-MERCHANT CONFIRM MODAL (RTL) ─────────── */
+
+function HideMerchantModal({
+  tx,
+  sameMerchantCount,
+  onClose,
+  onConfirm,
+}: {
+  tx: TxWithIdx;
+  sameMerchantCount: number;
+  onClose: () => void;
+  onConfirm: (applyToFile: boolean) => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(10,25,41,0.55)" }}
+      onClick={onClose}
+      dir="rtl"
+      role="presentation"
+    >
+      <div
+        className="w-full max-w-md overflow-hidden rounded-2xl text-right"
+        style={{ background: "#FFFFFF", boxShadow: "0 24px 60px rgba(10,25,41,0.22)" }}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="הסתרת בית עסק"
+        dir="rtl"
+      >
+        <div className="flex items-start gap-3 border-b px-5 py-4" style={{ borderColor: "#FAFAF7" }}>
+          <span
+            className="material-symbols-outlined mt-0.5 text-[22px]"
+            style={{ color: "#DC2626" }}
+          >
+            visibility_off
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-extrabold text-verdant-ink">הסתרת בית עסק</h2>
+            <div className="mt-1 truncate text-[12px] font-bold text-verdant-muted">
+              {tx.description}
+            </div>
+          </div>
+        </div>
+
+        <div className="px-5 py-4 text-[13px] font-bold text-verdant-ink">
+          בית העסק הזה יוסתר גם מהעלאות עתידיות.
+          {sameMerchantCount > 0 ? (
+            <span>
+              {" "}
+              נמצאו עוד {sameMerchantCount} עסקאות של אותו בית עסק בקובץ הזה. להחיל גם עליהן?
+            </span>
+          ) : (
+            <span> איך להחיל זאת על הקובץ הנוכחי?</span>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-2 px-5 pb-5">
+          <button
+            type="button"
+            onClick={() => onConfirm(true)}
+            className="flex items-center justify-between rounded-xl px-4 py-3 text-[13px] font-extrabold text-white transition hover:opacity-95"
+            style={{ background: "#DC2626" }}
+          >
+            <span>
+              {sameMerchantCount > 0
+                ? `החל על כל העסקאות בקובץ (${sameMerchantCount + 1})`
+                : "הסתר מהקובץ ומעתיד"}
+            </span>
+            <span className="material-symbols-outlined text-[18px]">done_all</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onConfirm(false)}
+            className="flex items-center justify-between rounded-xl border px-4 py-3 text-[13px] font-extrabold transition hover:bg-verdant-bg"
+            style={{ borderColor: "#E5E7EB", color: "#374151" }}
+          >
+            <span>רק העסקה הזו (השאר רק לעתיד)</span>
+            <span className="material-symbols-outlined text-[18px]">filter_1</span>
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-1 rounded-xl px-4 py-2 text-[12px] font-bold text-verdant-muted transition hover:bg-verdant-bg"
+          >
+            ביטול
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────── AUTO-HIDDEN TRANSACTIONS MODAL (RTL) ─────────── */
+
+function AutoHiddenTransactionsModal({
+  rows,
+  onClose,
+  onIncludeRow,
+  onMakeMerchantVisible,
+}: {
+  rows: AutoHiddenRow[];
+  onClose: () => void;
+  onIncludeRow: (idx: number) => void;
+  onMakeMerchantVisible: (idx: number) => void;
+}) {
+  const total = rows.reduce((sum, row) => sum + row.amount, 0);
+  const [confirmAction, setConfirmAction] = useState<{
+    type: "include-row" | "make-visible";
+    row: AutoHiddenRow;
+  } | null>(null);
+
+  const confirmTitle =
+    confirmAction?.type === "include-row"
+      ? "להכניס את העסקה לתזרים?"
+      : "להפסיק להסתיר את בית העסק עבורך?";
+  const confirmIcon = confirmAction?.type === "include-row" ? "undo" : "visibility";
+  const confirmColor = confirmAction?.type === "include-row" ? "#2C7A5A" : "#DC2626";
+  const confirmBody =
+    confirmAction?.type === "include-row"
+      ? "העסקה הספציפית הזאת תחזור לתצוגה המקדימה ותישמר בתזרים אם תאשר את הקובץ. ההגדרה שבית העסק מוסתר לא תשתנה, ולכן עסקאות עתידיות של אותו בית עסק עדיין יוסתרו אוטומטית."
+      : "בית העסק יסומן כלא מוסתר עבור הלקוח הזה. כל העסקאות שלו בקובץ הנוכחי יחזרו לתצוגה המקדימה, ובהעלאות עתידיות הוא לא יוסתר עבור הלקוח הזה גם אם הוא נשאר מוסתר בקטלוג המערכתי.";
+
+  const applyConfirmAction = () => {
+    if (!confirmAction) return;
+    if (confirmAction.type === "include-row") onIncludeRow(confirmAction.row.idx);
+    else onMakeMerchantVisible(confirmAction.row.idx);
+    setConfirmAction(null);
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(10,25,41,0.55)" }}
+      onClick={onClose}
+      dir="rtl"
+      role="presentation"
+    >
+      <div
+        className="flex max-h-[86vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl text-right"
+        style={{ background: "#FFFFFF", boxShadow: "0 24px 60px rgba(10,25,41,0.22)" }}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="עסקאות שהוסתרו אוטומטית"
+        dir="rtl"
+      >
+        <div className="flex items-start justify-between gap-4 border-b px-5 py-4" style={{ borderColor: "#FAFAF7" }}>
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="material-symbols-outlined mt-0.5 text-[22px]" style={{ color: "#DC2626" }}>
+              visibility_off
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-base font-extrabold text-verdant-ink">עסקאות שהוסתרו אוטומטית</h2>
+              <div className="mt-1 text-[12px] font-bold text-verdant-muted">
+                {rows.length} עסקאות · סה״כ {fmtILS(Math.abs(total), { signed: false })}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-verdant-muted transition hover:bg-verdant-bg"
+            title="סגור"
+          >
+            <span className="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+
+        <div className="overflow-y-auto px-5 py-3">
+          {rows.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-verdant-line p-4 text-[13px] font-bold text-verdant-muted">
+              אין עסקאות מוסתרות להצגה.
+            </div>
+          ) : (
+            <div className="divide-y divide-verdant-line overflow-hidden rounded-xl border border-verdant-line">
+              {rows.map((row) => (
+                <div
+                  key={row.idx}
+                  className="grid grid-cols-[92px_minmax(0,1fr)_110px_auto] items-center gap-3 bg-white px-3 py-2 text-[12px]"
+                >
+                  <div className="tabular font-bold text-verdant-muted" dir="ltr">
+                    {row.date}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate font-extrabold text-verdant-ink">{row.description}</div>
+                    <div className="text-[10px] font-bold text-verdant-muted">
+                      ההחרגה כאן לא משנה את קטלוג ברירת המחדל
+                    </div>
+                  </div>
+                  <div
+                    className="tabular text-left font-extrabold"
+                    style={{ color: row.amount > 0 ? "#DC2626" : "#2C7A5A" }}
+                  >
+                    <MoneyText className="text-xs font-extrabold">
+                      {row.amount > 0 ? "-" : "+"}
+                      {fmtILS(Math.abs(row.amount))}
+                    </MoneyText>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setConfirmAction({ type: "include-row", row })}
+                      className="rounded-lg border px-2 py-1.5 text-[11px] font-extrabold transition hover:bg-verdant-bg"
+                      style={{ borderColor: "#E5E7EB", color: "#2C7A5A" }}
+                      title="הכנס רק את העסקה הזאת לתזרים"
+                    >
+                      הכנס שורה
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmAction({ type: "make-visible", row })}
+                      className="rounded-lg border px-2 py-1.5 text-[11px] font-extrabold transition hover:bg-red-50"
+                      style={{ borderColor: "#FCA5A5", color: "#DC2626" }}
+                      title="בית העסק לא מוסתר עבור הלקוח הזה"
+                    >
+                      לא מוסתר עבורי
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {confirmAction && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          style={{ background: "rgba(10,25,41,0.45)" }}
+          onClick={() => setConfirmAction(null)}
+          dir="rtl"
+          role="presentation"
+        >
+          <div
+            className="w-full max-w-md overflow-hidden rounded-2xl bg-white text-right"
+            style={{ boxShadow: "0 24px 60px rgba(10,25,41,0.22)" }}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={confirmTitle}
+            dir="rtl"
+          >
+            <div className="flex items-start gap-3 border-b px-5 py-4" style={{ borderColor: "#FAFAF7" }}>
+              <span className="material-symbols-outlined mt-0.5 text-[22px]" style={{ color: confirmColor }}>
+                {confirmIcon}
+              </span>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base font-extrabold text-verdant-ink">{confirmTitle}</h3>
+                <div className="mt-1 truncate text-[12px] font-bold text-verdant-muted">
+                  {confirmAction.row.description}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 px-5 py-4 text-[13px] font-bold leading-6 text-verdant-ink">
+              <p>{confirmBody}</p>
+              <div className="flex items-center justify-between rounded-xl bg-verdant-bg px-3 py-2">
+                <span className="tabular text-[12px] text-verdant-muted" dir="ltr">
+                  {confirmAction.row.date}
+                </span>
+                <MoneyText className="text-xs font-extrabold">
+                  {confirmAction.row.amount > 0 ? "-" : "+"}
+                  {fmtILS(Math.abs(confirmAction.row.amount))}
+                </MoneyText>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 px-5 pb-5">
+              <button
+                type="button"
+                onClick={applyConfirmAction}
+                className="flex items-center justify-between rounded-xl px-4 py-3 text-[13px] font-extrabold text-white transition hover:opacity-95"
+                style={{ background: confirmColor }}
+              >
+                <span>
+                  {confirmAction.type === "include-row"
+                    ? "כן, הכנס את העסקה"
+                    : "כן, בית העסק לא מוסתר עבורי"}
+                </span>
+                <span className="material-symbols-outlined text-[18px]">check</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmAction(null)}
+                className="rounded-xl px-4 py-2 text-[12px] font-bold text-verdant-muted transition hover:bg-verdant-bg"
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -248,12 +648,16 @@ function ReviewZone({
   onCategoryChange,
   onDelete,
   onToggleBusiness,
+  onMarkSubscription,
+  onRequestHide,
 }: {
   rows: TxWithIdx[];
   businessEnabled: boolean;
   onCategoryChange: (idx: number, key: string) => void;
   onDelete: (idx: number) => void;
   onToggleBusiness: (idx: number) => void;
+  onMarkSubscription: (idx: number) => void;
+  onRequestHide: (tx: TxWithIdx) => void;
 }) {
   return (
     <div
@@ -265,7 +669,7 @@ function ReviewZone({
       }}
     >
       <div
-        className="flex items-center justify-between border-b px-5 py-3"
+        className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 md:px-5"
         style={{ borderColor: "#FAFAF7" }}
       >
         <div className="flex items-center gap-2">
@@ -283,7 +687,27 @@ function ReviewZone({
           בחר קטגוריה · המערכת תלמד
         </span>
       </div>
-      <div className="overflow-x-auto">
+      <div className="divide-y md:hidden" style={{ borderColor: "#FAFAF7" }}>
+        {rows.map((t) => (
+          <MobileTransactionRow
+            key={t._idx}
+            tx={t}
+            businessEnabled={businessEnabled}
+            searchDescription
+            categoryStyle={{
+              borderColor: "#fcd9a8",
+              background: "rgba(217,119,6,0.08)",
+              color: "#2C7A5A",
+            }}
+            onCategoryChange={onCategoryChange}
+            onDelete={onDelete}
+            onToggleBusiness={onToggleBusiness}
+            onMarkSubscription={onMarkSubscription}
+            onRequestHide={onRequestHide}
+          />
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
           <tbody>
             {rows.map((t) => (
@@ -294,6 +718,8 @@ function ReviewZone({
                 onCategoryChange={onCategoryChange}
                 onDelete={onDelete}
                 onToggleBusiness={onToggleBusiness}
+                onMarkSubscription={onMarkSubscription}
+                onRequestHide={onRequestHide}
               />
             ))}
           </tbody>
@@ -309,12 +735,16 @@ function ReviewRow({
   onCategoryChange,
   onDelete,
   onToggleBusiness,
+  onMarkSubscription,
+  onRequestHide,
 }: {
   tx: TxWithIdx;
   businessEnabled: boolean;
   onCategoryChange: (idx: number, key: string) => void;
   onDelete: (idx: number) => void;
   onToggleBusiness: (idx: number) => void;
+  onMarkSubscription: (idx: number) => void;
+  onRequestHide: (tx: TxWithIdx) => void;
 }) {
   const isBiz = tx.scope === "business";
   return (
@@ -390,6 +820,13 @@ function ReviewRow({
           {fmtILS(Math.abs(tx.amount))}
         </MoneyText>
       </td>
+      <td className="px-2 py-1.5">
+        <RowActions
+          tx={tx}
+          onMarkSubscription={onMarkSubscription}
+          onRequestHide={onRequestHide}
+        />
+      </td>
       <td className="w-10 px-3 py-2 text-center">
         <button
           onClick={() => onDelete(tx._idx)}
@@ -416,6 +853,8 @@ function MappedZone({
   onCategoryChange,
   onDelete,
   onToggleBusiness,
+  onMarkSubscription,
+  onRequestHide,
 }: {
   mappedCount: number;
   mappedGroups: Record<string, TxWithIdx[]>;
@@ -425,6 +864,8 @@ function MappedZone({
   onCategoryChange: (idx: number, key: string) => void;
   onDelete: (idx: number) => void;
   onToggleBusiness: (idx: number) => void;
+  onMarkSubscription: (idx: number) => void;
+  onRequestHide: (tx: TxWithIdx) => void;
 }) {
   const sortedGroups = Object.entries(mappedGroups).sort((a, b) => {
     const totalA = a[1].reduce((s, t) => s + Math.abs(t.amount), 0);
@@ -442,7 +883,7 @@ function MappedZone({
       }}
     >
       <div
-        className="flex items-center justify-between border-b px-5 py-3"
+        className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 md:px-5"
         style={{ borderColor: "#FAFAF7" }}
       >
         <div className="flex items-center gap-2">
@@ -467,12 +908,12 @@ function MappedZone({
             <div key={catKey}>
               <button
                 onClick={() => onToggle(catKey)}
-                className="flex w-full items-center justify-between px-5 py-3 text-right transition-colors hover:bg-verdant-bg/30"
+                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-right transition-colors hover:bg-verdant-bg/30 md:px-5"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 items-center gap-3">
                   <div className="h-2 w-2 rounded-full" style={{ background: "#2C7A5A" }} />
                   <span
-                    className="text-sm font-extrabold text-verdant-ink"
+                    className="truncate text-sm font-extrabold text-verdant-ink"
                     style={{ fontFamily: "inherit" }}
                   >
                     {catLabel}
@@ -484,7 +925,7 @@ function MappedZone({
                     {txs.length}
                   </span>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex shrink-0 items-center gap-3">
                   <span className="tabular text-sm font-extrabold text-verdant-ink">
                     {fmtILS(total)}
                   </span>
@@ -498,7 +939,21 @@ function MappedZone({
               </button>
               {isExpanded && (
                 <div className="border-t" style={{ borderColor: "#FAFAF7" }}>
-                  <table className="w-full text-sm">
+                  <div className="divide-y md:hidden" style={{ borderColor: "#FAFAF7" }}>
+                    {txs.map((t) => (
+                      <MobileTransactionRow
+                        key={t._idx}
+                        tx={t}
+                        businessEnabled={businessEnabled}
+                        onCategoryChange={onCategoryChange}
+                        onDelete={onDelete}
+                        onToggleBusiness={onToggleBusiness}
+                        onMarkSubscription={onMarkSubscription}
+                        onRequestHide={onRequestHide}
+                      />
+                    ))}
+                  </div>
+                  <table className="hidden w-full text-sm md:table">
                     <tbody>
                       {txs.map((t) => (
                         <MappedRow
@@ -508,6 +963,8 @@ function MappedZone({
                           onCategoryChange={onCategoryChange}
                           onDelete={onDelete}
                           onToggleBusiness={onToggleBusiness}
+                          onMarkSubscription={onMarkSubscription}
+                          onRequestHide={onRequestHide}
                         />
                       ))}
                     </tbody>
@@ -522,18 +979,136 @@ function MappedZone({
   );
 }
 
+function MobileTransactionRow({
+  tx,
+  businessEnabled,
+  searchDescription = false,
+  categoryStyle = { borderColor: "#E5E7EB", background: "#FFFFFF", color: "#2C7A5A" },
+  onCategoryChange,
+  onDelete,
+  onToggleBusiness,
+  onMarkSubscription,
+  onRequestHide,
+}: {
+  tx: TxWithIdx;
+  businessEnabled: boolean;
+  searchDescription?: boolean;
+  categoryStyle?: React.CSSProperties;
+  onCategoryChange: (idx: number, key: string) => void;
+  onDelete: (idx: number) => void;
+  onToggleBusiness: (idx: number) => void;
+  onMarkSubscription: (idx: number) => void;
+  onRequestHide: (tx: TxWithIdx) => void;
+}) {
+  const isBiz = tx.scope === "business";
+  const description = searchDescription ? (
+    <a
+      href={`https://www.google.com/search?q=${encodeURIComponent(tx.description + " ישראל")}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex min-w-0 items-center gap-1 hover:text-verdant-emerald hover:underline"
+      title="חפש בגוגל כדי לזהות את בית העסק"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <span className="truncate">{tx.description}</span>
+      <span
+        className="material-symbols-outlined shrink-0 text-[12px]"
+        style={{ color: "#B45309" }}
+      >
+        open_in_new
+      </span>
+    </a>
+  ) : (
+    <span className="truncate">{tx.description}</span>
+  );
+
+  return (
+    <div className="bg-white px-4 py-3">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="min-w-0 text-sm font-extrabold text-verdant-ink">{description}</div>
+          <div className="tabular mt-1 text-[11px] font-bold text-verdant-muted" dir="ltr">
+            {tx.date}
+          </div>
+        </div>
+        <MoneyText
+          className="tabular shrink-0 text-left text-sm font-extrabold"
+          style={{ color: tx.amount > 0 ? "#DC2626" : "#2C7A5A" }}
+        >
+          {tx.amount > 0 ? "-" : "+"}
+          {fmtILS(Math.abs(tx.amount))}
+        </MoneyText>
+      </div>
+
+      <select
+        value={tx.category}
+        onChange={(e) => onCategoryChange(tx._idx, e.target.value)}
+        className="w-full cursor-pointer rounded-lg border px-3 py-2 text-[12px] font-bold outline-none transition-all focus:ring-2 focus:ring-verdant-accent/30"
+        style={categoryStyle}
+      >
+        {groupOptionsByParent(CAT_OPTIONS).map((group) => (
+          <optgroup key={group.parent.key} label={group.parent.label}>
+            {group.options.map((o) => (
+              <option key={o.key} value={o.key}>
+                {o.label}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          {businessEnabled && (
+            <button
+              onClick={() => onToggleBusiness(tx._idx)}
+              title={isBiz ? "עסקי — לחץ להחזרה לפרטי" : "סמן כהוצאה עסקית"}
+              className="rounded-lg border px-3 py-2 text-[11px] font-extrabold transition-all"
+              style={
+                isBiz
+                  ? { borderColor: "#2C7A5A", background: "#FAFAF7", color: "#2C7A5A" }
+                  : { borderColor: "#e5e7eb", background: "#FFFFFF", color: "#9ca3af" }
+              }
+            >
+              {isBiz ? "עסקי" : "פרטי"}
+            </button>
+          )}
+          <RowActions
+            tx={tx}
+            onMarkSubscription={onMarkSubscription}
+            onRequestHide={onRequestHide}
+          />
+        </div>
+        <button
+          onClick={() => onDelete(tx._idx)}
+          className="flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:bg-red-50"
+          title="מחק"
+        >
+          <span className="material-symbols-outlined text-[16px]" style={{ color: "#DC2626" }}>
+            delete_outline
+          </span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function MappedRow({
   tx,
   businessEnabled,
   onCategoryChange,
   onDelete,
   onToggleBusiness,
+  onMarkSubscription,
+  onRequestHide,
 }: {
   tx: TxWithIdx;
   businessEnabled: boolean;
   onCategoryChange: (idx: number, key: string) => void;
   onDelete: (idx: number) => void;
   onToggleBusiness: (idx: number) => void;
+  onMarkSubscription: (idx: number) => void;
+  onRequestHide: (tx: TxWithIdx) => void;
 }) {
   const isBiz = tx.scope === "business";
   return (
@@ -589,6 +1164,13 @@ function MappedRow({
           {tx.amount > 0 ? "-" : "+"}
           {fmtILS(Math.abs(tx.amount))}
         </MoneyText>
+      </td>
+      <td className="px-2 py-1.5">
+        <RowActions
+          tx={tx}
+          onMarkSubscription={onMarkSubscription}
+          onRequestHide={onRequestHide}
+        />
       </td>
       <td className="w-10 px-3 py-2 text-center">
         <button

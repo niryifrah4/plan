@@ -1176,35 +1176,39 @@ function QueueSection({
       style={{ background: "#FFFFFF", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
     >
       <div
-        className="flex items-center gap-3 px-5 py-3"
+        className="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:px-5"
         style={{ background: bg, borderRight: "4px solid " + color }}
       >
-        <span className="material-symbols-outlined text-[20px]" style={{ color }}>
-          {icon}
-        </span>
-        <div className="flex-1">
-          <div className="text-sm font-extrabold" style={{ color, fontFamily: "inherit" }}>
-            {title}
+        <div className="flex min-w-0 items-start gap-3 md:flex-1 md:items-center">
+          <span className="material-symbols-outlined shrink-0 text-[20px]" style={{ color }}>
+            {icon}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-extrabold" style={{ color, fontFamily: "inherit" }}>
+              {title}
+            </div>
+            <div className="text-[10px] font-bold leading-5 text-verdant-muted">{subtitle}</div>
           </div>
-          <div className="text-[10px] font-bold text-verdant-muted">{subtitle}</div>
         </div>
-        {showMerchantModalButton && (
-          <button
-            onClick={() => onOpenMerchantModal(groups[0]?.merchantKey || "")}
-            disabled={groups.length === 0}
-            title="מיפוי לפי שם עסק — מחיל קטגוריה על כל העסקאות עם אותו שם"
-            className="rounded-lg border px-3 py-2 text-[10px] font-extrabold transition-all hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ borderColor: "#E5E7EB", background: "#FFFFFF", color: "#2C7A5A" }}
+        <div className="flex flex-wrap items-center gap-2 md:shrink-0 md:justify-end">
+          {showMerchantModalButton && (
+            <button
+              onClick={() => onOpenMerchantModal(groups[0]?.merchantKey || "")}
+              disabled={groups.length === 0}
+              title="מיפוי לפי שם עסק — מחיל קטגוריה על כל העסקאות עם אותו שם"
+              className="rounded-lg border px-3 py-2 text-[10px] font-extrabold transition-all hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ borderColor: "#E5E7EB", background: "#FFFFFF", color: "#2C7A5A" }}
+            >
+              מיפוי לפי שם
+            </button>
+          )}
+          <span
+            className="rounded-md px-2.5 py-1 text-[11px] font-extrabold"
+            style={{ background: color + "1a", color }}
           >
-            מיפוי לפי שם
-          </button>
-        )}
-        <span
-          className="rounded-md px-2.5 py-1 text-[11px] font-extrabold"
-          style={{ background: color + "1a", color }}
-        >
-          {groups.length} קבוצות · {groups.reduce((s, g) => s + g.count, 0)} תנועות
-        </span>
+            {groups.length} קבוצות · {groups.reduce((s, g) => s + g.count, 0)} תנועות
+          </span>
+        </div>
       </div>
       <div className="divide-y" style={{ borderColor: "#FAFAF7" }}>
         {groups.map((g) => (
@@ -1262,6 +1266,11 @@ function QueueRow({
   // Group is "business" if any tx in it is currently scoped business
   const isBusiness = group.txIndices.some((i) => transactions[i]?.scope === "business");
   const txIndices = group.txIndices.slice(0, 25);
+  const currentCategoryLabel =
+    CAT_OPTIONS.find((c) => c.key === group.currentCategory)?.label ||
+    transactions[group.txIndices[0]]?.categoryLabel ||
+    group.currentCategory;
+  const showAiSuggestion = group.reason === "low-confidence" && currentCategoryLabel;
   return (
     <div
       className="transition-all"
@@ -1297,6 +1306,12 @@ function QueueRow({
                 <>
                   <span style={{ color: "#9CA3AF" }}>·</span>
                   <span>ביטחון {Math.round(group.avgConfidence * 100)}%</span>
+                </>
+              )}
+              {showAiSuggestion && (
+                <>
+                  <span style={{ color: "#9CA3AF" }}>·</span>
+                  <span style={{ color: "#B45309" }}>הצעת AI: {currentCategoryLabel}</span>
                 </>
               )}
               {group.sourceFiles.length > 0 && (
@@ -1420,6 +1435,9 @@ function QueueRow({
                 {group.count} תנועות · {fmtILS(group.totalAmount)}
               </span>
               {group.avgConfidence != null && <span>ביטחון {Math.round(group.avgConfidence * 100)}%</span>}
+              {showAiSuggestion && (
+                <span style={{ color: "#B45309" }}>הצעת AI: {currentCategoryLabel}</span>
+              )}
             </div>
             {group.sourceFiles.length > 0 && (
               <div className="flex items-center gap-1 text-[10px] font-bold text-verdant-muted">

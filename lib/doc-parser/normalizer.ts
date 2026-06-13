@@ -48,6 +48,100 @@ const SUPPLIER_GROUPS: [string, string[]][] = [
   // ── Utilities ──
   ["חברת חשמל", ["חב' חשמל", "iec", "israel electric", "חשמל ישראל"]],
   ["בזק", ["bezeq", "bezeq international", "בזק בינלאומי"]],
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Branch/spelling aliases for the Israeli-merchant seed (categories live
+  // in the DB `merchant_category_votes`). These only collapse a messy
+  // description like "טיב טעם רעננה" → canonical "טיב טעם" so the DB rule
+  // keyed on the canonical can fire. Identity normalization only — NOT a
+  // category list.
+  // ── Supermarkets ──
+  ["טיב טעם", ["טיב-טעם", "tiv taam"]],
+  ["יינות ביתן", ["יינות-ביתן"]],
+  ["מגה בעיר", ["מגה ב.עיר"]],
+  ["קרפור", ["carrefour", "קרפור סיטי", "היפר קרפור", "קרפור מרקט", "קרפור אונליין"]],
+  ["מחסני השוק", ["מחסני-השוק"]],
+  ["חצי חינם", ["חצי-חינם"]],
+  ["נתיב החסד", ["נתיב-החסד"]],
+  ["סיטי מרקט", ["city market"]],
+  ["am pm", ["am:pm", "ampm", "א.מ פ.מ"]],
+  ["קופיקס", ["cofix", "קופיקס מרקט"]],
+  // ── Pharmacy / health ──
+  ["ניו פארם", ["new pharm", "new-pharm", "ניופארם"]],
+  ["גוד פארם", ["good pharm", "גוד-פארם"]],
+  ["מאוחדת", ["שירותי בריאות מאוחדת", "קופת חולים מאוחדת"]],
+  ["לאומית", ["לאומית שירותי בריאות", "קופת חולים לאומית"]],
+  ["אופטיקנה", ["optikana"]],
+  // ── Fuel / transport ──
+  ["טן", ["ten דלק", "תחנת טן"]],
+  ["פנגו", ["pango"]],
+  ["סלופארק", ["cellopark", "סלו פארק"]],
+  ["רב קב", ["rav kav", "רב-קו", "רב קו", "ravkav"]],
+  ["רכבת ישראל", ["israel railways", "rakevet"]],
+  ["גט", ["gett", "get taxi", "גט טקסי"]],
+  ["יאנגו", ["yango"]],
+  ["מוביט", ["moovit"]],
+  // ── Telecom ──
+  ["פרטנר", ["partner", "partner tv", "פרטנר tv"]],
+  ["סלקום", ["cellcom", "סלקום tv", "cellcom tv"]],
+  ["פלאפון", ["pelephone"]],
+  ["הוט", ["hot mobile", "הוט מובייל"]],
+  ["יס", ["yesdbs", "yes dbs"]],
+  ["גולן טלקום", ["golan telecom"]],
+  ["רמי לוי תקשורת", ["rami levy communications"]],
+  ["מי אביבים", ["מי-אביבים"]],
+  // ── Cafes / restaurants / delivery ──
+  ["קפה קפה", ["cafe cafe", "קפה-קפה"]],
+  ["קפה גרג", ["greg", "גרג", "cafe greg"]],
+  ["קפה ג'ו", ["cafe joe", "קפה גו"]],
+  ["רולדין", ["roladin"]],
+  ["בורגר קינג", ["burger king"]],
+  ["בורגראנץ'", ["burgeranch", "בורגר ראנץ'", "בורגרראנץ"]],
+  ["דומינוס", ["domino's", "dominos", "דומינו'ס"]],
+  ["פיצה האט", ["pizza hut"]],
+  ["וולט", ["wolt"]],
+  ["תן ביס", ["10bis", "tenbis", "תן-ביס", "10 bis"]],
+  ["מקס ברנר", ["max brenner"]],
+  ["לחם ארז", ["lehem erez"]],
+  // ── Fashion / retail / electronics ──
+  ["קסטרו", ["castro"]],
+  ["רנואר", ["renuar", "twentyfourseven", "24/7"]],
+  ["גולף", ["golf & co", "golf and co", "גולף אנד קו"]],
+  ["אמריקן איגל", ["american eagle"]],
+  ["פול אנד בר", ["pull & bear", "pull and bear"]],
+  ["ברשקה", ["bershka"]],
+  ["מנגו", ["mango"]],
+  ["טרמינל איקס", ["terminalx", "terminal x", "טרמינל x"]],
+  ["דלתא", ["delta israel"]],
+  ["נייקי", ["nike"]],
+  ["אדידס", ["adidas"]],
+  ["שיין", ["shein"]],
+  ["עלי אקספרס", ["aliexpress", "ali express"]],
+  ["איקאה", ["ikea"]],
+  ["הום סנטר", ["home center"]],
+  ["אייס", ["ace hardware"]],
+  ["מקס סטוק", ["max stock", "maxstock"]],
+  ["המשביר", ["המשביר לצרכן", "hamashbir"]],
+  ["ksp", ["ק.ס.פ"]],
+  ["באג", ["bug"]],
+  ["איוורי", ["ivory"]],
+  ["מחסני חשמל", ["מחסני-חשמל", "payngo", "פיינגו"]],
+  ["שקם אלקטריק", ["shekem electric", "שקם-אלקטריק"]],
+  ["סטימצקי", ["steimatzky"]],
+  ["צומת ספרים", ["tsomet sfarim"]],
+  // ── Investment houses / provident & mutual funds (appear as "קניה/X/אינטרנט") ──
+  ["אלטשולר שחם", ["altshuler", "אלטשולר", "altshuler shaham"]],
+  ["ילין לפידות", ["yelin lapidot", "ילין-לפידות", "yelin"]],
+  ["מיטב", ["meitav", "מיטב דש", "מיטב טרייד", "meitav dash"]],
+  ["פסגות", ["psagot"]],
+  ["אנליסט", ["analyst בית השקעות", "אנליסט בית השקעות"]],
+  ["מור גמל", ["מור בית השקעות", "מור קופות", "מור פנסיה", "מור גמל", "מור תיקים"]],
+  // ── Leisure / fitness / cinema ──
+  ["הולמס פלייס", ["holmes place"]],
+  ["גו אקטיב", ["go active", "goactive"]],
+  ["סינמה סיטי", ["cinema city"]],
+  ["יס פלאנט", ["yes planet"]],
+  ["רב חן", ["rav hen", "rav-hen"]],
 ];
 
 /**

@@ -49,16 +49,42 @@ export async function GET() {
   const rows = (households || []) as Row[];
   const visible = rows.filter((h) => {
     const linked = h.client_users?.[0]?.count ?? 0;
-    // Hide orphaned self-signups (zero linked users — the human who
-    // triggered the signup no longer exists).
     if (h.signup_source === "self_signup" && linked === 0) return false;
     return true;
   });
 
-  // Strip the count helper before returning so the client doesn't see it.
+  const householdIds = visible.map((h) => h.id);
+
+  // Fetch net worth and doc counts in parallel.
+  const [netWorthRes, docHistoryRes] = await Promise.all([
+    sb.from("v_net_worth").select("household_id, net_worth").in("household_id", householdIds),
+    sb
+      .from("client_state")
+      .select("household_id, state_value")
+      .eq("state_key", "doc_history")
+      .in("household_id", householdIds),
+  ]);
+
+  const netWorthMap = Object.fromEntries(
+    (netWorthRes.data ?? []).map((r) => [r.household_id, r.net_worth as number])
+  );
+  type DocEntry = { filename: string; uploadedAt: string; bankHint?: string };
+  const docDataMap = Object.fromEntries(
+    (docHistoryRes.data ?? []).map((r) => {
+      const arr = Array.isArray(r.state_value) ? (r.state_value as DocEntry[]) : [];
+      return [r.household_id, arr];
+    })
+  );
+
   const cleaned = visible.map(({ client_users, ...rest }) => {
     void client_users;
-    return rest;
+    const docs = docDataMap[rest.id] ?? [];
+    return {
+      ...rest,
+      net_worth: netWorthMap[rest.id] ?? null,
+      docs_uploaded: docs.length,
+      docs_list: docs.map((d: DocEntry) => ({ filename: d.filename, uploadedAt: d.uploadedAt, bankHint: d.bankHint ?? null })),
+    };
   });
 
   return NextResponse.json({ households: cleaned });

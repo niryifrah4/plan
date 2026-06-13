@@ -14,6 +14,7 @@ import { extractBalances, reconcile } from "./reconciliation";
 import { looksLikeCalStatement, parseCalTransactions } from "./cal-pdf-parser";
 import { looksLikeMaxStatement, parseMaxTransactions } from "./max-pdf-parser";
 import { looksLikeAmexStatement, parseAmexTransactions } from "./amex-pdf-parser";
+import { looksLikeYahavStatement, parseYahavTransactions } from "./yahav-pdf-parser";
 import type { ParsedDocument, ParsedTransaction } from "./types";
 
 /**
@@ -98,6 +99,12 @@ export async function parsePDF(buffer: Buffer, filename: string): Promise<Parsed
   // American Express Israel statements use ordinary dates with sector columns.
   if (transactions.length === 0 && looksLikeAmexStatement(text)) {
     transactions = parseAmexTransactions(lines);
+  }
+
+  // Bank Yahav עו"ש statements glue the numeric columns together in plain text,
+  // so they need positional (coordinate-based) extraction from the buffer.
+  if (transactions.length === 0 && looksLikeYahavStatement(text)) {
+    transactions = await parseYahavTransactions(buffer);
   }
 
   for (const line of transactions.length > 0 ? [] : lines) {

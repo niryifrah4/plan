@@ -47,6 +47,7 @@ interface Client {
   joined: string;
   docsUploaded: number;
   docsTotal: number;
+  docsList: { filename: string; uploadedAt: string; bankHint: string | null }[];
   monthlyRevenue: number;
   riskProfile: string;
   convertedFromLead?: string;
@@ -193,6 +194,10 @@ export default function CrmPage() {
     setMounted(true);
   }, []);
   const [leads, setLeads, leadsSaving] = usePersistedState<Lead[]>("verdant:leads", INITIAL_LEADS);
+  // Auto-switch to clients tab when there are no leads.
+  useEffect(() => {
+    if (leads.length === 0) setTab("clients");
+  }, [leads.length]);
   const [clients, setClients, clientsSaving] = usePersistedState<Client[]>(
     "verdant:clients",
     INITIAL_CLIENTS
@@ -231,6 +236,8 @@ export default function CrmPage() {
 
   // Toast notification (config messages stay 6s, others 3s)
   const [toast, setToast] = useState<string | null>(null);
+  const [btnTooltip, setBtnTooltip] = useState<{ label: string; x: number; y: number } | null>(null);
+  const [clientsLoading, setClientsLoading] = useState(true);
   useEffect(() => {
     if (toast) {
       const duration = toast.includes("⚙️") ? 6000 : 3000;
@@ -515,6 +522,7 @@ export default function CrmPage() {
       return `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
     };
     const fetchClients = async () => {
+      setClientsLoading(true);
       try {
         const res = await fetch("/api/crm/clients");
         const data = (await res.json()) as {
@@ -524,6 +532,9 @@ export default function CrmPage() {
             members_count: number;
             stage: string;
             created_at: string;
+            net_worth: number | null;
+            docs_uploaded: number;
+            docs_list: { filename: string; uploadedAt: string; bankHint: string | null }[];
           }>;
         };
         if (!Array.isArray(data.households)) return;
@@ -532,19 +543,22 @@ export default function CrmPage() {
           family: h.family_name || "משפחה",
           step: h.stage === "onboarding" ? 0 : 3,
           totalSteps: 3,
-          netWorth: 0,
+          netWorth: h.net_worth ?? 0,
           trend: "—",
           members: h.members_count || 1,
           joined: monthStr(h.created_at),
-          docsUploaded: 0,
+          docsUploaded: h.docs_uploaded ?? 0,
           docsTotal: 10,
           monthlyRevenue: 0,
           riskProfile: "—",
+          docsList: h.docs_list ?? [],
           householdId: h.id,
         }));
         setClients(rows);
       } catch {
         /* silent: network errors don't blank out the current list */
+      } finally {
+        setClientsLoading(false);
       }
     };
     window.addEventListener("verdant:clients:refetch", fetchClients);
@@ -702,6 +716,505 @@ export default function CrmPage() {
             tone={conversionRate >= 20 ? "emerald" : conversionRate >= 10 ? "amber" : "red"}
           />
         </section>
+
+
+        {/* ═══════ Tab Switcher ═══════ */}
+        <section className="mb-8">
+        <div className="v-divider mb-0 flex items-center gap-0 border-b">
+          {[
+            { key: "leads" as CrmTab, label: "מתעניינים", icon: "person_search" },
+            { key: "clients" as CrmTab, label: "לקוחות פעילים", icon: "folder_shared" },
+          ].map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`flex items-center gap-2 border-b-2 px-6 py-3.5 text-sm font-bold transition-colors ${
+                tab === t.key
+                  ? "border-verdant-accent text-verdant-accent"
+                  : "border-transparent text-verdant-muted hover:text-verdant-ink"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[18px]">{t.icon}</span>
+              {t.label}
+              {mounted && (
+                <span
+                  className="tabular rounded-full px-2 py-0.5 text-[10px] font-extrabold"
+                  style={{
+                    background: tab === t.key ? "#2C7A5A18" : "#FAFAF7",
+                    color: tab === t.key ? "#2C7A5A" : "#6B7280",
+                  }}
+                >
+                  {t.key === "leads" ? activeLeads.length : filteredClients.length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════════
+           TAB 1 — Leads (מתעניינים)
+           ═══════════════════════════════════════════════════════════════ */}
+        {tab === "leads" && (
+          <div className="v-card mt-0 overflow-hidden rounded-t-none border-t-0">
+            {/* Toolbar */}
+            <div
+              className="v-divider flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4"
+              style={{ background: "#FAFAF7" }}
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative">
+                  <span className="material-symbols-outlined pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[16px] text-verdant-muted">
+                    search
+                  </span>
+                  <input
+                    className="inp !w-[200px] !py-1.5 !pr-8 text-xs"
+                    placeholder="חיפוש שם, טלפון, אימייל..."
+                    value={searchLeads}
+                    onChange={(e) => setSearchLeads(e.target.value)}
+                  />
+                  {searchLeads && (
+                    <button
+                      onClick={() => setSearchLeads("")}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 text-verdant-muted hover:text-verdant-ink"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">close</span>
+                    </button>
+                  )}
+                </div>
+                <select
+                  className="inp !w-auto !min-w-[140px] !py-1.5 text-xs"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value as LeadStatus | "all")}
+                >
+                  <option value="all">כל הסטטוסים</option>
+                  {(["new", "in_progress", "not_relevant"] as LeadStatus[]).map((k) => (
+                    <option key={k} value={k}>
+                      {STATUS_META[k].label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => setShowNewLead(true)}
+                  className="btn-botanical flex items-center gap-1.5 px-4 py-1.5 text-xs"
+                >
+                  <span className="material-symbols-outlined text-[14px]">add</span>
+                  מתעניין חדש
+                </button>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-verdant-muted">
+                  Lead Pipeline
+                </div>
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr
+                    className="v-divider border-b text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted"
+                    style={{ background: "#FAFAF7" }}
+                  >
+                    <th className="w-[1%] px-5 py-3 text-right" />
+                    <th className="px-4 py-3 text-right">שם מלא</th>
+                    <th className="px-4 py-3 text-right">טלפון</th>
+                    <th className="px-4 py-3 text-right">מקור</th>
+                    <th className="px-4 py-3 text-right">סטטוס</th>
+                    <th className="px-4 py-3 text-right">תאריך יצירה</th>
+                    <th className="px-4 py-3 text-right">פולואו-אפ אחרון</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeLeads.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="py-16 text-center text-sm text-verdant-muted">
+                        <span className="material-symbols-outlined mb-2 block text-[36px] opacity-25">
+                          inbox
+                        </span>
+                        {debouncedLeadQ ? "לא נמצאו תוצאות" : "אין מתעניינים בסטטוס זה"}
+                      </td>
+                    </tr>
+                  )}
+                  {activeLeads.map((lead) => {
+                    const sm = STATUS_META[lead.status];
+                    const lastFU =
+                      lead.followUps.length > 0 ? lead.followUps[lead.followUps.length - 1] : null;
+                    return (
+                      <tr
+                        key={lead.id}
+                        onClick={() => openDrawer(lead)}
+                        className="v-divider group cursor-pointer border-b transition-colors hover:bg-[#FAFAF7]"
+                      >
+                        <td className="px-5 py-3.5">
+                          <span
+                            className="material-symbols-outlined text-[16px] opacity-0 transition-opacity group-hover:opacity-60"
+                            style={{ color: sm.color }}
+                          >
+                            {sm.icon}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3.5 text-right font-extrabold text-verdant-ink">
+                          {lead.name}
+                        </td>
+                        <td
+                          className="tabular px-4 py-3.5 text-right font-bold text-verdant-muted"
+                          dir="ltr"
+                        >
+                          {lead.phone}
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          <span
+                            className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-extrabold"
+                            style={{
+                              background: `${SOURCE_META[lead.source]?.color || "#6B7280"}14`,
+                              color: SOURCE_META[lead.source]?.color || "#6B7280",
+                            }}
+                          >
+                            <span className="material-symbols-outlined text-[13px]">
+                              {SOURCE_META[lead.source]?.icon || "link"}
+                            </span>
+                            {lead.source}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          <span
+                            className="inline-block rounded-full px-2.5 py-1 text-[10px] font-extrabold"
+                            style={{ background: sm.bg, color: sm.color }}
+                          >
+                            {sm.label}
+                          </span>
+                        </td>
+                        <td className="tabular whitespace-nowrap px-4 py-3.5 text-right font-bold text-verdant-muted">
+                          {fmtDate(lead.createdAt)}
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          {lastFU ? (
+                            <span
+                              className="block max-w-[220px] truncate text-right text-xs text-verdant-muted"
+                              title={lastFU.text}
+                            >
+                              {lastFU.text}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-verdant-muted/40">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pipeline summary bar */}
+            <div
+              className="v-divider flex flex-wrap items-center gap-6 border-t px-6 py-3"
+              style={{ background: "#FAFAF7" }}
+            >
+              {(["new", "in_progress", "not_relevant"] as LeadStatus[]).map((s) => {
+                const cnt = leads.filter((l) => l.status === s).length;
+                const sm = STATUS_META[s];
+                return (
+                  <div key={s} className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full" style={{ background: sm.color }} />
+                    <span className="text-[11px] font-bold text-verdant-muted">{sm.label}</span>
+                    <span
+                      className="tabular text-[11px] font-extrabold"
+                      style={{ color: sm.color }}
+                    >
+                      {cnt}
+                    </span>
+                  </div>
+                );
+              })}
+              <div className="mr-auto flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full" style={{ background: "#2C7A5A" }} />
+                <span className="text-[11px] font-bold text-verdant-muted">הומרו</span>
+                <span className="tabular text-[11px] font-extrabold" style={{ color: "#2C7A5A" }}>
+                  {leads.filter((l) => l.status === "converted").length}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════
+           TAB 2 — Clients (לקוחות)
+           ═══════════════════════════════════════════════════════════════ */}
+        {tab === "clients" && (
+          <div className="v-card mt-0 overflow-hidden rounded-t-none border-t-0">
+            {/* Toolbar */}
+            <div
+              className="v-divider flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4"
+              style={{ background: "#FAFAF7" }}
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative">
+                  <span className="material-symbols-outlined pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[16px] text-verdant-muted">
+                    search
+                  </span>
+                  <input
+                    className="inp !w-[200px] !py-1.5 !pr-8 text-xs"
+                    placeholder="חיפוש שם משפחה..."
+                    value={searchClients}
+                    onChange={(e) => setSearchClients(e.target.value)}
+                  />
+                  {searchClients && (
+                    <button
+                      onClick={() => setSearchClients("")}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 text-verdant-muted hover:text-verdant-ink"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">close</span>
+                    </button>
+                  )}
+                </div>
+                {mounted && (
+                  <span className="tabular text-xs font-bold text-verdant-muted">
+                    {filteredClients.length} תיקים פעילים
+                  </span>
+                )}
+                <InviteClientButton />
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-verdant-muted">
+                  Client Portfolio
+                </div>
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr
+                    className="v-divider border-b text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted"
+                    style={{ background: "#FAFAF7" }}
+                  >
+                    <th className="px-5 py-3 text-right">משפחה / שם</th>
+                    <th className="px-4 py-3 text-right">שלב</th>
+                    <th className="px-4 py-3 text-right">הון נקי</th>
+                    <th className="px-4 py-3 text-right">מגמה</th>
+                    <th className="px-4 py-3 text-right">פרופיל סיכון</th>
+                    <th className="px-4 py-3 text-right">מסמכים</th>
+                    <th className="px-4 py-3 text-right">הצטרפות</th>
+                    <th className="px-4 py-3 text-right">פעולות</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clientsLoading && (
+                    <>
+                      {[0, 1, 2].map((i) => (
+                        <tr key={i} className="v-divider border-b">
+                          {[1, 2, 3, 4, 5, 6, 7, 8].map((col) => (
+                            <td key={col} className="px-4 py-4">
+                              <div
+                                className="h-3 animate-pulse rounded-full"
+                                style={{
+                                  background: "#E5E7EB",
+                                  width: col === 1 ? "80px" : col === 8 ? "64px" : `${48 + (col * 11) % 40}px`,
+                                  marginRight: "auto",
+                                }}
+                              />
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </>
+                  )}
+                  {!clientsLoading && filteredClients.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="py-16 text-center text-sm text-verdant-muted">
+                        <span className="material-symbols-outlined mb-2 block text-[36px] opacity-25">
+                          folder_off
+                        </span>
+                        {debouncedClientQ ? "לא נמצאו תוצאות" : "אין לקוחות פעילים"}
+                      </td>
+                    </tr>
+                  )}
+                  {!clientsLoading && filteredClients.map((c) => {
+                    const docPct =
+                      c.docsTotal > 0 ? Math.round((c.docsUploaded / c.docsTotal) * 100) : 0;
+                    const stepLabel = c.step === 0 ? "חדש" : `שלב ${c.step}/${c.totalSteps}`;
+                    const stepColor =
+                      c.step === 0 ? "#D97706" : c.step >= c.totalSteps ? "#059669" : "#2C7A5A";
+                    return (
+                      <tr
+                        key={c.id}
+                        className="v-divider border-b transition-colors hover:bg-[#FFFFFF]"
+                      >
+                        <td className="px-5 py-3.5 text-right">
+                          <div className="font-extrabold text-verdant-ink">{c.family}</div>
+                          {c.convertedFromLead && (
+                            <div className="mt-0.5 flex items-center justify-end gap-1 text-[10px] font-bold text-verdant-emerald">
+                              <span className="material-symbols-outlined text-[12px]">
+                                swap_horiz
+                              </span>
+                              הומר מליד
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          <span
+                            className="rounded-full px-2.5 py-1 text-[10px] font-extrabold"
+                            style={{ background: `${stepColor}18`, color: stepColor }}
+                          >
+                            {stepLabel}
+                          </span>
+                        </td>
+                        <td className="tabular px-4 py-3.5 text-right font-bold text-verdant-ink">
+                          {c.netWorth > 0 ? fmtILS(c.netWorth) : "—"}
+                        </td>
+                        <td
+                          className="tabular px-4 py-3.5 text-right font-bold"
+                          style={{
+                            color: c.trend.startsWith("+")
+                              ? "#2C7A5A"
+                              : c.trend.startsWith("-")
+                                ? "#DC2626"
+                                : "#9ca3af",
+                          }}
+                        >
+                          {c.trend}
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          <span className="text-xs font-bold text-verdant-muted">
+                            {c.riskProfile}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          <div className="group relative flex items-center justify-end gap-2">
+                            <span className="tabular text-[10px] font-bold text-verdant-muted">
+                              {c.docsUploaded}/{c.docsTotal}
+                            </span>
+                            <div
+                              className="h-1.5 w-16 overflow-hidden rounded-full"
+                              style={{ background: "#E5E7EB" }}
+                            >
+                              <div
+                                className="h-full rounded-full"
+                                style={{
+                                  width: `${docPct}%`,
+                                  background: docPct === 100 ? "#059669" : "#D97706",
+                                }}
+                              />
+                            </div>
+                            {c.docsList.length > 0 && (
+                              <div
+                                className="pointer-events-none absolute bottom-full left-0 z-50 mb-2 hidden min-w-[220px] rounded-xl border border-black/5 p-3 shadow-lg group-hover:block"
+                                style={{ background: "#FAFAF7" }}
+                                dir="rtl"
+                              >
+                                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-verdant-muted">
+                                  מסמכים שהועלו
+                                </p>
+                                <ul className="space-y-1.5">
+                                  {c.docsList.map((d, idx) => (
+                                    <li key={idx} className="flex flex-col gap-0.5">
+                                      <span className="text-[11px] font-bold text-verdant-ink leading-tight">
+                                        {d.filename}
+                                      </span>
+                                      <span className="text-[10px] text-verdant-muted">
+                                        {d.bankHint && `${d.bankHint} · `}
+                                        {new Date(d.uploadedAt).toLocaleDateString("he-IL", {
+                                          day: "numeric",
+                                          month: "short",
+                                          year: "numeric",
+                                        })}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5 text-right font-bold text-verdant-muted">
+                          {c.joined}
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {/* שאלון אפיון */}
+                            <a
+                              href={
+                                c.householdId
+                                  ? `/api/crm/impersonate/enter?household_id=${encodeURIComponent(c.householdId)}&next=${encodeURIComponent("/onboarding")}`
+                                  : "#"
+                              }
+                              onClick={(e) => {
+                                if (c.householdId) {
+                                  setRouteLoadingLabel("פותח שאלון...");
+                                  return;
+                                }
+                                e.preventDefault();
+                                setToast("❌ רשומה ישנה ללא מזהה לקוח — רענן את הדף ונסה שוב");
+                              }}
+                              onMouseEnter={(e) => {
+                                const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                setBtnTooltip({ label: "שאלון אפיון", x: r.left + r.width / 2, y: r.top - 8 });
+                              }}
+                              onMouseLeave={() => setBtnTooltip(null)}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border transition-all hover:-translate-y-0.5 hover:shadow-soft active:scale-95"
+                              style={{ borderColor: "#E5E7EB", color: "#6B7280", background: "#FFFFFF" }}
+                            >
+                              <span className="material-symbols-outlined text-[16px]">assignment</span>
+                            </a>
+                            {/* כניסה לתיק */}
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                // 2026-05-28 — the legacy `?hh=` fallback was
+                                // REMOVED. It did not set the impersonation
+                                // cookie, so the layout fell back to whatever
+                                // cookie was already there → wrong client
+                                // loaded ("click yifrah, get beser"). If a
+                                // row has no householdId now, it's a stale
+                                // local entry — refuse the click + tell user
+                                // to reload, never silently load the wrong
+                                // tenant.
+                                if (!c.householdId) {
+                                  setToast(
+                                    "❌ רשומה ישנה ללא מזהה לקוח — רענן את הדף ונסה שוב"
+                                  );
+                                  return;
+                                }
+                                setRouteLoadingLabel("פותח תיק...");
+                                // 2026-05-28 — switched from POST + JS
+                                // navigation to a single GET that does
+                                // cookie-set + 303 redirect atomically
+                                // on the server. The previous flow had a
+                                // race where the browser sometimes fired
+                                // the /dashboard navigation BEFORE
+                                // committing the Set-Cookie header from
+                                // the POST response, so the layout
+                                // resolved with the OLD cookie value
+                                // (yifrah's UUID lost, beser's UUID kept
+                                // → "click yifrah, see beser"). Atomic
+                                // GET eliminates the race entirely.
+                                window.location.href = `/api/crm/impersonate/enter?household_id=${encodeURIComponent(c.householdId)}`;
+                              }}
+                              onMouseEnter={(e) => {
+                                const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                setBtnTooltip({ label: "כניסה לתיק", x: r.left + r.width / 2, y: r.top - 8 });
+                              }}
+                              onMouseLeave={() => setBtnTooltip(null)}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg transition-all hover:-translate-y-0.5 hover:shadow-soft active:scale-95"
+                              style={{ background: "#2C7A5A", color: "#FFFFFF" }}
+                            >
+                              <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+        </section>
+      </div>
 
         {/* ═══════ Daily Tasks (Calendar removed 2026-04-28 per Nir) ═══════ */}
         <section className="mb-8">
@@ -994,443 +1507,15 @@ export default function CrmPage() {
           </div>
         </section>
 
-        {/* ═══════ Tab Switcher ═══════ */}
-        <div className="v-divider mb-0 flex items-center gap-0 border-b">
-          {[
-            { key: "leads" as CrmTab, label: "מתעניינים", icon: "person_search" },
-            { key: "clients" as CrmTab, label: "לקוחות פעילים", icon: "folder_shared" },
-          ].map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`flex items-center gap-2 border-b-2 px-6 py-3.5 text-sm font-bold transition-colors ${
-                tab === t.key
-                  ? "border-verdant-accent text-verdant-accent"
-                  : "border-transparent text-verdant-muted hover:text-verdant-ink"
-              }`}
-            >
-              <span className="material-symbols-outlined text-[18px]">{t.icon}</span>
-              {t.label}
-              {mounted && (
-                <span
-                  className="tabular rounded-full px-2 py-0.5 text-[10px] font-extrabold"
-                  style={{
-                    background: tab === t.key ? "#2C7A5A18" : "#FAFAF7",
-                    color: tab === t.key ? "#2C7A5A" : "#6B7280",
-                  }}
-                >
-                  {t.key === "leads" ? activeLeads.length : filteredClients.length}
-                </span>
-              )}
-            </button>
-          ))}
+      {/* Fixed tooltip — rendered outside all overflow containers */}
+      {btnTooltip && (
+        <div
+          className="pointer-events-none fixed z-[9999] -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-bold shadow-md"
+          style={{ background: "#1C2B22", color: "#FFFFFF", left: btnTooltip.x, top: btnTooltip.y }}
+        >
+          {btnTooltip.label}
         </div>
-
-        {/* ═══════════════════════════════════════════════════════════════
-           TAB 1 — Leads (מתעניינים)
-           ═══════════════════════════════════════════════════════════════ */}
-        {tab === "leads" && (
-          <div className="v-card mt-0 overflow-hidden rounded-t-none border-t-0">
-            {/* Toolbar */}
-            <div
-              className="v-divider flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4"
-              style={{ background: "#FAFAF7" }}
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative">
-                  <span className="material-symbols-outlined pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[16px] text-verdant-muted">
-                    search
-                  </span>
-                  <input
-                    className="inp !w-[200px] !py-1.5 !pr-8 text-xs"
-                    placeholder="חיפוש שם, טלפון, אימייל..."
-                    value={searchLeads}
-                    onChange={(e) => setSearchLeads(e.target.value)}
-                  />
-                  {searchLeads && (
-                    <button
-                      onClick={() => setSearchLeads("")}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 text-verdant-muted hover:text-verdant-ink"
-                    >
-                      <span className="material-symbols-outlined text-[14px]">close</span>
-                    </button>
-                  )}
-                </div>
-                <select
-                  className="inp !w-auto !min-w-[140px] !py-1.5 text-xs"
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value as LeadStatus | "all")}
-                >
-                  <option value="all">כל הסטטוסים</option>
-                  {(["new", "in_progress", "not_relevant"] as LeadStatus[]).map((k) => (
-                    <option key={k} value={k}>
-                      {STATUS_META[k].label}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={() => setShowNewLead(true)}
-                  className="btn-botanical flex items-center gap-1.5 px-4 py-1.5 text-xs"
-                >
-                  <span className="material-symbols-outlined text-[14px]">add</span>
-                  מתעניין חדש
-                </button>
-              </div>
-              <div className="text-right">
-                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-verdant-muted">
-                  Lead Pipeline
-                </div>
-              </div>
-            </div>
-
-            {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr
-                    className="v-divider border-b text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted"
-                    style={{ background: "#FAFAF7" }}
-                  >
-                    <th className="w-[1%] px-5 py-3 text-right" />
-                    <th className="px-4 py-3 text-right">שם מלא</th>
-                    <th className="px-4 py-3 text-right">טלפון</th>
-                    <th className="px-4 py-3 text-right">מקור</th>
-                    <th className="px-4 py-3 text-right">סטטוס</th>
-                    <th className="px-4 py-3 text-right">תאריך יצירה</th>
-                    <th className="px-4 py-3 text-right">פולואו-אפ אחרון</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activeLeads.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="py-16 text-center text-sm text-verdant-muted">
-                        <span className="material-symbols-outlined mb-2 block text-[36px] opacity-25">
-                          inbox
-                        </span>
-                        {debouncedLeadQ ? "לא נמצאו תוצאות" : "אין מתעניינים בסטטוס זה"}
-                      </td>
-                    </tr>
-                  )}
-                  {activeLeads.map((lead) => {
-                    const sm = STATUS_META[lead.status];
-                    const lastFU =
-                      lead.followUps.length > 0 ? lead.followUps[lead.followUps.length - 1] : null;
-                    return (
-                      <tr
-                        key={lead.id}
-                        onClick={() => openDrawer(lead)}
-                        className="v-divider group cursor-pointer border-b transition-colors hover:bg-[#FAFAF7]"
-                      >
-                        <td className="px-5 py-3.5">
-                          <span
-                            className="material-symbols-outlined text-[16px] opacity-0 transition-opacity group-hover:opacity-60"
-                            style={{ color: sm.color }}
-                          >
-                            {sm.icon}
-                          </span>
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3.5 text-right font-extrabold text-verdant-ink">
-                          {lead.name}
-                        </td>
-                        <td
-                          className="tabular px-4 py-3.5 text-right font-bold text-verdant-muted"
-                          dir="ltr"
-                        >
-                          {lead.phone}
-                        </td>
-                        <td className="px-4 py-3.5 text-right">
-                          <span
-                            className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-extrabold"
-                            style={{
-                              background: `${SOURCE_META[lead.source]?.color || "#6B7280"}14`,
-                              color: SOURCE_META[lead.source]?.color || "#6B7280",
-                            }}
-                          >
-                            <span className="material-symbols-outlined text-[13px]">
-                              {SOURCE_META[lead.source]?.icon || "link"}
-                            </span>
-                            {lead.source}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3.5 text-right">
-                          <span
-                            className="inline-block rounded-full px-2.5 py-1 text-[10px] font-extrabold"
-                            style={{ background: sm.bg, color: sm.color }}
-                          >
-                            {sm.label}
-                          </span>
-                        </td>
-                        <td className="tabular whitespace-nowrap px-4 py-3.5 text-right font-bold text-verdant-muted">
-                          {fmtDate(lead.createdAt)}
-                        </td>
-                        <td className="px-4 py-3.5 text-right">
-                          {lastFU ? (
-                            <span
-                              className="block max-w-[220px] truncate text-right text-xs text-verdant-muted"
-                              title={lastFU.text}
-                            >
-                              {lastFU.text}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-verdant-muted/40">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pipeline summary bar */}
-            <div
-              className="v-divider flex flex-wrap items-center gap-6 border-t px-6 py-3"
-              style={{ background: "#FAFAF7" }}
-            >
-              {(["new", "in_progress", "not_relevant"] as LeadStatus[]).map((s) => {
-                const cnt = leads.filter((l) => l.status === s).length;
-                const sm = STATUS_META[s];
-                return (
-                  <div key={s} className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full" style={{ background: sm.color }} />
-                    <span className="text-[11px] font-bold text-verdant-muted">{sm.label}</span>
-                    <span
-                      className="tabular text-[11px] font-extrabold"
-                      style={{ color: sm.color }}
-                    >
-                      {cnt}
-                    </span>
-                  </div>
-                );
-              })}
-              <div className="mr-auto flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full" style={{ background: "#2C7A5A" }} />
-                <span className="text-[11px] font-bold text-verdant-muted">הומרו</span>
-                <span className="tabular text-[11px] font-extrabold" style={{ color: "#2C7A5A" }}>
-                  {leads.filter((l) => l.status === "converted").length}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ═══════════════════════════════════════════════════════════════
-           TAB 2 — Clients (לקוחות)
-           ═══════════════════════════════════════════════════════════════ */}
-        {tab === "clients" && (
-          <div className="v-card mt-0 overflow-hidden rounded-t-none border-t-0">
-            {/* Toolbar */}
-            <div
-              className="v-divider flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4"
-              style={{ background: "#FAFAF7" }}
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative">
-                  <span className="material-symbols-outlined pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[16px] text-verdant-muted">
-                    search
-                  </span>
-                  <input
-                    className="inp !w-[200px] !py-1.5 !pr-8 text-xs"
-                    placeholder="חיפוש שם משפחה..."
-                    value={searchClients}
-                    onChange={(e) => setSearchClients(e.target.value)}
-                  />
-                  {searchClients && (
-                    <button
-                      onClick={() => setSearchClients("")}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 text-verdant-muted hover:text-verdant-ink"
-                    >
-                      <span className="material-symbols-outlined text-[14px]">close</span>
-                    </button>
-                  )}
-                </div>
-                {mounted && (
-                  <span className="tabular text-xs font-bold text-verdant-muted">
-                    {filteredClients.length} תיקים פעילים
-                  </span>
-                )}
-                <InviteClientButton />
-              </div>
-              <div className="text-right">
-                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-verdant-muted">
-                  Client Portfolio
-                </div>
-              </div>
-            </div>
-
-            {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr
-                    className="v-divider border-b text-[10px] font-bold uppercase tracking-[0.1em] text-verdant-muted"
-                    style={{ background: "#FAFAF7" }}
-                  >
-                    <th className="px-5 py-3 text-right">משפחה / שם</th>
-                    <th className="px-4 py-3 text-right">שלב</th>
-                    <th className="px-4 py-3 text-right">הון נקי</th>
-                    <th className="px-4 py-3 text-right">מגמה</th>
-                    <th className="px-4 py-3 text-right">פרופיל סיכון</th>
-                    <th className="px-4 py-3 text-right">מסמכים</th>
-                    <th className="px-4 py-3 text-right">הצטרפות</th>
-                    <th className="px-4 py-3 text-right">פעולות</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredClients.length === 0 && (
-                    <tr>
-                      <td colSpan={8} className="py-16 text-center text-sm text-verdant-muted">
-                        <span className="material-symbols-outlined mb-2 block text-[36px] opacity-25">
-                          folder_off
-                        </span>
-                        {debouncedClientQ ? "לא נמצאו תוצאות" : "אין לקוחות פעילים"}
-                      </td>
-                    </tr>
-                  )}
-                  {filteredClients.map((c) => {
-                    const docPct =
-                      c.docsTotal > 0 ? Math.round((c.docsUploaded / c.docsTotal) * 100) : 0;
-                    const stepLabel = c.step === 0 ? "חדש" : `שלב ${c.step}/${c.totalSteps}`;
-                    const stepColor =
-                      c.step === 0 ? "#D97706" : c.step >= c.totalSteps ? "#059669" : "#2C7A5A";
-                    return (
-                      <tr
-                        key={c.id}
-                        className="v-divider border-b transition-colors hover:bg-[#FFFFFF]"
-                      >
-                        <td className="px-5 py-3.5 text-right">
-                          <div className="font-extrabold text-verdant-ink">{c.family}</div>
-                          {c.convertedFromLead && (
-                            <div className="mt-0.5 flex items-center justify-end gap-1 text-[10px] font-bold text-verdant-emerald">
-                              <span className="material-symbols-outlined text-[12px]">
-                                swap_horiz
-                              </span>
-                              הומר מליד
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-4 py-3.5 text-right">
-                          <span
-                            className="rounded-full px-2.5 py-1 text-[10px] font-extrabold"
-                            style={{ background: `${stepColor}18`, color: stepColor }}
-                          >
-                            {stepLabel}
-                          </span>
-                        </td>
-                        <td className="tabular px-4 py-3.5 text-right font-bold text-verdant-ink">
-                          {c.netWorth > 0 ? fmtILS(c.netWorth) : "—"}
-                        </td>
-                        <td
-                          className="tabular px-4 py-3.5 text-right font-bold"
-                          style={{
-                            color: c.trend.startsWith("+")
-                              ? "#2C7A5A"
-                              : c.trend.startsWith("-")
-                                ? "#DC2626"
-                                : "#9ca3af",
-                          }}
-                        >
-                          {c.trend}
-                        </td>
-                        <td className="px-4 py-3.5 text-right">
-                          <span className="text-xs font-bold text-verdant-muted">
-                            {c.riskProfile}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3.5 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <span className="tabular text-[10px] font-bold text-verdant-muted">
-                              {c.docsUploaded}/{c.docsTotal}
-                            </span>
-                            <div
-                              className="h-1.5 w-16 overflow-hidden rounded-full"
-                              style={{ background: "#E5E7EB" }}
-                            >
-                              <div
-                                className="h-full rounded-full"
-                                style={{
-                                  width: `${docPct}%`,
-                                  background: docPct === 100 ? "#059669" : "#D97706",
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3.5 text-right font-bold text-verdant-muted">
-                          {c.joined}
-                        </td>
-                        <td className="px-4 py-3.5 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <a
-                              href={
-                                c.householdId
-                                  ? `/api/crm/impersonate/enter?household_id=${encodeURIComponent(c.householdId)}&next=${encodeURIComponent("/onboarding")}`
-                                  : "#"
-                              }
-                              onClick={(e) => {
-                                if (c.householdId) {
-                                  setRouteLoadingLabel("פותח שאלון...");
-                                  return;
-                                }
-                                e.preventDefault();
-                                setToast("❌ רשומה ישנה ללא מזהה לקוח — רענן את הדף ונסה שוב");
-                              }}
-                              className="whitespace-nowrap text-[11px] font-bold text-verdant-muted transition-colors hover:text-verdant-accent"
-                            >
-                              שאלון אפיון
-                            </a>
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                // 2026-05-28 — the legacy `?hh=` fallback was
-                                // REMOVED. It did not set the impersonation
-                                // cookie, so the layout fell back to whatever
-                                // cookie was already there → wrong client
-                                // loaded ("click yifrah, get beser"). If a
-                                // row has no householdId now, it's a stale
-                                // local entry — refuse the click + tell user
-                                // to reload, never silently load the wrong
-                                // tenant.
-                                if (!c.householdId) {
-                                  setToast(
-                                    "❌ רשומה ישנה ללא מזהה לקוח — רענן את הדף ונסה שוב"
-                                  );
-                                  return;
-                                }
-                                setRouteLoadingLabel("פותח תיק...");
-                                // 2026-05-28 — switched from POST + JS
-                                // navigation to a single GET that does
-                                // cookie-set + 303 redirect atomically
-                                // on the server. The previous flow had a
-                                // race where the browser sometimes fired
-                                // the /dashboard navigation BEFORE
-                                // committing the Set-Cookie header from
-                                // the POST response, so the layout
-                                // resolved with the OLD cookie value
-                                // (yifrah's UUID lost, beser's UUID kept
-                                // → "click yifrah, see beser"). Atomic
-                                // GET eliminates the race entirely.
-                                window.location.href = `/api/crm/impersonate/enter?household_id=${encodeURIComponent(c.householdId)}`;
-                              }}
-                              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-4 py-2 text-[11px] font-extrabold transition-all hover:shadow-soft active:scale-95"
-                              style={{ background: "#2C7A5A", color: "#FFFFFF" }}
-                            >
-                              כניסה לתיק
-                              <span className="material-symbols-outlined text-[14px]">
-                                arrow_back
-                              </span>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════
          SIDE DRAWER — Lead Follow-Up Panel (from right)
