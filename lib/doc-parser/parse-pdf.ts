@@ -11,6 +11,9 @@ import { cleanAmount, parseILDate } from "./number-utils";
 import { categorize } from "./categorizer";
 import { extractInstruments } from "./instruments";
 import { extractBalances, reconcile } from "./reconciliation";
+import { looksLikeCalStatement, parseCalTransactions } from "./cal-pdf-parser";
+import { looksLikeMaxStatement, parseMaxTransactions } from "./max-pdf-parser";
+import { looksLikeAmexStatement, parseAmexTransactions } from "./amex-pdf-parser";
 import type { ParsedDocument, ParsedTransaction } from "./types";
 
 /**
@@ -79,9 +82,25 @@ export async function parsePDF(buffer: Buffer, filename: string): Promise<Parsed
 
   // Strategy: look for lines that start with a date pattern
   const dateRegex = /^(\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{2,4})/;
-  const transactions: ParsedTransaction[] = [];
+  let transactions: ParsedTransaction[] = [];
 
-  for (const line of lines) {
+  // CAL/Diners "דף פירוט דיגיטלי" — RTL table rows extract with amounts first
+  // and a character-reversed date at the end; handled by a dedicated parser.
+  if (looksLikeCalStatement(text)) {
+    transactions = parseCalTransactions(lines);
+  }
+
+  // MAX monthly statements extract with normal dates and compact table rows.
+  if (transactions.length === 0 && looksLikeMaxStatement(text)) {
+    transactions = parseMaxTransactions(lines);
+  }
+
+  // American Express Israel statements use ordinary dates with sector columns.
+  if (transactions.length === 0 && looksLikeAmexStatement(text)) {
+    transactions = parseAmexTransactions(lines);
+  }
+
+  for (const line of transactions.length > 0 ? [] : lines) {
     const dateMatch = line.match(dateRegex);
     if (!dateMatch) continue;
 

@@ -184,14 +184,21 @@ function ExpandedDetails({
         <EmergencyCoverage bucket={bucket} onCoverageChange={onCoverageChange} />
       )}
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <KpiCell label="הפקדה חודשית" value={fmtILS(bucket.monthlyContribution)} />
+      <div
+        className="grid grid-cols-2 gap-px overflow-hidden rounded-xl md:grid-cols-4"
+        style={{ background: "#EEF0EC", border: "1px solid #E5E7EB" }}
+      >
+        <KpiCell
+          label="הפקדה חודשית"
+          value={fmtILS(bucket.monthlyContribution)}
+          muted={bucket.monthlyContribution === 0}
+        />
         <KpiCell
           label="נדרש בחודש"
           value={fmtILS(Math.round(proj.requiredMonthly))}
-          valueColor={requiredAboveCurrent ? "#DC2626" : "#2C7A5A"}
+          valueColor={requiredAboveCurrent ? "#B45309" : "#2C7A5A"}
         />
-        <KpiCell label="מכשיר" value={inst?.label || "—"} small />
+        <KpiCell label="מכשיר" value={inst?.label || "—"} small muted={!inst?.label} />
         <KpiCell
           label={
             proj.effectiveAnnualReturn === bucket.expectedAnnualReturn
@@ -247,18 +254,20 @@ function KpiCell({
   value,
   valueColor,
   small,
+  muted,
 }: {
   label: string;
   value: string;
   valueColor?: string;
   small?: boolean;
+  muted?: boolean;
 }) {
   return (
-    <div>
+    <div className="bg-white px-3 py-2.5">
       <div className="mb-1 text-[10px] font-bold text-verdant-muted">{label}</div>
       <div
         className={`font-extrabold tabular-nums ${small ? "text-[12px]" : "text-[14px]"}`}
-        style={{ color: valueColor || "#F4F5F0" }}
+        style={{ color: valueColor || (muted ? "#9CA3AF" : "var(--verdant-ink)") }}
       >
         {value}
       </div>

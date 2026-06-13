@@ -109,7 +109,10 @@ export const NAV_SECTIONS: NavGroup[] = [
   {
     id: "tools",
     label: null,
-    items: [{ id: "tools", label: "מחשבונים", href: "/tools", icon: "calculate" }],
+    items: [
+      { id: "tools", label: "מחשבונים", href: "/tools", icon: "calculate" },
+      { id: "settings", label: "הגדרות", href: "/settings", icon: "settings" },
+    ],
   },
 ];
 

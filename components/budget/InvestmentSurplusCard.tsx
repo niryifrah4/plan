@@ -21,12 +21,27 @@
  * answers the other half — the forward trajectory.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import { fmtILS } from "@/lib/format";
 import { buildForecast, type ForecastMonth } from "@/lib/cashflow-forecast";
 import { buildBudgetLines, totalBudget } from "@/lib/budget-store";
 import { getMonthlyNetIncome } from "@/lib/income";
+import { loadBuckets, saveBuckets, createBucket, pickColor } from "@/lib/buckets-store";
+import { AddGoalModal } from "@/app/(client)/goals/page-files/AddGoalModal";
+
+function getIcon(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes("רכב") || n.includes("מכונית")) return "directions_car";
+  if (n.includes("דירה") || n.includes("בית") || n.includes("משכנתא")) return "home";
+  if (n.includes("חופשה") || n.includes("טיול") || n.includes("טיסה")) return "flight";
+  if (n.includes("לימוד") || n.includes("השכלה") || n.includes("קורס")) return "school";
+  if (n.includes("חירום") || n.includes("רזרב")) return "shield";
+  if (n.includes("פנסי") || n.includes("גמלא")) return "elderly";
+  if (n.includes("ילד") || n.includes("תינוק")) return "child_care";
+  if (n.includes("חתונה") || n.includes("אירוע")) return "celebration";
+  return "savings";
+}
 
 interface Props {
   /** Optional override — pass live totals so the card stays in sync with
@@ -39,6 +54,23 @@ export function InvestmentSurplusCard({ currentIncome, currentExpenses }: Props)
   const [forecast, setForecast] = useState<ForecastMonth[]>([]);
   const [fallbackIncome, setFallbackIncome] = useState(0);
   const [fallbackExpenses, setFallbackExpenses] = useState(0);
+  const [showAddGoal, setShowAddGoal] = useState(false);
+  const [addedToast, setAddedToast] = useState<string | null>(null);
+
+  const handleAddGoal = useCallback((input: Parameters<typeof createBucket>[0]) => {
+    const bucket = createBucket({
+      ...input,
+      icon: getIcon(input.name),
+      color: input.color || pickColor(input.name + Date.now()),
+    });
+    if (input.scope) bucket.scope = input.scope;
+    const buckets = loadBuckets();
+    saveBuckets([...buckets, bucket]);
+    window.dispatchEvent(new Event("verdant:buckets:updated"));
+    setShowAddGoal(false);
+    setAddedToast(`"${input.name}" נוסף ליעדים`);
+    setTimeout(() => setAddedToast(null), 3000);
+  }, []);
 
   useEffect(() => {
     const refresh = () => {
@@ -117,17 +149,31 @@ export function InvestmentSurplusCard({ currentIncome, currentExpenses }: Props)
               : "אין עודף החודש — לפני השקעה, צריך לסגור פערים"}
           </h3>
         </div>
-        <Link
-          href="/goals"
-          className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all hover:opacity-90 shadow-sm"
-          style={{
-            background: positive ? "#2C7A5A" : "#92400E",
-            color: "#FFFFFF",
-          }}
-        >
-          לכוון ליעדים
-          <span className="material-symbols-outlined text-[14px] mr-0.5">arrow_back</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowAddGoal(true)}
+            className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all hover:opacity-90 shadow-sm"
+            style={{
+              background: positive ? "rgba(44,122,90,0.12)" : "rgba(146,64,14,0.12)",
+              color: positive ? "#2C7A5A" : "#92400E",
+              border: `1px solid ${positive ? "rgba(44,122,90,0.25)" : "rgba(146,64,14,0.25)"}`,
+            }}
+            title="הוסף יעד חדש"
+          >
+            <span className="material-symbols-outlined text-[14px]">add</span>
+          </button>
+          <Link
+            href="/goals"
+            className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all hover:opacity-90 shadow-sm"
+            style={{
+              background: positive ? "#2C7A5A" : "#92400E",
+              color: "#FFFFFF",
+            }}
+          >
+            יעדים
+            <span className="material-symbols-outlined text-[14px] mr-0.5">arrow_back</span>
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -206,6 +252,22 @@ export function InvestmentSurplusCard({ currentIncome, currentExpenses }: Props)
           מגדילה את הסכום עוד.
         </div>
       )}
+
+      {addedToast && (
+        <div
+          className="mt-3 rounded-lg px-3 py-2 text-[12px] font-bold flex items-center gap-2"
+          style={{ background: "#2C7A5A", color: "#FFFFFF" }}
+        >
+          <span className="material-symbols-outlined text-[16px]">check_circle</span>
+          {addedToast}
+        </div>
+      )}
+
+      <AddGoalModal
+        open={showAddGoal}
+        onClose={() => setShowAddGoal(false)}
+        onSave={handleAddGoal}
+      />
     </section>
   );
 }

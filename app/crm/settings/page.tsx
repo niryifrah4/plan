@@ -104,6 +104,22 @@ export default function SettingsPage() {
                 </div>
               </div>
             </Link>
+
+            <Link
+              href={{ pathname: "/crm/settings/parsers" }}
+              className="card-pad flex flex-col gap-3 hover:shadow-md transition-shadow group"
+              style={{ background: "#FFFFFF" }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-verdant-bg text-verdant-accent group-hover:bg-verdant-accent group-hover:text-white transition-colors">
+                  <span className="material-symbols-outlined">credit_card</span>
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-verdant-ink">מיפויי מנפיקים</h2>
+                  <p className="text-xs text-verdant-muted mt-0.5">מעקב parsers ובדיקת תדפיסים</p>
+                </div>
+              </div>
+            </Link>
           </div>
 
           <div className="card-pad max-w-xl" style={{ background: "#FFFFFF" }}>
@@ -156,4 +172,3 @@ export default function SettingsPage() {
     </main>
   );
 }
-

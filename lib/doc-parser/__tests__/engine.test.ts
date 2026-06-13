@@ -11,6 +11,8 @@ import { getMerchantKey, matchMerchantCategoryRule } from "../merchant-category-
 import { computeMerchantCategoryRulesFromVotes } from "../merchant-category-rules-core";
 import { detectRecurring } from "../recurring";
 import { analyzeBurnRate } from "../burn-rate";
+import { looksLikeMaxStatement, parseMaxTransactions } from "../max-pdf-parser";
+import { looksLikeAmexStatement, parseAmexTransactions } from "../amex-pdf-parser";
 import type { ParsedTransaction } from "../types";
 
 let passed = 0;
@@ -90,6 +92,43 @@ assert("ישראכרט", detectBank("ישראכרט בע״מ"), "ישראכרט"
 assert("כאל", detectBank("כאל - כרטיסי אשראי"), "כאל");
 assert("מקס", detectBank("מקס it"), "מקס");
 assert("unknown", detectBank("random text"), "לא זוהה");
+
+console.log("\n═══ 4b. MAX PDF Parser ═══");
+const maxSampleText = 'פירוט החיובים בחשבון\\nעסקות בארץ / בש"ח\\nMAX';
+const maxSampleRows = [
+  'עסקות בחו"ל / במטבע זר',
+  "04/07/257Disney Plus London44.90 ₪        44.90 ₪",
+  'סה"כ חיובים בתאריך  04/08/2574.90 ₪',
+  'עסקות בארץ / בש"ח',
+  "18/01/257SPEEDתשלומים2,388.00199.00תשלום 7 מתוך 12",
+  '06/07/257BITרגילה35.0035.00ILS 35.00',
+  "הועבר ל: קרן חזן.",
+  "29/07/257YANGO TAXIרגילה25.0025.00",
+  'סה"כ חיובים בתאריך  04/08/25259.00 ₪',
+];
+const maxTransactions = parseMaxTransactions(maxSampleRows);
+assert("MAX statement detection", looksLikeMaxStatement(maxSampleText), true);
+assert("MAX transaction count", maxTransactions.length, 4);
+assert("MAX foreign merchant", maxTransactions[0]?.description, "Disney Plus London");
+assert("MAX installment charge amount", maxTransactions[1]?.amount, 199);
+assert("MAX transfer recipient enrichment", maxTransactions[2]?.description, "BIT - קרן חזן");
+assert("MAX taxi category", maxTransactions[3]?.category, "transport");
+
+console.log("\n═══ 4c. American Express PDF Parser ═══");
+const amexSampleText = "לוגו אמריקן אקספרס\\nעסקות שחויבו / זוכו - בארץ";
+const amexSampleRows = [
+  "עסקות שחויבו / זוכו - בארץ",
+  "תאריך",
+  "01/07/25 לא הוצג רכישות שובר באתר המו שיווק ישיר 120.00 120.00",
+  "26/07/25 לא הוצג רכישות שובר באתר המו שיווק ישיר 29.00 29.00",
+  'סה"כ חיוב לתאריך 04/08/25149.00',
+];
+const amexTransactions = parseAmexTransactions(amexSampleRows);
+assert("AMEX statement detection", looksLikeAmexStatement(amexSampleText), true);
+assert("AMEX transaction count", amexTransactions.length, 2);
+assert("AMEX merchant strip sector", amexTransactions[0]?.description, "שובר באתר המו שיווק ישיר");
+assert("AMEX charge amount", amexTransactions[1]?.amount, 29);
+assert("AMEX marketing category", amexTransactions[0]?.category, "advertising_marketing");
 
 console.log("\n═══ 5. Auto-Categorization ═══");
 assert("שופרסל → מזון", categorize("שופרסל דיל סניף 123").key, "food");

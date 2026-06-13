@@ -251,12 +251,12 @@ export function matchSynonymScored(raw: string): SynonymMatch | null {
 // and a MAX file with "מפתח דיסקונט" column header isn't classified as Discount.
 const CREDIT_CARD_HINTS: [string, string[]][] = [
   ["ישראכרט", ["ישראכרט", "isracard", "ישרא כרט"]],
-  ["כאל", ["cal-online", "ויזה כאל", "visa cal", "כרטיסי אשראי לישראל", "כ.א.ל", "cal "]],
+  ["כאל", ["כאל", "cal-online", "ויזה כאל", "visa cal", "כרטיסי אשראי לישראל", "כ.א.ל", "cal "]],
   [
     "מקס",
-    ["-max", "max בהצדעה", "max-", "transaction-details_export_max", "leumi card", "לאומי קארד"],
+    ["מקס", "-max", "max it", "max בהצדעה", "max-", "transaction-details_export_max", "leumi card", "לאומי קארד"],
   ],
-  ["לאומי ויזה", ["ויזה בינלאומי", "לאומי לישראל", "לכרטיס ויזה"]],
+  ["לאומי ויזה", ["ויזה בינלאומי", "לכרטיס ויזה"]],
   ["אמריקן אקספרס", ["אמריקן", "amex", "american express", "אמקס"]],
   ["דיינרס", ["דיינרס", "diners"]],
 ];

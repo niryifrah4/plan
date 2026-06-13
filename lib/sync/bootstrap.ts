@@ -197,6 +197,11 @@ export async function hydrateAllFromRemote(lockedHouseholdId?: string | null): P
     import("@/lib/sync/blob-sync"),
   ]);
 
+  const [subOverrides, subCatalog] = await Promise.all([
+    import("@/lib/subscriptions/overrides-store"),
+    import("@/lib/subscriptions/catalog-store"),
+  ]);
+
   // הרץ במקביל — כל אחד עצמאי, כישלון אחד לא מפיל אחרים
   await merchantRules.migrateLocalMerchantCategoryRulesToRemote?.();
   await merchantRules.refreshMerchantCategoryRules?.(true);
@@ -218,6 +223,8 @@ export async function hydrateAllFromRemote(lockedHouseholdId?: string | null): P
     portfolio.hydratePortfolioFromRemote?.(),
     salary.hydrateSalaryFromRemote?.(),
     subscriptionsRadar.hydrateSubscriptionRadarExclusionsFromRemote?.(),
+    subOverrides.hydrateOverridesFromRemote?.(),
+    subCatalog.hydrateCatalogFromRemote?.(),
     hydrateSecurities(blobSync),
     specialEvents.hydrateSpecialEventsFromRemote?.(),
   ]);

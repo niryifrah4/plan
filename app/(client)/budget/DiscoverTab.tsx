@@ -32,6 +32,7 @@ import {
   type SubscriptionRadarExclusion,
   SUBSCRIPTIONS_RADAR_EXCLUSIONS_EVENT,
 } from "@/lib/subscriptions-radar-exclusions";
+import { setSubscriptionOverride } from "@/lib/subscriptions/overrides-store";
 import { scopedKey } from "@/lib/client-scope";
 import { CATEGORY_TO_BUDGET } from "@/lib/category-to-budget-map";
 import {
@@ -197,6 +198,10 @@ export function DiscoverTab() {
           onMarkNotSubscription={(sub) => {
             const updated = excludeSubscriptionRadarGroup(sub);
             setSubscriptionExclusions(updated);
+            // Also record the decision in the DB-backed overrides store so it
+            // syncs across devices, shows up in Settings → ניהול מנויים, and
+            // feeds the system-catalog learning signal.
+            setSubscriptionOverride(sub.description, "not_subscription");
             setToast("נשמר · לא יוצג שוב כ-subscription");
             setTimeout(() => setToast(null), 3200);
           }}

@@ -71,6 +71,7 @@ export function NumberEditModal({
       onKeyDown={(e) => {
         if (e.key === "Escape") {
           e.stopPropagation();
+          e.nativeEvent.stopImmediatePropagation();
           onClose();
         }
       }}
