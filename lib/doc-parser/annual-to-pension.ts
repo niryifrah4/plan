@@ -80,6 +80,25 @@ export function annualPolicyToFund(p: AnnualPolicy): PensionFund {
     mgmtFeeBalance: p.mgmtFeeBalance ?? 0,
     track: p.planName || p.productTypeLabel || "כללי",
     monthlyContrib: Math.round(p.monthlyContrib || 0),
+    openingDate: p.joinDate,
+    annualReportDetails: {
+      accountNumber: p.accountNumber,
+      customerName: p.customerName,
+      customerId: p.customerId,
+      employerName: p.employerName,
+      joinDate: p.joinDate,
+      reportDate: p.reportDate,
+      liquidityDate: p.liquidityDate,
+      status: p.status,
+      projectedPensionAmount: p.projectedPensionAmount,
+      retirementAge: p.retirementAge,
+      salaryBase: p.salaryBase,
+      annualDeposits: p.annualDeposits,
+      annualContributionsBreakdown: p.annualContributionsBreakdown,
+      projectedCoverages: p.projectedCoverages,
+      balanceMovements: p.balanceMovements,
+      investmentTracks: p.investmentTracks,
+    },
   };
 }
 
@@ -95,27 +114,52 @@ interface MergeResult {
  *
  * Strategy (in priority order):
  *   1. Exact id match (re-upload of same report)
- *   2. Same company + type + similar track name
- *   3. Same company + type (single fund of that type)
+ *   2. Same account number (different report period for the same account)
+ *   3. Account-number safety net: when the incoming policy HAS an account
+ *      number, never collapse it onto an existing fund that carries a
+ *      DIFFERENT account number — those are genuinely separate funds, even if
+ *      they share company + type + track. Only the company+type/track
+ *      fallbacks below apply, and only against funds with no account number.
+ *   4. Same company + type + similar track name
+ *   5. Same company + type (single fund of that type)
  */
 function findMatch(existing: PensionFund[], incoming: PensionFund): number {
   // 1. Exact id
   const idIdx = existing.findIndex((f) => f.id === incoming.id);
   if (idIdx >= 0) return idIdx;
 
-  // 2. Company + type + similar track
+  const incomingAcct = incoming.annualReportDetails?.accountNumber;
+
+  // 2. Same account number (e.g. annual vs quarterly report of one account)
+  if (incomingAcct) {
+    const acctIdx = existing.findIndex(
+      (f) => f.annualReportDetails?.accountNumber === incomingAcct
+    );
+    if (acctIdx >= 0) return acctIdx;
+  }
+
+  // Candidates for the fuzzy fallbacks. If the incoming policy has an account
+  // number, only consider existing funds that DON'T have a (different) account
+  // number — otherwise two distinct accounts of the same type would collapse.
   const sameCompanyType = existing
     .map((f, i) => ({ f, i }))
-    .filter(({ f }) => f.company === incoming.company && f.type === incoming.type);
+    .filter(
+      ({ f }) =>
+        f.company === incoming.company &&
+        f.type === incoming.type &&
+        (!incomingAcct || !f.annualReportDetails?.accountNumber)
+    );
 
-  if (sameCompanyType.length === 1) return sameCompanyType[0].i;
-
+  // 4. Company + type + similar track
   if (sameCompanyType.length > 1 && incoming.track) {
     const trackMatch = sameCompanyType.find(
       ({ f }) => f.track && (f.track.includes(incoming.track) || incoming.track.includes(f.track))
     );
     if (trackMatch) return trackMatch.i;
   }
+
+  // 5. Company + type (single fund of that type)
+  if (sameCompanyType.length === 1) return sameCompanyType[0].i;
 
   return -1;
 }
@@ -156,6 +200,8 @@ export function mergeAnnualIntoFunds(
       mgmtFeeDeposit: incoming.mgmtFeeDeposit || old.mgmtFeeDeposit,
       track: incoming.track || old.track,
       monthlyContrib: incoming.monthlyContrib || old.monthlyContrib,
+      openingDate: incoming.openingDate || old.openingDate,
+      annualReportDetails: incoming.annualReportDetails || old.annualReportDetails,
     };
 
     const isSame =

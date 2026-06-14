@@ -64,6 +64,12 @@ export interface PensionFund {
 
   /** תאריך פתיחה — YYYY-MM-DD (רלוונטי במיוחד לקרן השתלמות) */
   openingDate?: string;
+  /**
+   * מועד נזילות — YYYY-MM-DD. עדיפות עליונה: הזנה/דריסה ידנית של המשתמש.
+   * אם ריק — נופלים למועד הנזילות מהדוח (annualReportDetails.liquidityDate),
+   * ואם גם הוא ריק — מחשבים מ-openingDate + ותק.
+   */
+  liquidityDate?: string;
   /** האם העובד שכיר (6 שנים) או עצמאי (3 שנים) — לחישוב נזילות השתלמות */
   isEmployed?: boolean;
 
@@ -74,6 +80,61 @@ export interface PensionFund {
    * Default treated as "spouse_a" when undefined for back-compat.
    */
   owner?: "spouse_a" | "spouse_b" | "joint";
+
+  annualReportDetails?: {
+    accountNumber?: string;
+    customerName?: string;
+    customerId?: string;
+    employerName?: string;
+    joinDate?: string;
+    reportDate?: string;
+    /** מועד נזילות מתוך הדוח ("יתרת הכספים המיועדים למשיכה חד פעמית החל מ-") — YYYY-MM-DD */
+    liquidityDate?: string;
+    status?: "active" | "inactive" | "unknown";
+    projectedPensionAmount?: number;
+    retirementAge?: number;
+    salaryBase?: number;
+    annualDeposits?: number;
+    annualContributionsBreakdown?: {
+      employee?: number;
+      employer?: number;
+      severance?: number;
+      total?: number;
+    };
+    projectedCoverages?: {
+      disabilityPct?: number;
+      disabilityMonthly?: number;
+      disabilityContributionWaiver?: number;
+      spousePct?: number;
+      spouseMonthly?: number;
+      childPct?: number;
+      childMonthly?: number;
+      parentPct?: number;
+      parentMonthly?: number;
+      insuranceCostPctOfDeposits?: number;
+    };
+    balanceMovements?: {
+      openingBalance?: number;
+      deposits?: number;
+      transfersIn?: number;
+      transfersOut?: number;
+      investmentProfitLoss?: number;
+      managementFeesPaid?: number;
+      disabilityInsuranceCost?: number;
+      survivorsInsuranceCost?: number;
+      actuarialAdjustment?: number;
+      closingBalance?: number;
+    };
+    investmentTracks?: Array<{
+      name: string;
+      balance?: number;
+      annualReturnPct?: number;
+      return5yPct?: number;
+      investmentExpensePct?: number;
+      mgmtFeeDepositPct?: number;
+      mgmtFeeBalancePct?: number;
+    }>;
+  };
 }
 
 import { scopedKey } from "./client-scope";
@@ -97,6 +158,17 @@ const SYNC_CFG: SyncConfig<PensionFund, any> = {
     investment_track: f.track ?? null,
     employee_contribution: f.monthlyContrib ?? 0,
     start_date: f.openingDate || null,
+    member_name: f.annualReportDetails?.customerName || null,
+    policy_number: f.annualReportDetails?.accountNumber || null,
+    status:
+      f.annualReportDetails?.status === "inactive"
+        ? "frozen"
+        : f.annualReportDetails?.status === "active"
+          ? "active"
+          : "active",
+    annual_return_pct: f.annualReportDetails?.investmentTracks?.[0]?.annualReturnPct ?? null,
+    as_of_date: f.annualReportDetails?.reportDate || null,
+    disability_coverage_pct: f.annualReportDetails?.projectedCoverages?.disabilityPct ?? null,
     surance_raw_json: {
       id: f.id,
       subtype: f.subtype,
@@ -105,8 +177,10 @@ const SYNC_CFG: SyncConfig<PensionFund, any> = {
       insuranceCover: f.insuranceCover,
       registeredFundId: f.registeredFundId,
       isEmployed: f.isEmployed,
+      liquidityDate: f.liquidityDate,
+      annualReportDetails: f.annualReportDetails,
     },
-    source: "manual",
+    source: f.annualReportDetails ? "document" : "manual",
   }),
   fromRow: (r: any): PensionFund => {
     const raw = r.surance_raw_json || {};
@@ -126,28 +200,33 @@ const SYNC_CFG: SyncConfig<PensionFund, any> = {
       registeredFundId: raw.registeredFundId,
       openingDate: r.start_date || undefined,
       isEmployed: raw.isEmployed,
+      liquidityDate: raw.liquidityDate,
+      annualReportDetails: raw.annualReportDetails,
     };
   },
 };
 
+// Maps to the DB enum `pension_product_type`
+// ('pension_new','pension_old','bituach_managers','gemel','gemel_invest',
+//  'gemel_190','hishtalmut','kranot_pensia').
 function mapTypeToDb(t: PensionFund["type"]): string {
   switch (t) {
     case "pension":
-      return "pension";
+      return "pension_new";
     case "gemel":
       return "gemel";
     case "hishtalmut":
-      return "keren_hishtalmut";
+      return "hishtalmut";
     case "bituach":
-      return "bituach_menahalim";
+      return "bituach_managers";
     default:
-      return "pension";
+      return "pension_new";
   }
 }
 function mapTypeFromDb(t: string): PensionFund["type"] {
-  if (t === "gemel") return "gemel";
-  if (t === "keren_hishtalmut") return "hishtalmut";
-  if (t === "bituach_menahalim") return "bituach";
+  if (t === "gemel" || t === "gemel_invest" || t === "gemel_190") return "gemel";
+  if (t === "hishtalmut") return "hishtalmut";
+  if (t === "bituach_managers") return "bituach";
   return "pension";
 }
 

@@ -107,6 +107,10 @@ export function UnmappedQueueTab() {
   /** AI re-categorization state. */
   const [aiRunning, setAiRunning] = useState(false);
   const [aiResult, setAiResult] = useState<{ added: number; skipped: number } | null>(null);
+  const [aiBulkCompleted, setAiBulkCompleted] = useState(false);
+  const [aiSuggestionsByMerchant, setAiSuggestionsByMerchant] = useState<
+    Record<string, { category: string; categoryLabel: string; confidence: number }[]>
+  >({});
   /** When ON, hide non-business groups. Only meaningful when business scope is enabled. */
   const [filterBusinessOnly, setFilterBusinessOnly] = useState(false);
   /** Merchant-name category rules persisted across sessions. */
@@ -119,6 +123,11 @@ export function UnmappedQueueTab() {
 
   /** Interactive AI Categorizer modal state */
   const [interactiveModalGroup, setInteractiveModalGroup] = useState<MerchantGroup | null>(null);
+  const [aiPickedCategory, setAiPickedCategory] = useState<{
+    groupKey: string;
+    category: string;
+    nonce: number;
+  } | null>(null);
 
   useEffect(() => {
     setTransactions(loadTransactions());
@@ -648,6 +657,7 @@ export function UnmappedQueueTab() {
 
     if (candidates.length === 0) {
       setAiResult({ added: 0, skipped: 0 });
+      setAiBulkCompleted(true);
       return;
     }
 
@@ -676,6 +686,42 @@ export function UnmappedQueueTab() {
       const suggestions: AISuggestion[] = Array.isArray(data?.suggestions)
         ? data.suggestions
         : [];
+      const suggestionsByMerchant: Record<
+        string,
+        { category: string; categoryLabel: string; confidence: number }[]
+      > = {};
+      for (const s of suggestions) {
+        const tx = transactions[s.index];
+        if (!tx) continue;
+        const merchantKey = getMerchantKey(tx.description || "");
+        const existing = suggestionsByMerchant[merchantKey] ?? [];
+        const options = s.alternatives?.length
+          ? s.alternatives.map((alt) => ({
+              category: alt.category,
+              categoryLabel: alt.categoryLabel,
+              confidence: s.confidence,
+            }))
+          : [
+              {
+                category: s.category,
+                categoryLabel: s.categoryLabel,
+                confidence: s.confidence,
+              },
+            ];
+        for (const option of options) {
+          if (existing.some((item) => item.category === option.category)) continue;
+          existing.push({
+            category: option.category,
+            categoryLabel: option.categoryLabel,
+            confidence: option.confidence,
+          });
+        }
+        suggestionsByMerchant[merchantKey] = existing
+          .sort((a, b) => b.confidence - a.confidence)
+          .slice(0, 3);
+      }
+      setAiSuggestionsByMerchant(suggestionsByMerchant);
+      setAiBulkCompleted(true);
 
       // Apply confidently — only suggestions ≥ 0.6 — and skip ones that
       // don't actually move the category (waste a "correction" record).
@@ -731,8 +777,6 @@ export function UnmappedQueueTab() {
       setAiResult({ added: 0, skipped: 0 });
     } finally {
       setAiRunning(false);
-      // Clear the toast after 4 seconds
-      setTimeout(() => setAiResult(null), 4000);
     }
   }, [transactions, excludedSet, aiRunning]);
 
@@ -839,20 +883,32 @@ export function UnmappedQueueTab() {
     <div className="mx-auto max-w-5xl space-y-4" dir="rtl">
       {/* Action bar — AI button + hint + optional business filter */}
       <div id="unmapped-queue-ai" className="flex flex-wrap items-center gap-3 scroll-mt-24">
-        <button
-          onClick={handleAiRecategorize}
-          disabled={aiRunning || stats.groupCount === 0}
-          className="flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-[13px] font-extrabold text-white transition-all disabled:opacity-40"
-          style={{ background: "#7C3AED", minHeight: 44 }}
-        >
-          <span className="material-symbols-outlined text-[18px]">
-            {aiRunning ? "progress_activity" : "auto_awesome"}
+        {!aiBulkCompleted ? (
+          <>
+            <button
+              onClick={handleAiRecategorize}
+              disabled={aiRunning || stats.groupCount === 0}
+              className="flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-[13px] font-extrabold text-white transition-all disabled:opacity-40"
+              style={{ background: "#7C3AED", minHeight: 44 }}
+            >
+              <span className="material-symbols-outlined text-[18px]">
+                {aiRunning ? "progress_activity" : "auto_awesome"}
+              </span>
+              {aiRunning ? "מסווג עם AI..." : "סווג מחדש עם AI"}
+            </button>
+            <span className="text-[11px] text-verdant-muted">
+              Perplexity בודק את כל ה-{stats.groupCount} הקבוצות לפי הקטגוריות וההיסטוריה שלך
+            </span>
+          </>
+        ) : (
+          <span
+            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-extrabold"
+            style={{ background: "#7C3AED12", color: "#6D28D9" }}
+          >
+            <span className="material-symbols-outlined text-[17px]">auto_awesome</span>
+            הסיווג רץ. לחץ על אפשרויות AI בשורה כדי לראות ולאשר המלצות.
           </span>
-          {aiRunning ? "מסווג עם AI..." : "סווג מחדש עם AI"}
-        </button>
-        <span className="text-[11px] text-verdant-muted">
-          Perplexity בודק את כל ה-{stats.groupCount} הקבוצות לפי הקטגוריות וההיסטוריה שלך
-        </span>
+        )}
         <button
           type="button"
           onClick={() => setExcludedModalOpen(true)}
@@ -937,6 +993,7 @@ export function UnmappedQueueTab() {
           onExclude={handleExcludeMerchant}
           onOpenMerchantModal={openMerchantModal}
           onOpenInteractiveModal={(g) => setInteractiveModalGroup(g)}
+          aiPickedCategory={aiPickedCategory}
           showMerchantModalButton
           excludedMerchantKeys={excludedMerchantKeys}
         />
@@ -963,6 +1020,7 @@ export function UnmappedQueueTab() {
           onExclude={handleExcludeMerchant}
           onOpenMerchantModal={openMerchantModal}
           onOpenInteractiveModal={(g) => setInteractiveModalGroup(g)}
+          aiPickedCategory={aiPickedCategory}
           excludedMerchantKeys={excludedMerchantKeys}
         />
       )}
@@ -988,9 +1046,20 @@ export function UnmappedQueueTab() {
         displaySample={interactiveModalGroup?.displaySample || ""}
         txCount={interactiveModalGroup?.count || 0}
         totalAmount={interactiveModalGroup?.totalAmount || 0}
+        initialSuggestions={
+          interactiveModalGroup
+            ? aiSuggestionsByMerchant[interactiveModalGroup.merchantKey] ?? []
+            : []
+        }
         onClose={() => setInteractiveModalGroup(null)}
-        onMap={(cat) => {
-          if (interactiveModalGroup) handleMap(interactiveModalGroup, cat);
+        onSelect={(cat) => {
+          if (interactiveModalGroup) {
+            setAiPickedCategory({
+              groupKey: interactiveModalGroup.key,
+              category: cat,
+              nonce: Date.now(),
+            });
+          }
           setInteractiveModalGroup(null);
         }}
       />
@@ -1146,6 +1215,7 @@ function QueueSection({
   onExclude,
   onOpenMerchantModal,
   onOpenInteractiveModal,
+  aiPickedCategory,
   showMerchantModalButton,
   excludedMerchantKeys,
 }: {
@@ -1167,6 +1237,7 @@ function QueueSection({
   onExclude: (g: MerchantGroup) => void;
   onOpenMerchantModal: (merchantKey: string) => void;
   onOpenInteractiveModal?: (g: MerchantGroup) => void;
+  aiPickedCategory: { groupKey: string; category: string; nonce: number } | null;
   showMerchantModalButton?: boolean;
   excludedMerchantKeys: Set<string>;
 }) {
@@ -1227,6 +1298,9 @@ function QueueSection({
             onToggleBusinessSingle={onToggleBusinessSingle}
             onExclude={() => onExclude(g)}
             onAskAi={onOpenInteractiveModal ? () => onOpenInteractiveModal(g) : undefined}
+            aiPickedCategory={
+              aiPickedCategory?.groupKey === g.key ? aiPickedCategory : null
+            }
           />
         ))}
       </div>
@@ -1248,6 +1322,7 @@ function QueueRow({
   onToggleBusinessSingle,
   onExclude,
   onAskAi,
+  aiPickedCategory,
 }: {
   group: MerchantGroup;
   transactions: ParsedTransaction[];
@@ -1262,6 +1337,7 @@ function QueueRow({
   onToggleBusinessSingle: (txIndex: number) => void;
   onExclude: () => void;
   onAskAi?: () => void;
+  aiPickedCategory: { groupKey: string; category: string; nonce: number } | null;
 }) {
   // Group is "business" if any tx in it is currently scoped business
   const isBusiness = group.txIndices.some((i) => transactions[i]?.scope === "business");
@@ -1270,7 +1346,31 @@ function QueueRow({
     CAT_OPTIONS.find((c) => c.key === group.currentCategory)?.label ||
     transactions[group.txIndices[0]]?.categoryLabel ||
     group.currentCategory;
-  const showAiSuggestion = group.reason === "low-confidence" && currentCategoryLabel;
+  const initialSelectedCategory =
+    group.reason === "low-confidence" &&
+    group.currentCategory &&
+    !UNMAPPED_KEYS.has(group.currentCategory)
+      ? group.currentCategory
+      : "";
+  const [selectedCategory, setSelectedCategory] = useState(initialSelectedCategory);
+
+  useEffect(() => {
+    setSelectedCategory(initialSelectedCategory);
+  }, [initialSelectedCategory, group.key]);
+
+  useEffect(() => {
+    if (!aiPickedCategory) return;
+    setSelectedCategory(aiPickedCategory.category);
+  }, [aiPickedCategory]);
+
+  const selectedCategoryLabel =
+    CAT_OPTIONS.find((c) => c.key === selectedCategory)?.label || currentCategoryLabel;
+  const canApproveSelected = Boolean(selectedCategory);
+
+  const approveSelected = () => {
+    if (selectedCategory) onMap(selectedCategory);
+  };
+
   return (
     <div
       className="transition-all"
@@ -1306,12 +1406,6 @@ function QueueRow({
                 <>
                   <span style={{ color: "#9CA3AF" }}>·</span>
                   <span>ביטחון {Math.round(group.avgConfidence * 100)}%</span>
-                </>
-              )}
-              {showAiSuggestion && (
-                <>
-                  <span style={{ color: "#9CA3AF" }}>·</span>
-                  <span style={{ color: "#B45309" }}>הצעת AI: {currentCategoryLabel}</span>
                 </>
               )}
               {group.sourceFiles.length > 0 && (
@@ -1358,15 +1452,14 @@ function QueueRow({
           </button>
         )}
         <select
-          defaultValue=""
+          value={selectedCategory}
           onChange={(e) => {
-            if (e.target.value) onMap(e.target.value);
-            e.target.value = "";
+            setSelectedCategory(e.target.value);
           }}
           className="min-w-[140px] cursor-pointer rounded-lg border px-3 py-2 text-[11px] font-bold outline-none transition-all focus:ring-2 focus:ring-verdant-accent/30"
           style={{ borderColor: "#E5E7EB", background: "#FFFFFF", color: "#2C7A5A" }}
         >
-          <option value="" disabled>
+          <option value="">
             מפה ל…
           </option>
           {groupOptionsByParent(
@@ -1381,14 +1474,25 @@ function QueueRow({
             </optgroup>
           ))}
         </select>
+        <button
+          type="button"
+          onClick={approveSelected}
+          disabled={!canApproveSelected}
+          title={selectedCategoryLabel ? `אשר מיפוי: ${selectedCategoryLabel}` : "בחר קטגוריה לאישור"}
+          className="rounded-lg px-3 py-2 text-[10px] font-extrabold text-white transition-all disabled:cursor-not-allowed disabled:opacity-40"
+          style={{ background: "#2C7A5A" }}
+        >
+          אשר
+        </button>
         {onAskAi && (
           <button
             onClick={onAskAi}
-            title="התייעץ עם AI לגבי בית העסק הזה"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border transition-all hover:bg-verdant-bg"
+            title="פתח 3 אפשרויות מומלצות מה-AI"
+            className="flex h-9 items-center gap-1.5 rounded-lg border px-3 text-[10px] font-extrabold transition-all hover:bg-verdant-bg"
             style={{ borderColor: "#E5E7EB", color: "#2C7A5A" }}
           >
             <span className="material-symbols-outlined text-[16px]">smart_toy</span>
+            אפשרויות AI
           </button>
         )}
         <button
@@ -1435,9 +1539,6 @@ function QueueRow({
                 {group.count} תנועות · {fmtILS(group.totalAmount)}
               </span>
               {group.avgConfidence != null && <span>ביטחון {Math.round(group.avgConfidence * 100)}%</span>}
-              {showAiSuggestion && (
-                <span style={{ color: "#B45309" }}>הצעת AI: {currentCategoryLabel}</span>
-              )}
             </div>
             {group.sourceFiles.length > 0 && (
               <div className="flex items-center gap-1 text-[10px] font-bold text-verdant-muted">
@@ -1495,15 +1596,14 @@ function QueueRow({
             </button>
           )}
           <select
-            defaultValue=""
+            value={selectedCategory}
             onChange={(e) => {
-              if (e.target.value) onMap(e.target.value);
-              e.target.value = "";
+              setSelectedCategory(e.target.value);
             }}
             className="min-w-[160px] flex-1 cursor-pointer rounded-lg border px-3 py-2 text-[11px] font-bold outline-none transition-all focus:ring-2 focus:ring-verdant-accent/30"
             style={{ borderColor: "#E5E7EB", background: "#FFFFFF", color: "#2C7A5A" }}
           >
-            <option value="" disabled>
+            <option value="">
               מפה ל…
             </option>
             {groupOptionsByParent(
@@ -1518,6 +1618,26 @@ function QueueRow({
               </optgroup>
             ))}
           </select>
+          <button
+            type="button"
+            onClick={approveSelected}
+            disabled={!canApproveSelected}
+            className="h-10 rounded-lg px-3 text-[11px] font-extrabold text-white transition-all disabled:cursor-not-allowed disabled:opacity-40"
+            style={{ background: "#2C7A5A" }}
+          >
+            אשר
+          </button>
+          {onAskAi && (
+            <button
+              onClick={onAskAi}
+              title="פתח 3 אפשרויות מומלצות מה-AI"
+              className="flex h-10 items-center gap-1.5 rounded-lg border px-3 text-[11px] font-extrabold transition-all hover:bg-verdant-bg"
+              style={{ borderColor: "#E5E7EB", color: "#2C7A5A" }}
+            >
+              <span className="material-symbols-outlined text-[16px]">smart_toy</span>
+              אפשרויות AI
+            </button>
+          )}
         </div>
       </div>
 

@@ -202,10 +202,10 @@ export function PreviewView({
               onClick={() => setShowAutoHidden(true)}
               className="flex items-center gap-1 rounded-full px-2 py-1 transition hover:bg-red-50"
               style={{ color: "#DC2626" }}
-              title="הצג עסקאות שהוסתרו אוטומטית"
+              title="הצג עסקאות שהוסתרו בגלל עסקים מוסתרים"
             >
               <span className="material-symbols-outlined text-[13px]">visibility_off</span>
-              {autoHiddenCount} עסקאות הוסתרו אוטומטית (עסקים מוסתרים)
+              {autoHiddenCount} עסקאות הוסתרו (עסקים מוסתרים)
             </button>
           )}
           {duplicatesRemoved > 0 && (
@@ -436,7 +436,7 @@ function HideMerchantModal({
   );
 }
 
-/* ─────────── AUTO-HIDDEN TRANSACTIONS MODAL (RTL) ─────────── */
+/* ─────────── HIDDEN TRANSACTIONS MODAL (RTL) ─────────── */
 
 function AutoHiddenTransactionsModal({
   rows,
@@ -487,7 +487,7 @@ function AutoHiddenTransactionsModal({
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label="עסקאות שהוסתרו אוטומטית"
+        aria-label="עסקאות שהוסתרו"
         dir="rtl"
       >
         <div className="flex items-start justify-between gap-4 border-b px-5 py-4" style={{ borderColor: "#FAFAF7" }}>
@@ -496,7 +496,7 @@ function AutoHiddenTransactionsModal({
               visibility_off
             </span>
             <div className="min-w-0">
-              <h2 className="text-base font-extrabold text-verdant-ink">עסקאות שהוסתרו אוטומטית</h2>
+              <h2 className="text-base font-extrabold text-verdant-ink">עסקאות שהוסתרו</h2>
               <div className="mt-1 text-[12px] font-bold text-verdant-muted">
                 {rows.length} עסקאות · סה״כ {fmtILS(Math.abs(total), { signed: false })}
               </div>

@@ -52,6 +52,7 @@ import {
   excludeMerchant,
   unexcludeMerchant,
   buildExcludedSet,
+  getExcludedMerchantKey,
   EXCLUDED_EVENT,
 } from "@/lib/doc-parser/excluded-merchants";
 import {
@@ -76,6 +77,13 @@ import { reportError } from "@/lib/report-error";
 
 type Phase = "idle" | "uploading" | "preview" | "saved";
 
+function isHiddenByAnyKey(description: string, hiddenSet: Set<string>): boolean {
+  return (
+    hiddenSet.has(hiddenMerchantKey(description || "")) ||
+    hiddenSet.has(getExcludedMerchantKey(description || ""))
+  );
+}
+
 function buildEffectiveTransactions(
   doc: ParsedDocument,
   overrides: Record<number, { key: string; label: string }>,
@@ -93,7 +101,7 @@ function buildEffectiveTransactions(
       // upload's cashflow. `forceInclude` is the per-row escape hatch: the
       // client re-included this specific line from the hidden-list modal,
       // without changing the merchant's hidden status.
-      if (!forceInclude.has(i) && hiddenSet.has(hiddenMerchantKey(t.description || ""))) return null;
+      if (!forceInclude.has(i) && isHiddenByAnyKey(t.description || "", hiddenSet)) return null;
       const ov = overrides[i];
       const scopeOv = scopeOverrides[i];
       // scopeOv undefined = use original; null-marker semantics: we explicitly store
@@ -374,7 +382,7 @@ export function DocumentsTab() {
     const rows: { idx: number; description: string; amount: number; date: string }[] = [];
     doc.transactions.forEach((t, i) => {
       if (deletedIndices.has(i) || forceIncludeIndices.has(i)) return;
-      if (hiddenSet.has(hiddenMerchantKey(t.description || ""))) {
+      if (isHiddenByAnyKey(t.description || "", hiddenSet)) {
         rows.push({ idx: i, description: t.description || "—", amount: t.amount || 0, date: t.date });
       }
     });

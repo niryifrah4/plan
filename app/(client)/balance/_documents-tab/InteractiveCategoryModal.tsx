@@ -9,8 +9,9 @@ interface Props {
   displaySample: string;
   txCount: number;
   totalAmount: number;
+  initialSuggestions: { category: string; categoryLabel: string; confidence: number }[];
   onClose: () => void;
-  onMap: (categoryKey: string) => void;
+  onSelect: (categoryKey: string) => void;
 }
 
 export function InteractiveCategoryModal({
@@ -19,37 +20,19 @@ export function InteractiveCategoryModal({
   displaySample,
   txCount,
   totalAmount,
+  initialSuggestions,
   onClose,
-  onMap,
+  onSelect,
 }: Props) {
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{
     explanation: string;
-    suggestions: { category: string; categoryLabel: string }[];
+    suggestions: { category: string; categoryLabel: string; confidence?: number }[];
   } | null>(null);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (!open) {
-      setDescription("");
-      setResult(null);
-      setError("");
-    } else {
-      const onKey = (e: KeyboardEvent) => {
-        if (e.key === "Escape") onClose();
-      };
-      document.addEventListener("keydown", onKey);
-      return () => document.removeEventListener("keydown", onKey);
-    }
-  }, [open, onClose]);
-
-  if (!open) return null;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!description.trim()) return;
-
+  const checkWithAi = async (nextDescription: string, signal?: AbortSignal) => {
     setLoading(true);
     setError("");
     setResult(null);
@@ -58,7 +41,11 @@ export function InteractiveCategoryModal({
       const res = await fetch("/api/categorize/interactive", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ merchantKey, description }),
+        body: JSON.stringify({
+          merchantKey,
+          description: nextDescription.trim() || displaySample || merchantKey,
+        }),
+        signal,
       });
 
       const data = await res.json();
@@ -66,13 +53,46 @@ export function InteractiveCategoryModal({
         throw new Error(data.error || "שגיאה בפנייה ל-AI");
       }
 
-      setResult(data);
+      setResult({
+        explanation: data.explanation || "",
+        suggestions: Array.isArray(data.suggestions) ? data.suggestions.slice(0, 3) : [],
+      });
     } catch (err: any) {
-      setError(err.message);
+      if (err?.name !== "AbortError") setError(err.message || "שגיאה בפנייה ל-AI");
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!open) {
+      setDescription("");
+      setResult(null);
+      setError("");
+      return;
+    }
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+
+    setError("");
+    setResult({
+      explanation:
+        initialSuggestions.length > 0
+          ? "אלו ההמלצות שנמצאו בריצת הסיווג הכללית. אפשר לבחור אחת או לכתוב הסבר ולבדוק שוב."
+          : "לא נשמרו המלצות לרשומה הזו מהריצה הכללית. כתוב הסבר קצר ובדוק שוב.",
+      suggestions: initialSuggestions,
+    });
+    setLoading(false);
+
+    return () => {
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, merchantKey, initialSuggestions, onClose]);
+
+  if (!open) return null;
 
   return (
     <div
@@ -82,13 +102,14 @@ export function InteractiveCategoryModal({
       dir="rtl"
     >
       <div
-        className="my-auto w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
+        className="my-auto w-full max-w-lg overflow-hidden rounded-2xl bg-white text-right shadow-2xl"
         onClick={(e) => e.stopPropagation()}
+        dir="rtl"
       >
         <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: "#FAFAF7" }}>
           <div>
-            <h2 className="text-base font-extrabold text-verdant-ink">התייעצות עם AI</h2>
-            <p className="text-xs text-verdant-muted mt-0.5">ספר לי קצת על בית העסק ואעזור לך לסווג אותו</p>
+            <h2 className="text-base font-extrabold text-verdant-ink">אפשרויות AI נוספות</h2>
+            <p className="mt-0.5 text-xs text-verdant-muted">ההמלצות נטענות מהרצת הסיווג הכללית. כתיבה כאן בודקת מחדש.</p>
           </div>
           <button
             type="button"
@@ -107,48 +128,49 @@ export function InteractiveCategoryModal({
             </div>
           </div>
 
-          {!result ? (
-            <form onSubmit={handleSubmit}>
-              <label className="block text-xs font-bold text-verdant-ink mb-2">
-                מה מהות העסק? (למשל: "מספרה", "חוג לילד", "חנות חומרי בניין")
-              </label>
-              <textarea
-                className="w-full rounded-xl border border-gray-200 bg-white p-3 text-sm outline-none transition-all focus:border-verdant-accent focus:ring-1 focus:ring-verdant-accent mb-4"
-                rows={3}
-                placeholder="הקלד כאן את ההסבר שלך..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                disabled={loading}
-                autoFocus
-              />
-              
-              {error && (
-                <div className="mb-4 rounded-lg bg-red-50 p-2 text-[11px] text-red-600">
-                  {error}
-                </div>
-              )}
+          <form
+            className="mb-4 space-y-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void checkWithAi(description);
+            }}
+          >
+            <label className="block text-[11px] font-extrabold text-verdant-ink">
+              יודע מה זה? כתוב כאן ו־AI יבדוק שוב
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              className="w-full resize-none rounded-xl border border-gray-200 bg-white p-3 text-sm font-bold text-verdant-ink outline-none transition focus:border-verdant-accent focus:ring-2 focus:ring-verdant-accent/20"
+              placeholder="לדוגמה: זה תשלום לסובל הובלות / שיעור לילד / ספק עסקי..."
+              disabled={loading}
+            />
+            <button
+              type="submit"
+              disabled={loading || !description.trim()}
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-verdant-accent py-2.5 text-sm font-extrabold text-white transition hover:bg-verdant-ink disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+              בדוק שוב עם AI
+            </button>
+          </form>
 
-              <button
-                type="submit"
-                disabled={!description.trim() || loading}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-verdant-accent py-2.5 text-sm font-bold text-white transition-all hover:bg-verdant-ink disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <>
-                    <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin"></span>
-                    חושב...
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
-                    שאל את AI
-                  </>
-                )}
-              </button>
-            </form>
+          {loading ? (
+            <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed py-8 text-sm font-bold text-verdant-muted">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-verdant-accent border-t-transparent"></span>
+              בודק אפשרויות...
+            </div>
+          ) : error ? (
+            <div className="rounded-lg bg-red-50 p-3 text-[12px] font-bold text-red-600">{error}</div>
+          ) : !result ? (
+            <div className="rounded-xl border border-dashed py-8 text-center text-sm font-bold text-verdant-muted">
+              אין עדיין תשובה.
+            </div>
           ) : (
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="mb-4 rounded-xl border border-verdant-accent/20 bg-verdant-accent/5 p-4">
+              {result.explanation && (
+                <div className="mb-4 rounded-xl border border-verdant-accent/20 bg-verdant-accent/5 p-4">
                 <div className="flex items-start gap-3">
                   <span className="material-symbols-outlined text-verdant-accent mt-0.5">smart_toy</span>
                   <div className="text-sm leading-relaxed text-verdant-ink">
@@ -156,14 +178,15 @@ export function InteractiveCategoryModal({
                   </div>
                 </div>
               </div>
+              )}
 
               <div className="space-y-2">
-                <div className="text-[11px] font-bold text-verdant-muted mb-2">הקטגוריות המומלצות:</div>
+                <div className="mb-2 text-[11px] font-bold text-verdant-muted">האפשרויות המומלצות:</div>
                 {result.suggestions.length > 0 ? (
                   result.suggestions.map((sug, i) => (
                     <button
                       key={sug.category}
-                      onClick={() => onMap(sug.category)}
+                      onClick={() => onSelect(sug.category)}
                       className="w-full flex items-center justify-between rounded-xl border border-gray-200 p-3 transition-all hover:border-verdant-accent hover:bg-verdant-accent/5 group"
                     >
                       <div className="flex items-center gap-2">
@@ -171,9 +194,14 @@ export function InteractiveCategoryModal({
                           {i + 1}
                         </span>
                         <span className="font-bold text-verdant-ink text-sm">{sug.categoryLabel}</span>
+                        {typeof sug.confidence === "number" && (
+                          <span className="text-[10px] font-bold text-verdant-muted">
+                            {Math.round(sug.confidence * 100)}%
+                          </span>
+                        )}
                       </div>
-                      <span className="text-[11px] font-bold text-verdant-accent opacity-0 group-hover:opacity-100 transition-opacity">
-                        לחץ להחלה
+                      <span className="text-[11px] font-bold text-verdant-accent">
+                        בחר
                       </span>
                     </button>
                   ))
@@ -183,13 +211,10 @@ export function InteractiveCategoryModal({
               </div>
 
               <button
-                onClick={() => {
-                  setResult(null);
-                  setDescription("");
-                }}
+                onClick={onClose}
                 className="mt-4 w-full rounded-xl py-2 text-sm font-bold text-verdant-muted transition-colors hover:bg-gray-100"
               >
-                שאל שוב עם תיאור אחר
+                סגור בלי לבחור
               </button>
             </div>
           )}

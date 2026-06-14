@@ -122,6 +122,24 @@ export default function SettingsPage() {
             </Link>
 
             <Link
+              href={{ pathname: "/crm/settings/pension-parsers" }}
+              className="card-pad flex flex-col gap-3 hover:shadow-md transition-shadow group"
+              style={{ background: "#FFFFFF" }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-verdant-bg text-verdant-accent group-hover:bg-verdant-accent group-hover:text-white transition-colors">
+                  <span className="material-symbols-outlined">savings</span>
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-verdant-ink">פרסור דוחות פנסיה</h2>
+                  <p className="text-xs text-verdant-muted mt-0.5">
+                    סוגי קבצים לפי חברה, סוג קובץ וסוג קרן
+                  </p>
+                </div>
+              </div>
+            </Link>
+
+            <Link
               href="/crm/settings/subscriptions"
               className="card-pad flex flex-col gap-3 hover:shadow-md transition-shadow group"
               style={{ background: "#FFFFFF" }}

@@ -35,7 +35,7 @@ const MODEL = "claude-haiku-4-5";
 const SYSTEM_PROMPT = `You are categorizing Israeli bank and credit-card transactions for a personal finance planning tool used by a CFP advisor.
 
 Return ONLY a JSON array. Each item must have:
-  { "index": <number>, "category": <string>, "confidence": <1-5> }
+  { "index": <number>, "category": <string>, "confidence": <1-5>, "alternatives": ["category_key_1", "category_key_2", "category_key_3"] }
 
 Rules:
 - "index" matches the input order (use the [N] number we provide)
@@ -43,6 +43,7 @@ Rules:
 - The category list is grouped under parent headers for context (דיור, מזון, עסקי, …).
   Parent headers are NOT valid category values — always pick a leaf under one of them.
 - "confidence": 1 = guessing, 3 = reasonable, 5 = certain
+- "alternatives": include up to 3 likely LEAF category keys, ordered best-first. Put "category" first when possible.
 - Hebrew merchant names are common — recognize Israeli brands (שופרסל, רמי לוי, מקדונלדס, אלקטרה, etc.)
 - "transfers" is ONLY for movements between own accounts (Bit between people IS transfers; Bit to a merchant is NOT)
 - Business descriptors (Google Ads, מע"מ, מקדמת מס, fiverr, רואה חשבון, פייסבוק עסקי, Stripe, Cardcom) → use the matching business_* category
@@ -71,6 +72,7 @@ export interface AISuggestion {
   categoryLabel: string;
   /** Normalized to our 0-1 scale (Haiku returns 1-5; we divide by 5). */
   confidence: number;
+  alternatives?: { category: string; categoryLabel: string }[];
 }
 
 /**
@@ -188,6 +190,15 @@ Return the JSON array now.`;
       category: cat,
       categoryLabel: labelByKey.get(cat) || cat,
       confidence,
+      alternatives: Array.isArray(obj.alternatives)
+        ? obj.alternatives
+            .filter((k): k is string => typeof k === "string")
+            .map((k) => k.toLowerCase().trim())
+            .filter((k) => validKeys.has(k))
+            .filter((k, i, arr) => arr.indexOf(k) === i)
+            .slice(0, 3)
+            .map((k) => ({ category: k, categoryLabel: labelByKey.get(k) || k }))
+        : [{ category: cat, categoryLabel: labelByKey.get(cat) || cat }],
     });
   }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import type { ReactNode } from "react";
 import { Card } from "./ui/Card";
 import { fmtILS } from "@/lib/format";
 import { loadPensionFunds, savePensionFunds } from "@/lib/pension-store";
@@ -18,22 +19,30 @@ import type { ParsedAnnualBundle, AnnualPolicy } from "@/lib/doc-parser/annual-r
  * Pension data upload panel.
  *
  * Supports TWO flows:
- *   1. PDF — דיוור שנתי מפורט (annual report from provider)
+ *   1. PDF / Excel / CSV — דיוור שנתי מפורט (annual report from provider)
  *      POST to /api/pension/parse-pdf → returns ParsedAnnualBundle
  *   2. XML — קבצי מסלקה פנסיונית (pension clearinghouse)
  *      Parsed entirely client-side — no server needed
  */
 
-type UploadMode = "idle" | "pdf" | "xml";
+type UploadMode = "idle" | "annual" | "xml";
 
 const MAX_CLIENT_BYTES = 20 * 1024 * 1024; // 20 MB
 
-function validatePdfFiles(files: File[]): string | null {
+const ANNUAL_FILE_EXTENSIONS = new Set(["pdf", "xlsx", "xls", "csv", "txt"]);
+
+function getExt(file: File): string {
+  return file.name.split(".").pop()?.toLowerCase() || "";
+}
+
+function validateAnnualFiles(files: File[]): string | null {
   for (const f of files) {
     if (f.size > MAX_CLIENT_BYTES) return "הקובץ גדול מדי — מקסימום 20MB";
-    const ext = f.name.split(".").pop()?.toLowerCase();
-    if (ext !== "pdf") return `הקובץ ${f.name} אינו PDF — בדוק את סוג הקובץ`;
-    // Note: don't reject on MIME — some browsers/OS send application/octet-stream for PDFs
+    const ext = getExt(f);
+    if (!ANNUAL_FILE_EXTENSIONS.has(ext)) {
+      return `הקובץ ${f.name} לא נתמך — נדרש PDF, Excel, CSV או XML`;
+    }
+    // Note: don't reject on MIME — some browsers/OS send application/octet-stream
   }
   return null;
 }
@@ -71,6 +80,8 @@ export function AnnualReportUpload() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [savedInfo, setSavedInfo] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [expandedPolicyIds, setExpandedPolicyIds] = useState<Set<string>>(new Set());
+  const [saving, setSaving] = useState(false);
 
   // PDF flow state
   const [pdfBundle, setPdfBundle] = useState<ParsedAnnualBundle | null>(null);
@@ -88,7 +99,8 @@ export function AnnualReportUpload() {
     let hasZip = false;
     for (const f of list) {
       const n = f.name.toLowerCase();
-      if (n.endsWith(".xml") || n.endsWith(".pdf")) accepted.push(f);
+      const ext = getExt(f);
+      if (ext === "xml" || ANNUAL_FILE_EXTENSIONS.has(ext)) accepted.push(f);
       else {
         rejected.push(f);
         if (n.endsWith(".zip")) hasZip = true;
@@ -107,7 +119,15 @@ export function AnnualReportUpload() {
       return;
     }
     if (accepted.length === 0 && rejected.length > 0) {
-      setErrorMsg(`סוג קובץ לא נתמך: ${rejected.map((f) => f.name).join(", ")} — נדרש XML או PDF`);
+      setErrorMsg(
+        `סוג קובץ לא נתמך: ${rejected.map((f) => f.name).join(", ")} — נדרש XML, PDF, Excel או CSV`
+      );
+      return;
+    }
+    const hasDroppedXml = accepted.some((f) => getExt(f) === "xml");
+    const hasDroppedAnnual = accepted.some((f) => ANNUAL_FILE_EXTENSIONS.has(getExt(f)));
+    if (hasDroppedXml && hasDroppedAnnual) {
+      setErrorMsg("לא ניתן לערבב XML עם PDF/Excel באותה העלאה — העלה כל סוג בנפרד");
       return;
     }
     if (accepted.length > 0) setFiles(accepted);
@@ -124,9 +144,9 @@ export function AnnualReportUpload() {
   }
 
   // Detect file types
-  const hasXml = files.some((f) => f.name.endsWith(".xml"));
-  const hasPdf = files.some((f) => f.name.toLowerCase().endsWith(".pdf"));
-  const mode: UploadMode = files.length === 0 ? "idle" : hasXml ? "xml" : "pdf";
+  const hasXml = files.some((f) => getExt(f) === "xml");
+  const hasAnnual = files.some((f) => ANNUAL_FILE_EXTENSIONS.has(getExt(f)));
+  const mode: UploadMode = files.length === 0 ? "idle" : hasXml ? "xml" : "annual";
 
   // Auto-parse when files are selected
   const prevFilesRef = useRef<File[]>([]);
@@ -134,7 +154,7 @@ export function AnnualReportUpload() {
     if (files.length > 0 && files !== prevFilesRef.current) {
       prevFilesRef.current = files;
       if (hasXml) handleParseXml();
-      else if (hasPdf) handleParsePdf();
+      else if (hasAnnual) handleParseAnnual();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [files]);
@@ -142,8 +162,8 @@ export function AnnualReportUpload() {
   // Maslaka PDF state
   const [maslakaPdfProducts, setMaslakaPdfProducts] = useState<any[] | null>(null);
 
-  /* ── PDF parse (server-side) ── */
-  async function handleParsePdf() {
+  /* ── Annual report parse (server-side) ── */
+  async function handleParseAnnual() {
     setBusy(true);
     setMsg(null);
     setErrorMsg(null);
@@ -152,23 +172,23 @@ export function AnnualReportUpload() {
     setMaslakaPdfProducts(null);
     setSavedInfo(null);
     try {
-      const pdfFiles = files.filter((f) => f.name.toLowerCase().endsWith(".pdf"));
+      const annualFiles = files.filter((f) => ANNUAL_FILE_EXTENSIONS.has(getExt(f)));
 
       // Client-side validation before sending
-      const validationError = validatePdfFiles(pdfFiles);
+      const validationError = validateAnnualFiles(annualFiles);
       if (validationError) {
         setErrorMsg(validationError);
         setBusy(false);
         return;
       }
 
-      // Upload raw PDFs to Supabase Storage (fire-and-forget; no-op in demo mode)
-      for (const f of pdfFiles) {
+      // Upload raw annual reports to Supabase Storage (fire-and-forget; no-op in demo mode)
+      for (const f of annualFiles) {
         uploadFile(f, "pension_report").catch(() => {});
       }
 
       const fd = new FormData();
-      pdfFiles.forEach((f) => fd.append("files", f));
+      annualFiles.forEach((f) => fd.append("files", f));
       const res = await fetch("/api/pension/parse-pdf", {
         method: "POST",
         body: fd,
@@ -308,12 +328,17 @@ export function AnnualReportUpload() {
 
   function handleParse() {
     if (mode === "xml") handleParseXml();
-    else handleParsePdf();
+    else handleParseAnnual();
   }
 
   /* ── Save — either flow ── */
-  function handleSavePdf() {
+  async function handleSavePdf() {
     if (!pdfBundle) return;
+    setSaving(true);
+    setSavedInfo(null);
+
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+
     const existing = loadPensionFunds();
     const result = mergeAnnualIntoFunds(existing, pdfBundle);
     savePensionFunds(result.funds);
@@ -321,6 +346,14 @@ export function AnnualReportUpload() {
       `נשמר: ${result.added} חדשים, ${result.updated} עודכנו` +
         (result.unchanged > 0 ? `, ${result.unchanged} ללא שינוי` : "")
     );
+    setSaving(false);
+
+    window.setTimeout(() => {
+      const target =
+        document.getElementById("pension-graphs") ||
+        document.querySelector<HTMLElement>("[data-pension-summary]");
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 150);
   }
 
   /* handleSaveXml removed — XML auto-saves during parse */
@@ -334,6 +367,8 @@ export function AnnualReportUpload() {
     setMsg(null);
     setErrorMsg(null);
     setSavedInfo(null);
+    setExpandedPolicyIds(new Set());
+    setSaving(false);
   }
 
   const showPreview =
@@ -346,7 +381,7 @@ export function AnnualReportUpload() {
       <div className="mb-4 flex items-baseline justify-between">
         <h3 className="text-lg font-extrabold text-verdant-ink">העלאת נתוני פנסיה</h3>
         <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-verdant-muted">
-          {mode === "xml" ? "מסלקה" : "PDF / XML"}
+          {mode === "xml" ? "מסלקה" : "PDF / Excel / XML"}
         </span>
       </div>
 
@@ -363,13 +398,13 @@ export function AnnualReportUpload() {
         <span className="text-sm font-extrabold text-verdant-ink">
           {files.length > 0
             ? `${files.length} קבצים נבחרו`
-            : "בחר קבצי XML מהמסלקה או PDF דיוור שנתי"}
+            : "בחר קבצי XML מהמסלקה או דיוור שנתי PDF / Excel"}
         </span>
         {files.length > 0 && (
           <span className="mt-1 text-[11px] font-bold text-verdant-muted">
             {(totalSize / 1024).toFixed(1)} KB סה&quot;כ
             {mode === "xml" && " · קבצי מסלקה פנסיונית"}
-            {mode === "pdf" && " · דיוור שנתי PDF"}
+            {mode === "annual" && " · דיוור שנתי"}
           </span>
         )}
         <span className="mt-1 text-[10px] text-verdant-muted">
@@ -378,7 +413,7 @@ export function AnnualReportUpload() {
         <input
           id="annual-input"
           type="file"
-          accept=".pdf,.xml,application/pdf,text/xml,application/xml"
+          accept=".pdf,.xml,.xlsx,.xls,.csv,.txt,application/pdf,text/xml,application/xml,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,text/plain"
           multiple
           className="hidden"
           onChange={(e) => {
@@ -391,8 +426,14 @@ export function AnnualReportUpload() {
             }
             if (accepted.length === 0 && rejected.length > 0) {
               setErrorMsg(
-                `סוג קובץ לא נתמך: ${rejected.map((f) => f.name).join(", ")} — נדרש XML או PDF`
+                `סוג קובץ לא נתמך: ${rejected.map((f) => f.name).join(", ")} — נדרש XML, PDF, Excel או CSV`
               );
+              return;
+            }
+            const hasPickedXml = accepted.some((f) => getExt(f) === "xml");
+            const hasPickedAnnual = accepted.some((f) => ANNUAL_FILE_EXTENSIONS.has(getExt(f)));
+            if (hasPickedXml && hasPickedAnnual) {
+              setErrorMsg("לא ניתן לערבב XML עם PDF/Excel באותה העלאה — העלה כל סוג בנפרד");
               return;
             }
             setFiles(accepted);
@@ -405,7 +446,11 @@ export function AnnualReportUpload() {
           {files.map((f, i) => (
             <li key={i} className="flex items-center gap-1.5 truncate">
               <span className="material-symbols-outlined text-[12px]">
-                {f.name.endsWith(".xml") ? "code" : "picture_as_pdf"}
+                {getExt(f) === "xml"
+                  ? "code"
+                  : getExt(f) === "pdf"
+                    ? "picture_as_pdf"
+                    : "table_chart"}
               </span>
               {f.name}
             </li>
@@ -443,7 +488,7 @@ export function AnnualReportUpload() {
         <div className="mt-3 text-right text-[12px] font-bold text-verdant-muted">{msg}</div>
       )}
 
-      {/* ── PDF Preview ── */}
+      {/* ── Annual report Preview ── */}
       {pdfBundle && pdfSummary && (
         <div className="v-divider mt-5 border-t pt-4">
           <div className="mb-4 grid grid-cols-2 gap-2">
@@ -471,6 +516,21 @@ export function AnnualReportUpload() {
                   {p.planName && ` • ${p.planName}`}
                   {p.accountNumber && ` • חשבון ${p.accountNumber}`}
                 </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setExpandedPolicyIds((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(p.id)) next.delete(p.id);
+                      else next.add(p.id);
+                      return next;
+                    })
+                  }
+                  className="mt-2 text-[11px] font-extrabold text-verdant-accent"
+                >
+                  {expandedPolicyIds.has(p.id) ? "הסתר פרטים" : "הצג עוד פרטים"}
+                </button>
+                {expandedPolicyIds.has(p.id) && <AnnualPolicyDetails policy={p} />}
               </div>
             ))}
           </div>
@@ -612,15 +672,18 @@ export function AnnualReportUpload() {
         </div>
       )}
 
-      {/* ── Save button (PDF only — XML auto-saves) ── */}
+      {/* ── Save button (annual reports only — XML auto-saves) ── */}
       {pdfBundle && pdfSummary && (
         <div className="mt-4">
           <button
             onClick={handleSavePdf}
-            disabled={!!savedInfo}
-            className="btn-botanical w-full py-2.5 text-sm disabled:opacity-50"
+            disabled={!!savedInfo || saving}
+            className="btn-botanical flex w-full items-center justify-center gap-2 py-2.5 text-sm disabled:opacity-50"
           >
-            {savedInfo ? "נשמר ✓" : "שמור במערכת הפנסיה"}
+            {saving && (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+            )}
+            {saving ? "שומר ומעדכן גרפים…" : savedInfo ? "נשמר ✓" : "שמור במערכת הפנסיה"}
           </button>
         </div>
       )}
@@ -637,7 +700,8 @@ export function AnnualReportUpload() {
         <strong>XML מהמסלקה:</strong> הורד קבצי XML מאתר המסלקה הפנסיונית (gemel.mof.gov.il) —
         המערכת תקרא אוטומטית: חברה, צבירה, דמי ניהול, מסלולי השקעה וביטוחים.
         <br />
-        <strong>PDF דיוור שנתי:</strong> העלה את הדיוור המפורט שמתקבל מהקרן פעם בשנה.
+        <strong>דיוור שנתי:</strong> העלה את הדיוור המפורט שמתקבל מהקרן פעם בשנה כ-PDF,
+        Excel או CSV.
       </div>
     </Card>
   );
@@ -650,6 +714,116 @@ function Stat({ label, value }: { label: string; value: string }) {
         {label}
       </div>
       <div className="mt-0.5 text-sm font-extrabold text-verdant-ink">{value}</div>
+    </div>
+  );
+}
+
+function AnnualPolicyDetails({ policy }: { policy: AnnualPolicy }) {
+  const c = policy.annualContributionsBreakdown;
+  const cover = policy.projectedCoverages;
+  const move = policy.balanceMovements;
+  const tracks = policy.investmentTracks || [];
+
+  return (
+    <div className="mt-3 space-y-3 rounded border border-verdant-accent/20 bg-white p-3">
+      <div className="grid grid-cols-2 gap-2">
+        <Detail
+          label="סטטוס"
+          value={
+            policy.status === "active"
+              ? "פעיל"
+              : policy.status === "inactive"
+                ? "לא פעיל"
+                : undefined
+          }
+        />
+        <Detail label="מעסיק" value={policy.employerName} textValue />
+        <Detail label="מועד הצטרפות" value={policy.joinDate} />
+        <Detail label="גיל פרישה" value={policy.retirementAge?.toString()} />
+        <Detail
+          label="משכורת קובעת"
+          value={policy.salaryBase ? fmtILS(policy.salaryBase) : undefined}
+        />
+        <Detail
+          label="דמי ניהול הפקדה"
+          value={policy.mgmtFeeDeposit !== undefined ? `${policy.mgmtFeeDeposit.toFixed(2)}%` : undefined}
+        />
+      </div>
+
+      {c && (
+        <DetailSection title="פירוט הפקדות שנתי">
+          <Detail label="עובד" value={c.employee ? fmtILS(c.employee) : undefined} />
+          <Detail label="מעסיק" value={c.employer ? fmtILS(c.employer) : undefined} />
+          <Detail label="פיצויים" value={c.severance ? fmtILS(c.severance) : undefined} />
+          <Detail label="סה״כ" value={c.total ? fmtILS(c.total) : undefined} />
+        </DetailSection>
+      )}
+
+      {cover && (
+        <DetailSection title="כיסויים ביטוחיים">
+          <Detail label="נכות" value={cover.disabilityPct !== undefined ? `${cover.disabilityPct.toFixed(2)}%` : undefined} />
+          <Detail label="קצבת נכות" value={cover.disabilityMonthly ? `${fmtILS(cover.disabilityMonthly)}/ח` : undefined} />
+          <Detail label="שחרור מהפקדות" value={cover.disabilityContributionWaiver ? fmtILS(cover.disabilityContributionWaiver) : undefined} />
+          <Detail label="אלמן/ה" value={cover.spouseMonthly ? `${fmtILS(cover.spouseMonthly)}/ח` : undefined} />
+          <Detail label="יתום" value={cover.childMonthly ? `${fmtILS(cover.childMonthly)}/ח` : undefined} />
+          <Detail label="עלות כיסוי" value={cover.insuranceCostPctOfDeposits !== undefined ? `${cover.insuranceCostPctOfDeposits.toFixed(2)}% מהפקדות` : undefined} />
+        </DetailSection>
+      )}
+
+      {move && (
+        <DetailSection title="תנועות ויתרות">
+          <Detail label="הפקדות" value={move.deposits ? fmtILS(move.deposits) : undefined} />
+          <Detail label="העברות פנימה" value={move.transfersIn ? fmtILS(move.transfersIn) : undefined} />
+          <Detail label="העברות החוצה" value={move.transfersOut ? fmtILS(move.transfersOut) : undefined} />
+          <Detail label="רווח/הפסד" value={move.investmentProfitLoss !== undefined ? fmtILS(move.investmentProfitLoss) : undefined} />
+          <Detail label="דמי ניהול ששולמו" value={move.managementFeesPaid !== undefined ? fmtILS(Math.abs(move.managementFeesPaid)) : undefined} />
+          <Detail label="עלות נכות" value={move.disabilityInsuranceCost !== undefined ? fmtILS(Math.abs(move.disabilityInsuranceCost)) : undefined} />
+          <Detail label="עלות שארים" value={move.survivorsInsuranceCost !== undefined ? fmtILS(Math.abs(move.survivorsInsuranceCost)) : undefined} />
+          <Detail label="יתרה לסוף שנה" value={move.closingBalance ? fmtILS(move.closingBalance) : undefined} />
+        </DetailSection>
+      )}
+
+      {tracks.length > 0 && (
+        <div>
+          <div className="mb-1 font-extrabold text-verdant-ink">מסלולי השקעה</div>
+          <div className="space-y-1">
+            {tracks.map((track, i) => (
+              <div key={`${track.name}-${i}`} className="rounded border bg-[#FAFAF7] p-2">
+                <div className="font-bold text-verdant-ink">
+                  <bdi dir="rtl">{track.name}</bdi>
+                </div>
+                <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-verdant-muted">
+                  <Detail label="יתרה" value={track.balance ? fmtILS(track.balance) : undefined} />
+                  <Detail label="תשואה שנתית" value={track.annualReturnPct !== undefined ? `${track.annualReturnPct.toFixed(2)}%` : undefined} />
+                  <Detail label="תשואה 5 שנים" value={track.return5yPct !== undefined ? `${track.return5yPct.toFixed(2)}%` : undefined} />
+                  <Detail label="הוצאות השקעה" value={track.investmentExpensePct !== undefined ? `${track.investmentExpensePct.toFixed(2)}%` : undefined} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DetailSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div>
+      <div className="mb-1 font-extrabold text-verdant-ink">{title}</div>
+      <div className="grid grid-cols-2 gap-2">{children}</div>
+    </div>
+  );
+}
+
+function Detail({ label, value, textValue = false }: { label: string; value?: string; textValue?: boolean }) {
+  if (!value) return null;
+  return (
+    <div>
+      <span className="font-bold text-verdant-muted">{label}: </span>
+      <span className="font-extrabold text-verdant-ink">
+        {textValue ? <bdi dir="rtl">{value}</bdi> : value}
+      </span>
     </div>
   );
 }

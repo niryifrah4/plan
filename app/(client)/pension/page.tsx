@@ -50,6 +50,7 @@ import type { RegisteredFund } from "@/lib/fund-registry";
 import { AllocationPie } from "@/components/charts/AllocationPie";
 import { buildPensionAllocations } from "@/lib/pension-allocation";
 import { FundSimulationModal } from "@/components/pension/FundSimulationModal";
+import { Modal } from "@/app/(client)/goals/page-files/Modal";
 import { scopedKey } from "@/lib/client-scope";
 
 /* ── Constants ── */
@@ -167,6 +168,14 @@ export default function PensionPage() {
 
   /* ── Pension Funds (localStorage CRUD) ── */
   const [funds, setFunds] = useState<PensionFund[]>([]);
+
+  /* Allocation-chart fund filter — multi-select (empty = whole portfolio) */
+  const [allocFundIds, setAllocFundIds] = useState<string[]>([]);
+  const [allocModalOpen, setAllocModalOpen] = useState(false);
+
+  /* Inline liquidity-date editor (per hishtalmut fund) */
+  const [editingLiquidityId, setEditingLiquidityId] = useState<string | null>(null);
+  const [liquidityDraft, setLiquidityDraft] = useState<string>("");
 
   useEffect(() => {
     setFunds(loadPensionFunds());
@@ -396,7 +405,7 @@ export default function PensionPage() {
       {/* Cross-link to /retirement removed 2026-04-29 — pages merged. */}
 
       {/* ===== 3. KPI Row (3 portfolio-level metrics) ===== */}
-      <section className="mb-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+      <section data-pension-summary className="mb-3 grid scroll-mt-24 grid-cols-1 gap-3 md:grid-cols-3">
         <SolidKpi
           label="צבירה פנסיונית"
           value={fmtILS(totalFundsBalance)}
@@ -461,46 +470,136 @@ export default function PensionPage() {
           );
         })()}
 
-      {/* ===== 4. Allocation Pies (3 cuts: type / risk / geo) — 2026-04-28 redesign ===== */}
+      {/* ===== 4. Allocation Pies — report-only cuts ===== */}
       {funds.length > 0 &&
         (() => {
-          const alloc = buildPensionAllocations(funds);
-          const missingPct =
-            alloc.total > 0 ? Math.round((alloc.missingCoverage / alloc.total) * 100) : 0;
+          const typeLabels: Record<PensionFund["type"], string> = {
+            pension: "פנסיה",
+            hishtalmut: "השתלמות",
+            gemel: "גמל",
+            bituach: "ביטוח מנהלים",
+          };
+          const fundLabel = (f: PensionFund) => {
+            const acct = f.annualReportDetails?.accountNumber;
+            return `${f.company} · ${typeLabels[f.type]}${acct ? ` · ${acct}` : ""}`;
+          };
+          // Drop any stale ids (funds deleted after being picked). Empty = all.
+          const selectedIds = allocFundIds.filter((id) => funds.some((f) => f.id === id));
+          const shownFunds = selectedIds.length ? funds.filter((f) => selectedIds.includes(f.id)) : funds;
+          const alloc = buildPensionAllocations(shownFunds);
+          const toggleFund = (id: string) =>
+            setAllocFundIds((prev) =>
+              prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+            );
+          const triggerLabel = selectedIds.length
+            ? `${selectedIds.length} קרנות נבחרו`
+            : `כל הקרנות (${funds.length})`;
           return (
             <>
-              <section className="mb-3 grid grid-cols-1 gap-4 md:grid-cols-3">
-                <AllocationPie title="לפי סוג קופה" slices={alloc.byType} size="md" />
+              <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
+                <span className="text-[11px] font-bold text-verdant-muted">הצג ניתוח עבור</span>
+                <button
+                  type="button"
+                  onClick={() => setAllocModalOpen(true)}
+                  className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold text-verdant-ink transition-all hover:opacity-80"
+                  style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}
+                >
+                  <span className="material-symbols-outlined text-[16px]">filter_list</span>
+                  {triggerLabel}
+                </button>
+              </div>
+
+              <Modal
+                open={allocModalOpen}
+                title="בחירת קרנות לניתוח"
+                onClose={() => setAllocModalOpen(false)}
+              >
+                <div className="space-y-3" dir="rtl">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] text-verdant-muted">
+                      {selectedIds.length
+                        ? `${selectedIds.length} מתוך ${funds.length} קרנות`
+                        : "כל הקרנות מוצגות"}
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setAllocFundIds(funds.map((f) => f.id))}
+                        className="rounded-md border px-2 py-1 text-[11px] font-bold text-verdant-ink hover:opacity-80"
+                        style={{ borderColor: "#E5E7EB" }}
+                      >
+                        בחר הכל
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAllocFundIds([])}
+                        className="rounded-md border px-2 py-1 text-[11px] font-bold text-verdant-ink hover:opacity-80"
+                        style={{ borderColor: "#E5E7EB" }}
+                      >
+                        נקה
+                      </button>
+                    </div>
+                  </div>
+
+                  <ul className="max-h-80 space-y-1.5 overflow-y-auto">
+                    {funds.map((f) => {
+                      const checked = selectedIds.includes(f.id);
+                      return (
+                        <li key={f.id}>
+                          <label
+                            className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border px-3 py-2.5 transition-all hover:bg-[#FAFAF7]"
+                            style={{ borderColor: checked ? "#2B694D" : "#E5E7EB" }}
+                          >
+                            <div className="flex min-w-0 items-center gap-2.5">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleFund(f.id)}
+                                className="h-4 w-4 shrink-0 accent-[#2B694D]"
+                              />
+                              <span className="truncate text-xs font-bold text-verdant-ink">
+                                {fundLabel(f)}
+                              </span>
+                            </div>
+                            <span className="shrink-0 text-[11px] tabular-nums text-verdant-muted">
+                              {fmtILS(f.balance)}
+                            </span>
+                          </label>
+                        </li>
+                      );
+                    })}
+                  </ul>
+
+                  <div className="flex justify-end border-t pt-3" style={{ borderColor: "#E5E7EB" }}>
+                    <button
+                      type="button"
+                      onClick={() => setAllocModalOpen(false)}
+                      className="btn-botanical !px-4 !py-1.5 text-xs"
+                    >
+                      הצג ניתוח
+                    </button>
+                  </div>
+                </div>
+              </Modal>
+              <section
+                id="pension-graphs"
+                className="mb-3 grid scroll-mt-24 grid-cols-1 gap-4 md:grid-cols-2"
+              >
                 <AllocationPie
-                  title="לפי רמת סיכון"
-                  slices={alloc.byRisk}
+                  title="לפי סוג קופה"
+                  slices={alloc.byType}
                   size="md"
-                  emptyHint="אין מסלולים מזוהים — בחר מסלול ידנית כדי לראות חתך סיכון"
+                  tooltipForSlice={(s) => {
+                    return `${s.label}: ${fmtILS(s.value)} (${s.pct.toFixed(1)}% מהתיק)`;
+                  }}
                 />
                 <AllocationPie
-                  title="לפי גאוגרפיה"
-                  slices={alloc.byGeo}
+                  title="לפי מסלול השקעה"
+                  slices={alloc.byTrack}
                   size="md"
-                  emptyHint="אין מסלולים מזוהים — בחר מסלול ידנית כדי לראות חתך גאוגרפי"
+                  emptyHint="אין פירוט מסלולי השקעה בדוח שהועלה"
                 />
               </section>
-              {missingPct > 0 && (
-                <div
-                  className="mb-6 flex items-start gap-2 rounded-xl px-4 py-2.5 text-[12px]"
-                  style={{ background: "rgba(217,119,6,0.12)", border: "1px solid #D97706" }}
-                >
-                  <span
-                    className="material-symbols-outlined text-[18px]"
-                    style={{ color: "#92400E" }}
-                  >
-                    info
-                  </span>
-                  <span style={{ color: "#92400E" }}>
-                    {missingPct}% מהקופות ללא מסלול מזוהה — חתכי סיכון וגאוגרפיה חלקיים. בחר מסלול
-                    בכל קופה לראייה מלאה.
-                  </span>
-                </div>
-              )}
             </>
           );
         })()}
@@ -653,14 +752,19 @@ export default function PensionPage() {
                       <span className="material-symbols-outlined text-[20px] text-verdant-muted">
                         {isExpanded ? "expand_less" : "expand_more"}
                       </span>
-                      <div className="flex flex-1 items-center justify-between gap-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-extrabold text-verdant-ink">
+                      <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="shrink-0 text-sm font-extrabold text-verdant-ink">
                             {f.company}
                           </span>
-                          <span className="text-[11px] text-verdant-muted">· {f.track || "—"}</span>
+                          <span
+                            className="truncate text-[11px] text-verdant-muted"
+                            title={f.track || undefined}
+                          >
+                            · {f.track || "—"}
+                          </span>
                         </div>
-                        <div className="text-sm font-extrabold tabular-nums text-verdant-ink">
+                        <div className="shrink-0 text-sm font-extrabold tabular-nums text-verdant-ink">
                           {fmtILS(f.balance)}
                         </div>
                       </div>
@@ -668,133 +772,125 @@ export default function PensionPage() {
 
                     {/* Expanded body — only when accordion open. */}
                     {isExpanded && (
-                      <div className="px-5 pb-4 pt-1 transition-colors hover:bg-[#FFFFFF]">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <div className="text-sm font-extrabold text-verdant-ink">
-                                {f.company}
-                              </div>
-                              {f.insuranceCover && (
+                      <div className="bg-white px-5 pb-4 pt-1">
+                        {/* Badges — only meaningful flags, no repeated name/balance */}
+                        {(() => {
+                          const badges: React.ReactNode[] = [];
+                          if (f.insuranceCover)
+                            badges.push(
+                              <span
+                                key="ins"
+                                className="rounded-full px-2 py-0.5 text-[9px] font-bold"
+                                style={{ background: "#e0f2fe", color: "#0369a1" }}
+                              >
+                                כולל ביטוח
+                              </span>
+                            );
+                          if (f.type === "hishtalmut") {
+                            const explicit = f.liquidityDate || f.annualReportDetails?.liquidityDate;
+                            let liqDate: Date | null = null;
+                            if (explicit) liqDate = new Date(explicit);
+                            else if (f.openingDate) {
+                              const d = new Date(f.openingDate);
+                              d.setFullYear(d.getFullYear() + (f.isEmployed === false ? 3 : 6));
+                              liqDate = d;
+                            }
+                            if (liqDate) {
+                              const isLiq = new Date() >= liqDate;
+                              badges.push(
                                 <span
-                                  className="rounded-full px-1.5 py-0.5 text-[8px] font-bold"
-                                  style={{ background: "#e0f2fe", color: "#0369a1" }}
+                                  key="liq"
+                                  className="rounded-full px-2 py-0.5 text-[9px] font-bold"
+                                  style={{
+                                    background: isLiq ? "#dcfce7" : "#fef9c3",
+                                    color: isLiq ? "#166534" : "#854d0e",
+                                  }}
                                 >
-                                  כולל ביטוח
+                                  {isLiq ? "נזילה ✓" : `נזילה ${liqDate.toLocaleDateString("he-IL")}`}
                                 </span>
-                              )}
-                              {f.type === "hishtalmut" &&
-                                f.openingDate &&
-                                (() => {
-                                  const vestYrs = f.isEmployed === false ? 3 : 6;
-                                  const liqDate = new Date(f.openingDate);
-                                  liqDate.setFullYear(liqDate.getFullYear() + vestYrs);
-                                  const isLiq = new Date() >= liqDate;
-                                  return (
-                                    <span
-                                      className="rounded-full px-1.5 py-0.5 text-[8px] font-bold"
-                                      style={{
-                                        background: isLiq ? "#dcfce7" : "#fef9c3",
-                                        color: isLiq ? "#166534" : "#854d0e",
-                                      }}
-                                    >
-                                      {isLiq
-                                        ? "נזילה ✓"
-                                        : `נזילה ${liqDate.toLocaleDateString("he-IL")}`}
-                                    </span>
-                                  );
-                                })()}
-                              {(f.subtype === "bituach_classic" ||
-                                f.subtype === "bituach_adif" ||
-                                f.subtype === "pension_vatika") && (
-                                <span
-                                  className="rounded-full px-1.5 py-0.5 text-[8px] font-bold"
-                                  style={{ background: "rgba(217,119,6,0.12)", color: "#92400e" }}
-                                >
-                                  מקדם מובטח{f.conversionFactor ? ` (${f.conversionFactor})` : ""}
-                                </span>
-                              )}
-                              {f.guaranteedRate != null && f.guaranteedRate > 0 && (
-                                <span
-                                  className="rounded-full px-1.5 py-0.5 text-[8px] font-bold"
-                                  style={{ background: "#e0f2fe", color: "#0369a1" }}
-                                >
-                                  ריבית מובטחת {f.guaranteedRate}%
-                                </span>
-                              )}
-                            </div>
-                            <div className="mt-0.5 text-[11px] text-verdant-muted">
+                              );
+                            }
+                          }
+                          if (
+                            f.subtype === "bituach_classic" ||
+                            f.subtype === "bituach_adif" ||
+                            f.subtype === "pension_vatika"
+                          )
+                            badges.push(
+                              <span
+                                key="factor"
+                                className="rounded-full px-2 py-0.5 text-[9px] font-bold"
+                                style={{ background: "rgba(217,119,6,0.12)", color: "#92400e" }}
+                              >
+                                מקדם מובטח{f.conversionFactor ? ` (${f.conversionFactor})` : ""}
+                              </span>
+                            );
+                          if (f.guaranteedRate != null && f.guaranteedRate > 0)
+                            badges.push(
+                              <span
+                                key="rate"
+                                className="rounded-full px-2 py-0.5 text-[9px] font-bold"
+                                style={{ background: "#e0f2fe", color: "#0369a1" }}
+                              >
+                                ריבית מובטחת {f.guaranteedRate}%
+                              </span>
+                            );
+                          return badges.length ? (
+                            <div className="mb-3 flex flex-wrap items-center gap-1.5">{badges}</div>
+                          ) : null;
+                        })()}
+
+                        {/* Scannable detail grid — label above value, evenly spaced */}
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-3 md:grid-cols-4">
+                          <div>
+                            <div className="text-[10px] font-bold text-verdant-muted">מסלול</div>
+                            <div className="mt-0.5 text-xs font-extrabold text-verdant-ink">
                               {f.subtype && SUBTYPE_LABELS[f.subtype] && (
-                                <span className="font-bold text-verdant-emerald">
+                                <span className="text-verdant-emerald">
                                   {SUBTYPE_LABELS[f.subtype]} ·{" "}
                                 </span>
                               )}
-                              מסלול: {f.track} · הפקדה: {fmtILS(f.monthlyContrib)}/חודש
+                              {f.track || "—"}
                             </div>
                           </div>
-                          <div className="flex items-center gap-6">
-                            <div className="text-left">
+                          <div>
+                            <div className="text-[10px] font-bold text-verdant-muted">
+                              הפקדה חודשית
+                            </div>
+                            <div className="tabular mt-0.5 text-xs font-extrabold text-verdant-ink">
+                              {fmtILS(f.monthlyContrib)}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-[10px] font-bold text-verdant-muted">דמי ניהול</div>
+                            <div
+                              className="tabular mt-0.5 text-xs font-extrabold"
+                              style={{ color: feeBenchmark(f.mgmtFeeBalance).color }}
+                            >
+                              {f.mgmtFeeBalance}% צבירה · {f.mgmtFeeDeposit}% הפקדה
+                              <span className="mr-1 text-[9px]">
+                                ({feeBenchmark(f.mgmtFeeBalance).label})
+                              </span>
+                            </div>
+                          </div>
+                          {f.annualReportDetails?.accountNumber && (
+                            <div>
                               <div className="text-[10px] font-bold text-verdant-muted">
-                                דמי ניהול
+                                מספר חשבון
                               </div>
-                              <div
-                                className="tabular text-xs font-extrabold"
-                                style={{ color: feeBenchmark(f.mgmtFeeBalance).color }}
-                              >
-                                {f.mgmtFeeDeposit}% הפקדה · {f.mgmtFeeBalance}% צבירה
-                              </div>
-                              <div
-                                className="text-[9px] font-bold"
-                                style={{ color: feeBenchmark(f.mgmtFeeBalance).color }}
-                              >
-                                {feeBenchmark(f.mgmtFeeBalance).label}
+                              <div className="tabular mt-0.5 text-xs font-extrabold text-verdant-ink">
+                                {f.annualReportDetails.accountNumber}
                               </div>
                             </div>
-                            <div className="min-w-[100px] text-left">
-                              <div className="text-[10px] font-bold text-verdant-muted">יתרה</div>
-                              <div className="tabular text-sm font-extrabold text-verdant-ink">
-                                {fmtILS(f.balance)}
-                              </div>
-                            </div>
-                            <div className="flex gap-1.5">
-                              <button
-                                onClick={() => setSimFundId(f.id)}
-                                title="סימולציה — what if על הקופה הזו"
-                                className="flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[11px] font-bold hover:bg-[#FAFAF7]"
-                                style={{ color: "#2C7A5A", borderColor: "#E5E7EB" }}
-                              >
-                                <span className="material-symbols-outlined text-[16px]">tune</span>
-                                סימולציה
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setShowAddForm(false);
-                                  setEditingFund(f.id);
-                                }}
-                                title="עריכה"
-                                className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-verdant-muted hover:bg-[#FAFAF7]"
-                              >
-                                <span className="material-symbols-outlined text-[16px]">edit</span>
-                              </button>
-                              <button
-                                onClick={() => handleDeleteFund(f.id)}
-                                title="מחיקת קופה"
-                                className="flex items-center gap-1 rounded-lg border border-red-200 px-2.5 py-1.5 text-[11px] font-bold text-red-600 hover:bg-red-50"
-                              >
-                                <span className="material-symbols-outlined text-[16px]">
-                                  delete
-                                </span>
-                                מחק
-                              </button>
-                            </div>
-                          </div>
+                          )}
                         </div>
+
                         {(() => {
                           const alert = trackAlert(f, currentAge);
                           if (!alert) return null;
                           return (
                             <div
-                              className="mt-1 flex items-center gap-1 text-[10px] font-bold"
+                              className="mt-2 flex items-center gap-1 text-[10px] font-bold"
                               style={{ color: "#b45309" }}
                             >
                               <span className="material-symbols-outlined text-[12px]">info</span>
@@ -802,6 +898,39 @@ export default function PensionPage() {
                             </div>
                           );
                         })()}
+
+                        {/* Actions — grouped at the bottom, out of the data's way */}
+                        <div className="mt-3 flex justify-end gap-1.5">
+                          <button
+                            onClick={() => setSimFundId(f.id)}
+                            title="סימולציה — what if על הקופה הזו"
+                            className="flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[11px] font-bold hover:bg-[#FAFAF7]"
+                            style={{ color: "#2C7A5A", borderColor: "#E5E7EB" }}
+                          >
+                            <span className="material-symbols-outlined text-[16px]">tune</span>
+                            סימולציה
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowAddForm(false);
+                              setEditingFund(f.id);
+                            }}
+                            title="עריכה"
+                            className="flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[11px] font-bold text-verdant-muted hover:bg-[#FAFAF7]"
+                            style={{ borderColor: "#E5E7EB" }}
+                          >
+                            <span className="material-symbols-outlined text-[16px]">edit</span>
+                            עריכה
+                          </button>
+                          <button
+                            onClick={() => handleDeleteFund(f.id)}
+                            title="מחיקת קופה"
+                            className="flex items-center gap-1 rounded-lg border border-red-200 px-2.5 py-1.5 text-[11px] font-bold text-red-600 hover:bg-red-50"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">delete</span>
+                            מחק
+                          </button>
+                        </div>
                         {/* Multi-track drill-down — shown only when fund has tracks[]. */}
                         {f.tracks && f.tracks.length > 1 && (
                           <div className="v-divider mt-2 border-t pt-2">
@@ -901,10 +1030,28 @@ export default function PensionPage() {
           let yearsLeft = 0;
           let monthsLeft = 0;
 
-          if (f.openingDate) {
+          // Priority: manual override → date from the report → computed from
+          // opening date + vesting period.
+          const explicit = f.liquidityDate || f.annualReportDetails?.liquidityDate;
+          // "fromReport" only when the explicit value came from the report and
+          // wasn't manually overridden — used to show the source hint.
+          const liquiditySource: "manual" | "report" | "computed" | "none" = f.liquidityDate
+            ? "manual"
+            : f.annualReportDetails?.liquidityDate
+              ? "report"
+              : f.openingDate
+                ? "computed"
+                : "none";
+
+          if (explicit) {
+            liquidityDate = new Date(explicit);
+          } else if (f.openingDate) {
             const openDate = new Date(f.openingDate);
             liquidityDate = new Date(openDate);
             liquidityDate.setFullYear(liquidityDate.getFullYear() + vestingYears);
+          }
+
+          if (liquidityDate) {
             isLiquid = today >= liquidityDate;
             if (!isLiquid) {
               const diffMs = liquidityDate.getTime() - today.getTime();
@@ -923,6 +1070,7 @@ export default function PensionPage() {
             fund: f,
             vestingYears,
             liquidityDate,
+            liquiditySource,
             isLiquid,
             yearsLeft,
             monthsLeft,
@@ -951,6 +1099,7 @@ export default function PensionPage() {
                 fund: f,
                 vestingYears,
                 liquidityDate,
+                liquiditySource,
                 isLiquid,
                 yearsLeft,
                 monthsLeft,
@@ -966,59 +1115,119 @@ export default function PensionPage() {
                   </div>
 
                   <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-                    {f.openingDate ? (
-                      <>
-                        <div className="rounded-lg p-2.5" style={{ background: "#FAFAF7" }}>
-                          <div className="text-[10px] font-bold text-verdant-muted">
-                            תאריך פתיחה
-                          </div>
-                          <div className="mt-0.5 text-xs font-extrabold text-verdant-ink">
-                            {new Date(f.openingDate).toLocaleDateString("he-IL")}
-                          </div>
-                        </div>
-                        <div
-                          className="rounded-lg p-2.5"
-                          style={{ background: isLiquid ? "#FAFAF7" : "rgba(217,119,6,0.08)" }}
-                        >
-                          <div className="text-[10px] font-bold text-verdant-muted">
-                            נזילות ({vestingYears} שנים ·{" "}
-                            {f.isEmployed === false ? "עצמאי" : "שכיר"})
-                          </div>
-                          {isLiquid ? (
-                            <div
-                              className="mt-0.5 text-xs font-extrabold"
-                              style={{ color: "#2C7A5A" }}
-                            >
-                              נזילה ✓
-                            </div>
-                          ) : (
-                            <div
-                              className="mt-0.5 text-xs font-extrabold"
-                              style={{ color: "#92400e" }}
-                            >
-                              {liquidityDate ? liquidityDate.toLocaleDateString("he-IL") : "—"}
-                              {yearsLeft > 0 && ` (${yearsLeft} שנים`}
-                              {yearsLeft > 0 && monthsLeft > 0 && ` ו-${monthsLeft} חודשים`}
-                              {yearsLeft === 0 && monthsLeft > 0 && ` (${monthsLeft} חודשים`}
-                              {(yearsLeft > 0 || monthsLeft > 0) && ")"}
-                            </div>
-                          )}
-                        </div>
-                      </>
-                    ) : (
-                      <div
-                        className="col-span-2 rounded-lg p-2.5"
-                        style={{ background: "rgba(217,119,6,0.08)" }}
-                      >
-                        <div
-                          className="flex items-center gap-1 text-[11px] font-bold"
-                          style={{ color: "#92400e" }}
-                        >
-                          <span className="material-symbols-outlined text-[14px]">info</span>
-                          הגדר תאריך פתיחה כדי לראות מועד נזילות
+                    {f.openingDate && (
+                      <div className="rounded-lg p-2.5" style={{ background: "#FAFAF7" }}>
+                        <div className="text-[10px] font-bold text-verdant-muted">תאריך פתיחה</div>
+                        <div className="mt-0.5 text-xs font-extrabold text-verdant-ink">
+                          {new Date(f.openingDate).toLocaleDateString("he-IL")}
                         </div>
                       </div>
                     )}
+                    <div
+                      className={`rounded-lg p-2.5 ${f.openingDate ? "" : "col-span-2"}`}
+                      style={{
+                        background:
+                          liquiditySource === "none"
+                            ? "rgba(217,119,6,0.08)"
+                            : isLiquid
+                              ? "#FAFAF7"
+                              : "rgba(217,119,6,0.08)",
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <div className="text-[10px] font-bold text-verdant-muted">
+                          מועד נזילות
+                          {liquiditySource === "manual" && " (הוגדר ידנית)"}
+                          {liquiditySource === "report" && " (מהדוח)"}
+                          {liquiditySource === "computed" &&
+                            ` (${vestingYears} שנים · ${f.isEmployed === false ? "עצמאי" : "שכיר"})`}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingLiquidityId(f.id);
+                            setLiquidityDraft(
+                              (liquiditySource !== "computed" && liquidityDate
+                                ? liquidityDate.toISOString().slice(0, 10)
+                                : f.liquidityDate) || ""
+                            );
+                          }}
+                          className="flex h-5 w-5 shrink-0 items-center justify-center rounded hover:opacity-70"
+                          title="ערוך מועד נזילות"
+                          style={{ color: "#6B7280" }}
+                        >
+                          <span className="material-symbols-outlined text-[14px]">edit</span>
+                        </button>
+                      </div>
+
+                      {editingLiquidityId === f.id ? (
+                        <div className="mt-1.5 flex items-center gap-1.5">
+                          <input
+                            type="date"
+                            value={liquidityDraft}
+                            onChange={(e) => setLiquidityDraft(e.target.value)}
+                            className="min-w-0 flex-1 rounded border px-1.5 py-1 text-[11px] font-bold text-verdant-ink"
+                            style={{ borderColor: "#E5E7EB" }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              updateFundInStore(f.id, { liquidityDate: liquidityDraft || undefined });
+                              setFunds(loadPensionFunds());
+                              setEditingLiquidityId(null);
+                            }}
+                            className="shrink-0 rounded bg-[#2B694D] px-1.5 py-1 text-[11px] font-bold text-white hover:opacity-80"
+                            title="שמור"
+                          >
+                            <span className="material-symbols-outlined text-[14px]">check</span>
+                          </button>
+                          {f.liquidityDate && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updateFundInStore(f.id, { liquidityDate: undefined });
+                                setFunds(loadPensionFunds());
+                                setEditingLiquidityId(null);
+                              }}
+                              className="shrink-0 rounded border px-1.5 py-1 text-[11px] font-bold text-verdant-muted hover:opacity-80"
+                              style={{ borderColor: "#E5E7EB" }}
+                              title="אפס לערך מהדוח/מחושב"
+                            >
+                              <span className="material-symbols-outlined text-[14px]">undo</span>
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setEditingLiquidityId(null)}
+                            className="shrink-0 rounded border px-1.5 py-1 text-[11px] font-bold text-verdant-muted hover:opacity-80"
+                            style={{ borderColor: "#E5E7EB" }}
+                            title="ביטול"
+                          >
+                            <span className="material-symbols-outlined text-[14px]">close</span>
+                          </button>
+                        </div>
+                      ) : liquiditySource === "none" ? (
+                        <div
+                          className="mt-0.5 flex items-center gap-1 text-[11px] font-bold"
+                          style={{ color: "#92400e" }}
+                        >
+                          <span className="material-symbols-outlined text-[14px]">info</span>
+                          לא זוהה — לחץ לעריכה כדי להגדיר
+                        </div>
+                      ) : isLiquid ? (
+                        <div className="mt-0.5 text-xs font-extrabold" style={{ color: "#2C7A5A" }}>
+                          נזילה ✓ ({liquidityDate?.toLocaleDateString("he-IL")})
+                        </div>
+                      ) : (
+                        <div className="mt-0.5 text-xs font-extrabold" style={{ color: "#92400e" }}>
+                          {liquidityDate ? liquidityDate.toLocaleDateString("he-IL") : "—"}
+                          {yearsLeft > 0 && ` (${yearsLeft} שנים`}
+                          {yearsLeft > 0 && monthsLeft > 0 && ` ו-${monthsLeft} חודשים`}
+                          {yearsLeft === 0 && monthsLeft > 0 && ` (${monthsLeft} חודשים`}
+                          {(yearsLeft > 0 || monthsLeft > 0) && ")"}
+                        </div>
+                      )}
+                    </div>
                     <div className="rounded-lg p-2.5" style={{ background: "#FAFAF7" }}>
                       <div className="text-[10px] font-bold text-verdant-muted">צפי עוד 5 שנים</div>
                       <div className="tabular mt-0.5 text-xs font-extrabold text-verdant-ink">
