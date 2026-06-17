@@ -277,6 +277,35 @@ const BANK_HINTS: [string, string[]][] = [
   ["וואן זירו", ["one zero", "וואן זירו", "1zero"]],
 ];
 
+const BANK_BY_PREFIX: Record<string, string> = {
+  "04": "בנק יהב",
+  "09": "בנק הדואר",
+  "10": "בנק לאומי",
+  "11": "בנק דיסקונט",
+  "12": "בנק הפועלים",
+  "13": "בנק איגוד",
+  "14": "אוצר החייל",
+  "17": "בנק מרכנתיל",
+  "20": "בנק מזרחי-טפחות",
+  "26": "יובנק",
+  "31": "בנק הבינלאומי",
+  "46": "בנק מסד",
+  "52": "בנק פועלי אגודת ישראל",
+  "54": "בנק ירושלים",
+  "68": "בנק דקסיה",
+};
+
+/** Resolve the issuing bank from an account-number routing prefix (e.g. "04-131-…").
+ *  Prefers the account that follows a "חשבון" header — the statement's own
+ *  account — over any prefix that merely appears in a transaction row. */
+function detectBankByPrefix(text: string): string | null {
+  const headerMatch = text.match(/חשבון[\s:]*?(\d{2})[-\s/]\d{2,4}[-\s/]/);
+  if (headerMatch && BANK_BY_PREFIX[headerMatch[1]]) return BANK_BY_PREFIX[headerMatch[1]];
+  const prefixMatch = text.match(/(?:^|[\s:])(\d{2})[-\s/](\d{2,4})[-\s/]/);
+  if (prefixMatch && BANK_BY_PREFIX[prefixMatch[1]]) return BANK_BY_PREFIX[prefixMatch[1]];
+  return null;
+}
+
 export function detectBank(text: string, opts?: { skipCreditCards?: boolean }): string {
   const lower = text.toLowerCase();
   // Credit cards first — strong signals trump bank-keyword collisions.
@@ -286,33 +315,20 @@ export function detectBank(text: string, opts?: { skipCreditCards?: boolean }): 
     for (const [name, keywords] of CREDIT_CARD_HINTS) {
       if (keywords.some((k) => lower.includes(k))) return name;
     }
+  } else {
+    // Bank-format file: the account-number routing prefix is the authoritative
+    // issuer signal. Bank names in transaction descriptions (a salary from
+    // "הפועלים", a Bit transfer, a mortgage at another bank) are noise that
+    // would otherwise win the keyword match below and mislabel the statement.
+    const byPrefix = detectBankByPrefix(text);
+    if (byPrefix) return byPrefix;
   }
   for (const [name, keywords] of BANK_HINTS) {
     if (keywords.some((k) => lower.includes(k))) return name;
   }
   // Fallback: account-number prefix (Israeli bank routing codes).
   // Pattern matches account number formats like "12-555-49541", "10-806-033562048".
-  const prefixMatch = text.match(/(?:^|[\s:])(\d{2})[-\s/](\d{2,4})[-\s/]/);
-  if (prefixMatch) {
-    const code = prefixMatch[1];
-    const byCode: Record<string, string> = {
-      "04": "בנק יהב",
-      "09": "בנק הדואר",
-      "10": "בנק לאומי",
-      "11": "בנק דיסקונט",
-      "12": "בנק הפועלים",
-      "13": "בנק איגוד",
-      "14": "אוצר החייל",
-      "17": "בנק מרכנתיל",
-      "20": "בנק מזרחי-טפחות",
-      "26": "יובנק",
-      "31": "בנק הבינלאומי",
-      "46": "בנק מסד",
-      "52": "בנק פועלי אגודת ישראל",
-      "54": "בנק ירושלים",
-      "68": "בנק דקסיה",
-    };
-    if (byCode[code]) return byCode[code];
-  }
+  const byPrefix = detectBankByPrefix(text);
+  if (byPrefix) return byPrefix;
   return "לא זוהה";
 }

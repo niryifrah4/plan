@@ -56,6 +56,10 @@ interface Client {
   phone?: string; // Primary contact phone — inherited from lead on conversion
 }
 
+type CrmTooltip =
+  | { kind: "button"; label: string; x: number; y: number }
+  | { kind: "docs"; docs: Client["docsList"]; x: number; y: number };
+
 /* ═══════════════════════════════════════════════════════════════════
    Static maps
    ═══════════════════════════════════════════════════════════════════ */
@@ -181,6 +185,15 @@ function isWithinDays(iso: string, days: number) {
   return d >= cutoff;
 }
 
+function getFixedTooltipAnchor(el: HTMLElement) {
+  const r = el.getBoundingClientRect();
+  const zoom = document.body.getBoundingClientRect().width / window.innerWidth || 1;
+  return {
+    x: (r.left + r.width / 2) / zoom,
+    y: (r.top - 10) / zoom,
+  };
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    CRM Page
    ═══════════════════════════════════════════════════════════════════ */
@@ -236,7 +249,7 @@ export default function CrmPage() {
 
   // Toast notification (config messages stay 6s, others 3s)
   const [toast, setToast] = useState<string | null>(null);
-  const [btnTooltip, setBtnTooltip] = useState<{ label: string; x: number; y: number } | null>(null);
+  const [crmTooltip, setCrmTooltip] = useState<CrmTooltip | null>(null);
   const [clientsLoading, setClientsLoading] = useState(true);
   useEffect(() => {
     if (toast) {
@@ -1033,8 +1046,6 @@ export default function CrmPage() {
                     </tr>
                   )}
                   {!clientsLoading && filteredClients.map((c) => {
-                    const docPct =
-                      c.docsTotal > 0 ? Math.round((c.docsUploaded / c.docsTotal) * 100) : 0;
                     const stepLabel = c.step === 0 ? "חדש" : `שלב ${c.step}/${c.totalSteps}`;
                     const stepColor =
                       c.step === 0 ? "#D97706" : c.step >= c.totalSteps ? "#059669" : "#2C7A5A";
@@ -1083,50 +1094,35 @@ export default function CrmPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3.5 text-right">
-                          <div className="group relative flex items-center justify-end gap-2">
-                            <span className="tabular text-[10px] font-bold text-verdant-muted">
-                              {c.docsUploaded}/{c.docsTotal}
-                            </span>
-                            <div
-                              className="h-1.5 w-16 overflow-hidden rounded-full"
-                              style={{ background: "#E5E7EB" }}
+                          <div
+                            className="flex w-full min-w-0 items-center justify-end gap-2 overflow-hidden"
+                            onMouseEnter={(e) => {
+                              if (c.docsList.length === 0) return;
+                              const p = getFixedTooltipAnchor(e.currentTarget as HTMLElement);
+                              setCrmTooltip({ kind: "docs", docs: c.docsList, ...p });
+                            }}
+                            onMouseLeave={() => setCrmTooltip(null)}
+                            onFocus={(e) => {
+                              if (c.docsList.length === 0) return;
+                              const p = getFixedTooltipAnchor(e.currentTarget as HTMLElement);
+                              setCrmTooltip({ kind: "docs", docs: c.docsList, ...p });
+                            }}
+                            onBlur={() => setCrmTooltip(null)}
+                            tabIndex={c.docsList.length > 0 ? 0 : -1}
+                          >
+                            <span
+                              className="inline-flex max-w-full shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-extrabold"
+                              style={{
+                                background: c.docsUploaded > 0 ? "#05966918" : "#9ca3af18",
+                                color: c.docsUploaded > 0 ? "#059669" : "#6B7280",
+                              }}
                             >
-                              <div
-                                className="h-full rounded-full"
-                                style={{
-                                  width: `${docPct}%`,
-                                  background: docPct === 100 ? "#059669" : "#D97706",
-                                }}
-                              />
-                            </div>
-                            {c.docsList.length > 0 && (
-                              <div
-                                className="pointer-events-none absolute bottom-full left-0 z-50 mb-2 hidden min-w-[220px] rounded-xl border border-black/5 p-3 shadow-lg group-hover:block"
-                                style={{ background: "#FAFAF7" }}
-                                dir="rtl"
-                              >
-                                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-verdant-muted">
-                                  מסמכים שהועלו
-                                </p>
-                                <ul className="space-y-1.5">
-                                  {c.docsList.map((d, idx) => (
-                                    <li key={idx} className="flex flex-col gap-0.5">
-                                      <span className="text-[11px] font-bold text-verdant-ink leading-tight">
-                                        {d.filename}
-                                      </span>
-                                      <span className="text-[10px] text-verdant-muted">
-                                        {d.bankHint && `${d.bankHint} · `}
-                                        {new Date(d.uploadedAt).toLocaleDateString("he-IL", {
-                                          day: "numeric",
-                                          month: "short",
-                                          year: "numeric",
-                                        })}
-                                      </span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
+                              <span className="material-symbols-outlined shrink-0 text-[13px]">
+                                description
+                              </span>
+                              <span className="tabular">{c.docsUploaded}</span>
+                              <span className="hidden sm:inline">קבצים</span>
+                            </span>
                           </div>
                         </td>
                         <td className="px-4 py-3.5 text-right font-bold text-verdant-muted">
@@ -1150,10 +1146,10 @@ export default function CrmPage() {
                                 setToast("❌ רשומה ישנה ללא מזהה לקוח — רענן את הדף ונסה שוב");
                               }}
                               onMouseEnter={(e) => {
-                                const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                                setBtnTooltip({ label: "שאלון אפיון", x: r.left + r.width / 2, y: r.top - 8 });
+                                const p = getFixedTooltipAnchor(e.currentTarget as HTMLElement);
+                                setCrmTooltip({ kind: "button", label: "שאלון אפיון", ...p });
                               }}
-                              onMouseLeave={() => setBtnTooltip(null)}
+                              onMouseLeave={() => setCrmTooltip(null)}
                               className="flex h-8 w-8 items-center justify-center rounded-lg border transition-all hover:-translate-y-0.5 hover:shadow-soft active:scale-95"
                               style={{ borderColor: "#E5E7EB", color: "#6B7280", background: "#FFFFFF" }}
                             >
@@ -1194,10 +1190,10 @@ export default function CrmPage() {
                                 window.location.href = `/api/crm/impersonate/enter?household_id=${encodeURIComponent(c.householdId)}`;
                               }}
                               onMouseEnter={(e) => {
-                                const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                                setBtnTooltip({ label: "כניסה לתיק", x: r.left + r.width / 2, y: r.top - 8 });
+                                const p = getFixedTooltipAnchor(e.currentTarget as HTMLElement);
+                                setCrmTooltip({ kind: "button", label: "כניסה לתיק", ...p });
                               }}
-                              onMouseLeave={() => setBtnTooltip(null)}
+                              onMouseLeave={() => setCrmTooltip(null)}
                               className="flex h-8 w-8 items-center justify-center rounded-lg transition-all hover:-translate-y-0.5 hover:shadow-soft active:scale-95"
                               style={{ background: "#2C7A5A", color: "#FFFFFF" }}
                             >
@@ -1508,12 +1504,42 @@ export default function CrmPage() {
         </section>
 
       {/* Fixed tooltip — rendered outside all overflow containers */}
-      {btnTooltip && (
+      {crmTooltip?.kind === "button" && (
         <div
-          className="pointer-events-none fixed z-[9999] -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-bold shadow-md"
-          style={{ background: "#1C2B22", color: "#FFFFFF", left: btnTooltip.x, top: btnTooltip.y }}
+          className="pointer-events-none fixed z-[99999] -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-bold shadow-md"
+          style={{ background: "#1C2B22", color: "#FFFFFF", left: crmTooltip.x, top: crmTooltip.y }}
         >
-          {btnTooltip.label}
+          {crmTooltip.label}
+        </div>
+      )}
+
+      {crmTooltip?.kind === "docs" && (
+        <div
+          className="pointer-events-none fixed z-[99999] max-h-[320px] min-w-[220px] max-w-[320px] -translate-x-1/2 -translate-y-full overflow-auto rounded-xl border border-black/5 p-3 text-right shadow-lg"
+          style={{ background: "#FAFAF7", left: crmTooltip.x, top: crmTooltip.y }}
+          dir="rtl"
+          role="tooltip"
+        >
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-verdant-muted">
+            מסמכים שהועלו
+          </p>
+          <ul className="space-y-1.5">
+            {crmTooltip.docs.map((d, idx) => (
+              <li key={idx} className="flex flex-col gap-0.5">
+                <span className="text-[11px] font-bold leading-tight text-verdant-ink">
+                  {d.filename}
+                </span>
+                <span className="text-[10px] text-verdant-muted">
+                  {d.bankHint && `${d.bankHint} · `}
+                  {new Date(d.uploadedAt).toLocaleDateString("he-IL", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

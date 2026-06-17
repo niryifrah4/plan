@@ -65,16 +65,6 @@ const ONBOARDING_INSURANCE_KEY = "verdant:onboarding:insurance";
 const ONBOARDING_GOALS_KEY = "verdant:onboarding:goals";
 const ONBOARDING_INCOMES_KEY = "verdant:onboarding:incomes";
 
-function readScopedJSON<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = localStorage.getItem(scopedKey(key));
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
 function writeScopedJSON(key: string, value: unknown): void {
   localStorage.setItem(scopedKey(key), JSON.stringify(value));
 }
@@ -88,23 +78,44 @@ function readScopedString(key: string): string | null {
   }
 }
 
-function loadInitialOnboardingState() {
+/**
+ * Build the full onboarding state from a raw "key → stringified JSON" getter.
+ * Used in two ways:
+ *   • localStorage source  — `getRaw = (k) => localStorage[scopedKey(k)]`
+ *   • remote snapshot map  — `getRaw = (k) => remoteData[k]`
+ * The defaults are identical in both paths.
+ */
+function buildOnboardingState(getRaw: (key: string) => string | null) {
+  const parse = <T,>(key: string, fallback: T): T => {
+    try {
+      const raw = getRaw(key);
+      return raw ? (JSON.parse(raw) as T) : fallback;
+    } catch {
+      return fallback;
+    }
+  };
   return {
-    step: readScopedJSON<number>(ONBOARDING_STEP_KEY, 1),
-    fields: readScopedJSON<Fields>(ONBOARDING_FIELDS_KEY, {}),
-    children: readScopedJSON<Child[]>(ONBOARDING_CHILDREN_KEY, []),
-    assets: readScopedJSON<AssetRow[]>(ONBOARDING_ASSETS_KEY, [
+    step: parse<number>(ONBOARDING_STEP_KEY, 1),
+    fields: parse<Fields>(ONBOARDING_FIELDS_KEY, {}),
+    children: parse<Child[]>(ONBOARDING_CHILDREN_KEY, []),
+    assets: parse<AssetRow[]>(ONBOARDING_ASSETS_KEY, [
       { type: 'נדל"ן למגורים', desc: "", value: "", rent: "", rentExpenses: "" },
     ]),
-    liabilities: readScopedJSON<LiabRow[]>(ONBOARDING_LIABILITIES_KEY, [
+    liabilities: parse<LiabRow[]>(ONBOARDING_LIABILITIES_KEY, [
       { type: "משכנתא", lender: "", balance: "", rate: "", monthly: "" },
     ]),
-    insurance: readScopedJSON<InsRow[]>(ONBOARDING_INSURANCE_KEY, INS_DEFAULTS),
-    goals: readScopedJSON<GoalRow[]>(ONBOARDING_GOALS_KEY, [
+    insurance: parse<InsRow[]>(ONBOARDING_INSURANCE_KEY, INS_DEFAULTS),
+    goals: parse<GoalRow[]>(ONBOARDING_GOALS_KEY, [
       { name: "", cost: "", horizon: "", priority: "" },
     ]),
-    incomes: readScopedJSON<IncomeRow[]>(ONBOARDING_INCOMES_KEY, INCOME_DEFAULTS),
+    incomes: parse<IncomeRow[]>(ONBOARDING_INCOMES_KEY, INCOME_DEFAULTS),
   };
+}
+
+function loadInitialOnboardingState() {
+  return buildOnboardingState((key) =>
+    typeof window === "undefined" ? null : localStorage.getItem(scopedKey(key))
+  );
 }
 
 export default function OnboardingPage() {
@@ -127,17 +138,45 @@ export default function OnboardingPage() {
   useEffect(() => {
     let alive = true;
     (async () => {
+      let remoteData: Record<string, string> | null = null;
       try {
-        const wrote = await hydrateOnboardingFromRemote();
-        if (!alive) return;
-        // If we wrote new data, force a full remount so the local state
-        // initializers re-read from localStorage. Otherwise just proceed.
-        if (wrote) {
-          window.location.reload();
-          return;
-        }
+        remoteData = await hydrateOnboardingFromRemote();
       } catch (e) { reportError("client/onboarding/page", e); }
-      if (alive) setHydrated(true);
+      // eslint-disable-next-line no-console
+      console.log("ONB-DBG hydrate resolved", {
+        alive,
+        remoteDataNull: remoteData == null,
+        remoteFieldsLen: remoteData?.["verdant:onboarding:fields"]?.length ?? -1,
+      });
+      if (!alive) return;
+      // Apply the snapshot returned by hydrate DIRECTLY to React state.
+      //
+      // We deliberately don't re-read localStorage here. The bootstrap sequence
+      // (lib/sync/bootstrap.ts) calls hydrateOnboardingFromRemote() concurrently;
+      // whoever resolves second writes nothing, and reading localStorage right
+      // after the await is subject to a write-timing / not-yet-settled-scope race
+      // — that's why a hard refresh kept landing on the welcome screen for an
+      // already-filled questionnaire, while navigating away and back (a full
+      // remount, by which time localStorage had settled) rendered it correctly.
+      // hydrate now hands back the authoritative pulled snapshot, so we render
+      // exactly what was fetched. Fall back to the local snapshot only when there
+      // is no remote data at all.
+      const data = remoteData;
+      const fresh = data
+        ? buildOnboardingState((key) => data[key] ?? null)
+        : loadInitialOnboardingState();
+      // Preserve an explicit ?step deep-link; otherwise adopt the saved step.
+      const hasStepParam =
+        typeof window !== "undefined" && new URLSearchParams(window.location.search).has("step");
+      if (!hasStepParam) setStep(fresh.step);
+      setFields(fresh.fields);
+      setChildren(fresh.children);
+      setAssets(fresh.assets);
+      setLiabilities(fresh.liabilities);
+      setInsurance(fresh.insurance);
+      setGoals(fresh.goals);
+      setIncomes(fresh.incomes);
+      setHydrated(true);
     })();
     return () => {
       alive = false;
@@ -376,6 +415,15 @@ export default function OnboardingPage() {
   const filled = isOnboardingFilled(fields, children, assets, goals, incomes);
   const hasStepParam =
     typeof window !== "undefined" && new URLSearchParams(window.location.search).has("step");
+  // eslint-disable-next-line no-console
+  console.log("ONB-DBG render", {
+    hydrated,
+    filled,
+    editing,
+    showWelcome,
+    fieldsKeys: Object.keys(fields).length,
+    incomesLen: incomes.length,
+  });
   if (filled && !editing && !hasStepParam) {
     return (
       <OnboardingSummary

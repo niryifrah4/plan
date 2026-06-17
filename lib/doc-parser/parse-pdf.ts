@@ -14,6 +14,7 @@ import { extractBalances, reconcile } from "./reconciliation";
 import { looksLikeCalStatement, parseCalTransactions } from "./cal-pdf-parser";
 import { looksLikeMaxStatement, parseMaxTransactions } from "./max-pdf-parser";
 import { looksLikeAmexStatement, parseAmexTransactions } from "./amex-pdf-parser";
+import { looksLikeIsracardStatement, parseIsracardTransactions } from "./isracard-pdf-parser";
 import { looksLikeYahavStatement, parseYahavTransactions } from "./yahav-pdf-parser";
 import type { ParsedDocument, ParsedTransaction } from "./types";
 
@@ -67,13 +68,18 @@ export async function parsePDF(buffer: Buffer, filename: string): Promise<Parsed
     return parsePDFWithVision(buffer, filename);
   }
 
-  const bankHint = detectBank(text);
+  // Detect if PDF contains separate debit/credit headers. Computed BEFORE
+  // detectBank so we can tell it to ignore credit-card brand names: a bank
+  // עו"ש statement (חובה/זכות columns) routinely lists charges from ישראכרט,
+  // דיינרס, etc. in its transaction rows — those are noise, not the document's
+  // own institution. Without this, a Yahav statement gets misdetected as a
+  // ישראכרט credit card and bank-account extraction is skipped entirely.
+  const hasDebitCreditColumns = /חובה.*זכות|זכות.*חובה|debit.*credit|credit.*debit/i.test(text);
+
+  const bankHint = detectBank(text, { skipCreditCards: hasDebitCreditColumns });
   const isCreditCard = ["ישראכרט", "כאל", "מקס", "ויזה כאל", "אמריקן אקספרס"].some((cc) =>
     bankHint.includes(cc)
   );
-
-  // Detect if PDF contains separate debit/credit headers
-  const hasDebitCreditColumns = /חובה.*זכות|זכות.*חובה|debit.*credit|credit.*debit/i.test(text);
 
   // Split into lines and try to extract tabular data
   const lines = text
@@ -99,6 +105,11 @@ export async function parsePDF(buffer: Buffer, filename: string): Promise<Parsed
   // American Express Israel statements use ordinary dates with sector columns.
   if (transactions.length === 0 && looksLikeAmexStatement(text)) {
     transactions = parseAmexTransactions(lines);
+  }
+
+  // Isracard web/downloaded monthly statements extract as compact one-line rows.
+  if (transactions.length === 0 && looksLikeIsracardStatement(text)) {
+    transactions = parseIsracardTransactions(lines);
   }
 
   // Bank Yahav עו"ש statements glue the numeric columns together in plain text,

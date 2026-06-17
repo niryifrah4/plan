@@ -139,20 +139,50 @@ export function pushOnboardingSnapshot(): void {
  * or older. Must be awaited BEFORE `usePersistedState` reads localStorage,
  * so call it from a guard effect that blocks rendering of the form.
  *
- * Returns `true` if any keys were written (caller may want to force a reload
- * so usePersistedState re-reads), `false` otherwise.
+ * Returns the **authoritative raw data map** (key → stringified JSON) that
+ * callers should render from — the remote snapshot when remote won, or the
+ * local snapshot when local is newer (in-flight edits). Returns `null` when
+ * there is no remote snapshot at all.
+ *
+ * Why return the data instead of just a boolean: the onboarding page used to
+ * trust localStorage after this call, but the bootstrap sequence
+ * (lib/sync/bootstrap.ts) calls this function concurrently. Whoever resolves
+ * second sees "local already current" and writes nothing, and the page could
+ * read localStorage before either write landed — or under a scope that hadn't
+ * settled yet — and render the empty/welcome state for an already-filled
+ * questionnaire. Handing the resolved snapshot straight back to the caller is
+ * race- and scope-proof: the page applies exactly what was pulled.
  */
-export async function hydrateOnboardingFromRemote(): Promise<boolean> {
-  if (typeof window === "undefined") return false;
-  const remote = await pullBlob<OnboardingBlob>(BLOB_KEY);
-  if (!remote || !remote.data) return false;
+export async function hydrateOnboardingFromRemote(): Promise<Record<string, string> | null> {
+  if (typeof window === "undefined") return null;
+
+  // Pull with a short retry. `pullBlob` swallows transient failures (network
+  // hiccup, auth/session not yet warm, a concurrent React-StrictMode double
+  // mount issuing two pulls at once) and returns null on any of them. Treating
+  // that null as "no questionnaire" made an already-filled onboarding render
+  // the welcome screen on first entry after a tenant switch — confirmed via
+  // ONB-DBG: one of two concurrent calls returned the full 442-char snapshot
+  // while the other returned null. A couple of quick retries makes the live
+  // call resilient instead of trusting a single flaky read.
+  let remote: OnboardingBlob | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    remote = await pullBlob<OnboardingBlob>(BLOB_KEY);
+    if (remote && remote.data) break;
+    if (attempt < 2) await new Promise((r) => setTimeout(r, 300));
+  }
+
+  if (!remote || !remote.data) {
+    // No remote snapshot after retries — fall back to local (may be null too).
+    return readLocalSnapshot()?.data ?? null;
+  }
 
   const local = readLocalSnapshot();
   // If local exists and has a persisted savedAt that is newer or equal,
-  // don't clobber in-flight edits and don't trigger a pointless reload loop.
+  // don't clobber in-flight edits. Hand back the local snapshot so the caller
+  // renders the in-progress data rather than the older remote one.
   // Empty/missing local.savedAt means "no provenance" — let remote win,
   // even if local has stale data from a previous session.
-  if (local && local.savedAt && local.savedAt >= remote.savedAt) return false;
+  if (local && local.savedAt && local.savedAt >= remote.savedAt) return local.data;
 
   let wrote = false;
   for (const [k, v] of Object.entries(remote.data)) {
@@ -164,5 +194,5 @@ export async function hydrateOnboardingFromRemote(): Promise<boolean> {
   // After successful hydrate, adopt the remote's savedAt so subsequent
   // comparisons reflect that local now matches remote.
   if (wrote) writeLocalSavedAt(remote.savedAt);
-  return wrote;
+  return remote.data;
 }

@@ -371,7 +371,7 @@ function extractBalance(text: string, _reportDate: string): number {
   // Harel pension layout: total/component columns appear before date + label.
   const reverseRows = [
     ...text.matchAll(
-      /((?:-?\d{1,3}(?:,\d{3})*\.\d{2}){4})\s*\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4}\s*יתרת\s*החיסכון\s*המצטבר/g
+      /((?:-?\d{1,3}(?:,\d{3})*\.\d{2}\s*){3,4})\s*\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4}\s*[-–]?\s*יתרת\s*החיסכון\s*המצטבר/g
     ),
   ];
   if (reverseRows.length) {
@@ -979,6 +979,14 @@ function parseAnnualReportText(
     return { filename, pages, policies: [], warnings };
   }
 
+  if (
+    /דוח\s+(?:יתרות\s+כספי|סכום\s+צבירה|סכום\s+צבירה\s+לחלוקת|סכום\s+צבירה\s+מזערי)/.test(text) ||
+    /לצרכי\s+מס\s+הכנסה|חלוקת\s+חיסכון\s+פנסיוני\s+בין\s+בני\s+זוג/.test(text)
+  ) {
+    warnings.push("מסמך עזר של מסלקה פנסיונית נשמר כתיעוד, אך אינו מקור לטעינת מוצרים פנסיוניים");
+    return { filename, pages, policies: [], warnings };
+  }
+
   // ── Short summary (annual/quarterly) takes its own path ──
   if (isSummaryFormat(text)) {
     return parseSummaryReport(text, filename, pages, source);
@@ -1061,7 +1069,9 @@ function parseAnnualReportText(
     notes: notes.length ? notes : undefined,
   };
 
-  if (!balance) warnings.push("לא נמצאה יתרת חיסכון בדוח");
+  if (!balance && balanceMovements?.closingBalance === undefined) {
+    warnings.push("לא נמצאה יתרת חיסכון בדוח");
+  }
   if (!providerName || providerName === "לא זוהה") warnings.push("לא זוהה יצרן הקופה");
   if (!product.type || product.type === "unknown") warnings.push("לא זוהה סוג מוצר");
 

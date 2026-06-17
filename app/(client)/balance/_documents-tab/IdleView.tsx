@@ -174,12 +174,17 @@ export function IdleView({
         <MappingDrilldown docHistory={docHistory} onRemove={onRemoveHistory} />
       )}
 
-      {isIdle && !error && storedDocuments.length > 0 && (
-        <StoredDocumentsList
-          documents={storedDocuments}
-          onChanged={onStoredDocumentsChanged}
-        />
-      )}
+      {/* Pension reports (XML/מסלקה) live on the pension page — they'd only
+          clutter the cashflow mapping file list, so filter them out here. */}
+      {isIdle && !error && (() => {
+        const mappingDocs = storedDocuments.filter((d) => d.kind !== "pension_report");
+        return mappingDocs.length > 0 ? (
+          <StoredDocumentsList
+            documents={mappingDocs}
+            onChanged={onStoredDocumentsChanged}
+          />
+        ) : null;
+      })()}
 
     </>
   );
@@ -635,7 +640,7 @@ function DocHistoryRow({ entry: h, onRemove }: { entry: DocHistoryEntry; onRemov
   const statusColor = !hasStats
     ? "#6b7280"
     : unmap === 0
-      ? "#059669"
+      ? "#ffffff"
       : unmap <= 5
         ? "#B45309"
         : "#DC2626";

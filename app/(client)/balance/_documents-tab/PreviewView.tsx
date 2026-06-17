@@ -687,7 +687,7 @@ function ReviewZone({
           בחר קטגוריה · המערכת תלמד
         </span>
       </div>
-      <div className="divide-y md:hidden" style={{ borderColor: "#FAFAF7" }}>
+      <div className="divide-y lg:hidden" style={{ borderColor: "#FAFAF7" }}>
         {rows.map((t) => (
           <MobileTransactionRow
             key={t._idx}
@@ -707,7 +707,7 @@ function ReviewZone({
           />
         ))}
       </div>
-      <div className="hidden overflow-x-auto md:block">
+      <div className="hidden overflow-x-auto lg:block">
         <table className="w-full text-sm">
           <tbody>
             {rows.map((t) => (
@@ -939,7 +939,7 @@ function MappedZone({
               </button>
               {isExpanded && (
                 <div className="border-t" style={{ borderColor: "#FAFAF7" }}>
-                  <div className="divide-y md:hidden" style={{ borderColor: "#FAFAF7" }}>
+                  <div className="divide-y lg:hidden" style={{ borderColor: "#FAFAF7" }}>
                     {txs.map((t) => (
                       <MobileTransactionRow
                         key={t._idx}
@@ -953,7 +953,7 @@ function MappedZone({
                       />
                     ))}
                   </div>
-                  <table className="hidden w-full text-sm md:table">
+                  <table className="hidden w-full text-sm lg:table">
                     <tbody>
                       {txs.map((t) => (
                         <MappedRow
@@ -1001,35 +1001,12 @@ function MobileTransactionRow({
   onRequestHide: (tx: TxWithIdx) => void;
 }) {
   const isBiz = tx.scope === "business";
-  const description = searchDescription ? (
-    <a
-      href={`https://www.google.com/search?q=${encodeURIComponent(tx.description + " ישראל")}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex min-w-0 items-center gap-1 hover:text-verdant-emerald hover:underline"
-      title="חפש בגוגל כדי לזהות את בית העסק"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <span className="truncate">{tx.description}</span>
-      <span
-        className="material-symbols-outlined shrink-0 text-[12px]"
-        style={{ color: "#B45309" }}
-      >
-        open_in_new
-      </span>
-    </a>
-  ) : (
-    <span className="truncate">{tx.description}</span>
-  );
 
   return (
     <div className="bg-white px-4 py-3">
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="min-w-0 text-sm font-extrabold text-verdant-ink">{description}</div>
-          <div className="tabular mt-1 text-[11px] font-bold text-verdant-muted" dir="ltr">
-            {tx.date}
-          </div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 text-sm font-extrabold text-verdant-ink">
+          <span className="block truncate">{tx.description}</span>
         </div>
         <MoneyText
           className="tabular shrink-0 text-left text-sm font-extrabold"
@@ -1038,6 +1015,9 @@ function MobileTransactionRow({
           {tx.amount > 0 ? "-" : "+"}
           {fmtILS(Math.abs(tx.amount))}
         </MoneyText>
+      </div>
+      <div className="tabular mb-3 mt-1 text-right text-[11px] font-bold text-verdant-muted">
+        {tx.date}
       </div>
 
       <select
@@ -1078,6 +1058,19 @@ function MobileTransactionRow({
             onMarkSubscription={onMarkSubscription}
             onRequestHide={onRequestHide}
           />
+          {searchDescription && (
+            <a
+              href={`https://www.google.com/search?q=${encodeURIComponent(tx.description + " ישראל")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              title="חפש בגוגל כדי לזהות את בית העסק"
+              className="flex h-7 w-7 items-center justify-center rounded-md border transition-all hover:bg-verdant-bg"
+              style={{ borderColor: "#E5E7EB", color: "#B45309" }}
+            >
+              <span className="material-symbols-outlined text-[15px]">open_in_new</span>
+            </a>
+          )}
         </div>
         <button
           onClick={() => onDelete(tx._idx)}

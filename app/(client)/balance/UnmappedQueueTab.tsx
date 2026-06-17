@@ -111,6 +111,11 @@ export function UnmappedQueueTab() {
   const [aiSuggestionsByMerchant, setAiSuggestionsByMerchant] = useState<
     Record<string, { category: string; categoryLabel: string; confidence: number }[]>
   >({});
+  /** Per-merchant category the AI pre-selected (confidence ≥ 0.6) — drives the
+   *  row dropdown so the advisor approves with one click, never auto-applied. */
+  const [aiPreselectedByMerchant, setAiPreselectedByMerchant] = useState<
+    Record<string, string>
+  >({});
   /** When ON, hide non-business groups. Only meaningful when business scope is enabled. */
   const [filterBusinessOnly, setFilterBusinessOnly] = useState(false);
   /** Merchant-name category rules persisted across sessions. */
@@ -723,55 +728,20 @@ export function UnmappedQueueTab() {
       setAiSuggestionsByMerchant(suggestionsByMerchant);
       setAiBulkCompleted(true);
 
-      // Apply confidently — only suggestions ≥ 0.6 — and skip ones that
-      // don't actually move the category (waste a "correction" record).
-      const next = transactions.slice();
-      const votes: Array<{
-        merchantKey: string;
-        categoryKey: string;
-        sampleDescription?: string;
-        txCount: number;
-      }> = [];
-      let added = 0;
-      let skipped = 0;
-      for (const s of suggestions) {
-        const tx = next[s.index];
-        if (!tx) continue;
-        if (s.confidence < 0.6) {
-          skipped++;
-          continue;
-        }
-        if (s.category === tx.category) {
-          skipped++;
-          continue;
-        }
-        const isRefund = s.category === "refunds";
-        const adjustedAmount = isRefund && tx.amount > 0 ? -tx.amount : tx.amount;
-        next[s.index] = {
-          ...tx,
-          category: s.category,
-          categoryLabel: s.categoryLabel,
-          amount: adjustedAmount,
-          confidence: s.confidence,
-        };
-        learnOverride(tx.description, s.category);
-        votes.push({
-          merchantKey: getMerchantKey(tx.description || ""),
-          categoryKey: s.category,
-          sampleDescription: tx.description,
-          txCount: 1,
-        });
-        recordCorrection(tx.description, tx.category, s.category, "ai_bulk");
-        added++;
+      // Don't auto-apply. Pre-select the best suggestion (confidence ≥ 0.6)
+      // into each merchant's row dropdown so the advisor approves with one
+      // click; lower-confidence merchants stay blank and route through the
+      // "אפשרויות AI" picker. Learning happens on manual approve (handleMap).
+      const preselected: Record<string, string> = {};
+      for (const [mKey, opts] of Object.entries(suggestionsByMerchant)) {
+        const best = opts[0];
+        if (best && best.confidence >= 0.6) preselected[mKey] = best.category;
       }
-      if (votes.length > 0) {
-        await learnMerchantCategoryVotes(votes);
-      }
-      saveTransactions(next);
-      setTransactions(next);
-      markUpdated("docs");
-      triggerFullSync();
-      setAiResult({ added, skipped: skipped + (candidates.length - suggestions.length) });
+      setAiPreselectedByMerchant(preselected);
+
+      const totalMerchants = Object.keys(suggestionsByMerchant).length;
+      const readyCount = Object.keys(preselected).length;
+      setAiResult({ added: readyCount, skipped: totalMerchants - readyCount });
     } catch (err) {
       console.error("AI recategorize failed:", err);
       setAiResult({ added: 0, skipped: 0 });
@@ -927,8 +897,8 @@ export function UnmappedQueueTab() {
             }}
           >
             {aiResult.added > 0
-              ? `✓ סווגו ${aiResult.added}, ${aiResult.skipped} נשארו לבדיקה`
-              : "אף הצעה לא הייתה ברמת ביטחון מספיקה — נשאר ידני"}
+              ? `✓ ${aiResult.added} מוכנים לאישור · ${aiResult.skipped} דרך "אפשרויות AI"`
+              : "אף הצעה לא הייתה ברמת ביטחון מספיקה — בחר דרך \"אפשרויות AI\""}
           </span>
         )}
         {businessEnabled && (
@@ -994,6 +964,7 @@ export function UnmappedQueueTab() {
           onOpenMerchantModal={openMerchantModal}
           onOpenInteractiveModal={(g) => setInteractiveModalGroup(g)}
           aiPickedCategory={aiPickedCategory}
+          aiPreselectedByMerchant={aiPreselectedByMerchant}
           showMerchantModalButton
           excludedMerchantKeys={excludedMerchantKeys}
         />
@@ -1021,6 +992,7 @@ export function UnmappedQueueTab() {
           onOpenMerchantModal={openMerchantModal}
           onOpenInteractiveModal={(g) => setInteractiveModalGroup(g)}
           aiPickedCategory={aiPickedCategory}
+          aiPreselectedByMerchant={aiPreselectedByMerchant}
           excludedMerchantKeys={excludedMerchantKeys}
         />
       )}
@@ -1216,6 +1188,7 @@ function QueueSection({
   onOpenMerchantModal,
   onOpenInteractiveModal,
   aiPickedCategory,
+  aiPreselectedByMerchant,
   showMerchantModalButton,
   excludedMerchantKeys,
 }: {
@@ -1238,6 +1211,7 @@ function QueueSection({
   onOpenMerchantModal: (merchantKey: string) => void;
   onOpenInteractiveModal?: (g: MerchantGroup) => void;
   aiPickedCategory: { groupKey: string; category: string; nonce: number } | null;
+  aiPreselectedByMerchant: Record<string, string>;
   showMerchantModalButton?: boolean;
   excludedMerchantKeys: Set<string>;
 }) {
@@ -1301,6 +1275,7 @@ function QueueSection({
             aiPickedCategory={
               aiPickedCategory?.groupKey === g.key ? aiPickedCategory : null
             }
+            aiPreselectedCategory={aiPreselectedByMerchant[g.merchantKey] || ""}
           />
         ))}
       </div>
@@ -1323,6 +1298,7 @@ function QueueRow({
   onExclude,
   onAskAi,
   aiPickedCategory,
+  aiPreselectedCategory,
 }: {
   group: MerchantGroup;
   transactions: ParsedTransaction[];
@@ -1338,6 +1314,7 @@ function QueueRow({
   onExclude: () => void;
   onAskAi?: () => void;
   aiPickedCategory: { groupKey: string; category: string; nonce: number } | null;
+  aiPreselectedCategory: string;
 }) {
   // Group is "business" if any tx in it is currently scoped business
   const isBusiness = group.txIndices.some((i) => transactions[i]?.scope === "business");
@@ -1362,6 +1339,13 @@ function QueueRow({
     if (!aiPickedCategory) return;
     setSelectedCategory(aiPickedCategory.category);
   }, [aiPickedCategory]);
+
+  // AI bulk run pre-selects the high-confidence (≥60%) suggestion into the
+  // dropdown so the advisor only has to click "אשר" — nothing is applied
+  // automatically.
+  useEffect(() => {
+    if (aiPreselectedCategory) setSelectedCategory(aiPreselectedCategory);
+  }, [aiPreselectedCategory, group.key]);
 
   const selectedCategoryLabel =
     CAT_OPTIONS.find((c) => c.key === selectedCategory)?.label || currentCategoryLabel;

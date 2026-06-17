@@ -42,6 +42,9 @@ export interface StoredDocument {
   uploadedAt: string;
   householdId: string;
   signedUrl?: string;
+  /** Set when uploadFile detected this file was already in the household and
+   *  returned the existing record instead of creating a duplicate. */
+  isDuplicate?: boolean;
 }
 
 /**
@@ -77,6 +80,31 @@ export async function uploadFile(
   if (!sb) return null;
 
   try {
+    // Dedup: if the same household already has a document with the same file
+    // name AND size, this is a re-upload of an identical file. Return the
+    // existing record instead of creating a duplicate row + storage object.
+    const sizeKb = Math.ceil(file.size / 1024);
+    const { data: existing } = await sb
+      .from("documents")
+      .select("id, storage_path, file_name, file_size_kb, doc_type, created_at")
+      .eq("household_id", hh)
+      .eq("file_name", file.name)
+      .eq("file_size_kb", sizeKb)
+      .limit(1)
+      .maybeSingle();
+    if (existing) {
+      return {
+        id: existing.id,
+        path: existing.storage_path,
+        name: existing.file_name,
+        size: (existing.file_size_kb ?? 0) * 1024,
+        kind: existing.doc_type,
+        uploadedAt: existing.created_at ?? new Date().toISOString(),
+        householdId: hh,
+        isDuplicate: true,
+      };
+    }
+
     const safeName = file.name.replace(/[^\w\u0590-\u05FF.\-]/g, "_");
     const path = `${hh}/${Date.now()}_${safeName}`;
 

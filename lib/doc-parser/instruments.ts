@@ -126,6 +126,10 @@ export function extractInstruments(text: string, bankHint: string): FinancialIns
     // Also Leumi format "806-33562048" or "806-335620/48" (branch-account with optional extension)
     const accountPatterns = [
       /(?:חשבון|מספר\s*חשבון|חש['׳]|account)\s*(?:מס['\u0027׳]?\s*)?[:.]?\s*(\d{3,4}[-\/]?\d{4,9}(?:[-\/]\d{1,3})?)/gi,
+      // Bank Yahav (and similar) triple-segment format "04-131-011822"
+      // (bank-branch-account) — leads with a 2-digit bank code, which the
+      // pattern above (requires \d{3,4} first) can't match.
+      /(?:חשבון|מספר\s*חשבון|חש['׳]|account)\s*(?:מס[''׳]?\s*)?[:.]?\s*(\d{2,3}-\d{3}-\d{3,9})/gi,
       /(?:סניף)\s*\d{2,4}\s*(?:חשבון|חש['׳]?)\s*[:.]?\s*(\d{4,9})/gi,
       // Leumi header: "לאומי לישראל 806-33562048" / "806-335620/48"
       /(?:לאומי לישראל|בנק\s+\S+)\s+(\d{3,4}[-\/]\d{4,10}(?:[-\/]\d{1,3})?)/gi,

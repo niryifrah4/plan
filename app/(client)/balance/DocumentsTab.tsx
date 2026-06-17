@@ -185,6 +185,8 @@ export function DocumentsTab() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [doc, setDoc] = useState<ParsedDocument | null>(null);
   const [error, setError] = useState("");
+  /** File names skipped as already-uploaded duplicates — shown in a modal. */
+  const [duplicateNotice, setDuplicateNotice] = useState<string[] | null>(null);
   const [uploadProgress, setUploadProgress] = useState<{
     current: number;
     total: number;
@@ -265,6 +267,34 @@ export function DocumentsTab() {
     setDocHistory(loadDocHistory());
     await refreshStoredDocuments();
   }, [refreshStoredDocuments]);
+
+  /* Split incoming files into ones not yet in the household ("fresh") and
+   * ones that are re-uploads of an existing document (same name + size). Used
+   * to avoid re-parsing duplicates into the cashflow. */
+  const partitionNewFiles = useCallback(
+    async (files: File[]): Promise<{ fresh: File[]; duplicates: string[] }> => {
+      if (!isSupabaseConfigured()) return { fresh: files, duplicates: [] };
+      const existing = await listDocuments();
+      const seen = new Set(
+        existing.map((d) => `${d.name}|${Math.ceil(d.size / 1024)}`)
+      );
+      const fresh: File[] = [];
+      const duplicates: string[] = [];
+      // Also guard against the same file passed twice in one batch.
+      const batchSeen = new Set<string>();
+      for (const file of files) {
+        const key = `${file.name}|${Math.ceil(file.size / 1024)}`;
+        if (seen.has(key) || batchSeen.has(key)) {
+          duplicates.push(file.name);
+        } else {
+          batchSeen.add(key);
+          fresh.push(file);
+        }
+      }
+      return { fresh, duplicates };
+    },
+    []
+  );
 
   const persistSourceFiles = useCallback(
     async (files: File[]): Promise<string[]> => {
@@ -581,11 +611,21 @@ export function DocumentsTab() {
     setExpandedMappedCats(new Set());
     setPhase("uploading");
     try {
-      setUploadProgress({ current: 0, total: files.length, name: "" });
+      // Skip files already in the household (same name + size) so a re-upload
+      // doesn't re-parse into duplicate transactions. The storage layer dedups
+      // too, but we filter here to avoid parsing them at all.
+      const { fresh, duplicates } = await partitionNewFiles(files);
+      if (duplicates.length > 0) setDuplicateNotice(duplicates);
+      if (fresh.length === 0) {
+        setUploadProgress(null);
+        setPhase("idle");
+        return;
+      }
+      setUploadProgress({ current: 0, total: fresh.length, name: "" });
       const fd = new FormData();
-      for (let i = 0; i < files.length; i++) {
-        fd.append("file", files[i]);
-        setUploadProgress({ current: i + 1, total: files.length, name: files[i].name });
+      for (let i = 0; i < fresh.length; i++) {
+        fd.append("file", fresh[i]);
+        setUploadProgress({ current: i + 1, total: fresh.length, name: fresh[i].name });
       }
       const res = await fetch("/api/documents/parse", { method: "POST", body: fd });
       const data = await res.json();
@@ -595,7 +635,7 @@ export function DocumentsTab() {
         setPhase("idle");
         return;
       }
-      const sourceWarnings = await persistSourceFiles(files);
+      const sourceWarnings = await persistSourceFiles(fresh);
       const parsed = data as ParsedDocument & { duplicatesRemoved?: number };
       if (sourceWarnings.length > 0) {
         parsed.warnings = [...parsed.warnings, ...sourceWarnings];
@@ -617,7 +657,7 @@ export function DocumentsTab() {
       setError("שגיאה בהעלאת הקבצים. נסה שוב.");
       setPhase("idle");
     }
-  }, []);
+  }, [partitionNewFiles, persistSourceFiles]);
 
   /* ── APPEND MORE FILES during preview (merge into current doc) ── */
   const appendFiles = useCallback(
@@ -902,6 +942,105 @@ export function DocumentsTab() {
           onUploadAnother={resetToIdle}
         />
       )}
+
+      <DuplicateFilesModal
+        files={duplicateNotice}
+        onClose={() => setDuplicateNotice(null)}
+      />
+    </div>
+  );
+}
+
+/* RTL modal shown when an upload is skipped because the file (same name +
+ * size) is already in the household — prevents duplicate transactions. */
+function DuplicateFilesModal({
+  files,
+  onClose,
+}: {
+  files: string[] | null;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    if (!files) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [files, onClose]);
+
+  if (!files || files.length === 0) return null;
+  const single = files.length === 1;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4"
+      style={{ background: "rgba(10,25,41,0.55)" }}
+      onClick={onClose}
+      dir="rtl"
+      role="presentation"
+    >
+      <div
+        className="my-auto w-full max-w-md overflow-hidden rounded-2xl text-right"
+        style={{ background: "#FFFFFF", boxShadow: "0 24px 60px rgba(10, 25, 41, 0.22)" }}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="קובץ כפול"
+        dir="rtl"
+      >
+        <div className="flex items-start gap-3 px-5 pt-5">
+          <span
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+            style={{ background: "#FEF3C7", color: "#B45309" }}
+          >
+            <span className="material-symbols-outlined text-[20px]">file_copy</span>
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-extrabold text-verdant-ink">
+              {single ? "הקובץ כבר הועלה לתיק" : "חלק מהקבצים כבר הועלו לתיק"}
+            </h2>
+            <p className="mt-1 text-[13px] leading-6 text-verdant-muted">
+              {single ? (
+                <>
+                  הקובץ <span className="font-extrabold text-verdant-ink">"{files[0]}"</span> כבר
+                  קיים בתיק — דילגנו עליו כדי לא ליצור כפילויות.
+                </>
+              ) : (
+                <>דילגנו על {files.length} קבצים שכבר קיימים בתיק כדי לא ליצור כפילויות:</>
+              )}
+            </p>
+          </div>
+        </div>
+
+        {!single && (
+          <ul className="mx-5 mt-3 max-h-48 space-y-1 overflow-y-auto rounded-lg border p-3 text-[12px] font-bold text-verdant-ink" style={{ borderColor: "#E5E7EB", background: "#FAFAF7" }}>
+            {files.map((name, i) => (
+              <li key={`${name}-${i}`} className="flex items-center gap-2 truncate">
+                <span className="material-symbols-outlined text-[14px]" style={{ color: "#B45309" }}>
+                  description
+                </span>
+                <span className="truncate">{name}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="mt-5 flex justify-start border-t px-5 py-4" style={{ borderColor: "#FAFAF7" }}>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg bg-verdant-emerald px-5 py-2 text-sm font-extrabold text-white transition hover:opacity-95"
+          >
+            הבנתי
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
