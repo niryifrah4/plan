@@ -97,6 +97,7 @@ export function BrokerReportUpload() {
   const [dragOver, setDragOver] = useState(false);
   const [fxRates, setFxRates] = useState<Record<string, number>>({});
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   useEffect(() => {
     fetchFxRatesForBrowser().then(setFxRates).catch(() => setFxRates({}));
@@ -113,8 +114,36 @@ export function BrokerReportUpload() {
     setSaving(false);
     setSavedInfo(null);
     setShowUploadModal(false);
+    setShowCloseConfirm(false);
     if (inputRef.current) inputRef.current.value = "";
   }
+
+  function requestCloseUploadModal() {
+    if (busy || saving) return;
+    if (file || report || needsPassword || error) {
+      setShowCloseConfirm(true);
+      return;
+    }
+    setShowUploadModal(false);
+  }
+
+  function confirmCloseUploadModal() {
+    reset();
+  }
+
+  useEffect(() => {
+    if (!showUploadModal) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (showCloseConfirm) {
+        setShowCloseConfirm(false);
+        return;
+      }
+      requestCloseUploadModal();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [busy, error, file, needsPassword, report, saving, showCloseConfirm, showUploadModal]);
 
   async function analyze(theFile: File, pw?: string) {
     setBusy(true);
@@ -360,9 +389,7 @@ export function BrokerReportUpload() {
       <div
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
         dir="rtl"
-        onClick={() => {
-          if (!busy && !saving) setShowUploadModal(false);
-        }}
+        onClick={requestCloseUploadModal}
       >
         <div
           className="max-h-[88vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-white text-right shadow-2xl"
@@ -378,7 +405,7 @@ export function BrokerReportUpload() {
             <button
               type="button"
               disabled={busy || saving}
-              onClick={reset}
+              onClick={requestCloseUploadModal}
               className="material-symbols-outlined rounded-lg border p-1.5 text-[18px] text-verdant-muted disabled:opacity-40"
               style={{ borderColor: "#E5E7EB" }}
             >
@@ -658,6 +685,51 @@ export function BrokerReportUpload() {
             )}
             </div>
           )}
+          </div>
+        </div>
+      </div>
+    )}
+    {showCloseConfirm && (
+      <div
+        className="fixed inset-0 z-[60] flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm"
+        dir="rtl"
+        onClick={() => setShowCloseConfirm(false)}
+      >
+        <div
+          className="w-full max-w-md rounded-2xl bg-white p-5 text-right shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="broker-close-confirm-title"
+        >
+          <div className="mb-3 flex items-start gap-3">
+            <span className="material-symbols-outlined rounded-lg bg-amber-100 p-2 text-[22px] text-amber-700">
+              warning
+            </span>
+            <div>
+              <h3 id="broker-close-confirm-title" className="text-sm font-extrabold text-verdant-ink">
+                לבטל את העלאת הדוח?
+              </h3>
+              <p className="mt-1 text-[12px] font-bold leading-6 text-verdant-muted">
+                סגירת החלון תנקה את הקובץ והניתוח הנוכחי. אם הדוח כבר נשמר, הוא יישאר במערכת.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={confirmCloseUploadModal}
+              className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-[12px] font-extrabold text-red-700"
+            >
+              בטל וסגור
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCloseConfirm(false)}
+              className="btn-botanical px-4 py-2.5 text-[12px]"
+            >
+              המשך בהעלאה
+            </button>
           </div>
         </div>
       </div>
