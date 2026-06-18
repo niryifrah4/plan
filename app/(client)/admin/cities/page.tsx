@@ -46,7 +46,7 @@ export default function AdminCitiesPage() {
       .insert({ name: newCityName.trim() });
       
     if (error) {
-      alert("שגיאה בהוספת עיר: " + error.message);
+      // TODO: replace with modal: alert("שגיאה בהוספת עיר: " + error.message);
     } else {
       setNewCityName("");
       setIsAdding(false);
@@ -70,7 +70,7 @@ export default function AdminCitiesPage() {
       .eq("id", city.id);
       
     if (error) {
-      alert("שגיאה במחיקת עיר: " + error.message);
+      // TODO: replace with modal: alert("שגיאה במחיקת עיר: " + error.message);
     } else {
       fetchCities();
     }

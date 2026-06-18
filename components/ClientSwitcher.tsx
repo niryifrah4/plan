@@ -60,6 +60,8 @@ export function ClientSwitcher() {
   // delete-confirm modal state
   const [pendingDelete, setPendingDelete] = useState<LocalClient | null>(null);
   const [confirmText, setConfirmText] = useState("");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Hydrate on mount and re-sync on any active-client change
   useEffect(() => {
@@ -130,7 +132,7 @@ export function ClientSwitcher() {
       downloadClientAsJSON(id);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "שגיאה בייצוא";
-      window.alert(`שגיאה: ${msg}`);
+      setErrorMsg(`שגיאה: ${msg}`);
     }
   }
 
@@ -147,7 +149,7 @@ export function ClientSwitcher() {
       deleteClient(pendingDelete.id);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "שגיאה במחיקה";
-      window.alert(`שגיאה: ${msg}`);
+      setErrorMsg(`שגיאה: ${msg}`);
     } finally {
       setPendingDelete(null);
       setConfirmText("");
@@ -166,7 +168,7 @@ export function ClientSwitcher() {
       downloadAllClientsAsJSON();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "שגיאה בגיבוי";
-      window.alert(`שגיאה: ${msg}`);
+      setErrorMsg(`שגיאה: ${msg}`);
     }
   }
 
@@ -188,13 +190,13 @@ export function ClientSwitcher() {
         setClients(loadClients());
         setActiveIdState(getActiveClientId());
         setOpen(false);
-        window.alert(`הלקוח "${created.family}" יובא בהצלחה`);
+        setSuccessMsg(`הלקוח "${created.family}" יובא בהצלחה`);
       } catch (err) {
         const msg = err instanceof Error ? err.message : "קובץ לא תקין";
-        window.alert(`שגיאה בייבוא: ${msg}`);
+        setErrorMsg(`שגיאה בייבוא: ${msg}`);
       }
     };
-    reader.onerror = () => window.alert("לא ניתן לקרוא את הקובץ");
+    reader.onerror = () => setErrorMsg("לא ניתן לקרוא את הקובץ");
     reader.readAsText(file);
   }
 
@@ -453,6 +455,48 @@ export function ClientSwitcher() {
                 מחק לצמיתות
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error modal */}
+      {errorMsg && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm" dir="rtl">
+          <div className="max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
+                <span className="material-symbols-outlined text-lg text-red-600">error</span>
+              </div>
+              <h3 className="text-sm font-extrabold">שגיאה</h3>
+            </div>
+            <p className="mb-6 text-sm text-gray-600">{errorMsg}</p>
+            <button
+              onClick={() => setErrorMsg(null)}
+              className="w-full rounded-lg bg-red-50 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-100"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Success modal */}
+      {successMsg && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm" dir="rtl">
+          <div className="max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
+                <span className="material-symbols-outlined text-lg text-emerald-600">check_circle</span>
+              </div>
+              <h3 className="text-sm font-extrabold">הצלחה</h3>
+            </div>
+            <p className="mb-6 text-sm text-gray-600">{successMsg}</p>
+            <button
+              onClick={() => setSuccessMsg(null)}
+              className="w-full rounded-lg bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-100"
+            >
+              OK
+            </button>
           </div>
         </div>
       )}

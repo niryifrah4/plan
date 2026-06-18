@@ -146,6 +146,50 @@ async function fetchLiveFX() {
   return out;
 }
 
+async function fetchHistoricalFX(date: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw new Error("invalid_date");
+  }
+
+  const currencies: Array<"USD" | "EUR" | "GBP"> = ["USD", "EUR", "GBP"];
+  const results = await Promise.all(
+    currencies.map(async (cur) => {
+      if (cur === "USD") {
+        const res = await fetch(
+          `https://api.frankfurter.dev/v1/${date}?base=USD&symbols=ILS`,
+          {
+            cache: "no-store",
+            headers: { "User-Agent": "PlanApp/1.0 (server-side)" },
+          }
+        );
+        if (!res.ok) return [cur, null] as const;
+        const data = await res.json();
+        const rate = data?.rates?.ILS;
+        return [cur, typeof rate === "number" && rate > 0 ? rate : null] as const;
+      }
+
+      const res = await fetch(
+        `https://api.frankfurter.dev/v1/${date}?base=${cur}&symbols=ILS`,
+        {
+          cache: "no-store",
+          headers: { "User-Agent": "PlanApp/1.0 (server-side)" },
+        }
+      );
+      if (!res.ok) return [cur, null] as const;
+      const data = await res.json();
+      const rate = data?.rates?.ILS;
+      return [cur, typeof rate === "number" && rate > 0 ? rate : null] as const;
+    })
+  );
+
+  const liveFallback = await fetchLiveFX();
+  const out: Record<string, number> = { ILS: 1 };
+  for (const [cur, rate] of results) {
+    out[cur] = rate ?? liveFallback[cur] ?? 0;
+  }
+  return { date, rates: out };
+}
+
 /* ─── Macro rates (BoI interest + inflation + USD) ─── */
 
 /** Default fallback values used when an upstream fetch fails. Kept aligned
@@ -315,6 +359,14 @@ export async function GET(req: NextRequest) {
     }
     if (kind === "fx") {
       const data = await fetchLiveFX();
+      return NextResponse.json(data);
+    }
+    if (kind === "fx-date") {
+      const date = searchParams.get("date") || "";
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return NextResponse.json({ error: "invalid date" }, { status: 400 });
+      }
+      const data = await cached(`fx-date:${date}`, () => fetchHistoricalFX(date));
       return NextResponse.json(data);
     }
     if (kind === "macro") {

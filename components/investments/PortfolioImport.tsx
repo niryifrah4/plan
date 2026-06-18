@@ -54,7 +54,7 @@ export function PortfolioImport({ onImport, onClose }: Props) {
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const res = await fetch("/api/securities/parse-excel", { method: "POST", body: fd });
+      const res = await fetch("/api/securities/parse-excel", { method: "POST", body: fd, credentials: "include" });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "שגיאה בעיבוד הקובץ");

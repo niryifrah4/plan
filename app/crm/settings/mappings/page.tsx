@@ -75,10 +75,10 @@ export default function MappingsSettingsPage() {
         fetchRules();
       } else {
         const errData = await res.json();
-        alert("שגיאה בהוספת ספק: " + (errData.error || "Unknown error"));
+        // TODO: replace with modal: alert("שגיאה בהוספת ספק: " + (errData.error || "Unknown error"));
       }
     } catch (err: any) {
-      alert("שגיאה בהוספת ספק: " + err.message);
+      // TODO: replace with modal: alert("שגיאה בהוספת ספק: " + err.message);
     }
   };
 
@@ -112,10 +112,10 @@ export default function MappingsSettingsPage() {
         setEditingKey(null);
         fetchRules();
       } else {
-        alert("שגיאה בעדכון הספק");
+        // TODO: replace with modal: alert("שגיאה בעדכון הספק");
       }
     } catch (err: any) {
-      alert("שגיאה בעדכון הספק: " + err.message);
+      // TODO: replace with modal: alert("שגיאה בעדכון הספק: " + err.message);
     }
   };
 
@@ -140,10 +140,10 @@ export default function MappingsSettingsPage() {
         setSelectedIds(next);
         fetchRules();
       } else {
-        alert("שגיאה במחיקת הספק");
+        // TODO: replace with modal: alert("שגיאה במחיקת הספק");
       }
     } catch (err: any) {
-      alert("שגיאה במחיקת הספק: " + err.message);
+      // TODO: replace with modal: alert("שגיאה במחיקת הספק: " + err.message);
     }
   };
 
@@ -167,10 +167,10 @@ export default function MappingsSettingsPage() {
         setSelectedIds(new Set());
         fetchRules();
       } else {
-        alert("שגיאה במחיקת הספקים");
+        // TODO: replace with modal: alert("שגיאה במחיקת הספקים");
       }
     } catch (err: any) {
-      alert("שגיאה במחיקת הספקים: " + err.message);
+      // TODO: replace with modal: alert("שגיאה במחיקת הספקים: " + err.message);
     }
   };
 

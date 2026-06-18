@@ -21,7 +21,7 @@
 
 import { scopedKey } from "./client-scope";
 import { safeSetItem } from "@/lib/safe-storage";
-import { pushBlobInBackground, pullBlob } from "./sync/blob-sync";
+import { pushBlob, pullBlob } from "./sync/blob-sync";
 import { reportError } from "@/lib/report-error";
 
 /* ─────────────────────────────────────────────────────────────
@@ -216,11 +216,11 @@ export function saveAccounts(accounts: Account[]): void {
   try {
     safeSetItem(scopedKey(ACCOUNTS_KEY), JSON.stringify(accounts));
     window.dispatchEvent(new Event(PORTFOLIO_EVENT));
-    // 2026-05-27 — portfolio data was localStorage-only and did not survive
-    // tenant switch (wipe-on-switch leaves the new tenant with no
-    // portfolio data). pushBlobInBackground snapshots household_id
-    // synchronously so the async push cannot leak to a different tenant.
-    pushBlobInBackground(ACCOUNTS_BLOB_KEY, accounts);
+    // Server is the source of truth. Write straight to Supabase (awaited
+    // internally, dequeues any stale queued push) instead of the background
+    // retry queue — the persisted queue used to resurrect deleted positions.
+    // localStorage above is only a server-fed read cache for downstream pages.
+    void pushBlob(ACCOUNTS_BLOB_KEY, accounts);
   } catch (e) { reportError("portfolio-store", e); }
 }
 
@@ -283,7 +283,8 @@ export function savePositions(positions: Position[]): void {
   try {
     safeSetItem(scopedKey(POSITIONS_KEY), JSON.stringify(positions));
     window.dispatchEvent(new Event(PORTFOLIO_EVENT));
-    pushBlobInBackground(POSITIONS_BLOB_KEY, positions);
+    // See saveAccounts — direct awaited write, no background retry queue.
+    void pushBlob(POSITIONS_BLOB_KEY, positions);
   } catch (e) { reportError("portfolio-store", e); }
 }
 
@@ -329,6 +330,43 @@ export async function hydratePortfolioFromRemote(): Promise<boolean> {
   return wrote;
 }
 
+/**
+ * Server-authoritative load for the /investments page. Pulls both blobs
+ * straight from Supabase (the single source of truth), mirrors them into the
+ * localStorage read-cache so downstream synchronous readers stay consistent,
+ * and returns the arrays for the page to hold in React state.
+ *
+ * Unlike loadAccounts/loadPositions (which read localStorage), this never lets
+ * a stale local copy win — the page that calls it shows exactly what the DB has.
+ */
+export async function fetchPortfolioRemote(): Promise<{
+  accounts: Account[];
+  positions: Position[];
+}> {
+  if (typeof window === "undefined") return { accounts: [], positions: [] };
+  // Before the active household is known (early bootstrap), a server pull would
+  // return null and we'd wrongly wipe the cache. Fall back to whatever the
+  // localStorage cache already holds; bootstrap fires PORTFOLIO_EVENT once the
+  // server data lands.
+  const { getHouseholdId } = await import("./sync/remote-sync");
+  if (!getHouseholdId()) {
+    return { accounts: loadAccounts(), positions: loadPositions() };
+  }
+  let accounts: Account[] = [];
+  let positions: Position[] = [];
+  try {
+    const remote = await pullBlob<Account[]>(ACCOUNTS_BLOB_KEY);
+    accounts = Array.isArray(remote) ? remote : [];
+    safeSetItem(scopedKey(ACCOUNTS_KEY), JSON.stringify(accounts));
+  } catch (e) { reportError("portfolio-store", e); }
+  try {
+    const remote = await pullBlob<Position[]>(POSITIONS_BLOB_KEY);
+    positions = Array.isArray(remote) ? remote : [];
+    safeSetItem(scopedKey(POSITIONS_KEY), JSON.stringify(positions));
+  } catch (e) { reportError("portfolio-store", e); }
+  return { accounts, positions };
+}
+
 export function addPosition(input: Omit<Position, "id" | "createdAt" | "updatedAt">): Position {
   const pos: Position = { ...input, id: uid("pos"), createdAt: nowIso(), updatedAt: nowIso() };
   savePositions([...loadPositions(), pos]);
@@ -342,6 +380,18 @@ export function updatePosition(
   const next = loadPositions().map((p) =>
     p.id === id ? { ...p, ...patch, updatedAt: nowIso() } : p
   );
+  savePositions(next);
+}
+
+export function updatePositions(
+  updates: { id: string; patch: Partial<Omit<Position, "id" | "createdAt">> }[]
+): void {
+  if (updates.length === 0) return;
+  const updateMap = new Map(updates.map((u) => [u.id, u.patch]));
+  const next = loadPositions().map((p) => {
+    const patch = updateMap.get(p.id);
+    return patch ? { ...p, ...patch, updatedAt: nowIso() } : p;
+  });
   savePositions(next);
 }
 

@@ -80,6 +80,14 @@ export async function POST(req: NextRequest) {
   const accountNumber = report.accountNumber || "";
   const reportDate = report.reportDate || null;
 
+  console.info("[investments/reports] save request:", {
+    broker,
+    accountNumber,
+    reportDate,
+    totalValueIls: report.totalValueIls,
+    holdingCount: report.holdings.length,
+  });
+
   const { data: existing } = await sb
     .from("investment_reports")
     .select("id, report_date")
@@ -106,13 +114,39 @@ export async function POST(req: NextRequest) {
     created_at: new Date().toISOString(),
   };
 
-  const { data, error } = existing
-    ? await sb.from("investment_reports").update(row).eq("id", existing.id).select("id").single()
-    : await sb.from("investment_reports").insert(row).select("id").single();
+  let data: { id: string } | null = null;
+  let error = null as { message: string } | null;
+  let replaced = !!existing;
 
-  if (error) {
-    console.error("[investments/reports] save failed:", error.message);
-    return NextResponse.json({ ok: false, error: "save_failed", detail: error.message }, { status: 500 });
+  if (existing) {
+    const result = await sb.from("investment_reports").update(row).eq("id", existing.id).select("id").single();
+    data = result.data;
+    error = result.error;
+  } else {
+    const result = await sb.from("investment_reports").insert(row).select("id").single();
+    data = result.data;
+    error = result.error;
+
+    if (error && /duplicate key value/i.test(error.message)) {
+      const retry = await sb
+        .from("investment_reports")
+        .update(row)
+        .eq("household_id", householdId)
+        .eq("broker", broker)
+        .eq("account_number", accountNumber)
+        .eq("report_date", reportDate || "1970-01-01")
+        .select("id")
+        .single();
+      data = retry.data;
+      error = retry.error;
+      replaced = !retry.error;
+    }
+  }
+
+  if (error || !data) {
+    const detail = error?.message || "no_saved_row";
+    console.error("[investments/reports] save failed:", detail);
+    return NextResponse.json({ ok: false, error: "save_failed", detail }, { status: 500 });
   }
 
   // Check if there are any newer reports for this portfolio.
@@ -129,7 +163,7 @@ export async function POST(req: NextRequest) {
 
   const isLatest = !newer;
 
-  return NextResponse.json({ ok: true, id: data.id, replaced: !!existing, isLatest });
+  return NextResponse.json({ ok: true, id: data.id, replaced, isLatest });
 }
 
 export async function GET(req: NextRequest) {

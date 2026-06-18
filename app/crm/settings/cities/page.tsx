@@ -79,7 +79,7 @@ export default function CitiesSettingsPage() {
       .insert({ name: newCityName.trim() });
       
     if (error) {
-      alert("שגיאה בהוספת עיר: " + error.message);
+      // TODO: replace with modal: alert("שגיאה בהוספת עיר: " + error.message);
     } else {
       setNewCityName("");
       setIsAdding(false);
@@ -103,7 +103,7 @@ export default function CitiesSettingsPage() {
       .eq("id", city.id);
       
     if (error) {
-      alert("שגיאה במחיקת עיר: " + error.message);
+      // TODO: replace with modal: alert("שגיאה במחיקת עיר: " + error.message);
     } else {
       const next = new Set(selectedIds);
       next.delete(city.id);
@@ -129,7 +129,7 @@ export default function CitiesSettingsPage() {
       .in("id", Array.from(selectedIds));
       
     if (error) {
-      alert("שגיאה במחיקת ערים: " + error.message);
+      // TODO: replace with modal: alert("שגיאה במחיקת ערים: " + error.message);
     } else {
       setSelectedIds(new Set());
       fetchCities();

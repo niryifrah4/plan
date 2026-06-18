@@ -52,12 +52,13 @@ import {
   addPosition,
   deletePosition,
   isEquityComp,
-  hydratePortfolioFromRemote,
+  fetchPortfolioRemote,
   loadAccounts,
   loadPositions,
   savePositions,
   summarizePortfolio,
   updatePosition,
+  updatePositions,
   valuePosition,
   type Account,
   type AssetKind,
@@ -65,7 +66,6 @@ import {
   type Position,
   type VestingSchedule,
 } from "@/lib/portfolio-store";
-import { migrateLegacyToPortfolio } from "@/lib/portfolio-migration";
 import {
   DEPOSITS_EVENT,
   currentMonthKey,
@@ -153,26 +153,28 @@ export default function InvestmentsPage() {
     positions: number;
   } | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { confirm, modal: confirmModal } = useConfirm();
 
-  // Bootstrap: run migration once, then load + subscribe to updates.
+  // Bootstrap: Supabase is the single source of truth. Pull the portfolio from
+  // the server (which also refreshes the localStorage read-cache), then render.
+  // In-session mutations write to both the server and the cache and re-render
+  // via PORTFOLIO_EVENT (reload reads the just-written cache echo).
   useEffect(() => {
-    migrateLegacyToPortfolio();
-    clearUnknownBlinkCostBasis();
     const reload = () => {
       setPositions(loadPositions());
       setAccounts(loadAccounts());
     };
-    reload();
-    void fetchFXRates().then(setLiveFxRates).catch(() => setLiveFxRates({ ILS: 1 }));
-    void hydratePortfolioFromRemote().then((wrote) => {
-      if (wrote) {
+    void fetchPortfolioRemote()
+      .then(() => {
         clearUnknownBlinkCostBasis();
         reload();
-        void fetchFXRates().then(setLiveFxRates).catch(() => setLiveFxRates({ ILS: 1 }));
-      }
-    });
+      })
+      .catch(() => reload())
+      .finally(() => setLoaded(true));
+    void fetchFXRates().then(setLiveFxRates).catch(() => setLiveFxRates({ ILS: 1 }));
     setAssumptions(loadAssumptions());
-    setLoaded(true);
     window.addEventListener(PORTFOLIO_EVENT, reload);
     return () => window.removeEventListener(PORTFOLIO_EVENT, reload);
   }, []);
@@ -198,6 +200,36 @@ export default function InvestmentsPage() {
     },
     []
   );
+
+  const handleResetInvestmentData = useCallback(async () => {
+    const confirmed = await confirm({
+      title: "סכנה — איפוס מוחלט של נתוני השקעות?",
+      body: "זה יימחק את כל תיק ההשקעות, הדוחות וכל הנתונים הקשורים. פעולה זו בלתי הפיכה ולא ניתן לשחזר את הנתונים.",
+      confirmLabel: "מחק הכל",
+      cancelLabel: "ביטול",
+      variant: "danger",
+    });
+
+    if (!confirmed) return;
+
+    setResetting(true);
+    try {
+      const res = await fetch("/api/investments/reset", {
+        method: "DELETE",
+        credentials: "include"
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.error || "Failed to reset data");
+      }
+      // Reload page after successful reset
+      window.location.reload();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "איפוס נכשל";
+      setErrorMessage(msg);
+      setResetting(false);
+    }
+  }, [confirm]);
 
   // Split for tab counts.
   const tradeablePositions = useMemo(
@@ -278,6 +310,43 @@ export default function InvestmentsPage() {
         <EquityTab positions={equityPositions} accounts={accounts} />
       )}
       {loaded && tab === "deposits" && <DepositsTab />}
+
+      {/* Reset button — bottom of page */}
+      <section className="mt-12 border-t pt-6 pb-12">
+        <div className="text-[11px] font-bold text-verdant-muted mb-3">סכנה</div>
+        <button
+          onClick={handleResetInvestmentData}
+          disabled={resetting}
+          className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-2.5 text-[12px] font-bold text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50"
+          title="מחק את כל נתוני ההשקעות"
+        >
+          <span className="material-symbols-outlined text-[16px]">delete_outline</span>
+          {resetting ? "מוחק את הנתונים…" : "אפס את כל נתוני ההשקעות"}
+        </button>
+      </section>
+
+      {confirmModal}
+
+      {/* Error modal */}
+      {errorMessage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm" dir="rtl">
+          <div className="max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
+                <span className="material-symbols-outlined text-lg text-red-600">error</span>
+              </div>
+              <h3 className="text-sm font-extrabold text-verdant-ink">שגיאה</h3>
+            </div>
+            <p className="mb-6 text-[12px] text-verdant-muted">{errorMessage}</p>
+            <button
+              onClick={() => setErrorMessage(null)}
+              className="btn-botanical w-full py-2 text-sm"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -512,19 +581,22 @@ function PortfolioTab({
       const cryptoMap: Record<string, number> = {};
       for (const cq of cryptoQuotes) cryptoMap[cq.symbol.toLowerCase()] = cq.price;
 
+      const updates: { id: string; patch: Partial<Position> }[] = [];
       for (const p of positions) {
         const patch: Partial<Position> = {};
         if (p.kind === "crypto") {
           const price = cryptoMap[p.symbol.toLowerCase()];
-          if (price != null) patch.currentPrice = price;
-          patch.fxRateToIls = 1;
+          if (price != null && price !== p.currentPrice) patch.currentPrice = price;
+          if (p.fxRateToIls !== 1) patch.fxRateToIls = 1;
         } else {
           const q = quotes[p.symbol.toUpperCase()];
-          if (q) patch.currentPrice = q.price;
-          if (fxRates[p.currency]) patch.fxRateToIls = fxRates[p.currency];
+          if (q && q.price !== p.currentPrice) patch.currentPrice = q.price;
+          const fx = fxRates[p.currency];
+          if (fx && fx !== p.fxRateToIls) patch.fxRateToIls = fx;
         }
-        if (Object.keys(patch).length > 0) updatePosition(p.id, patch);
+        if (Object.keys(patch).length > 0) updates.push({ id: p.id, patch });
       }
+      if (updates.length > 0) updatePositions(updates);
 
       // Snapshot total wealth for history charts.
       const total = positions.reduce((sum, p) => {

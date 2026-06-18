@@ -555,47 +555,43 @@ function syncInsuranceToRiskStore(insurances: OnbInsurance[]): void {
     // Only sync rows explicitly confirmed as existing
     if (ins.has !== "כן") continue;
 
-    const category = TYPE_TO_CATEGORY[ins.type];
+    const category = TYPE_TO_CATEGORY[ins.type] || (ins.isCustom === "1" ? "property" : undefined);
+    if (!category) continue;
 
-    if (category) {
-      // Standard type: find a matching risk item in this category and mark as covered
-      const categoryItems = items.filter((i) => i.category === category && i.status === "missing");
-      if (categoryItems.length > 0) {
-        const target = categoryItems[0];
-        target.status = "covered";
-        target.provider = ins.company || undefined;
-        target.coverageAmount = parseFloat(ins.coverage) || undefined;
-        target.monthlyCost = parseFloat(ins.premium) || undefined;
-        if (ins.for) target.notes = `עבור: ${ins.for}`;
-        changed = true;
-      } else {
-        // All existing items in category are already covered — add a new risk item for this row
-        // (handles second life insurance for a spouse, etc.)
-        const label = ins.for
-          ? `${ins.type} — ${ins.for}`
-          : `${ins.type}${ins.company ? ` (${ins.company})` : ""}`;
-        const newItem: RiskItem = {
-          id: `onb_ins_${ins.type}_${ins.for || ins.company || ins.coverage}_${items.length}`,
-          category,
-          label,
-          description: ins.for ? `עבור ${ins.for}` : undefined,
-          status: "covered",
-          provider: ins.company || undefined,
-          coverageAmount: parseFloat(ins.coverage) || undefined,
-          monthlyCost: parseFloat(ins.premium) || undefined,
-          sortOrder: items.length + 1,
-        };
-        items.push(newItem);
+    const label = ins.for
+      ? `${ins.type} — ${ins.for}`
+      : `${ins.type}${ins.company ? ` (${ins.company})` : ""}`;
+
+    // 1. Check if we already mapped this exact onboarding insurance
+    const alreadyMapped = items.find((i) => i.category === category && i.label === label);
+    if (alreadyMapped) {
+      // It's already here, check if we need to update status
+      if (alreadyMapped.status !== "covered") {
+        alreadyMapped.status = "covered";
+        alreadyMapped.provider = ins.company || undefined;
+        alreadyMapped.coverageAmount = parseFloat(ins.coverage) || undefined;
+        alreadyMapped.monthlyCost = parseFloat(ins.premium) || undefined;
         changed = true;
       }
-    } else if (ins.isCustom === "1") {
-      // Custom type ("ביטוח אחר") with no category mapping — add as property catch-all
-      const label = ins.for
-        ? `${ins.type} — ${ins.for}`
-        : `${ins.type}${ins.company ? ` (${ins.company})` : ""}`;
+      continue;
+    }
+
+    // 2. Not mapped yet. Can we take over a "missing" placeholder?
+    const missingItems = items.filter((i) => i.category === category && i.status === "missing");
+    if (missingItems.length > 0) {
+      const target = missingItems[0];
+      target.status = "covered";
+      target.provider = ins.company || undefined;
+      target.coverageAmount = parseFloat(ins.coverage) || undefined;
+      target.monthlyCost = parseFloat(ins.premium) || undefined;
+      target.label = label;
+      if (ins.for) target.notes = `עבור: ${ins.for}`;
+      changed = true;
+    } else {
+      // 3. No placeholder available, create a new risk item
       const newItem: RiskItem = {
-        id: `onb_ins_custom_${ins.type}_${ins.for || ins.company || ins.coverage}_${items.length}`,
-        category: "property",
+        id: `onb_ins_${ins.isCustom ? "custom_" : ""}${ins.type}_${ins.for || ins.company || ins.coverage}_${items.length}`,
+        category,
         label,
         description: ins.for ? `עבור ${ins.for}` : undefined,
         status: "covered",

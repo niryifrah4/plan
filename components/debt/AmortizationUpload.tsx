@@ -65,7 +65,7 @@ export function AmortizationUpload({ onTracksParsed }: Props) {
     try {
       const form = new FormData();
       form.append("file", file);
-      const res = await fetch("/api/debt/parse-amortization", { method: "POST", body: form });
+      const res = await fetch("/api/debt/parse-amortization", { method: "POST", body: form, credentials: "include" });
       const body = (await res.json()) as ParseResponse & { error?: string; code?: string };
       if (!res.ok) {
         setParseError(body.error || `שגיאה ${res.status}`);

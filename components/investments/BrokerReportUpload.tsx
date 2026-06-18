@@ -13,17 +13,9 @@
 import { useRef, useState, useEffect, ReactNode } from "react";
 
 import { REPORT_SAVED_EVENT } from "@/components/investments/SavedBrokerPortfolios";
-import { triggerInvestmentSync } from "@/lib/sync-engine";
 import { getHouseholdId } from "@/lib/sync/remote-sync";
 import { fmtMoney, fmtDateIL } from "@/lib/_shared/format";
-import {
-  loadAccounts,
-  loadPositions,
-  saveAccountsAsync,
-  savePositionsAsync,
-  type AssetKind,
-  type Currency,
-} from "@/lib/portfolio-store";
+import { type Currency } from "@/lib/portfolio-store";
 
 /* ─── Types (mirror broker-pdf-parser.ts) ─── */
 interface BrokerHolding {
@@ -76,10 +68,20 @@ function fxToIls(currency: string | undefined, fxRates: Record<string, number>):
 }
 
 async function fetchFxRatesForBrowser(): Promise<Record<string, number>> {
-  const res = await fetch("/api/market?kind=fx");
+  const res = await fetch("/api/market?kind=fx", { credentials: "include" });
   if (!res.ok) throw new Error("FX fetch failed");
   const data = await res.json();
   return { ...data, ILS: 1 };
+}
+
+async function waitForHouseholdId(timeoutMs = 3000): Promise<string | null> {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const householdId = getHouseholdId();
+    if (householdId) return householdId;
+    await new Promise((resolve) => window.setTimeout(resolve, 150));
+  }
+  return getHouseholdId();
 }
 
 export function BrokerReportUpload() {
@@ -120,6 +122,10 @@ export function BrokerReportUpload() {
 
   function requestCloseUploadModal() {
     if (busy || saving) return;
+    if (savedInfo) {
+      reset();
+      return;
+    }
     if (file || report || needsPassword || error) {
       setShowCloseConfirm(true);
       return;
@@ -155,7 +161,7 @@ export function BrokerReportUpload() {
       const fd = new FormData();
       fd.append("files", theFile);
       if (pw) fd.append("password", pw);
-      const res = await fetch("/api/investments/parse-report", { method: "POST", body: fd });
+      const res = await fetch("/api/investments/parse-report", { method: "POST", body: fd, credentials: "include" });
       const data = await res.json();
 
       if (!res.ok) {
@@ -201,87 +207,38 @@ export function BrokerReportUpload() {
     analyze(f);
   }
 
-  /* ── Save: merge into portfolio + persist analyzed report ── */
+  /* ── Save: persist analyzed report to the DB (investment_reports). ── */
+  // Broker holdings live ONLY in investment_reports and are shown by
+  // SavedBrokerPortfolios. We intentionally do NOT duplicate them into the
+  // portfolio store anymore — that duplication was the source of the
+  // "deleted positions reappear" bug.
   async function saveParsedReport(reportToSave: BrokerReport) {
     setSaving(true);
     setSavedInfo(null);
     setError(null);
     try {
 
-    // 1) Persist the analyzed report to the DB first.
-    // This allows the server to tell us if this is the *latest* available period
-    // for this broker account, so we don't accidentally clobber the active portfolio
-    // with historical data.
-    let dbSaved = false;
-    let isLatest = true;
-    const householdId = getHouseholdId();
-    if (householdId) {
-      try {
-        const res = await fetch("/api/investments/reports", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ householdId, report: reportToSave }),
-        });
-        const data = await res.json();
-        dbSaved = res.ok;
-        if (dbSaved) {
-          isLatest = data.isLatest !== false; // true if true or missing
-          window.dispatchEvent(new Event(REPORT_SAVED_EVENT));
-        }
-      } catch {
-        dbSaved = false;
-      }
+    const householdId = await waitForHouseholdId();
+    if (!householdId) {
+      throw new Error("לא נמצא לקוח פעיל לשמירת הדוח. רענן את העמוד ונסה שוב.");
     }
-
-    // 2) Merge holdings into the local portfolio store.
-    // We only merge if this report is the latest available period.
-    let merged = 0;
-    if (isLatest) {
-      const brokerLabel = reportToSave.broker && reportToSave.broker !== "לא זוהה" ? reportToSave.broker : "בית השקעות";
-      let accounts = loadAccounts();
-      let account = accounts.find((a) => a.label === brokerLabel || a.broker === brokerLabel);
-      if (!account) {
-        account = { id: `acc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, label: brokerLabel, broker: brokerLabel, currency: normalizeCurrency(reportToSave.currency), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-        accounts = [...accounts, account];
-        const ok = await saveAccountsAsync(accounts);
-        if (!ok) throw new Error("Failed to save accounts to DB");
-      }
-
-      let nextPositions = loadPositions().filter((p) => p.accountId !== account!.id);
-
-      // Add new positions.
-      for (const h of reportToSave.holdings) {
-        if (h.assetKind === "cash" || h.quantity <= 0) continue; // cash balances aren't positions
-        nextPositions.push({
-          id: `pos-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          accountId: account.id,
-          kind: h.assetKind as AssetKind,
-          symbol: (h.symbol || h.securityNumber || h.name).toUpperCase(),
-          name: h.name,
-          quantity: h.quantity,
-          avgCost: h.quantity > 0 && h.costIls > 0 ? h.costIls / h.quantity : 0,
-          currentPrice: h.quantity > 0 ? h.valueIls / h.quantity : 0,
-          currency: normalizeCurrency(reportToSave.currency),
-          fxRateToIls: fxToIls(reportToSave.currency, fxRates),
-          asOfDate: reportToSave.reportDate || undefined,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        });
-        merged++;
-      }
-      
-      const posOk = await savePositionsAsync(nextPositions);
-      if (!posOk) throw new Error("Failed to save positions to DB");
-
-      triggerInvestmentSync();
+    const res = await fetch("/api/investments/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ householdId, report: reportToSave }),
+      credentials: "include"
+    });
+    const data = await res.json();
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error || data?.detail || "שמירת הדוח לשרת נכשלה");
     }
+    const isLatest = data.isLatest !== false; // true if true or missing
+    window.dispatchEvent(new Event(REPORT_SAVED_EVENT));
 
     setSavedInfo(
-      dbSaved
-        ? isLatest
-          ? `${merged} ניירות נוספו לתיק · הדוח נשמר במערכת`
-          : `הדוח נשמר במערכת (לא עודכן בתיק מכיוון שקיים דוח עדכני יותר)`
-        : `${merged} ניירות נוספו לתיק (אופליין)`
+      isLatest
+        ? "הדוח נשמר במערכת ומוצג בתיקים שלך"
+        : "הדוח נשמר במערכת (קיים דוח עדכני יותר לחשבון זה)"
     );
     } catch (e) {
       setError(e instanceof Error ? e.message : "שמירת הדוח נכשלה");
@@ -565,10 +522,10 @@ export function BrokerReportUpload() {
                     <th className="px-2 py-1.5 text-right">נייר</th>
                     <th className="px-2 py-1.5 text-left">נכון ליום</th>
                     <th className="px-2 py-1.5 text-left">כמות</th>
-                    <th className="px-2 py-1.5 text-left">שער נוכחי</th>
-                    <th className="px-2 py-1.5 text-left">עלות רכישה</th>
-                    <th className="px-2 py-1.5 text-left">שווי נוכחי</th>
-                    {report.currency !== "ILS" && <th className="px-2 py-1.5 text-left">שווי בשקל</th>}
+                    <th className="px-2 py-1.5 text-left">שער נוכחי {report.currency !== "ILS" && `(${report.currency})`}</th>
+                    <th className="px-2 py-1.5 text-left">עלות רכישה {report.currency !== "ILS" && `(${report.currency})`}</th>
+                    <th className="px-2 py-1.5 text-left">שווי נוכחי {report.currency !== "ILS" && `(${report.currency})`}</th>
+                    {report.currency !== "ILS" && <th className="px-2 py-1.5 text-left">שווי בשקל (₪)</th>}
                     <th className="px-2 py-1.5 text-left">% מהתיק</th>
                     <th className="px-2 py-1.5 text-left">תשואה</th>
                   </tr>
@@ -597,13 +554,30 @@ export function BrokerReportUpload() {
                           {h.quantity.toLocaleString()}
                         </td>
                         <td className="px-2 py-1.5 text-left tabular-nums" dir="ltr">
-                          {h.priceCurrent > 0 ? h.priceCurrent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : "—"}
+                          {h.priceCurrent > 0 ? (
+                            <>
+                              {h.priceCurrent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                              {report.currency !== "ILS" && <span className="ml-1">{report.currency}</span>}
+                            </>
+                          ) : (
+                            "—"
+                          )}
                         </td>
                         <td className="px-2 py-1.5 text-left tabular-nums text-verdant-muted" dir="ltr">
-                          {h.costIls > 0 ? fmtMoney(h.costIls, report.currency) : "—"}
+                          {h.costIls > 0 ? (
+                            <>
+                              {fmtMoney(h.costIls, report.currency)}
+                              {report.currency !== "ILS" && <span className="ml-1">{report.currency}</span>}
+                            </>
+                          ) : (
+                            "—"
+                          )}
                         </td>
                         <td className="px-2 py-1.5 text-left font-bold tabular-nums text-verdant-ink" dir="ltr">
-                          {fmtMoney(h.valueIls, report.currency)}
+                          <>
+                            {fmtMoney(h.valueIls, report.currency)}
+                            {report.currency !== "ILS" && <span className="ml-1">{report.currency}</span>}
+                          </>
                         </td>
                         {report.currency !== "ILS" && (
                           <td className="px-2 py-1.5 text-left font-bold tabular-nums text-emerald-600" dir="ltr">
@@ -641,7 +615,7 @@ export function BrokerReportUpload() {
                         <th className="px-2 py-1.5 text-right">סוג</th>
                         <th className="px-2 py-1.5 text-right">נייר</th>
                         <th className="px-2 py-1.5 text-left">כמות</th>
-                        <th className="px-2 py-1.5 text-left">סכום</th>
+                        <th className="px-2 py-1.5 text-left">סכום {report.currency !== "ILS" && `(${report.currency})`}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -656,7 +630,14 @@ export function BrokerReportUpload() {
                             {t.quantity || "—"}
                           </td>
                           <td className="px-2 py-1.5 text-left tabular-nums" dir="ltr">
-                            {t.amount ? fmtMoney(t.amount, report.currency) : "—"}
+                            {t.amount ? (
+                              <>
+                                {fmtMoney(t.amount, report.currency)}
+                                {report.currency !== "ILS" && <span className="ml-1">{report.currency}</span>}
+                              </>
+                            ) : (
+                              "—"
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -667,20 +648,39 @@ export function BrokerReportUpload() {
             )}
 
             {/* Save */}
-            <button
-              onClick={handleSave}
-              disabled={saving || !!savedInfo}
-              className="btn-botanical flex w-full items-center justify-center gap-2 py-2.5 text-sm disabled:opacity-50"
-            >
-              {saving && (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-              )}
-              {saving ? "שומר…" : savedInfo ? "נשמר ✓" : "הוסף לתיק ושמור דוח"}
-            </button>
-            {savedInfo && (
-              <div className="mt-3 flex items-center justify-center gap-1.5 text-[12px] font-bold text-verdant-emerald">
-                <span className="material-symbols-outlined text-[14px]">check_circle</span>
-                {savedInfo}
+            {savedInfo ? (
+              <div className="grid gap-2 md:grid-cols-[1fr_auto]">
+                <div className="flex items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-[12px] font-extrabold text-verdant-emerald">
+                  <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                  <span>נשמר</span>
+                  <span className="font-bold text-verdant-muted">{savedInfo}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={reset}
+                  className="btn-botanical px-6 py-2.5 text-sm"
+                >
+                  סגור
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="btn-botanical flex w-full items-center justify-center gap-2 py-2.5 text-sm disabled:opacity-50"
+              >
+                {saving && (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                )}
+                {saving ? "שומר…" : "שמור דוח"}
+              </button>
+            )}
+            {saving && (
+              <div className="mt-3 flex items-center justify-center gap-1.5 text-[12px] font-bold text-verdant-muted">
+                <span className="material-symbols-outlined animate-spin text-[14px]">
+                  progress_activity
+                </span>
+                שומר את הדוח במערכת...
               </div>
             )}
             </div>

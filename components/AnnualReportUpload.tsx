@@ -202,6 +202,7 @@ export function AnnualReportUpload() {
       const res = await fetch("/api/pension/parse-pdf", {
         method: "POST",
         body: fd,
+        credentials: "include"
       });
       const data = await res.json();
       if (!res.ok) {

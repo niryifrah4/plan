@@ -138,7 +138,7 @@ export function Sidebar({
     });
     if (isAdvisor) {
       try {
-        await fetch("/api/crm/impersonate", { method: "DELETE" });
+        await fetch("/api/crm/impersonate", { method: "DELETE", credentials: "include" });
       } catch {
         /* fall through to navigation even if cookie clear failed */
       }
@@ -562,7 +562,7 @@ export function Sidebar({
               <button
                 onClick={async () => {
                   try {
-                    await fetch("/api/crm/impersonate", { method: "DELETE" });
+                    await fetch("/api/crm/impersonate", { method: "DELETE", credentials: "include" });
                   } catch {
                     /* even if the network call fails, fall through to navigation */
                   }

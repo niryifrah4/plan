@@ -64,6 +64,7 @@ export function InviteClientButton() {
           familyName,
           password: password.trim() || undefined,
         }),
+        credentials: "include"
       });
       const json = await res.json();
       if (!res.ok) {

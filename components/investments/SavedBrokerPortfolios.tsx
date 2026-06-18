@@ -15,14 +15,9 @@ import { ACTIVE_CLIENT_CHANGED } from "@/lib/client-scope";
 import { fmtMoney, fmtDateIL } from "@/lib/_shared/format";
 import { getHouseholdId } from "@/lib/sync/remote-sync";
 import {
-  addPosition,
-  deletePosition,
-  loadAccounts,
-  loadPositions,
   type AssetKind,
   type Currency,
 } from "@/lib/portfolio-store";
-import { triggerInvestmentSync } from "@/lib/sync-engine";
 
 export const REPORT_SAVED_EVENT = "verdant:investment-report:saved";
 
@@ -135,9 +130,13 @@ function holdingValueIls(h: Holding, report: SavedReport, fxRates: Record<string
   return valueToIls(h.valueIls || 0, report.currency, fxRates) ?? 0;
 }
 
-function buildComparison(from: SavedReport, to: SavedReport, fxRates: Record<string, number>) {
-  const fromValue = reportValueIls(from, fxRates);
-  const toValue = reportValueIls(to, fxRates);
+function buildComparison(
+  from: SavedReport,
+  to: SavedReport,
+  fx: { from: Record<string, number>; to: Record<string, number> }
+) {
+  const fromValue = reportValueIls(from, fx.from);
+  const toValue = reportValueIls(to, fx.to);
   const deltaValue = fromValue != null && toValue != null ? toValue - fromValue : null;
   const deltaPct = fromValue && deltaValue != null ? (deltaValue / fromValue) * 100 : null;
 
@@ -148,36 +147,48 @@ function buildComparison(from: SavedReport, to: SavedReport, fxRates: Record<str
 
   const added = [...toByKey.entries()]
     .filter(([key]) => !fromByKey.has(key))
-    .map(([, h]) => `${h.name || h.symbol}: ${fmtMoney(holdingValueIls(h, to, fxRates), "ILS")}`)
-    .slice(0, 5);
+    .map(([, h]) => ({
+      name: h.name || h.symbol,
+      valueOrig: h.valueIls || 0,
+      valueIls: holdingValueIls(h, to, fx.to),
+    }))
+    .sort((a, b) => b.valueIls - a.valueIls);
 
   const removed = [...fromByKey.entries()]
     .filter(([key]) => !toByKey.has(key))
-    .map(([, h]) => `${h.name || h.symbol}: ${fmtMoney(holdingValueIls(h, from, fxRates), "ILS")}`)
-    .slice(0, 5);
+    .map(([, h]) => ({
+      name: h.name || h.symbol,
+      valueOrig: h.valueIls || 0,
+      valueIls: holdingValueIls(h, from, fx.from),
+    }))
+    .sort((a, b) => b.valueIls - a.valueIls);
 
   const changed = [...toByKey.entries()]
     .filter(([key]) => fromByKey.has(key))
     .map(([key, current]) => {
       const previous = fromByKey.get(key)!;
-      const prevValue = holdingValueIls(previous, from, fxRates);
-      const curValue = holdingValueIls(current, to, fxRates);
-      const valueDelta = curValue - prevValue;
+      const prevValue = holdingValueIls(previous, from, fx.from);
+      const curValue = holdingValueIls(current, to, fx.to);
+      const valueDeltaIls = curValue - prevValue;
+      
+      const prevOrig = previous.valueIls || 0;
+      const curOrig = current.valueIls || 0;
+      const valueDeltaOrig = curOrig - prevOrig;
+      
       const qtyDelta = (current.quantity || 0) - (previous.quantity || 0);
       return {
-        abs: Math.abs(valueDelta),
-        label: `${current.name || current.symbol}: ${fmtMoney(valueDelta, "ILS", { signed: true })}${
-          qtyDelta ? ` · כמות ${qtyDelta > 0 ? "+" : ""}${qtyDelta.toLocaleString()}` : ""
-        }`,
+        name: current.name || current.symbol,
+        valueOrig: valueDeltaOrig,
+        valueIls: valueDeltaIls,
+        qtyDelta,
+        absIls: Math.abs(valueDeltaIls),
       };
     })
-    .filter((row) => row.abs > 1)
-    .sort((a, b) => b.abs - a.abs)
-    .slice(0, 5)
-    .map((row) => row.label);
+    .filter((row) => row.absIls > 1)
+    .sort((a, b) => b.absIls - a.absIls);
 
-  const fromAlloc = reportAllocation(from, fxRates);
-  const toAlloc = reportAllocation(to, fxRates);
+  const fromAlloc = reportAllocation(from, fx.from);
+  const toAlloc = reportAllocation(to, fx.to);
   const kinds = new Set<DisplayAssetKind>([...fromAlloc.keys(), ...toAlloc.keys()]);
   const allocationChanges = [...kinds]
     .map((kind) => {
@@ -190,26 +201,37 @@ function buildComparison(from: SavedReport, to: SavedReport, fxRates: Record<str
     .slice(0, 6);
 
   const cashFlows = reportCashFlows(to);
+  const cashFlowFx = fxToIls(to.currency, fx.to);
+  const showUsd = to.currency === "USD" || (to.broker || "").toLowerCase().includes("blink");
+
   return {
     fromValue,
     toValue,
     deltaValue,
     deltaPct,
-    deposits: cashFlows.deposits,
-    withdrawals: cashFlows.withdrawals,
+    deposits: cashFlows.deposits * cashFlowFx,
+    withdrawals: cashFlows.withdrawals * cashFlowFx,
     hasCashFlows: cashFlows.deposits > 0 || cashFlows.withdrawals > 0,
     added,
     removed,
     changed,
     allocationChanges,
+    showUsd,
   };
 }
 
 async function fetchFxRatesForBrowser(): Promise<Record<string, number>> {
-  const res = await fetch("/api/market?kind=fx");
+  const res = await fetch("/api/market?kind=fx", { credentials: "include" });
   if (!res.ok) throw new Error("FX fetch failed");
   const data = await res.json();
   return { ...data, ILS: 1 };
+}
+
+async function fetchHistoricalFxRates(date: string): Promise<Record<string, number>> {
+  const res = await fetch(`/api/market?kind=fx-date&date=${encodeURIComponent(date)}`, { credentials: "include" });
+  if (!res.ok) throw new Error("historical FX fetch failed");
+  const data = await res.json();
+  return { ...(data?.rates ?? {}), ILS: 1 };
 }
 
 export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (totals: { totalValueIls: number; positions: number } | null) => void }) {
@@ -219,10 +241,12 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
   const [showManage, setShowManage] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [fxRates, setFxRates] = useState<Record<string, number>>({});
+  const [historicalFxRates, setHistoricalFxRates] = useState<Record<string, Record<string, number>>>({});
   const [loadError, setLoadError] = useState<string | null>(null);
   const [comparePortfolio, setComparePortfolio] = useState<string>("");
   const [compareFromId, setCompareFromId] = useState<string>("");
   const [compareToId, setCompareToId] = useState<string>("");
+  const [isTransactionsModalOpen, setIsTransactionsModalOpen] = useState(false);
 
   const load = useCallback(async () => {
     const hh = getHouseholdId();
@@ -233,7 +257,7 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
     try {
       setLoading(true);
       setLoadError(null);
-      const res = await fetch(`/api/investments/reports?householdId=${encodeURIComponent(hh)}`);
+      const res = await fetch(`/api/investments/reports?householdId=${encodeURIComponent(hh)}`, { credentials: "include" });
       const data = await res.json();
       if (res.ok && data.ok) {
         setReports(data.reports as SavedReport[]);
@@ -336,6 +360,17 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
 
   const active =
     selected === "all" ? latestReports : latestReports.filter((r) => portfolioKey(r) === selected);
+
+  const allTransactions = useMemo(() => {
+    return active.flatMap((r) => 
+      (r.transactions || []).map(tx => ({
+        ...tx,
+        _broker: r.broker,
+        _currency: r.currency
+      }))
+    );
+  }, [active]);
+
   const holdings: (Holding & { _broker: string; _currency?: string; _reportDate?: string | null })[] = active.flatMap((r) =>
     (r.holdings || []).map((h) => ({
       ...h,
@@ -383,6 +418,54 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
     );
   }, [hasRequiredFx, holdings.length, onTotalsChange, reports.length, totalValue]);
 
+  const showBrokerCol = selected === "all" && latestReports.length > 1;
+  const compareReports = groupedAll.get(comparePortfolio) ?? [];
+  const compareFrom = compareReports.find((r) => r.id === compareFromId) ?? null;
+  const compareTo = compareReports.find((r) => r.id === compareToId) ?? null;
+  const fromFxRates = compareFrom?.report_date ? historicalFxRates[compareFrom.report_date] : undefined;
+  const toFxRates = compareTo?.report_date ? historicalFxRates[compareTo.report_date] : undefined;
+  const isWaitingForHistoricalFx =
+    !!compareFrom &&
+    !!compareTo &&
+    ((normalizeCurrency(compareFrom.currency) !== "ILS" && !fromFxRates) ||
+      (normalizeCurrency(compareTo.currency) !== "ILS" && !toFxRates));
+  const comparison =
+    compareFrom && compareTo && compareFrom.id !== compareTo.id && !isWaitingForHistoricalFx
+      ? buildComparison(compareFrom, compareTo, {
+          from: fromFxRates ?? { ILS: 1 },
+          to: toFxRates ?? { ILS: 1 },
+        })
+      : null;
+
+  useEffect(() => {
+    const dates = [compareFrom?.report_date, compareTo?.report_date].filter(
+      (date): date is string => !!date && !historicalFxRates[date]
+    );
+    if (dates.length === 0) return;
+    let cancelled = false;
+    Promise.all(
+      [...new Set(dates)].map(async (date) => {
+        try {
+          const rates = await fetchHistoricalFxRates(date);
+          return [date, rates] as const;
+        } catch {
+          return [date, fxRates] as const;
+        }
+      })
+    ).then((entries) => {
+      if (cancelled) return;
+      setHistoricalFxRates((prev) => {
+        const next = { ...prev };
+        for (const [date, rates] of entries) next[date] = rates;
+        return next;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [compareFrom?.report_date, compareTo?.report_date, fxRates, historicalFxRates]);
+
+
   if (loading && reports.length === 0) {
     return <SavedBrokerPortfoliosSkeleton />;
   }
@@ -418,68 +501,20 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
   const holdingReturn = (h: Holding) =>
     h.costIls > 0 ? ((h.valueIls - h.costIls) / h.costIls) * 100 : null;
 
-  const showBrokerCol = selected === "all" && latestReports.length > 1;
-  const compareReports = groupedAll.get(comparePortfolio) ?? [];
-  const compareFrom = compareReports.find((r) => r.id === compareFromId) ?? null;
-  const compareTo = compareReports.find((r) => r.id === compareToId) ?? null;
-  const comparison =
-    compareFrom && compareTo && compareFrom.id !== compareTo.id
-      ? buildComparison(compareFrom, compareTo, fxRates)
-      : null;
 
-  async function handleDelete(reportId: string, broker: string, accountNumber: string) {
+  async function handleDelete(reportId: string, _broker: string, _accountNumber: string) {
     if (!confirm("למחוק דוח זה? פעולה זו אינה ניתנת לביטול.")) return;
     setDeletingId(reportId);
     const hh = getHouseholdId();
     try {
       const res = await fetch(`/api/investments/reports?householdId=${encodeURIComponent(hh!)}&reportId=${encodeURIComponent(reportId)}`, {
         method: "DELETE",
+        credentials: "include"
       });
       if (res.ok) {
-        // Automatically fetch to update list, and trigger sync for main portfolio.
-        const listRes = await fetch(`/api/investments/reports?householdId=${encodeURIComponent(hh!)}`);
-        if (listRes.ok) {
-          const listData = await listRes.json();
-          if (listData.ok) {
-            const newReports = listData.reports as SavedReport[];
-            setReports(newReports);
-
-            // Re-evaluate what is the LATEST report for THIS (broker, account)
-            const latestForThis = newReports.find(r => r.broker === broker && r.account_number === accountNumber);
-
-            // Now sync the local store for this broker
-            const brokerLabel = broker && broker !== "לא זוהה" ? broker : "בית השקעות";
-            const account = loadAccounts().find((a) => a.label === brokerLabel || a.broker === brokerLabel);
-            if (account) {
-              // Clear all existing positions for this broker account
-              for (const p of loadPositions().filter((p) => p.accountId === account.id)) {
-                deletePosition(p.id);
-              }
-
-              // If there is an older report left, restore its positions
-              if (latestForThis) {
-                for (const h of latestForThis.holdings) {
-                  if (h.assetKind === "cash" || h.quantity <= 0) continue;
-                  addPosition({
-                    accountId: account.id,
-                    kind: h.assetKind as AssetKind,
-                    symbol: (h.symbol || h.securityNumber || h.name).toUpperCase(),
-                    name: h.name,
-                    quantity: h.quantity,
-                    avgCost: h.quantity > 0 ? h.costIls / h.quantity : 0,
-                    currentPrice: h.quantity > 0 ? h.valueIls / h.quantity : 0,
-                    currency: normalizeCurrency(latestForThis.currency),
-                    fxRateToIls: fxToIls(latestForThis.currency, fxRates),
-                    asOfDate: latestForThis.report_date || undefined,
-                  });
-                }
-              }
-              triggerInvestmentSync();
-            }
-          }
-        } else {
-          load();
-        }
+        // Broker holdings live only in investment_reports now — just refresh
+        // the list from the server. No portfolio-store rewrite.
+        await load();
       }
     } finally {
       setDeletingId(null);
@@ -554,7 +589,18 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
         <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-5">
           <Stat label="שווי כולל" value={isWaitingForFx ? "טוען שער" : fmtMoney(totalValue, displayCurrency)} />
           <Stat label="עלות רכישה" value={isWaitingForFx ? "טוען שער" : fmtMoney(totalCost, displayCurrency)} />
-          <Stat label="רווח/הפסד" value={isWaitingForFx ? "טוען שער" : fmtMoney(gain, displayCurrency, { signed: true })} />
+          <Stat 
+            label="רווח/הפסד" 
+            value={
+              isWaitingForFx ? (
+                "טוען שער"
+              ) : (
+                <span dir="ltr" style={{ color: gain > 0 ? "#16a34a" : gain < 0 ? "#dc2626" : "inherit" }}>
+                  {fmtMoney(gain, displayCurrency, { signed: true })}
+                </span>
+              )
+            } 
+          />
           <Stat
             label="שער דולר חי"
             value={
@@ -573,7 +619,7 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
               totalReturnPct == null ? (
                 "—"
               ) : (
-                <span dir="ltr">
+                <span dir="ltr" style={{ color: totalReturnPct > 0 ? "#16a34a" : totalReturnPct < 0 ? "#dc2626" : "inherit" }}>
                   {totalReturnPct >= 0 ? "+" : ""}
                   {totalReturnPct.toFixed(2)}%
                 </span>
@@ -663,6 +709,12 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
             </div>
           )}
 
+          {isWaitingForHistoricalFx && (
+            <div className="rounded-lg bg-[#FAFAF7] p-3 text-[11px] font-bold text-verdant-muted">
+              טוען שערי מטבע היסטוריים לפי תאריכי הדוחות...
+            </div>
+          )}
+
           {comparison && (
             <>
               <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-5">
@@ -670,7 +722,15 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
                 <Stat label="שווי נוכחי" value={comparison.toValue == null ? "טוען שער" : fmtMoney(comparison.toValue, "ILS")} />
                 <Stat
                   label="שינוי"
-                  value={comparison.deltaValue == null ? "טוען שער" : fmtMoney(comparison.deltaValue, "ILS", { signed: true })}
+                  value={
+                    comparison.deltaValue == null ? (
+                      "טוען שער"
+                    ) : (
+                      <span dir="ltr" style={{ color: comparison.deltaValue > 0 ? "#16a34a" : comparison.deltaValue < 0 ? "#dc2626" : "inherit" }}>
+                        {fmtMoney(comparison.deltaValue, "ILS", { signed: true })}
+                      </span>
+                    )
+                  }
                 />
                 <Stat
                   label="שינוי באחוזים"
@@ -678,7 +738,7 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
                     comparison.deltaPct == null ? (
                       "—"
                     ) : (
-                      <span dir="ltr">
+                      <span dir="ltr" style={{ color: comparison.deltaPct > 0 ? "#16a34a" : comparison.deltaPct < 0 ? "#dc2626" : "inherit" }}>
                         {comparison.deltaPct >= 0 ? "+" : ""}
                         {comparison.deltaPct.toFixed(1)}%
                       </span>
@@ -689,10 +749,25 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
                   label="הפקדות/משיכות"
                   value={
                     comparison.hasCashFlows
-                      ? `${fmtMoney(comparison.deposits, compareTo?.currency || "ILS")} / ${fmtMoney(comparison.withdrawals, compareTo?.currency || "ILS")}`
+                      ? `${fmtMoney(comparison.deposits, "ILS")} / ${fmtMoney(comparison.withdrawals, "ILS")}`
                       : "לא זוהה"
                   }
                 />
+              </div>
+
+              <div className="mb-3 flex flex-wrap gap-2 text-[11px] font-bold text-verdant-muted">
+                {compareFrom?.report_date && fromFxRates?.USD && (
+                  <span className="rounded-lg bg-[#FAFAF7] px-2.5 py-1">
+                    שער קודם {fmtDateIL(compareFrom.report_date)}:{" "}
+                    <span dir="ltr">1 $ = {fromFxRates.USD.toFixed(4)} ₪</span>
+                  </span>
+                )}
+                {compareTo?.report_date && toFxRates?.USD && (
+                  <span className="rounded-lg bg-[#FAFAF7] px-2.5 py-1">
+                    שער נוכחי {fmtDateIL(compareTo.report_date)}:{" "}
+                    <span dir="ltr">1 $ = {toFxRates.USD.toFixed(4)} ₪</span>
+                  </span>
+                )}
               </div>
 
               <div className="mb-3 flex flex-wrap gap-2">
@@ -712,15 +787,33 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
               </div>
 
               <div className="grid gap-2 md:grid-cols-3">
-                <ComparisonList title="ניירות שנוספו" rows={comparison.added} empty="לא נוספו ניירות" />
-                <ComparisonList title="ניירות שנעלמו" rows={comparison.removed} empty="לא נעלמו ניירות" />
-                <ComparisonList title="שינויים מרכזיים" rows={comparison.changed} empty="אין שינוי מהותי" />
+                <ComparisonList title="ניירות שנוספו" items={comparison.added} empty="לא נוספו ניירות" showUsd={comparison.showUsd} />
+                <ComparisonList title="ניירות שנעלמו" items={comparison.removed} empty="לא נעלמו ניירות" showUsd={comparison.showUsd} />
+                <ComparisonList title="שינויים מרכזיים" items={comparison.changed} empty="אין שינוי מהותי" showUsd={comparison.showUsd} isDelta />
               </div>
             </>
           )}
         </div>
 
         {/* Holdings table */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-[13px] font-extrabold text-verdant-ink">פירוט אחזקות</div>
+          {allTransactions.length > 0 ? (
+            <button 
+              onClick={() => setIsTransactionsModalOpen(true)}
+              className="text-[11px] font-bold text-[#2C7A5A] bg-[#2C7A5A]/10 px-3 py-1.5 rounded-lg hover:bg-[#2C7A5A]/20 transition-colors"
+            >
+              צפה ב-{allTransactions.length} תנועות בחשבון
+            </button>
+          ) : (
+            <button 
+              disabled
+              className="text-[11px] font-bold text-gray-400 bg-gray-100 px-3 py-1.5 rounded-lg cursor-not-allowed"
+            >
+              אין תנועות שמורות
+            </button>
+          )}
+        </div>
         <div className="max-h-80 overflow-auto rounded-lg border" style={{ borderColor: "#E5E7EB" }}>
           <table className="w-full text-[11px]">
             <thead>
@@ -872,6 +965,13 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
           </div>
         </div>
       )}
+
+      {isTransactionsModalOpen && (
+        <TransactionsModal
+          transactions={allTransactions}
+          onClose={() => setIsTransactionsModalOpen(false)}
+        />
+      )}
     </section>
   );
 }
@@ -952,21 +1052,227 @@ function SavedBrokerPortfoliosSkeleton() {
   );
 }
 
-function ComparisonList({ title, rows, empty }: { title: string; rows: string[]; empty: string }) {
+function ComparisonList({ 
+  title, 
+  items, 
+  empty, 
+  showUsd,
+  isDelta = false
+}: { 
+  title: string; 
+  items: { name: string; valueIls: number; valueOrig: number; qtyDelta?: number; absIls?: number }[]; 
+  empty: string;
+  showUsd?: boolean;
+  isDelta?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
+
+  const renderValue = (item: any) => {
+    const qtyStr = item.qtyDelta ? (
+      <>
+        {" · כמות "}
+        <span dir="ltr">
+          {item.qtyDelta > 0 ? "+" : ""}
+          {item.qtyDelta.toLocaleString()}
+        </span>
+      </>
+    ) : null;
+
+    if (showUsd) {
+      return (
+        <>
+          <span dir="ltr">{fmtMoney(item.valueOrig, "USD", { signed: isDelta })}</span>
+          {" ("}
+          <span dir="ltr">{fmtMoney(item.valueIls, "ILS", { signed: isDelta })}</span>
+          {")"}
+          {qtyStr}
+        </>
+      );
+    }
+    return (
+      <>
+        <span dir="ltr">{fmtMoney(item.valueIls, "ILS", { signed: isDelta })}</span>
+        {qtyStr}
+      </>
+    );
+  };
+
   return (
-    <div className="rounded-lg border p-3" style={{ borderColor: "#E5E7EB", background: "#FAFAF7" }}>
-      <div className="mb-2 text-[11px] font-extrabold text-verdant-ink">{title}</div>
-      {rows.length === 0 ? (
-        <div className="text-[11px] font-bold text-verdant-muted">{empty}</div>
-      ) : (
-        <div className="space-y-1">
-          {rows.map((row) => (
-            <div key={row} className="text-[11px] font-bold text-verdant-muted">
-              {row}
+    <>
+      <button 
+        onClick={() => items.length > 0 && setIsOpen(true)}
+        className={`rounded-lg border p-3 text-right transition-all h-full flex flex-col items-start w-full ${items.length > 0 ? "hover:opacity-80 active:scale-[0.98]" : ""}`} 
+        style={{ 
+          borderColor: "#E5E7EB", 
+          background: "#FAFAF7", 
+          cursor: items.length > 0 ? "pointer" : "default" 
+        }}
+      >
+        <div className="mb-2 text-[11px] font-extrabold text-verdant-ink">{title}</div>
+        {items.length === 0 ? (
+          <div className="text-[11px] font-bold text-verdant-muted">{empty}</div>
+        ) : (
+          <div className="text-[11px] font-bold text-verdant-muted">
+            {items.length} {items.length === 1 ? 'פריט' : 'פריטים'} (לחץ לפירוט)
+          </div>
+        )}
+      </button>
+
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+          onClick={() => setIsOpen(false)}
+        >
+          <div
+            className="flex w-full max-w-md flex-col rounded-2xl bg-white shadow-2xl overflow-hidden"
+            dir="rtl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b p-5 bg-white z-10">
+              <h2 className="text-[15px] font-extrabold text-verdant-ink">{title}</h2>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="material-symbols-outlined text-gray-400 transition-colors hover:text-gray-700"
+              >
+                close
+              </button>
             </div>
-          ))}
+            <div className="max-h-[60vh] overflow-y-auto">
+              <table className="w-full text-[12px] text-right border-collapse">
+                <thead className="bg-[#FAFAF7] text-[11px] text-verdant-muted font-bold sticky top-0 border-b z-10" style={{ borderColor: "#E5E7EB" }}>
+                  <tr>
+                    <th className="py-2.5 px-5">נייר</th>
+                    {items.some((row) => row.qtyDelta !== undefined) && (
+                      <th className="py-2.5 px-3 text-center">כמות</th>
+                    )}
+                    {showUsd && (
+                      <th className="py-2.5 px-3 text-left">סכום ($)</th>
+                    )}
+                    <th className="py-2.5 px-5 text-left">סכום (₪)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y" style={{ borderColor: "#E5E7EB" }}>
+                  {items.map((row, i) => {
+                    const getStyle = (val: number) => {
+                      if (!isDelta) return { fontWeight: "bold" };
+                      return {
+                        fontWeight: "bold",
+                        color: val > 0 ? "#16a34a" : val < 0 ? "#dc2626" : "inherit",
+                      };
+                    };
+
+                    return (
+                      <tr key={i} className="hover:bg-black/[0.02] transition-colors">
+                        <td className="py-2.5 px-5 font-bold text-verdant-ink">{row.name}</td>
+                        {items.some((r) => r.qtyDelta !== undefined) && (
+                          <td className="py-2.5 px-3 text-center text-verdant-muted" dir="ltr">
+                            {row.qtyDelta !== undefined && row.qtyDelta !== 0 ? (
+                              <span dir="ltr" style={getStyle(row.qtyDelta)}>
+                                {row.qtyDelta > 0 ? "+" : ""}
+                                {row.qtyDelta.toLocaleString()}
+                              </span>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                        )}
+                        {showUsd && (
+                          <td className="py-2.5 px-3 text-left text-verdant-muted whitespace-nowrap" dir="ltr">
+                            <span dir="ltr" style={getStyle(row.valueOrig)}>
+                              {fmtMoney(row.valueOrig, "USD", { signed: isDelta })}
+                            </span>
+                          </td>
+                        )}
+                        <td className="py-2.5 px-5 text-left text-verdant-muted whitespace-nowrap" dir="ltr">
+                          <span dir="ltr" style={getStyle(row.valueIls)}>
+                            {fmtMoney(row.valueIls, "ILS", { signed: isDelta })}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
+    </>
+  );
+}
+
+function TransactionsModal({ transactions, onClose }: { transactions: (SavedTransaction & { _broker?: string, _currency?: string })[], onClose: () => void }) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="flex w-full max-w-2xl flex-col rounded-2xl bg-white shadow-2xl overflow-hidden"
+        dir="rtl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b p-5 bg-white z-10">
+          <h2 className="text-[15px] font-extrabold text-verdant-ink">רשימת תנועות ({transactions.length})</h2>
+          <button
+            onClick={onClose}
+            className="material-symbols-outlined text-gray-400 transition-colors hover:text-gray-700"
+          >
+            close
+          </button>
+        </div>
+        <div className="max-h-[60vh] overflow-y-auto">
+          <table className="w-full text-[12px] text-right border-collapse">
+            <thead className="bg-[#FAFAF7] text-[11px] text-verdant-muted font-bold sticky top-0 border-b z-10" style={{ borderColor: "#E5E7EB" }}>
+              <tr>
+                <th className="py-2.5 px-5">תאריך</th>
+                <th className="py-2.5 px-3">סוג תנועה</th>
+                <th className="py-2.5 px-3">נייר/תיאור</th>
+                <th className="py-2.5 px-3 text-left">כמות</th>
+                <th className="py-2.5 px-5 text-left">סכום</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y" style={{ borderColor: "#E5E7EB" }}>
+              {transactions.map((tx, i) => {
+                const isUsd = tx._currency === "USD" || (tx._broker || "").toLowerCase().includes("blink");
+                const sign = tx.amount > 0 ? "+" : tx.amount < 0 ? "-" : "";
+                const symbol = isUsd ? " $" : "";
+                return (
+                  <tr key={i} className="hover:bg-black/[0.02] transition-colors">
+                    <td className="py-2.5 px-5 text-verdant-muted whitespace-nowrap">{tx.date}</td>
+                    <td className="py-2.5 px-3 font-bold text-verdant-ink">{tx.type}</td>
+                    <td className="py-2.5 px-3 text-verdant-ink">{tx.name || "—"}</td>
+                    <td className="py-2.5 px-3 text-left text-verdant-muted whitespace-nowrap" dir="ltr">
+                      {tx.quantity ? tx.quantity.toLocaleString() : "—"}
+                    </td>
+                    <td className="py-2.5 px-5 text-left font-bold whitespace-nowrap" dir="ltr" style={{ color: tx.amount > 0 ? "#16a34a" : tx.amount < 0 ? "#dc2626" : "inherit" }}>
+                      <span dir="ltr">{sign}{Math.abs(tx.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{symbol}</span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
