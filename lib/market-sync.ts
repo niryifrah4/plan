@@ -49,11 +49,24 @@ export interface PerformanceAnalysis {
 /** Fetch a single quote from Yahoo Finance's public chart endpoint */
 export async function fetchQuote(symbol: string): Promise<TickerQuote | null> {
   try {
-    const res = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol.trim().toUpperCase())}?interval=1d&range=5d`
-    );
+    const sym = symbol.trim().toUpperCase();
+    const url =
+      typeof window !== "undefined"
+        ? `/api/market?kind=quote&symbol=${encodeURIComponent(sym)}`
+        : `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=5d`;
+    const res = await fetch(url);
     if (!res.ok) return null;
     const data = await res.json();
+    if (typeof window !== "undefined") {
+      if (!data || typeof data.price !== "number") return null;
+      return {
+        symbol: data.symbol || sym,
+        price: data.price,
+        currency: data.currency || "USD",
+        name: data.name || data.symbol || sym,
+        changePct: data.changePct || 0,
+      };
+    }
     const meta = data.chart?.result?.[0]?.meta;
     if (!meta) return null;
     const price = meta.regularMarketPrice || 0;
@@ -74,6 +87,17 @@ export async function fetchQuote(symbol: string): Promise<TickerQuote | null> {
 /** Fetch quotes for many tickers in parallel (with concurrency cap) */
 export async function fetchQuotesBulk(symbols: string[]): Promise<Record<string, TickerQuote>> {
   const unique = Array.from(new Set(symbols.filter(Boolean)));
+  if (typeof window !== "undefined") {
+    try {
+      const res = await fetch(
+        `/api/market?kind=quotes&symbols=${encodeURIComponent(unique.join(","))}`
+      );
+      if (!res.ok) return {};
+      return (await res.json()) as Record<string, TickerQuote>;
+    } catch {
+      return {};
+    }
+  }
   const result: Record<string, TickerQuote> = {};
   const concurrency = 5;
   for (let i = 0; i < unique.length; i += concurrency) {
@@ -152,6 +176,12 @@ export async function fetchPrice(symbol: string, kind: SecurityKind): Promise<Pr
 }
 
 export async function fetchFXRates(): Promise<Record<string, number>> {
+  if (typeof window !== "undefined") {
+    const res = await fetch("/api/market?kind=fx");
+    if (!res.ok) return { ILS: 1 };
+    const data = await res.json();
+    return { ...data, ILS: 1 };
+  }
   return fetchAllFXRates();
 }
 

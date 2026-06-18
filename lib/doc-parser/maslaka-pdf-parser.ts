@@ -619,12 +619,16 @@ function parseDepositsSection(text: string): DepositRecord[] {
 
 /* ── Main entry ── */
 
-export async function parseMaslakaPdf(buffer: Buffer, filename: string): Promise<MaslakaPdfResult> {
+export async function parseMaslakaPdf(
+  buffer: Buffer,
+  filename: string,
+  password?: string
+): Promise<MaslakaPdfResult> {
   const warnings: string[] = [];
   let text = "";
 
   try {
-    const data = await pdfParse(buffer);
+    const data = await pdfParse(buffer, password ? ({ password } as any) : undefined);
     text = data.text || "";
   } catch (e) {
     warnings.push(`כשל בקריאת PDF: ${e instanceof Error ? e.message : String(e)}`);

@@ -15,7 +15,6 @@ import { useRef, useState, useEffect, ReactNode } from "react";
 import { REPORT_SAVED_EVENT } from "@/components/investments/SavedBrokerPortfolios";
 import { triggerInvestmentSync } from "@/lib/sync-engine";
 import { getHouseholdId } from "@/lib/sync/remote-sync";
-import { fetchFXRates } from "@/lib/market-sync";
 import { fmtMoney, fmtDateIL } from "@/lib/_shared/format";
 import {
   loadAccounts,
@@ -66,6 +65,23 @@ const KIND_LABELS: Record<BrokerHolding["assetKind"], string> = {
   cash: "מזומן",
 };
 
+function normalizeCurrency(currency: string | undefined): Currency {
+  const cur = (currency || "ILS").toUpperCase();
+  return cur === "USD" || cur === "EUR" || cur === "GBP" ? cur : "ILS";
+}
+
+function fxToIls(currency: string | undefined, fxRates: Record<string, number>): number {
+  const cur = normalizeCurrency(currency);
+  return cur === "ILS" ? 1 : fxRates[cur] || 0;
+}
+
+async function fetchFxRatesForBrowser(): Promise<Record<string, number>> {
+  const res = await fetch("/api/market?kind=fx");
+  if (!res.ok) throw new Error("FX fetch failed");
+  const data = await res.json();
+  return { ...data, ILS: 1 };
+}
+
 export function BrokerReportUpload() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -74,14 +90,16 @@ export function BrokerReportUpload() {
   const [method, setMethod] = useState<"deterministic" | "ai" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [needsPassword, setNeedsPassword] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [savedInfo, setSavedInfo] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [fxRates, setFxRates] = useState<Record<string, number>>({});
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   useEffect(() => {
-    fetchFXRates().then(setFxRates).catch(() => {});
+    fetchFxRatesForBrowser().then(setFxRates).catch(() => setFxRates({}));
   }, []);
 
   function reset() {
@@ -90,15 +108,18 @@ export function BrokerReportUpload() {
     setMethod(null);
     setError(null);
     setNeedsPassword(false);
+    setPasswordMessage(null);
     setPassword("");
     setSaving(false);
     setSavedInfo(null);
+    setShowUploadModal(false);
     if (inputRef.current) inputRef.current.value = "";
   }
 
   async function analyze(theFile: File, pw?: string) {
     setBusy(true);
     setError(null);
+    setPasswordMessage(null);
     setReport(null);
     setSavedInfo(null);
     try {
@@ -111,15 +132,19 @@ export function BrokerReportUpload() {
       if (!res.ok) {
         if (data?.code === "PASSWORD_REQUIRED" || data?.code === "PASSWORD_WRONG") {
           setNeedsPassword(true);
-          setError(data.error);
+          setError(null);
+          setPasswordMessage(data.error || "הקובץ מוגן בסיסמה — הזן את הסיסמה כדי לנתח אותו");
           return;
         }
         setError(data?.error || "שגיאה בעיבוד הקובץ");
         return;
       }
       setNeedsPassword(false);
-      setReport(data.report as BrokerReport);
+      setPasswordMessage(null);
+      const parsedReport = data.report as BrokerReport;
+      setReport(parsedReport);
       setMethod((data.method as "deterministic" | "ai") ?? null);
+      await saveParsedReport(parsedReport);
     } catch (e) {
       setError(e instanceof Error ? e.message : "שגיאה בעיבוד הקובץ — נסה שוב");
     } finally {
@@ -131,6 +156,7 @@ export function BrokerReportUpload() {
     setError(null);
     setReport(null);
     setNeedsPassword(false);
+    setPasswordMessage(null);
     setPassword("");
     if (!f) return;
     if (f.size > MAX_BYTES) {
@@ -142,14 +168,16 @@ export function BrokerReportUpload() {
       return;
     }
     setFile(f);
+    setShowUploadModal(true);
     analyze(f);
   }
 
   /* ── Save: merge into portfolio + persist analyzed report ── */
-  async function handleSave() {
-    if (!report) return;
+  async function saveParsedReport(reportToSave: BrokerReport) {
     setSaving(true);
     setSavedInfo(null);
+    setError(null);
+    try {
 
     // 1) Persist the analyzed report to the DB first.
     // This allows the server to tell us if this is the *latest* available period
@@ -163,7 +191,7 @@ export function BrokerReportUpload() {
         const res = await fetch("/api/investments/reports", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ householdId, report }),
+          body: JSON.stringify({ householdId, report: reportToSave }),
         });
         const data = await res.json();
         dbSaved = res.ok;
@@ -180,11 +208,11 @@ export function BrokerReportUpload() {
     // We only merge if this report is the latest available period.
     let merged = 0;
     if (isLatest) {
-      const brokerLabel = report.broker && report.broker !== "לא זוהה" ? report.broker : "בית השקעות";
+      const brokerLabel = reportToSave.broker && reportToSave.broker !== "לא זוהה" ? reportToSave.broker : "בית השקעות";
       let accounts = loadAccounts();
       let account = accounts.find((a) => a.label === brokerLabel || a.broker === brokerLabel);
       if (!account) {
-        account = { id: `acc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, label: brokerLabel, broker: brokerLabel, currency: (report.currency || "ILS") as Currency, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+        account = { id: `acc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, label: brokerLabel, broker: brokerLabel, currency: normalizeCurrency(reportToSave.currency), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
         accounts = [...accounts, account];
         const ok = await saveAccountsAsync(accounts);
         if (!ok) throw new Error("Failed to save accounts to DB");
@@ -193,7 +221,7 @@ export function BrokerReportUpload() {
       let nextPositions = loadPositions().filter((p) => p.accountId !== account!.id);
 
       // Add new positions.
-      for (const h of report.holdings) {
+      for (const h of reportToSave.holdings) {
         if (h.assetKind === "cash" || h.quantity <= 0) continue; // cash balances aren't positions
         nextPositions.push({
           id: `pos-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -202,10 +230,11 @@ export function BrokerReportUpload() {
           symbol: (h.symbol || h.securityNumber || h.name).toUpperCase(),
           name: h.name,
           quantity: h.quantity,
-          avgCost: h.quantity > 0 ? (h.costIls > 0 ? h.costIls / h.quantity : h.valueIls / h.quantity) : 0,
+          avgCost: h.quantity > 0 && h.costIls > 0 ? h.costIls / h.quantity : 0,
           currentPrice: h.quantity > 0 ? h.valueIls / h.quantity : 0,
-          currency: (report.currency || "ILS") as Currency,
-          fxRateToIls: fxRates[report.currency || "ILS"] || 1,
+          currency: normalizeCurrency(reportToSave.currency),
+          fxRateToIls: fxToIls(reportToSave.currency, fxRates),
+          asOfDate: reportToSave.reportDate || undefined,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         });
@@ -218,7 +247,6 @@ export function BrokerReportUpload() {
       triggerInvestmentSync();
     }
 
-    setSaving(false);
     setSavedInfo(
       dbSaved
         ? isLatest
@@ -226,10 +254,22 @@ export function BrokerReportUpload() {
           : `הדוח נשמר במערכת (לא עודכן בתיק מכיוון שקיים דוח עדכני יותר)`
         : `${merged} ניירות נוספו לתיק (אופליין)`
     );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "שמירת הדוח נכשלה");
+      setSavedInfo(null);
+    } finally {
+    setSaving(false);
+    }
+  }
+
+  async function handleSave() {
+    if (!report) return;
+    await saveParsedReport(report);
   }
 
   const tradeable = report?.holdings.filter((h) => h.assetKind !== "cash") ?? [];
   const cash = report?.holdings.filter((h) => h.assetKind === "cash") ?? [];
+  const usdIlsRate = fxRates.USD;
 
   // ── Returns analysis ──
   const holdingReturn = (h: BrokerHolding): number | null =>
@@ -255,6 +295,7 @@ export function BrokerReportUpload() {
   })();
 
   return (
+    <>
     <section className="card mb-6 overflow-hidden">
       <div className="v-divider flex items-center justify-between border-b px-5 py-4">
         <div>
@@ -275,57 +316,95 @@ export function BrokerReportUpload() {
       </div>
 
       <div className="p-5">
-        {/* Drop zone — hidden once a report is parsed */}
-        {!report && (
-          <label
-            htmlFor="broker-pdf-input"
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOver(true);
-            }}
-            onDragLeave={(e) => {
-              e.preventDefault();
-              setDragOver(false);
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragOver(false);
-              onPick(Array.from(e.dataTransfer.files)[0]);
-            }}
-            className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
-              error && !needsPassword
-                ? "border-red-300 bg-red-50/50"
-                : dragOver
-                  ? "border-verdant-accent bg-verdant-accent/5"
-                  : "v-divider hover:bg-[#FAFAF7]"
-            }`}
-          >
-            <span className="material-symbols-outlined mb-2 text-[36px] text-verdant-accent">
-              {busy ? "hourglass_top" : "cloud_upload"}
-            </span>
-            <span className="text-sm font-extrabold text-verdant-ink">
-              {busy ? "מנתח את הדוח…" : file ? file.name : "בחר או גרור קובץ PDF מבית ההשקעות"}
-            </span>
-            <span className="mt-1 text-[10px] text-verdant-muted">
-              עד 20MB · אם הקובץ מוגן בסיסמה — תתבקש להזין אותה
-            </span>
-            <input
-              id="broker-pdf-input"
-              ref={inputRef}
-              type="file"
-              accept=".pdf,application/pdf"
-              className="hidden"
-              onChange={(e) => onPick(e.target.files?.[0] ?? undefined)}
-            />
-          </label>
-        )}
+        <label
+          htmlFor="broker-pdf-input"
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+            onPick(Array.from(e.dataTransfer.files)[0]);
+          }}
+          className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
+            dragOver ? "border-verdant-accent bg-verdant-accent/5" : "v-divider hover:bg-[#FAFAF7]"
+          }`}
+        >
+          <span className="material-symbols-outlined mb-2 text-[36px] text-verdant-accent">
+            cloud_upload
+          </span>
+          <span className="text-sm font-extrabold text-verdant-ink">
+            בחר או גרור קובץ PDF מבית ההשקעות
+          </span>
+          <span className="mt-1 text-[10px] text-verdant-muted">
+            עד 20MB · אם הקובץ מוגן בסיסמה — תתבקש להזין אותה
+          </span>
+          <input
+            id="broker-pdf-input"
+            ref={inputRef}
+            type="file"
+            accept=".pdf,application/pdf"
+            className="hidden"
+            onChange={(e) => onPick(e.target.files?.[0] ?? undefined)}
+          />
+        </label>
+      </div>
+    </section>
+
+    {showUploadModal && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+        dir="rtl"
+        onClick={() => {
+          if (!busy && !saving) setShowUploadModal(false);
+        }}
+      >
+        <div
+          className="max-h-[88vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-white text-right shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="v-divider flex items-start justify-between gap-3 border-b px-5 py-4">
+            <div>
+              <h3 className="text-sm font-extrabold text-verdant-ink">קליטת דוח בית השקעות</h3>
+              <p className="mt-1 text-[11px] font-bold text-verdant-muted">
+                {file?.name || "דוח PDF"} · נשמר אוטומטית כתקופה לאחר ניתוח מוצלח
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={busy || saving}
+              onClick={reset}
+              className="material-symbols-outlined rounded-lg border p-1.5 text-[18px] text-verdant-muted disabled:opacity-40"
+              style={{ borderColor: "#E5E7EB" }}
+            >
+              close
+            </button>
+          </div>
+
+          <div className="max-h-[calc(88vh-76px)] overflow-y-auto p-5">
+            {busy && !needsPassword && !report && (
+              <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+                <span className="material-symbols-outlined animate-spin text-[40px] text-verdant-emerald">
+                  progress_activity
+                </span>
+                <div className="text-[13px] font-extrabold text-verdant-ink">מנתח את הדוח...</div>
+                <div className="text-[11px] font-bold text-verdant-muted">
+                  הנתונים יוצגו כאן ולאחר מכן יישמרו כ-snapshot היסטורי.
+                </div>
+              </div>
+            )}
 
         {/* Password prompt */}
         {needsPassword && file && (
           <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
             <div className="mb-2 flex items-center gap-2 text-[12px] font-extrabold text-amber-800">
               <span className="material-symbols-outlined text-[16px]">lock</span>
-              הקובץ מוגן בסיסמה
+              {passwordMessage || "הקובץ מוגן בסיסמה"}
             </div>
             <div className="flex gap-2">
               <input
@@ -365,11 +444,23 @@ export function BrokerReportUpload() {
         {report && (
           <div>
             {/* Header stats */}
-            <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-4">
+            <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-5">
               <Stat label="בית השקעות" value={report.broker} />
               <Stat label="מספר חשבון" value={report.accountNumber || "—"} />
               <Stat label="נכון ליום" value={fmtDateIL(report.reportDate)} />
               <Stat label="שווי כולל" value={fmtMoney(report.totalValueIls, report.currency)} />
+              <Stat
+                label="שער דולר חי"
+                value={
+                  usdIlsRate ? (
+                    <span dir="ltr">
+                      1 $ = {usdIlsRate.toLocaleString("en-US", { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ₪
+                    </span>
+                  ) : (
+                    "לא נטען"
+                  )
+                }
+              />
             </div>
 
             {method && (
@@ -445,6 +536,7 @@ export function BrokerReportUpload() {
                   <tr className="text-[10px] font-bold text-verdant-muted" style={{ background: "#FAFAF7" }}>
                     <th className="px-2 py-1.5 text-right">סוג</th>
                     <th className="px-2 py-1.5 text-right">נייר</th>
+                    <th className="px-2 py-1.5 text-left">נכון ליום</th>
                     <th className="px-2 py-1.5 text-left">כמות</th>
                     <th className="px-2 py-1.5 text-left">שער נוכחי</th>
                     <th className="px-2 py-1.5 text-left">עלות רכישה</th>
@@ -471,6 +563,9 @@ export function BrokerReportUpload() {
                           {h.name}
                           {h.symbol && <span className="ml-1 text-verdant-muted">({h.symbol})</span>}
                         </td>
+                        <td className="px-2 py-1.5 text-left tabular-nums text-verdant-muted" dir="ltr">
+                          {fmtDateIL(report.reportDate)}
+                        </td>
                         <td className="px-2 py-1.5 text-left tabular-nums" dir="ltr">
                           {h.quantity.toLocaleString()}
                         </td>
@@ -485,7 +580,7 @@ export function BrokerReportUpload() {
                         </td>
                         {report.currency !== "ILS" && (
                           <td className="px-2 py-1.5 text-left font-bold tabular-nums text-emerald-600" dir="ltr">
-                            {fmtMoney(h.valueIls * (fxRates[report.currency] || 1), "ILS")}
+                            {fmtMoney(h.valueIls * fxToIls(report.currency, fxRates), "ILS")}
                           </td>
                         )}
                         <td className="px-2 py-1.5 text-left tabular-nums" dir="ltr">
@@ -561,10 +656,13 @@ export function BrokerReportUpload() {
                 {savedInfo}
               </div>
             )}
+            </div>
+          )}
           </div>
-        )}
+        </div>
       </div>
-    </section>
+    )}
+    </>
   );
 }
 

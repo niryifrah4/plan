@@ -99,17 +99,43 @@ async function fetchBoiFX() {
     tickers.map(async (cur) => {
       try {
         const res = await fetch(
-          `https://boi.org.il/PublicApi/GetExchangeRates?currencyCode=${cur}`,
+          `https://boi.org.il/PublicApi/GetExchangeRate?key=${cur}`,
           {
             cache: "no-store",
+            headers: { "User-Agent": "PlanApp/1.0 (server-side)" },
           }
         );
         if (!res.ok) return [cur, null] as const;
         const data = await res.json();
         const rate = data?.currentExchangeRate;
-        return [cur, typeof rate === "number" ? rate : null] as const;
+        return [cur, typeof rate === "number" && rate > 0 ? rate : null] as const;
       } catch {
         return [cur, null] as const;
+      }
+    })
+  );
+  const out: Record<string, number> = { ILS: 1 };
+  for (const [cur, rate] of results) {
+    if (rate) out[cur] = rate;
+  }
+  return out;
+}
+
+async function fetchLiveFX() {
+  const pairs: Record<"USD" | "EUR" | "GBP", string> = {
+    USD: "USDILS=X",
+    EUR: "EURILS=X",
+    GBP: "GBPILS=X",
+  };
+  const boiFallback = await fetchBoiFX();
+  const results = await Promise.all(
+    (Object.entries(pairs) as Array<["USD" | "EUR" | "GBP", string]>).map(async ([cur, symbol]) => {
+      try {
+        const quote = await fetchYahooQuote(symbol);
+        const rate = quote?.price;
+        return [cur, typeof rate === "number" && rate > 0 ? rate : boiFallback[cur]] as const;
+      } catch {
+        return [cur, boiFallback[cur]] as const;
       }
     })
   );
@@ -288,7 +314,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(data);
     }
     if (kind === "fx") {
-      const data = await cached("fx", () => fetchBoiFX());
+      const data = await fetchLiveFX();
       return NextResponse.json(data);
     }
     if (kind === "macro") {

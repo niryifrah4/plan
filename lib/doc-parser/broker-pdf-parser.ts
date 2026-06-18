@@ -237,6 +237,62 @@ function guessKind(name: string): AssetKindGuess {
   return "stock";
 }
 
+function parseBlinkTransactions(text: string): BrokerTransaction[] {
+  const transactions: BrokerTransaction[] = [];
+  const typeTokens = ["הפקדה", "משיכה", "קנייה", "קניה", "מכירה", "דיבידנד", "חיוב מס"];
+  for (const line of text.split(/\n+/)) {
+    const dateMatch = line.match(/(\d{2})[/.](\d{2})[/.](\d{4})/);
+    if (!dateMatch) continue;
+    const type = typeTokens.find((token) => line.includes(token));
+    if (!type) continue;
+    const lineWithoutDate = line.replace(dateMatch[0], "");
+    const nums = [...lineWithoutDate.matchAll(/-?\d[\d,]*\.\d+|-?\d[\d,]*/g)]
+      .map((m) => parseNum(m[0]))
+      .filter((v): v is number => v != null);
+    const symbolMatch = line.match(/\b[A-Z][A-Z0-9.]{1,9}\b/);
+    let amount = 0;
+    if (type.includes("הפקדה") || type.includes("משיכה")) {
+      amount = nums.length ? Math.abs(nums[nums.length - 1]) : 0;
+      if (type.includes("משיכה")) amount *= -1;
+    }
+    transactions.push({
+      date: `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`,
+      type,
+      name: symbolMatch?.[0] ?? "",
+      quantity: 0,
+      amount,
+    });
+  }
+  return transactions;
+}
+
+function toIsoDate(day: number, month: number, year: number): string {
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function parseDateMatch(m: RegExpMatchArray): string {
+  let year = +m[3];
+  if (year > 0 && year < 100) year += 2000;
+  return toIsoDate(+m[1], +m[2], year);
+}
+
+function detectBlinkReportDate(text: string): string {
+  const compact = text.replace(/\s+/g, "");
+  const datePattern = String.raw`(\d{2})[/.-](\d{2})[/.-](\d{2,4})`;
+  const preferredPatterns = [
+    new RegExp(String.raw`לתאריך${datePattern}`),
+    new RegExp(String.raw`פירוטיתרותליום${datePattern}`),
+    new RegExp(String.raw`יתרותליום${datePattern}`),
+  ];
+
+  for (const pattern of preferredPatterns) {
+    const match = compact.match(pattern);
+    if (match) return parseDateMatch(match);
+  }
+
+  return detectReportDate(text);
+}
+
 /**
  * Deterministic reader for the "פירוט יתרות" holdings table of an Israeli
  * trading-account statement (the IBI/אי.בי.אי template and look-alikes).
@@ -384,11 +440,11 @@ function tryBlinkParse(extracted: ExtractedPdf): BrokerReport | null {
   return {
     broker: "Blink",
     accountNumber: mEmail ? mEmail[1] : "",
-    reportDate: detectReportDate(text),
+    reportDate: detectBlinkReportDate(text),
     currency: text.includes("דולר") ? "USD" : "ILS",
     totalValueIls: totalValue,
     holdings,
-    transactions: [],
+    transactions: parseBlinkTransactions(text),
     warnings: [],
   };
 }
@@ -596,12 +652,16 @@ function detectAccountNumber(text: string): string {
 }
 
 function detectReportDate(text: string): string {
-  // Digits in this template are space-separated and RTL-reversed; collapse
-  // whitespace, then take the LATEST DD/MM/YYYY present (the "as of" date —
-  // statements also print older value dates we don't want).
+  // Digits in these templates can be space-separated / RTL-wrapped; collapse
+  // whitespace, then take the LATEST DD/MM/YYYY or DD.MM.YYYY present (the
+  // "as of" date — statements also print older value dates we don't want).
   const t = text.replace(/\s+/g, "");
-  const dates = [...t.matchAll(/(\d{2})\/(\d{2})\/(\d{4})/g)]
-    .map((m) => ({ d: +m[1], mo: +m[2], y: +m[3] }))
+  const dates = [...t.matchAll(/(\d{2})[/.-](\d{2})[/.-](\d{2,4})/g)]
+    .map((m) => {
+      let y = +m[3];
+      if (y > 0 && y < 100) y += 2000;
+      return { d: +m[1], mo: +m[2], y };
+    })
     .filter((x) => x.y >= 2000 && x.y <= 2100 && x.mo >= 1 && x.mo <= 12 && x.d >= 1 && x.d <= 31)
     .map((x) => ({
       iso: `${x.y}-${String(x.mo).padStart(2, "0")}-${String(x.d).padStart(2, "0")}`,

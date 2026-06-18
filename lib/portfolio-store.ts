@@ -139,6 +139,8 @@ export interface Position {
   currency: Currency;
   /** 1 unit of `currency` → ILS. ILS=1. */
   fxRateToIls: number;
+  /** Statement / market snapshot date, ISO yyyy-mm-dd when imported from a broker report. */
+  asOfDate?: string;
 
   /** Equity-comp metadata. Required for rsu/espp/option, absent otherwise. */
   grant?: {
@@ -460,12 +462,17 @@ export function summarizePortfolio(
     net = 0;
   for (const p of positions) {
     const v = valuePosition(p, asOf);
+    const hasCostBasis = v.costBasisIls > 0;
     market += v.marketValueIls;
     cost += v.costBasisIls;
     unvested += v.unvestedValueIls;
-    pnl += v.unrealizedPnlIls;
-    tax += v.taxIls;
-    net += v.netAfterTaxIls;
+    if (hasCostBasis) {
+      pnl += v.unrealizedPnlIls;
+      tax += v.taxIls;
+      net += v.netAfterTaxIls;
+    } else {
+      net += v.marketValueIls;
+    }
   }
   return {
     positions: positions.length,

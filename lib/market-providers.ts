@@ -30,6 +30,19 @@ export interface FXRate {
 /* ── CoinGecko (free, no API key required) ── */
 
 export async function fetchCryptoPrice(coinId: string): Promise<PriceQuote> {
+  if (typeof window !== "undefined") {
+    const quotes = await fetchCryptoPricesBulk([coinId]);
+    return (
+      quotes[0] ?? {
+        symbol: coinId,
+        price: 0,
+        currency: "ILS",
+        changePct: 0,
+        source: "coingecko",
+        lastUpdate: new Date(),
+      }
+    );
+  }
   const res = await fetch(
     `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=ils,usd&include_24hr_change=true`
   );
@@ -46,6 +59,24 @@ export async function fetchCryptoPrice(coinId: string): Promise<PriceQuote> {
 }
 
 export async function fetchCryptoPricesBulk(coinIds: string[]): Promise<PriceQuote[]> {
+  if (typeof window !== "undefined") {
+    try {
+      const ids = coinIds.join(",");
+      const res = await fetch(`/api/market?kind=crypto&ids=${encodeURIComponent(ids)}`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (Array.isArray(data) ? data : []).map((q) => ({
+        symbol: q.symbol,
+        price: q.price ?? 0,
+        currency: q.currency ?? "ILS",
+        changePct: q.changePct ?? 0,
+        source: "coingecko" as const,
+        lastUpdate: new Date(),
+      }));
+    } catch {
+      return [];
+    }
+  }
   const ids = coinIds.join(",");
   const res = await fetch(
     `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=ils,usd&include_24hr_change=true`
@@ -64,7 +95,9 @@ export async function fetchCryptoPricesBulk(coinIds: string[]): Promise<PriceQuo
 /* ── Bank of Israel FX (free, no API key required) ── */
 
 export async function fetchFXRate(currency: "USD" | "EUR" | "GBP"): Promise<FXRate> {
-  const res = await fetch(`https://boi.org.il/PublicApi/GetExchangeRates?currencyCode=${currency}`);
+  const res = await fetch(`https://boi.org.il/PublicApi/GetExchangeRate?key=${currency}`, {
+    headers: { "User-Agent": "PlanApp/1.0" },
+  });
   const data = await res.json();
   return {
     currency,

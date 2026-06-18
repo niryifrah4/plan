@@ -106,21 +106,36 @@ export async function pushToRemote<TLocal, TRow = any>(
   const sb = getSupabaseBrowser();
   if (!sb) return { ok: false, error: "no-client" };
   try {
-    // Delete-then-insert for simplicity. Alternative: upsert with onConflict.
-    const { error: delErr } = await sb.from(cfg.table).delete().eq("household_id", hh);
-    if (delErr) {
-      console.warn(`[sync:${cfg.table}] delete error:`, delErr.message);
-      return { ok: false, error: delErr.message };
+    if (items.length === 0) {
+      const { error: delErr } = await sb.from(cfg.table).delete().eq("household_id", hh);
+      if (delErr) {
+        console.warn(`[sync:${cfg.table}] delete error:`, delErr.message);
+        return { ok: false, error: delErr.message };
+      }
+      return { ok: true };
     }
-    if (items.length === 0) return { ok: true };
     const rows = items.map((item) => ({
       ...cfg.toRow(item, hh),
       household_id: hh,
     }));
-    const { error: insErr } = await sb.from(cfg.table).insert(rows as any);
+    const { data: inserted, error: insErr } = await sb.from(cfg.table).insert(rows as any).select("id");
     if (insErr) {
       console.warn(`[sync:${cfg.table}] insert error:`, insErr.message);
       return { ok: false, error: insErr.message };
+    }
+    const insertedIds = (inserted || [])
+      .map((row: any) => row?.id)
+      .filter((id: unknown): id is string => typeof id === "string" && id.length > 0);
+    if (insertedIds.length > 0) {
+      const { error: delErr } = await sb
+        .from(cfg.table)
+        .delete()
+        .eq("household_id", hh)
+        .not("id", "in", `(${insertedIds.join(",")})`);
+      if (delErr) {
+        console.warn(`[sync:${cfg.table}] cleanup error:`, delErr.message);
+        return { ok: false, error: delErr.message };
+      }
     }
     return { ok: true };
   } catch (e) {

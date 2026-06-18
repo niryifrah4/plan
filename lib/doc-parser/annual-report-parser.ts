@@ -1080,10 +1080,11 @@ function parseAnnualReportText(
 
 export async function parseAnnualReportPdf(
   buffer: Buffer,
-  filename: string
+  filename: string,
+  password?: string
 ): Promise<ParsedAnnualReport> {
   try {
-    const data = await pdfParse(buffer);
+    const data = await pdfParse(buffer, password ? ({ password } as any) : undefined);
     return parseAnnualReportText(data.text || "", filename, data.numpages || 0, "pdf");
   } catch (e) {
     return {
@@ -1147,7 +1148,8 @@ export async function parseAnnualReportTextFile(
 /* ═══════════════════════════════════════════════════════════ */
 
 export async function parseAnnualReportBundle(
-  files: { name: string; buffer: Buffer }[]
+  files: { name: string; buffer: Buffer }[],
+  password?: string
 ): Promise<ParsedAnnualBundle> {
   const parsed: ParsedAnnualReport[] = [];
   const allWarnings: string[] = [];
@@ -1160,7 +1162,7 @@ export async function parseAnnualReportBundle(
           ? await parseAnnualReportSpreadsheet(f.buffer, f.name)
           : ext === "csv" || ext === "txt"
             ? await parseAnnualReportTextFile(f.buffer, f.name)
-            : await parseAnnualReportPdf(f.buffer, f.name);
+            : await parseAnnualReportPdf(f.buffer, f.name, password);
       parsed.push(r);
       allWarnings.push(...r.warnings.map((w) => `[${f.name}] ${w}`));
     } catch (e) {

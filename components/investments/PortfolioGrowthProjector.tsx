@@ -226,9 +226,9 @@ function Stat({ label, value, positive }: { label: string; value: number; positi
       <div
         className="text-base font-extrabold tabular-nums"
         style={{ color: positive && value > 0 ? "#2C7A5A" : "#1A1A1A" }}
+        dir="ltr"
       >
-        {positive && value > 0 ? "+" : ""}
-        {fmtILS(value)}
+        {fmtILS(value, { signed: positive })}
       </div>
     </div>
   );

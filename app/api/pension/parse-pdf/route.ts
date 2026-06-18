@@ -94,6 +94,10 @@ function errJson(message: string, code: string, status: number) {
   return NextResponse.json({ error: message, code }, { status });
 }
 
+function isPasswordPdfError(reason: string) {
+  return /password|encrypt|encrypted/i.test(reason);
+}
+
 export async function POST(req: NextRequest) {
   try {
     // ── Auth guard ──
@@ -102,6 +106,7 @@ export async function POST(req: NextRequest) {
 
     const formData = await req.formData();
     const fileEntries = formData.getAll("files");
+    const password = (formData.get("password") as string | null)?.trim() || undefined;
 
     if (fileEntries.length === 0) {
       return errJson("לא הועלו קבצים. צרף קובץ דיוור שנתי בפורמט PDF, Excel או CSV.", "NO_FILES", 400);
@@ -140,7 +145,10 @@ export async function POST(req: NextRequest) {
     let isMaslaka = false;
     if (pdfFiles.length > 0) {
       try {
-        const peek = await pdfParse(pdfFiles[0].buffer);
+        const peek = await pdfParse(
+          pdfFiles[0].buffer,
+          password ? ({ password } as any) : undefined
+        );
         const peekText = peek.text || "";
         isMaslaka =
           peekText.includes("דוח ריכוז מוצרים פנסיונים") || peekText.includes("מסלקה פנסיונית");
@@ -148,8 +156,14 @@ export async function POST(req: NextRequest) {
         const reason = err instanceof Error ? err.message : String(err);
         console.error("[parse-pdf] pdf-parse peek failed:", reason);
         // Surface a sharper message so we can distinguish encryption / corruption / encoding issues
-        if (/password|encrypt/i.test(reason)) {
-          return errJson("הקובץ מוגן בסיסמה — הסר את ההגנה ונסה שוב", "ENCRYPTED_PDF", 422);
+        if (isPasswordPdfError(reason)) {
+          return errJson(
+            password
+              ? "הסיסמה לא פתחה את הקובץ — בדוק אותה ונסה שוב"
+              : "הקובץ מוגן בסיסמה — הזן את הסיסמה כדי לנתח אותו",
+            password ? "PASSWORD_WRONG" : "PASSWORD_REQUIRED",
+            422
+          );
         }
         return errJson(`לא ניתן לקרוא את הקובץ (${reason.slice(0, 120)})`, "CORRUPT_PDF", 422);
       }
@@ -170,7 +184,7 @@ export async function POST(req: NextRequest) {
 
       try {
         for (const f of pdfFiles) {
-          const result = await parseMaslakaPdf(f.buffer, f.name);
+          const result = await parseMaslakaPdf(f.buffer, f.name, password);
           allProducts.push(...result.products);
           allWarnings.push(...result.warnings);
           if (result.ownerName && !ownerName) ownerName = result.ownerName;
@@ -196,10 +210,19 @@ export async function POST(req: NextRequest) {
     // Standard annual report flow
     let bundle;
     try {
-      bundle = await parseAnnualReportBundle(annualFiles);
+      bundle = await parseAnnualReportBundle(annualFiles, password);
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
       console.error("[parse-pdf] annual parser failed:", reason);
+      if (isPasswordPdfError(reason)) {
+        return errJson(
+          password
+            ? "הסיסמה לא פתחה את הקובץ — בדוק אותה ונסה שוב"
+            : "הקובץ מוגן בסיסמה — הזן את הסיסמה כדי לנתח אותו",
+          password ? "PASSWORD_WRONG" : "PASSWORD_REQUIRED",
+          422
+        );
+      }
       return errJson(`לא ניתן לקרוא את הקובץ (${reason.slice(0, 120)})`, "CORRUPT_PDF", 422);
     }
     const summary = buildSummary(bundle.policies, bundle.files.length);

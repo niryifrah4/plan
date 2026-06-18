@@ -31,7 +31,7 @@ import { SavedBrokerPortfolios } from "@/components/investments/SavedBrokerPortf
 import { useConfirm } from "@/components/ui/ConfirmModal";
 
 import { fmtILS } from "@/lib/format";
-import { fmtMoney } from "@/lib/_shared/format";
+import { fmtDateIL, fmtMoney } from "@/lib/_shared/format";
 import { futureValue } from "@/lib/financial-math";
 import { loadAssumptions, type Assumptions } from "@/lib/assumptions";
 import { demoBenchmarks } from "@/lib/stub-data";
@@ -52,8 +52,10 @@ import {
   addPosition,
   deletePosition,
   isEquityComp,
+  hydratePortfolioFromRemote,
   loadAccounts,
   loadPositions,
+  savePositions,
   summarizePortfolio,
   updatePosition,
   valuePosition,
@@ -114,7 +116,23 @@ type TabId = "portfolio" | "equity" | "deposits";
 type SortField = "symbol" | "marketValue" | "unrealizedPnl" | "unrealizedPnlPct";
 type SortDir = "asc" | "desc";
 
-const FX_DEFAULT: Record<Currency, number> = { ILS: 1, USD: 3.72, EUR: 4.0, GBP: 4.65 };
+function clearUnknownBlinkCostBasis(): void {
+  const accounts = loadAccounts();
+  const blinkAccountIds = new Set(
+    accounts
+      .filter((a) => /blink/i.test(`${a.label || ""} ${a.broker || ""}`))
+      .map((a) => a.id)
+  );
+  if (blinkAccountIds.size === 0) return;
+  const positions = loadPositions();
+  let changed = false;
+  const next = positions.map((p) => {
+    if (!blinkAccountIds.has(p.accountId) || p.avgCost <= 0) return p;
+    changed = true;
+    return { ...p, avgCost: 0, updatedAt: new Date().toISOString() };
+  });
+  if (changed) savePositions(next);
+}
 
 /* ─────────────────────────────────────────────────────────────
    Main page
@@ -129,33 +147,66 @@ export default function InvestmentsPage() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [assumptions, setAssumptions] = useState<Assumptions | null>(null);
+  const [liveFxRates, setLiveFxRates] = useState<Record<string, number>>({ ILS: 1 });
+  const [savedReportTotals, setSavedReportTotals] = useState<{
+    totalValueIls: number;
+    positions: number;
+  } | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   // Bootstrap: run migration once, then load + subscribe to updates.
   useEffect(() => {
     migrateLegacyToPortfolio();
+    clearUnknownBlinkCostBasis();
     const reload = () => {
       setPositions(loadPositions());
       setAccounts(loadAccounts());
     };
     reload();
+    void fetchFXRates().then(setLiveFxRates).catch(() => setLiveFxRates({ ILS: 1 }));
+    void hydratePortfolioFromRemote().then((wrote) => {
+      if (wrote) {
+        clearUnknownBlinkCostBasis();
+        reload();
+        void fetchFXRates().then(setLiveFxRates).catch(() => setLiveFxRates({ ILS: 1 }));
+      }
+    });
     setAssumptions(loadAssumptions());
     setLoaded(true);
     window.addEventListener(PORTFOLIO_EVENT, reload);
     return () => window.removeEventListener(PORTFOLIO_EVENT, reload);
   }, []);
 
+  const pricedPositions = useMemo(
+    () =>
+      positions.map((p) => {
+        const liveFx = liveFxRates[p.currency];
+        return liveFx && liveFx > 0 && p.fxRateToIls !== liveFx
+          ? { ...p, fxRateToIls: liveFx }
+          : p;
+      }),
+    [positions, liveFxRates]
+  );
+
   // Unified summary across ALL positions (vested only).
-  const summary = useMemo(() => summarizePortfolio(positions), [positions]);
+  const summary = useMemo(() => summarizePortfolio(pricedPositions), [pricedPositions]);
+  const displayedMarketValueIls = savedReportTotals?.totalValueIls ?? summary.totalMarketValueIls;
+  const displayedPositionCount = savedReportTotals?.positions ?? summary.positions;
+  const handleSavedReportTotalsChange = useCallback(
+    (totals: { totalValueIls: number; positions: number } | null) => {
+      setSavedReportTotals(totals);
+    },
+    []
+  );
 
   // Split for tab counts.
   const tradeablePositions = useMemo(
-    () => positions.filter((p) => !isEquityComp(p.kind)),
-    [positions]
+    () => pricedPositions.filter((p) => !isEquityComp(p.kind)),
+    [pricedPositions]
   );
   const equityPositions = useMemo(
-    () => positions.filter((p) => isEquityComp(p.kind)),
-    [positions]
+    () => pricedPositions.filter((p) => isEquityComp(p.kind)),
+    [pricedPositions]
   );
 
   return (
@@ -170,10 +221,10 @@ export default function InvestmentsPage() {
       <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         <SolidKpi
           label="שווי שוק"
-          value={fmtILS(summary.totalMarketValueIls)}
+          value={fmtILS(displayedMarketValueIls)}
           icon="account_balance"
           tone="ink"
-          sub={`${summary.positions} פוזיציות`}
+          sub={`${displayedPositionCount} פוזיציות`}
         />
         <SolidKpi
           label="נטו אחרי מס"
@@ -219,6 +270,8 @@ export default function InvestmentsPage() {
           accounts={accounts}
           assumptions={assumptions}
           marketSummary={summary}
+          totalMarketValueIls={displayedMarketValueIls}
+          onSavedReportTotalsChange={handleSavedReportTotalsChange}
         />
       )}
       {loaded && tab === "equity" && (
@@ -293,11 +346,15 @@ function PortfolioTab({
   accounts,
   assumptions,
   marketSummary,
+  totalMarketValueIls,
+  onSavedReportTotalsChange,
 }: {
   positions: Position[];
   accounts: Account[];
   assumptions: Assumptions | null;
   marketSummary: ReturnType<typeof summarizePortfolio>;
+  totalMarketValueIls: number;
+  onSavedReportTotalsChange: (totals: { totalValueIls: number; positions: number } | null) => void;
 }) {
   const [sortField, setSortField] = useState<SortField>("marketValue");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -320,6 +377,15 @@ function PortfolioTab({
     const ids = new Set(positions.map((p) => p.accountId));
     return accounts.filter((a) => ids.has(a.id));
   }, [positions, accounts]);
+
+  useEffect(() => {
+    if (
+      filterAccountId !== "all" &&
+      !accountsForTradeable.some((account) => account.id === filterAccountId)
+    ) {
+      setFilterAccountId("all");
+    }
+  }, [accountsForTradeable, filterAccountId]);
 
   const valued = useMemo(
     () =>
@@ -438,7 +504,9 @@ function PortfolioTab({
           ? fetchQuotesBulk(stockSymbols)
           : Promise.resolve({} as Record<string, { price: number }>),
         fetchFXRates(),
-        cryptoIds.length > 0 ? fetchCryptoPricesBulk(cryptoIds) : Promise.resolve([]),
+        cryptoIds.length > 0
+          ? fetchCryptoPricesBulk(cryptoIds).catch(() => [])
+          : Promise.resolve([]),
       ]);
 
       const cryptoMap: Record<string, number> = {};
@@ -480,21 +548,25 @@ function PortfolioTab({
     }
   }, [positions, lastRefreshMs]);
 
+  useEffect(() => {
+    if (positions.length === 0) return;
+    void refreshAllPrices();
+  }, [positions.length, refreshAllPrices]);
+
   const lookupTicker = useCallback(async (symbol: string) => {
     if (!symbol.trim()) return;
     setTickerLoading(true);
     setTickerResult(null);
     try {
       const res = await fetch(
-        `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol.trim().toUpperCase())}?interval=1d&range=1d`
+        `/api/market?kind=quote&symbol=${encodeURIComponent(symbol.trim().toUpperCase())}`
       );
       if (res.ok) {
         const data = await res.json();
-        const meta = data.chart?.result?.[0]?.meta;
-        if (meta) {
+        if (data && typeof data.price === "number") {
           setTickerResult({
-            price: meta.regularMarketPrice || 0,
-            name: meta.shortName || meta.symbol || symbol,
+            price: data.price || 0,
+            name: data.name || data.symbol || symbol,
           });
         }
       }
@@ -521,7 +593,7 @@ function PortfolioTab({
     return buildSecuritiesAllocations(rows);
   }, [positions]);
 
-  const totalMarket = marketSummary.totalMarketValueIls;
+  const totalMarket = totalMarketValueIls;
   const activeBenchmark = demoBenchmarks.find((b) => b.id === selectedBenchmark);
 
   /* ─── Render ─── */
@@ -596,7 +668,7 @@ function PortfolioTab({
       <BrokerReportUpload />
 
       {/* Saved portfolios — select one or view all together */}
-      <SavedBrokerPortfolios />
+      <SavedBrokerPortfolios onTotalsChange={onSavedReportTotalsChange} />
 
       {/* Allocation pies */}
       {positions.length > 0 && (
@@ -722,7 +794,7 @@ function PortfolioTab({
           <div>
             <h2 className="text-sm font-extrabold text-verdant-ink">תיק ניירות ערך</h2>
             <p className="mt-0.5 text-[11px] text-verdant-muted">
-              {positions.length} פוזיציות · ניתן לערוך, למחוק ולשייך ליעד
+              {filtered.length} מתוך {positions.length} פוזיציות מוצגות · ניתן לערוך, למחוק ולשייך ליעד
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -869,6 +941,7 @@ function PortfolioTab({
                     </span>
                   </span>
                 </th>
+                <th className="tabular px-3 py-2 text-left">נכון ליום</th>
                 <th
                   className="tabular cursor-pointer select-none px-3 py-2 text-left"
                   onClick={() => toggleSort("unrealizedPnl")}
@@ -899,19 +972,26 @@ function PortfolioTab({
             <tbody>
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-3 py-10 text-center text-[12px] text-verdant-muted">
-                    אין פוזיציות בתיק. לחץ "הוסף נייר" כדי להתחיל.
+                  <td colSpan={10} className="px-3 py-10 text-center text-[12px] text-verdant-muted">
+                    {positions.length === 0
+                      ? 'אין פוזיציות בתיק. לחץ "הוסף נייר" כדי להתחיל.'
+                      : "אין פוזיציות שמתאימות לפילטר שנבחר."}
                   </td>
                 </tr>
               )}
               {filtered.map(({ position, valuation }) => {
-                const color = valuation.unrealizedPnlIls >= 0 ? "#2C7A5A" : "#DC2626";
+                const hasCostBasis = valuation.costBasisIls > 0;
+                const color = !hasCostBasis
+                  ? "#9CA3AF"
+                  : valuation.unrealizedPnlIls >= 0
+                    ? "#2C7A5A"
+                    : "#DC2626";
                 const isEditing = editingId === position.id;
                 const account = accounts.find((a) => a.id === position.accountId);
                 if (isEditing) {
                   return (
                     <tr key={position.id} className="v-divider border-b">
-                      <td colSpan={9} className="px-3 py-4">
+                      <td colSpan={10} className="px-3 py-4">
                         <PositionForm
                           accounts={accounts}
                           tickerResult={null}
@@ -951,29 +1031,40 @@ function PortfolioTab({
                       {account?.label ?? "—"}
                     </td>
                     <td className="tabular px-3 py-2.5 text-left font-bold" dir="ltr">
-                      {fmtMoney(valuation.marketValueIls, position.currency)}
+                      {fmtILS(valuation.marketValueIls)}
+                    </td>
+                    <td className="tabular px-3 py-2.5 text-left font-bold text-verdant-muted" dir="ltr">
+                      {fmtDateIL(position.asOfDate)}
                     </td>
                     <td
                       className="tabular px-3 py-2.5 text-left font-bold"
                       dir="ltr"
                       style={{ color }}
                     >
-                      {fmtMoney(valuation.unrealizedPnlIls, position.currency, { signed: true })}
+                      {hasCostBasis
+                        ? fmtILS(valuation.unrealizedPnlIls, { signed: true })
+                        : "—"}
                     </td>
                     <td
                       className="tabular px-3 py-2.5 text-left font-bold"
                       dir="ltr"
                       style={{ color }}
                     >
-                      {valuation.unrealizedPnlPct >= 0 ? "+" : ""}
-                      {valuation.unrealizedPnlPct.toFixed(2)}%
+                      {hasCostBasis ? (
+                        <>
+                          {valuation.unrealizedPnlPct >= 0 ? "+" : ""}
+                          {valuation.unrealizedPnlPct.toFixed(2)}%
+                        </>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="tabular px-3 py-2.5 text-left font-bold" dir="ltr">
                       <div>
-                        <div className="text-verdant-ink">{fmtMoney(valuation.netAfterTaxIls, position.currency)}</div>
-                        {valuation.taxIls > 0 && (
+                        <div className="text-verdant-ink">{fmtILS(valuation.netAfterTaxIls)}</div>
+                        {hasCostBasis && valuation.taxIls > 0 && (
                           <div className="text-[9px] text-verdant-muted">
-                            מס: {fmtMoney(valuation.taxIls, position.currency)}
+                            מס: {fmtILS(valuation.taxIls)}
                           </div>
                         )}
                       </div>
@@ -1488,7 +1579,9 @@ function PositionForm({
     String(initial?.currentPrice ?? tickerResult?.price ?? "")
   );
   const [currency, setCurrency] = useState<Currency>(initial?.currency ?? "USD");
-  const [fxRate, setFxRate] = useState(String(initial?.fxRateToIls ?? FX_DEFAULT.USD));
+  const [fxRate, setFxRate] = useState(
+    String(initial?.fxRateToIls ?? (initial?.currency === "ILS" ? 1 : ""))
+  );
 
   // Equity-only fields
   const [company, setCompany] = useState(initial?.grant?.company ?? "");
@@ -1515,7 +1608,22 @@ function PositionForm({
 
   // Update FX rate when currency changes (only if not editing an existing row)
   useEffect(() => {
-    if (!initial) setFxRate(String(FX_DEFAULT[currency]));
+    if (initial) return;
+    if (currency === "ILS") {
+      setFxRate("1");
+      return;
+    }
+    let cancelled = false;
+    fetchFXRates()
+      .then((rates) => {
+        if (!cancelled) setFxRate(rates[currency] ? String(rates[currency]) : "");
+      })
+      .catch(() => {
+        if (!cancelled) setFxRate("");
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [currency, initial]);
 
   const isEquity = isEquityComp(kind);
@@ -1547,7 +1655,7 @@ function PositionForm({
       avgCost: parseFloat(avgCost) || 0,
       currentPrice: parseFloat(currentPrice) || 0,
       currency,
-      fxRateToIls: parseFloat(fxRate) || FX_DEFAULT[currency],
+      fxRateToIls: parseFloat(fxRate) || (currency === "ILS" ? 1 : 0),
     };
 
     if (isEquity) {
@@ -2188,4 +2296,3 @@ function ConnectExchangeModal({
     </div>
   );
 }
-

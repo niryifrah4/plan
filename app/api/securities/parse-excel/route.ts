@@ -203,9 +203,34 @@ function guessKind(cell: unknown, symbol: string): string {
   return "stock";
 }
 
-const FX_FALLBACK: Record<string, number> = { ILS: 1, USD: 3.7, EUR: 4.0, GBP: 4.7 };
+async function fetchFxRates(): Promise<Record<string, number>> {
+  const pairs: Record<string, string> = { USD: "USDILS=X", EUR: "EURILS=X", GBP: "GBPILS=X" };
+  const out: Record<string, number> = { ILS: 1 };
+  await Promise.all(
+    Object.entries(pairs).map(async ([currency, symbol]) => {
+      try {
+        const res = await fetch(
+          `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`,
+          { headers: { "User-Agent": "Mozilla/5.0 (compatible; PlanApp/1.0)" }, cache: "no-store" }
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        const rate = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+        if (typeof rate === "number" && rate > 0) out[currency] = rate;
+      } catch {
+        /* Missing FX leaves non-ILS rows unconverted rather than using a stale hard-code. */
+      }
+    })
+  );
+  return out;
+}
 
-function parseSheet(sheetName: string, rows: unknown[][], warnings: string[]): ParsedRow[] {
+function parseSheet(
+  sheetName: string,
+  rows: unknown[][],
+  warnings: string[],
+  fxRates: Record<string, number>
+): ParsedRow[] {
   const header = findHeaderRow(rows);
   if (!header) {
     warnings.push(`גיליון "${sheetName}": לא זוהתה שורת כותרות — דלג.`);
@@ -235,15 +260,17 @@ function parseSheet(sheetName: string, rows: unknown[][], warnings: string[]): P
       map.currency !== undefined
         ? guessCurrency(row[map.currency], row[map.price ?? -1], row[map.marketValue ?? -1])
         : guessCurrency("", row[map.price ?? -1], row[map.marketValue ?? -1]);
-    const fx = FX_FALLBACK[currency] ?? 1;
+    const fx = fxRates[currency] ?? 0;
+    const hasFx = currency === "ILS" || fx > 0;
 
     // Need at least quantity OR market value to be a real holding
     if (quantity <= 0 && marketValueRaw <= 0) continue;
 
     // Derive market value: prefer explicit column, else compute from qty*price
     const currentPrice =
-      price || (quantity > 0 && marketValueRaw > 0 ? marketValueRaw / quantity / fx : 0);
-    const marketValueILS = marketValueRaw > 0 ? marketValueRaw : quantity * currentPrice * fx;
+      price || (quantity > 0 && marketValueRaw > 0 && hasFx ? marketValueRaw / quantity / fx : 0);
+    const marketValueILS =
+      hasFx && marketValueRaw > 0 ? marketValueRaw : hasFx ? quantity * currentPrice * fx : 0;
     const costBasisILS = avgCost > 0 ? quantity * avgCost * fx : marketValueILS; // fallback: assume breakeven when cost unknown
     const pnlILS = marketValueILS - costBasisILS;
     const pnlPct = costBasisILS > 0 ? (pnlILS / costBasisILS) * 100 : 0;
@@ -349,6 +376,7 @@ export async function POST(req: NextRequest) {
     const warnings: string[] = [];
     const allRows: ParsedRow[] = [];
     let rawTextForBrokerDetect = name;
+    const fxRates = await fetchFxRates();
 
     for (const sheetName of wb.SheetNames) {
       const sheet = wb.Sheets[sheetName];
@@ -359,7 +387,7 @@ export async function POST(req: NextRequest) {
         defval: null,
       });
       rawTextForBrokerDetect += " " + rows.slice(0, 10).flat().join(" ");
-      const parsed = parseSheet(sheetName, rows as unknown[][], warnings);
+      const parsed = parseSheet(sheetName, rows as unknown[][], warnings, fxRates);
       allRows.push(...parsed);
     }
 

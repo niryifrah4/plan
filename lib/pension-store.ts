@@ -139,10 +139,11 @@ export interface PensionFund {
 
 import { scopedKey } from "./client-scope";
 import { safeSetItem } from "@/lib/safe-storage";
-import { pushToRemoteInBackground, pullFromRemote, type SyncConfig } from "./sync/remote-sync";
+import { getHouseholdId, pushToRemote, pullFromRemote, type SyncConfig } from "./sync/remote-sync";
 import { reportError } from "@/lib/report-error";
 
 const STORAGE_KEY = "verdant:pension_funds";
+const PENDING_REMOTE_KEY = "verdant:pension_funds:pending_remote_sync";
 export const EVENT_NAME = "verdant:pension:updated";
 
 /* ── Supabase sync mapping ── */
@@ -235,6 +236,15 @@ export async function hydratePensionFundsFromRemote(): Promise<boolean> {
   const remote = await pullFromRemote(SYNC_CFG);
   if (!remote) return false;
   try {
+    const local = loadPensionFunds();
+    const pending = localStorage.getItem(scopedKey(PENDING_REMOTE_KEY)) === "1";
+    if (pending && local.length > 0 && remote.length === 0) {
+      const pushed = await pushPensionFundsToRemote(local);
+      if (!pushed.ok) {
+        window.dispatchEvent(new Event(EVENT_NAME));
+        return true;
+      }
+    }
     safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(remote));
     window.dispatchEvent(new Event(EVENT_NAME));
     return true;
@@ -302,8 +312,31 @@ export function loadPensionFunds(): PensionFund[] {
 export function savePensionFunds(funds: PensionFund[]) {
   safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(funds));
   window.dispatchEvent(new Event(EVENT_NAME));
-  // Fire-and-forget push to Supabase (no-op in demo mode)
-  pushToRemoteInBackground(SYNC_CFG, funds);
+  const hh = getHouseholdId();
+  if (hh) localStorage.setItem(scopedKey(PENDING_REMOTE_KEY), "1");
+  void pushPensionFundsToRemote(funds, hh);
+}
+
+export async function savePensionFundsAsync(
+  funds: PensionFund[]
+): Promise<{ ok: boolean; error?: string }> {
+  safeSetItem(scopedKey(STORAGE_KEY), JSON.stringify(funds));
+  window.dispatchEvent(new Event(EVENT_NAME));
+  const hh = getHouseholdId();
+  if (hh) localStorage.setItem(scopedKey(PENDING_REMOTE_KEY), "1");
+  return pushPensionFundsToRemote(funds, hh);
+}
+
+async function pushPensionFundsToRemote(
+  funds: PensionFund[],
+  householdIdOverride?: string | null
+): Promise<{ ok: boolean; error?: string }> {
+  const result = await pushToRemote(SYNC_CFG, funds, householdIdOverride);
+  try {
+    if (result.ok) localStorage.removeItem(scopedKey(PENDING_REMOTE_KEY));
+    else localStorage.setItem(scopedKey(PENDING_REMOTE_KEY), "1");
+  } catch (e) { reportError("pension-store", e); }
+  return result;
 }
 
 export function addPensionFund(fund: PensionFund) {

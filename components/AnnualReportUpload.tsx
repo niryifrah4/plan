@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { Card } from "./ui/Card";
 import { fmtILS } from "@/lib/format";
-import { loadPensionFunds, savePensionFunds } from "@/lib/pension-store";
+import { loadPensionFunds, savePensionFundsAsync } from "@/lib/pension-store";
 import { uploadFile } from "@/lib/storage/file-storage";
 import { mergeAnnualIntoFunds } from "@/lib/doc-parser/annual-to-pension";
 import {
@@ -82,6 +82,8 @@ export function AnnualReportUpload() {
   const [dragOver, setDragOver] = useState(false);
   const [expandedPolicyIds, setExpandedPolicyIds] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
+  const [needsPassword, setNeedsPassword] = useState(false);
+  const [pdfPassword, setPdfPassword] = useState("");
 
   // PDF flow state
   const [pdfBundle, setPdfBundle] = useState<ParsedAnnualBundle | null>(null);
@@ -91,6 +93,11 @@ export function AnnualReportUpload() {
   const [xmlBundle, setXmlBundle] = useState<ParsedMislakaBundle | null>(null);
 
   const totalSize = files.reduce((s, f) => s + f.size, 0);
+
+  function clearPasswordPrompt() {
+    setNeedsPassword(false);
+    setPdfPassword("");
+  }
 
   /* ── Drag & Drop ── */
   function classifyDropped(list: File[]): { accepted: File[]; rejected: File[]; hasZip: boolean } {
@@ -113,6 +120,7 @@ export function AnnualReportUpload() {
     e.stopPropagation();
     setDragOver(false);
     setErrorMsg(null);
+    clearPasswordPrompt();
     const { accepted, rejected, hasZip } = classifyDropped(Array.from(e.dataTransfer.files));
     if (hasZip) {
       setErrorMsg("קובץ ZIP של המסלקה לא נתמך ישירות — חלץ את הקבצים (XML) ואז גרור אותם לכאן");
@@ -163,7 +171,8 @@ export function AnnualReportUpload() {
   const [maslakaPdfProducts, setMaslakaPdfProducts] = useState<any[] | null>(null);
 
   /* ── Annual report parse (server-side) ── */
-  async function handleParseAnnual() {
+  async function handleParseAnnual(passwordOverride?: string) {
+    const password = (passwordOverride ?? pdfPassword).trim();
     setBusy(true);
     setMsg(null);
     setErrorMsg(null);
@@ -189,15 +198,26 @@ export function AnnualReportUpload() {
 
       const fd = new FormData();
       annualFiles.forEach((f) => fd.append("files", f));
+      if (password) fd.append("password", password);
       const res = await fetch("/api/pension/parse-pdf", {
         method: "POST",
         body: fd,
       });
       const data = await res.json();
       if (!res.ok) {
+        if (
+          data?.code === "PASSWORD_REQUIRED" ||
+          data?.code === "PASSWORD_WRONG" ||
+          data?.code === "ENCRYPTED_PDF"
+        ) {
+          setNeedsPassword(true);
+          setErrorMsg(data?.error || "הקובץ מוגן בסיסמה — הזן את הסיסמה כדי לנתח אותו");
+          return;
+        }
         setErrorMsg(data?.error || "שגיאה בעיבוד הקובץ");
         return;
       }
+      clearPasswordPrompt();
 
       if (data.type === "maslaka") {
         // Maslaka clearinghouse PDF — auto-save like XML
@@ -229,8 +249,15 @@ export function AnnualReportUpload() {
               added++;
             }
           }
-          savePensionFunds(merged);
-          setSavedInfo(`נשמר: ${added} חדשים, ${updated} עודכנו`);
+          const saved = await savePensionFundsAsync(merged);
+          if (!saved.ok) {
+            setErrorMsg(`הנתונים נשמרו במכשיר הזה בלבד, אבל לא עלו לשרת (${saved.error || "sync_failed"})`);
+          }
+          setSavedInfo(
+            saved.ok
+              ? `נשמר: ${added} חדשים, ${updated} עודכנו`
+              : `נשמר מקומית בלבד: ${added} חדשים, ${updated} עודכנו`
+          );
         }
         const ownerPrefix = data.ownerName ? `${data.ownerName} · ` : "";
         setMsg(`${ownerPrefix}זוהה דוח מסלקה · ${data.products.length} מוצרים`);
@@ -298,7 +325,10 @@ export function AnnualReportUpload() {
             added++;
           }
         }
-        savePensionFunds(merged);
+        const saved = await savePensionFundsAsync(merged);
+        if (!saved.ok) {
+          setErrorMsg(`הנתונים נשמרו במכשיר הזה בלבד, אבל לא עלו לשרת (${saved.error || "sync_failed"})`);
+        }
         console.log(
           "[pension-xml] auto-saved",
           merged.length,
@@ -317,7 +347,11 @@ export function AnnualReportUpload() {
         setMsg(
           `${ownerPrefix}נמצאו ${result.products.length} מוצרים מ-${result.files.length} קבצים`
         );
-        setSavedInfo(`נשמר: ${added} חדשים, ${updated} עודכנו`);
+        setSavedInfo(
+          saved.ok
+            ? `נשמר: ${added} חדשים, ${updated} עודכנו`
+            : `נשמר מקומית בלבד: ${added} חדשים, ${updated} עודכנו`
+        );
       }
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : "שגיאה בקריאת הקבצים — נסה שוב");
@@ -341,9 +375,12 @@ export function AnnualReportUpload() {
 
     const existing = loadPensionFunds();
     const result = mergeAnnualIntoFunds(existing, pdfBundle);
-    savePensionFunds(result.funds);
+    const saved = await savePensionFundsAsync(result.funds);
+    if (!saved.ok) {
+      setErrorMsg(`הנתונים נשמרו במכשיר הזה בלבד, אבל לא עלו לשרת (${saved.error || "sync_failed"})`);
+    }
     setSavedInfo(
-      `נשמר: ${result.added} חדשים, ${result.updated} עודכנו` +
+      `${saved.ok ? "נשמר" : "נשמר מקומית בלבד"}: ${result.added} חדשים, ${result.updated} עודכנו` +
         (result.unchanged > 0 ? `, ${result.unchanged} ללא שינוי` : "")
     );
     setSaving(false);
@@ -369,6 +406,7 @@ export function AnnualReportUpload() {
     setSavedInfo(null);
     setExpandedPolicyIds(new Set());
     setSaving(false);
+    clearPasswordPrompt();
   }
 
   const showPreview =
@@ -418,6 +456,7 @@ export function AnnualReportUpload() {
           className="hidden"
           onChange={(e) => {
             setErrorMsg(null);
+            clearPasswordPrompt();
             const picked = Array.from(e.target.files ?? []);
             const { accepted, rejected, hasZip } = classifyDropped(picked);
             if (hasZip) {
@@ -481,6 +520,36 @@ export function AnnualReportUpload() {
             error
           </span>
           <span className="text-[12px] font-bold leading-snug text-red-700">{errorMsg}</span>
+        </div>
+      )}
+
+      {needsPassword && mode === "annual" && (
+        <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-right">
+          <div className="mb-2 text-[12px] font-extrabold text-amber-900">
+            הקובץ מוגן בסיסמה
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row-reverse">
+            <input
+              type="password"
+              value={pdfPassword}
+              onChange={(e) => setPdfPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && pdfPassword.trim() && !busy) {
+                  void handleParseAnnual(pdfPassword);
+                }
+              }}
+              placeholder="סיסמת הקובץ"
+              className="min-w-0 flex-1 rounded-lg border border-amber-200 bg-white px-3 py-2 text-right text-sm font-bold text-verdant-ink outline-none focus:border-verdant-accent"
+            />
+            <button
+              type="button"
+              disabled={busy || !pdfPassword.trim()}
+              onClick={() => void handleParseAnnual(pdfPassword)}
+              className="btn-botanical px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {busy ? "בודק…" : "פענח ונתח"}
+            </button>
+          </div>
         </div>
       )}
 
