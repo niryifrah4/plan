@@ -201,6 +201,23 @@ app/(client)/investments/page.tsx                                    (edited: wi
 - Transactions section is parsed only by the Claude fallback (deterministic path
   returns holdings only).
 - "שער נוכחי" is shown as printed (agorot for ILS-listed securities).
-- Possible future analyses: FX exposure, concentration risk (e.g. SP 500 =
+- Possible future analyses: concentration risk (e.g. SP 500 =
   68.74% of the portfolio), and delta between snapshots across uploads.
+
+---
+
+## 10. Multi-currency and Real-time FX (Bank of Israel)
+
+- `BrokerReportUpload.tsx` fetches live FX rates (USD, EUR, GBP) to ILS via `fetchFXRates()` which pulls from the Bank of Israel API (`lib/market-providers.ts`).
+- When uploading a report in a foreign currency (e.g., USD for Blink), a new column "שווי בשקל" is conditionally displayed, computing the real-time converted value.
+- On save, `fxRateToIls` is populated accurately based on the Bank of Israel rate at the time of upload, which guarantees that the dashboard's total value, returns, and pie charts render the true ILS equivalents natively.
+- `SavedBrokerPortfolios.tsx` also dynamically calculates the "שווי בשקל" for historically saved foreign-currency portfolios when viewing their snapshots.
+
+---
+
+## 11. Hydration & Push Queue Fixes
+
+- `pushBlobInBackground` handles local storage syncing and queueing for offline support (`lib/sync/push-queue.ts`).
+- To support synchronous saves straight to the DB without background delay (for `savePositionsAsync`), direct `pushBlob` calls now invoke `dequeuePush(householdId, key)` upon success.
+- This prevents a critical hydration race-condition where `pullBlob` would fetch stale, empty data from the pending local queue on page refresh instead of the true data just saved to Supabase.
 ```
