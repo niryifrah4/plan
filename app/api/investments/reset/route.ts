@@ -1,5 +1,5 @@
 /**
- * DELETE /api/investments/reset
+ * DELETE /api/investments/reset?householdId=<uuid>
  *
  * Delete all investment data for the authenticated household:
  * - portfolio_positions and portfolio_accounts from client_state
@@ -10,8 +10,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/supabase/require-user";
-import { getSupabaseBrowser } from "@/lib/supabase/browser";
-import { getHouseholdId } from "@/lib/sync/remote-sync";
+import { assertHouseholdAccess } from "@/lib/api/household-auth";
 
 export const runtime = "nodejs";
 
@@ -19,29 +18,28 @@ export async function DELETE(req: NextRequest) {
   try {
     const auth = await requireUser();
     if ("response" in auth) return auth.response;
+    const { user, sb } = auth;
 
-    const hh = getHouseholdId();
-    if (!hh) {
+    // Get household ID from query parameters
+    const householdId = new URL(req.url).searchParams.get("householdId");
+    if (!householdId) {
       return NextResponse.json(
-        { error: "No active household" },
+        { error: "Missing household ID" },
         { status: 400 }
       );
     }
 
-    // Use server-side Supabase client (if available) or fetch via browser client
-    const sb = getSupabaseBrowser();
-    if (!sb) {
-      return NextResponse.json(
-        { error: "Database unavailable" },
-        { status: 503 }
-      );
+    // Verify user has access to this household
+    const allowed = await assertHouseholdAccess(sb, user.id, householdId);
+    if (!allowed) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Delete from client_state (portfolio blobs)
     const { error: clientStateError } = await sb
       .from("client_state")
       .delete()
-      .eq("household_id", hh)
+      .eq("household_id", householdId)
       .in("state_key", ["portfolio_positions", "portfolio_accounts"]);
 
     if (clientStateError) {
@@ -56,7 +54,7 @@ export async function DELETE(req: NextRequest) {
     const { error: reportsError } = await sb
       .from("investment_reports")
       .delete()
-      .eq("household_id", hh);
+      .eq("household_id", householdId);
 
     if (reportsError) {
       console.error("[investments/reset] investment_reports delete failed:", reportsError.message);

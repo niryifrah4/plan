@@ -66,6 +66,7 @@ import {
   type Position,
   type VestingSchedule,
 } from "@/lib/portfolio-store";
+import { getHouseholdId } from "@/lib/sync/remote-sync";
 import {
   DEPOSITS_EVENT,
   currentMonthKey,
@@ -214,7 +215,11 @@ export default function InvestmentsPage() {
 
     setResetting(true);
     try {
-      const res = await fetch("/api/investments/reset", {
+      const householdId = getHouseholdId();
+      if (!householdId) {
+        throw new Error("אין משק בית פעיל");
+      }
+      const res = await fetch(`/api/investments/reset?householdId=${encodeURIComponent(householdId)}`, {
         method: "DELETE",
         credentials: "include"
       });
