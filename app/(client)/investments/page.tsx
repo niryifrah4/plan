@@ -26,9 +26,12 @@ import { AllocationPie } from "@/components/charts/AllocationPie";
 import { GoalLinker } from "@/components/GoalLinker";
 import { PortfolioGrowthProjector } from "@/components/investments/PortfolioGrowthProjector";
 import { PortfolioImport, type ImportedRow } from "@/components/investments/PortfolioImport";
+import { BrokerReportUpload } from "@/components/investments/BrokerReportUpload";
+import { SavedBrokerPortfolios } from "@/components/investments/SavedBrokerPortfolios";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 
 import { fmtILS } from "@/lib/format";
+import { fmtMoney } from "@/lib/_shared/format";
 import { futureValue } from "@/lib/financial-math";
 import { loadAssumptions, type Assumptions } from "@/lib/assumptions";
 import { demoBenchmarks } from "@/lib/stub-data";
@@ -589,6 +592,12 @@ function PortfolioTab({
       {/* External exchanges (Binance, etc.) */}
       <ExchangesPanel accounts={accounts} />
 
+      {/* Broker statement PDF upload + AI analysis */}
+      <BrokerReportUpload />
+
+      {/* Saved portfolios — select one or view all together */}
+      <SavedBrokerPortfolios />
+
       {/* Allocation pies */}
       {positions.length > 0 && (
         <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -854,7 +863,7 @@ function PortfolioTab({
                   onClick={() => toggleSort("marketValue")}
                 >
                   <span className="flex items-center justify-end gap-1">
-                    שווי (₪)
+                    שווי
                     <span className="material-symbols-outlined text-[12px]">
                       {sortIcon("marketValue")}
                     </span>
@@ -934,22 +943,22 @@ function PortfolioTab({
                     <td className="px-3 py-2.5">
                       <div className="font-extrabold text-verdant-ink">{position.symbol}</div>
                       <div className="text-[10px] text-verdant-muted">
-                        {valuation.effectiveQuantity} יח׳ · {position.currency}{" "}
-                        {position.currentPrice}
+                        {valuation.effectiveQuantity.toLocaleString(undefined, { maximumFractionDigits: 2 })} יח׳ · {position.currency}{" "}
+                        {position.currentPrice > 0 ? position.currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}
                       </div>
                     </td>
                     <td className="px-3 py-2.5 font-bold text-verdant-muted">
                       {account?.label ?? "—"}
                     </td>
                     <td className="tabular px-3 py-2.5 text-left font-bold" dir="ltr">
-                      {fmtILS(valuation.marketValueIls)}
+                      {fmtMoney(valuation.marketValueIls, position.currency)}
                     </td>
                     <td
                       className="tabular px-3 py-2.5 text-left font-bold"
                       dir="ltr"
                       style={{ color }}
                     >
-                      {fmtILS(valuation.unrealizedPnlIls, { signed: true })}
+                      {fmtMoney(valuation.unrealizedPnlIls, position.currency, { signed: true })}
                     </td>
                     <td
                       className="tabular px-3 py-2.5 text-left font-bold"
@@ -957,14 +966,14 @@ function PortfolioTab({
                       style={{ color }}
                     >
                       {valuation.unrealizedPnlPct >= 0 ? "+" : ""}
-                      {valuation.unrealizedPnlPct.toFixed(1)}%
+                      {valuation.unrealizedPnlPct.toFixed(2)}%
                     </td>
                     <td className="tabular px-3 py-2.5 text-left font-bold" dir="ltr">
                       <div>
-                        <div className="text-verdant-ink">{fmtILS(valuation.netAfterTaxIls)}</div>
+                        <div className="text-verdant-ink">{fmtMoney(valuation.netAfterTaxIls, position.currency)}</div>
                         {valuation.taxIls > 0 && (
                           <div className="text-[9px] text-verdant-muted">
-                            מס: {fmtILS(valuation.taxIls)}
+                            מס: {fmtMoney(valuation.taxIls, position.currency)}
                           </div>
                         )}
                       </div>

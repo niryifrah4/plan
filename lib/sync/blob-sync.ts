@@ -13,11 +13,21 @@
 
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/browser";
 import { getHouseholdId } from "./remote-sync";
+import { getPendingPush, getPendingPushesByPrefix, dequeuePush } from "./push-queue";
 
 export async function pullBlob<T = any>(key: string): Promise<T | null> {
   if (!isSupabaseConfigured()) return null;
   const hh = getHouseholdId();
   if (!hh) return null;
+
+  // If there's a pending push for this key, return it immediately!
+  // This prevents hydration race conditions where a quick page refresh
+  // pulls stale DB data before the push queue flushes, overwriting local state.
+  const pending = getPendingPush(hh, key);
+  if (pending !== undefined) {
+    return pending as T;
+  }
+
   const sb = getSupabaseBrowser();
   if (!sb) return null;
   try {
@@ -58,20 +68,24 @@ export async function pullBlobsByPrefix(prefix: string): Promise<Record<string, 
   if (!hh) return {};
   const sb = getSupabaseBrowser();
   if (!sb) return {};
+
+  const pendingPushes = getPendingPushesByPrefix(hh, prefix);
+
   try {
     const { data, error } = await sb
       .from("client_state")
       .select("state_key, state_value")
       .eq("household_id", hh)
       .like("state_key", `${prefix}%`);
-    if (error || !data) return {};
+    if (error || !data) return pendingPushes;
     const out: Record<string, unknown> = {};
     for (const row of data as Array<{ state_key: string; state_value: unknown }>) {
       out[row.state_key] = row.state_value;
     }
-    return out;
+    // Merge pending pushes OVER the DB results so local unstaled state wins
+    return { ...out, ...pendingPushes };
   } catch {
-    return {};
+    return pendingPushes;
   }
 }
 
@@ -154,9 +168,18 @@ export async function pushBlob<T = any>(
   if (!hh) return false;
 
   const viaRoute = await pushBlobViaServerRoute(key, value, hh);
-  if (viaRoute) return true;
+  if (viaRoute) {
+    dequeuePush(hh, key);
+    return true;
+  }
 
-  return pushBlobDirect(key, value, hh);
+  const viaDirect = await pushBlobDirect(key, value, hh);
+  if (viaDirect) {
+    dequeuePush(hh, key);
+    return true;
+  }
+  
+  return false;
 }
 
 export function pushBlobInBackground<T = any>(

@@ -261,6 +261,21 @@ export function loadPositions(): Position[] {
   }
 }
 
+export async function saveAccountsAsync(accounts: Account[]): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  try {
+    const { pushBlob } = await import("./sync/blob-sync");
+    const ok = await pushBlob(ACCOUNTS_BLOB_KEY, accounts);
+    if (!ok) return false;
+    safeSetItem(scopedKey(ACCOUNTS_KEY), JSON.stringify(accounts));
+    window.dispatchEvent(new Event(PORTFOLIO_EVENT));
+    return true;
+  } catch (e) {
+    reportError("portfolio-store", e);
+    return false;
+  }
+}
+
 export function savePositions(positions: Position[]): void {
   if (typeof window === "undefined") return;
   try {
@@ -268,6 +283,21 @@ export function savePositions(positions: Position[]): void {
     window.dispatchEvent(new Event(PORTFOLIO_EVENT));
     pushBlobInBackground(POSITIONS_BLOB_KEY, positions);
   } catch (e) { reportError("portfolio-store", e); }
+}
+
+export async function savePositionsAsync(positions: Position[]): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  try {
+    const { pushBlob } = await import("./sync/blob-sync");
+    const ok = await pushBlob(POSITIONS_BLOB_KEY, positions);
+    if (!ok) return false;
+    safeSetItem(scopedKey(POSITIONS_KEY), JSON.stringify(positions));
+    window.dispatchEvent(new Event(PORTFOLIO_EVENT));
+    return true;
+  } catch (e) {
+    reportError("portfolio-store", e);
+    return false;
+  }
 }
 
 /**

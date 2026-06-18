@@ -120,7 +120,38 @@ function emitPending(): void {
 }
 
 export function getPendingCount(): number {
+  if (typeof window === "undefined") return 0;
+  hydrate();
   return queue.size;
+}
+
+/** Returns the pending value for a key, if any, to prevent hydration races. */
+export function getPendingPush(householdId: string, key: string): unknown | undefined {
+  if (typeof window === "undefined") return undefined;
+  hydrate();
+  return queue.get(itemId(householdId, key))?.value;
+}
+
+/** Removes a pending push from the queue. Used when a synchronous pushBlob succeeds. */
+export function dequeuePush(householdId: string, key: string): void {
+  if (typeof window === "undefined") return;
+  hydrate();
+  queue.delete(itemId(householdId, key));
+  persist();
+  emitPending();
+}
+
+/** Returns all pending values for a given prefix, to merge with DB results. */
+export function getPendingPushesByPrefix(householdId: string, prefix: string): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (typeof window === "undefined") return out;
+  hydrate();
+  for (const item of queue.values()) {
+    if (item.householdId === householdId && item.key.startsWith(prefix)) {
+      out[item.key] = item.value;
+    }
+  }
+  return out;
 }
 
 function scheduleFlush(delay = 0): void {
