@@ -837,6 +837,75 @@ export async function analyzeBrokerReport(text: string, filename: string): Promi
   }
 }
 
+/**
+ * Extract just the transactions from a PDF text. Used as a fallback when the
+ * deterministic parser found holdings but no transactions.
+ */
+export async function extractTransactionsAi(text: string): Promise<BrokerTransaction[]> {
+  const client = createAnthropicClient();
+  if (!client) return [];
+
+  const TRANSACTIONS_SCHEMA = {
+    type: "object",
+    properties: {
+      transactions: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            date: { type: "string", description: "ISO YYYY-MM-DD; empty if unresolvable." },
+            type: { type: "string", description: "Operation in Hebrew (קניה/מכירה/הפקדה/דיבידנד…)." },
+            name: { type: "string" },
+            quantity: { type: "number" },
+            amount: { type: "number", description: "Charge (+) / credit (−). 0 if not shown." },
+          },
+          required: ["date", "type", "name", "quantity", "amount"],
+          additionalProperties: false,
+        },
+      },
+    },
+    required: ["transactions"],
+    additionalProperties: false,
+  } as const;
+
+  try {
+    const response = await client.messages.parse({
+      model: MODEL,
+      max_tokens: 8000,
+      thinking: { type: "adaptive" },
+      system: [
+        {
+          type: "text",
+          text: `Extract all transactions (פירוט תנועות בחשבון) from this account statement text.
+Include every transaction row you can resolve: date, operation type (קניה, מכירה, הפקדה, דיבידנד, etc.),
+security name, quantity, and amounts. Include deposits (הפקדה) and withdrawals (משיכה) as well.
+The text layer may be scrambled; do your best to reconstruct each transaction.`,
+          cache_control: { type: "ephemeral" },
+        },
+      ],
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Extract transactions from this statement:\n\n${text}`,
+            },
+          ],
+        },
+      ],
+      output_config: {
+        format: { type: "json_schema", schema: TRANSACTIONS_SCHEMA as Record<string, unknown> },
+      },
+    });
+
+    const parsed = response.parsed_output as unknown as { transactions?: BrokerTransaction[] } | null;
+    return Array.isArray(parsed?.transactions) ? parsed.transactions : [];
+  } catch {
+    return [];
+  }
+}
+
 function errorReport(warning: string): BrokerReport {
   return {
     broker: "לא זוהה",

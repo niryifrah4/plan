@@ -16,6 +16,7 @@ import {
   analyzeBrokerReport,
   extractBrokerPdf,
   tryDeterministicParse,
+  extractTransactionsAi,
   PdfPasswordRequiredError,
   PdfPasswordWrongError,
   type ExtractedPdf,
@@ -85,6 +86,12 @@ export async function POST(req: NextRequest) {
     if (!report) {
       method = "ai";
       report = await analyzeBrokerReport(extracted.text, name);
+    } else if (report.transactions.length === 0 && report.holdings.length > 0) {
+      // ── Tier 2b: If deterministic found holdings but no transactions, run AI for transactions ──
+      const aiTransactions = await extractTransactionsAi(extracted.text);
+      if (aiTransactions.length > 0) {
+        report.transactions = aiTransactions;
+      }
     }
 
     return NextResponse.json({ report, method });
