@@ -458,6 +458,17 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
   const usdIlsRate = fxRates.USD;
   const hasRequiredFx = holdings.every((h) => canConvertToIls(h._currency, fxRates));
 
+  // When the KPIs are shown in USD (single USD report), add a small ILS
+  // conversion under each money KPI, using the FX rate of THAT report's date
+  // (falling back to the live rate if the historical one isn't loaded).
+  const activeReportDate = active.length === 1 ? active[0].report_date : null;
+  const reportUsdIls =
+    (activeReportDate ? historicalFxRates[activeReportDate]?.USD : undefined) ?? fxRates.USD;
+  const ilsSub = (usd: number): ReactNode =>
+    displayCurrency === "USD" && reportUsdIls
+      ? `≈ ${fmtMoney(usd * reportUsdIls, "ILS")}`
+      : undefined;
+
   const totalValue = holdings.reduce((s, h) => {
     const amount = h.valueIls || 0;
     if (displayCurrency !== "ILS") return s + amount;
@@ -508,7 +519,7 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
       : null;
 
   useEffect(() => {
-    const dates = [compareFrom?.report_date, compareTo?.report_date].filter(
+    const dates = [compareFrom?.report_date, compareTo?.report_date, activeReportDate].filter(
       (date): date is string => !!date && !historicalFxRates[date]
     );
     if (dates.length === 0) return;
@@ -533,7 +544,7 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
     return () => {
       cancelled = true;
     };
-  }, [compareFrom?.report_date, compareTo?.report_date, fxRates, historicalFxRates]);
+  }, [compareFrom?.report_date, compareTo?.report_date, activeReportDate, fxRates, historicalFxRates]);
 
 
   if (loading && reports.length === 0) {
@@ -657,10 +668,18 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
 
         {/* Aggregate analysis */}
         <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-5">
-          <Stat label="שווי כולל" value={isWaitingForFx ? "טוען שער" : fmtMoney(totalValue, displayCurrency)} />
-          <Stat label="עלות רכישה" value={isWaitingForFx ? "טוען שער" : fmtMoney(totalCost, displayCurrency)} />
-          <Stat 
-            label="רווח/הפסד" 
+          <Stat
+            label="שווי כולל"
+            value={isWaitingForFx ? "טוען שער" : fmtMoney(totalValue, displayCurrency)}
+            sub={isWaitingForFx ? undefined : ilsSub(totalValue)}
+          />
+          <Stat
+            label="עלות רכישה"
+            value={isWaitingForFx ? "טוען שער" : fmtMoney(totalCost, displayCurrency)}
+            sub={isWaitingForFx ? undefined : ilsSub(totalCost)}
+          />
+          <Stat
+            label="רווח/הפסד"
             value={
               isWaitingForFx ? (
                 "טוען שער"
@@ -669,7 +688,8 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
                   {fmtMoney(gain, displayCurrency, { signed: true })}
                 </span>
               )
-            } 
+            }
+            sub={isWaitingForFx ? undefined : ilsSub(gain)}
           />
           <Stat
             label="שער דולר חי"
@@ -1068,11 +1088,16 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
   );
 }
 
-function Stat({ label, value }: { label: string; value: ReactNode }) {
+function Stat({ label, value, sub }: { label: string; value: ReactNode; sub?: ReactNode }) {
   return (
     <div className="v-divider rounded border bg-[#FAFAF7] p-2 text-right">
       <div className="text-[10px] font-bold uppercase tracking-wider text-verdant-muted">{label}</div>
       <div className="mt-0.5 truncate text-[13px] font-extrabold text-verdant-ink">{value}</div>
+      {sub != null && (
+        <div className="mt-0.5 truncate text-[10px] font-bold text-verdant-muted" dir="ltr">
+          {sub}
+        </div>
+      )}
     </div>
   );
 }
