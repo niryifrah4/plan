@@ -239,7 +239,18 @@ function guessKind(name: string): AssetKindGuess {
 
 function parseBlinkTransactions(text: string): BrokerTransaction[] {
   const transactions: BrokerTransaction[] = [];
-  const typeTokens = ["הפקדה", "משיכה", "קנייה", "קניה", "מכירה", "דיבידנד", "חיוב מס"];
+  const typeTokens = [
+    "הפקדה",
+    "משיכה",
+    "קנייה",
+    "קניה",
+    "מכירה",
+    "דיבידנד",
+    "חיוב מס",
+    "זיכוי מס",
+  ];
+  // Trades carry a price + quantity column; cash movements don't.
+  const tradeTypes = new Set(["קנייה", "קניה", "מכירה"]);
   for (const line of text.split(/\n+/)) {
     const dateMatch = line.match(/(\d{2})[/.](\d{2})[/.](\d{4})/);
     if (!dateMatch) continue;
@@ -250,16 +261,25 @@ function parseBlinkTransactions(text: string): BrokerTransaction[] {
       .map((m) => parseNum(m[0]))
       .filter((v): v is number => v != null);
     const symbolMatch = line.match(/\b[A-Z][A-Z0-9.]{1,9}\b/);
+
+    // Columns left→right: יתרת מזומן · [עמלה] · סכום הפעולה · מחיר · כמות.
+    // The "סכום הפעולה" value already carries its sign (buy −, sell/dividend +).
     let amount = 0;
-    if (type.includes("הפקדה") || type.includes("משיכה")) {
-      amount = nums.length ? Math.abs(nums[nums.length - 1]) : 0;
-      if (type.includes("משיכה")) amount *= -1;
+    let quantity = 0;
+    if (tradeTypes.has(type)) {
+      // 3rd-from-right skips price+quantity and is commission-proof.
+      if (nums.length >= 3) amount = nums[nums.length - 3];
+      if (nums.length >= 1) quantity = Math.abs(nums[nums.length - 1]);
+    } else if (nums.length) {
+      // Cash movements: rightmost numeric column is סכום הפעולה.
+      amount = nums[nums.length - 1];
     }
+
     transactions.push({
       date: `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`,
       type,
       name: symbolMatch?.[0] ?? "",
-      quantity: 0,
+      quantity,
       amount,
     });
   }
@@ -317,7 +337,11 @@ const SHADOW_DY = 12;
 
 function tryBlinkParse(extracted: ExtractedPdf): BrokerReport | null {
   const text = extracted.text;
-  if (!text.includes("heyblink.com") && !text.includes("Blink")) return null;
+  // The Blink brand only appears in the letter-spaced footer
+  // ("s u p p o r t @h e y b l i n k . c o m"), so a raw substring check misses
+  // it. Collapse whitespace before probing.
+  const collapsed = text.replace(/\s+/g, "");
+  if (!collapsed.includes("heyblink.com") && !collapsed.toLowerCase().includes("blink")) return null;
 
   const raw = extracted.items.filter((it) => it.page === 1 || it.page === undefined);
   if (raw.length === 0) return null;
