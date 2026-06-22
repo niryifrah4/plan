@@ -441,6 +441,15 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
   );
   const showIlsValueCol = holdings.some((h) => normalizeCurrency(h._currency) !== "ILS");
 
+  // True when at least one displayed holding's cost was FIFO-reconstructed
+  // (the report itself printed no purchase-cost column, e.g. Blink). Drives the
+  // caveat note shown under the holdings header.
+  const costReconstructed = active.some(
+    (r) =>
+      (r.transactions?.length ?? 0) > 0 &&
+      (r.holdings || []).some((h) => !(h.costIls > 0) && h.assetKind !== "cash")
+  );
+
   // Aggregate analysis across the selected portfolio(s).
   // We determine the display currency: if exactly one report is selected, use its currency.
   // Otherwise, default to ILS or "₪" if mixed.
@@ -874,6 +883,13 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
             </button>
           )}
         </div>
+        {costReconstructed && (
+          <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-[10px] leading-relaxed text-amber-800">
+            <span className="font-extrabold">עלות הרכישה והתשואה משוחזרות (FIFO) מהתנועות</span> — הדוח של בית
+            ההשקעות לא כולל עמודת עלות. אינדיקציה טובה, אך לא מדויקת לרמת הסנט:
+            עמלות לא נכללות בסכומי התנועות, ומניות שהתקבלו כחלוקת חברה (ללא קנייה תואמת) מקבלות עלות 0.
+          </div>
+        )}
         <div className="max-h-80 overflow-auto rounded-lg border" style={{ borderColor: "#E5E7EB" }}>
           <table className="w-full text-[11px]">
             <thead>
