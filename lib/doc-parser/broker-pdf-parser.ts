@@ -459,7 +459,9 @@ function tryBlinkParse(extracted: ExtractedPdf): BrokerReport | null {
   const sum = holdings.reduce((s, h) => s + h.valueIls, 0);
   if (Math.abs(sum - totalValue) / totalValue > 0.02) return null;
 
-  const mEmail = text.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/);
+  // The email is letter-spaced/split in the text layer ("ita yk93@gmail.com"),
+  // so match against the whitespace-collapsed copy to keep the full local part.
+  const mEmail = collapsed.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/);
 
   return {
     broker: "Blink",
