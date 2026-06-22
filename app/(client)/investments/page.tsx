@@ -117,7 +117,18 @@ type TabId = "portfolio" | "equity" | "deposits";
 type SortField = "symbol" | "marketValue" | "unrealizedPnl" | "unrealizedPnlPct";
 type SortDir = "asc" | "desc";
 
-function clearUnknownBlinkCostBasis(): void {
+/**
+ * Blink statements don't print a purchase-cost column, so Blink positions land
+ * with avgCost = 0 and the P&L / net-after-tax KPIs read as 0. Reconstruct the
+ * cost basis FIFO from the saved Blink report transactions (oldest→newest: each
+ * buy is a lot, each sell consumes lots; the open lots are what's still held)
+ * and write avgCost = openCost / openQty for each Blink position.
+ *
+ * Caveats: commissions aren't in the transaction amounts, and corporate-action
+ * shares with no matching buy stay at 0. Positions whose symbol has no
+ * reconstructable cost are left at 0 (unknown), as before.
+ */
+async function reconstructBlinkCostBasis(): Promise<void> {
   const accounts = loadAccounts();
   const blinkAccountIds = new Set(
     accounts
@@ -125,12 +136,78 @@ function clearUnknownBlinkCostBasis(): void {
       .map((a) => a.id)
   );
   if (blinkAccountIds.size === 0) return;
+
+  const householdId = getHouseholdId();
+  if (!householdId) return;
+
+  type Tx = { date: string; type: string; name: string; quantity: number; amount: number };
+  let reports: { broker?: string; transactions?: Tx[] }[] = [];
+  try {
+    const res = await fetch(
+      `/api/investments/reports?householdId=${encodeURIComponent(householdId)}`,
+      { credentials: "include" }
+    );
+    const data = await res.json();
+    if (!res.ok || !data?.ok) return;
+    reports = (data.reports ?? []).filter((r: { broker?: string }) =>
+      /blink/i.test(`${r.broker || ""}`)
+    );
+  } catch {
+    return;
+  }
+
+  // Dedupe transactions across overlapping reports, then FIFO per symbol.
+  const seen = new Set<string>();
+  const txs: Tx[] = [];
+  for (const r of reports)
+    for (const t of r.transactions ?? []) {
+      const k = `${t.date}|${t.type}|${t.name}|${t.quantity}|${t.amount}`;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      txs.push(t);
+    }
+  txs.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+
+  const lots = new Map<string, { qty: number; cps: number }[]>();
+  for (const t of txs) {
+    const sym = (t.name || "").toUpperCase();
+    if (!sym) continue;
+    const isBuy = t.type.includes("קני");
+    const isSell = t.type.includes("מכיר");
+    if (!isBuy && !isSell) continue;
+    const q = Math.abs(t.quantity || 0);
+    if (q <= 0) continue;
+    const list = lots.get(sym) ?? [];
+    if (isBuy) {
+      list.push({ qty: q, cps: Math.abs(t.amount) / q });
+    } else {
+      let rem = q;
+      while (rem > 1e-9 && list.length) {
+        const lot = list[0];
+        const take = Math.min(rem, lot.qty);
+        lot.qty -= take;
+        rem -= take;
+        if (lot.qty < 1e-9) list.shift();
+      }
+    }
+    lots.set(sym, list);
+  }
+
+  const costPerShare = new Map<string, number>();
+  for (const [sym, list] of lots) {
+    const remQty = list.reduce((s, l) => s + l.qty, 0);
+    const cost = list.reduce((s, l) => s + l.qty * l.cps, 0);
+    if (remQty > 1e-9) costPerShare.set(sym, cost / remQty);
+  }
+
   const positions = loadPositions();
   let changed = false;
   const next = positions.map((p) => {
-    if (!blinkAccountIds.has(p.accountId) || p.avgCost <= 0) return p;
+    if (!blinkAccountIds.has(p.accountId)) return p;
+    const newAvg = costPerShare.get((p.symbol || "").toUpperCase()) ?? 0;
+    if (Math.abs(p.avgCost - newAvg) < 1e-9) return p;
     changed = true;
-    return { ...p, avgCost: 0, updatedAt: new Date().toISOString() };
+    return { ...p, avgCost: newAvg, updatedAt: new Date().toISOString() };
   });
   if (changed) savePositions(next);
 }
@@ -168,10 +245,8 @@ export default function InvestmentsPage() {
       setAccounts(loadAccounts());
     };
     void fetchPortfolioRemote()
-      .then(() => {
-        clearUnknownBlinkCostBasis();
-        reload();
-      })
+      .then(() => reconstructBlinkCostBasis())
+      .then(() => reload())
       .catch(() => reload())
       .finally(() => setLoaded(true));
     void fetchFXRates().then(setLiveFxRates).catch(() => setLiveFxRates({ ILS: 1 }));
