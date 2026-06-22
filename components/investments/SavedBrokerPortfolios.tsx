@@ -385,13 +385,59 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
     return merged;
   }, [selected, groupedAll]);
 
+  // Some brokers (e.g. Blink) don't print a purchase-cost column, so the saved
+  // holding has costIls = 0. Reconstruct it FIFO from the cumulative ledger:
+  // walk buys/sells oldest→newest, and the cost of the lots still open is the
+  // cost basis of what's currently held. Caveats: commissions aren't in the
+  // transaction amount, and corporate-action shares (no matching buy) get 0.
+  const fifoCostBySymbol = useMemo(() => {
+    const lots = new Map<string, { qty: number; cps: number }[]>();
+    const ordered = [...allTransactions].sort((a, b) =>
+      (a.date || "").localeCompare(b.date || "")
+    );
+    for (const t of ordered) {
+      const sym = (t.name || "").toUpperCase();
+      if (!sym) continue;
+      const isBuy = t.type.includes("קני");
+      const isSell = t.type.includes("מכיר");
+      if (!isBuy && !isSell) continue;
+      const q = Math.abs(t.quantity || 0);
+      if (q <= 0) continue;
+      const list = lots.get(sym) ?? [];
+      if (isBuy) {
+        list.push({ qty: q, cps: Math.abs(t.amount) / q });
+      } else {
+        let rem = q;
+        while (rem > 1e-9 && list.length) {
+          const lot = list[0];
+          const take = Math.min(rem, lot.qty);
+          lot.qty -= take;
+          rem -= take;
+          if (lot.qty < 1e-9) list.shift();
+        }
+      }
+      lots.set(sym, list);
+    }
+    const cost = new Map<string, number>();
+    for (const [sym, list] of lots) {
+      cost.set(sym, list.reduce((s, l) => s + l.qty * l.cps, 0));
+    }
+    return cost;
+  }, [allTransactions]);
+
   const holdings: (Holding & { _broker: string; _currency?: string; _reportDate?: string | null })[] = active.flatMap((r) =>
-    (r.holdings || []).map((h) => ({
-      ...h,
-      _broker: r.broker || "בית השקעות",
-      _currency: r.currency,
-      _reportDate: r.report_date,
-    }))
+    (r.holdings || []).map((h) => {
+      // Only fill when the report itself gave no cost (don't override real data).
+      const fifoCost =
+        h.costIls > 0 ? h.costIls : fifoCostBySymbol.get((h.symbol || "").toUpperCase()) ?? 0;
+      return {
+        ...h,
+        costIls: fifoCost,
+        _broker: r.broker || "בית השקעות",
+        _currency: r.currency,
+        _reportDate: r.report_date,
+      };
+    })
   );
   const showIlsValueCol = holdings.some((h) => normalizeCurrency(h._currency) !== "ILS");
 
