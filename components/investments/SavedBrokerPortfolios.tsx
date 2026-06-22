@@ -361,15 +361,29 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
   const active =
     selected === "all" ? latestReports : latestReports.filter((r) => portfolioKey(r) === selected);
 
+  // Transactions are CUMULATIVE: unlike holdings (a point-in-time snapshot from
+  // the latest report), the transaction ledger is the union of every report
+  // ever uploaded for the selected portfolio(s). Reports overlap in time
+  // (each statement re-lists earlier transactions), so we dedupe on the
+  // transaction's natural key before merging, then sort newest-first.
   const allTransactions = useMemo(() => {
-    return active.flatMap((r) => 
-      (r.transactions || []).map(tx => ({
-        ...tx,
-        _broker: r.broker,
-        _currency: r.currency
-      }))
-    );
-  }, [active]);
+    const sourceReports =
+      selected === "all"
+        ? [...groupedAll.values()].flat()
+        : groupedAll.get(selected) ?? [];
+    const seen = new Set<string>();
+    const merged: (SavedTransaction & { _broker?: string; _currency?: string })[] = [];
+    for (const r of sourceReports) {
+      for (const tx of r.transactions || []) {
+        const key = `${tx.date}|${tx.type}|${tx.name}|${tx.quantity}|${tx.amount}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        merged.push({ ...tx, _broker: r.broker, _currency: r.currency });
+      }
+    }
+    merged.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+    return merged;
+  }, [selected, groupedAll]);
 
   const holdings: (Holding & { _broker: string; _currency?: string; _reportDate?: string | null })[] = active.flatMap((r) =>
     (r.holdings || []).map((h) => ({
