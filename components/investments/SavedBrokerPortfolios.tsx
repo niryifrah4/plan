@@ -247,6 +247,7 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
   const [compareFromId, setCompareFromId] = useState<string>("");
   const [compareToId, setCompareToId] = useState<string>("");
   const [isTransactionsModalOpen, setIsTransactionsModalOpen] = useState(false);
+  const [showComparison, setShowComparison] = useState(false);
 
   const load = useCallback(async () => {
     const hh = getHouseholdId();
@@ -715,14 +716,28 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
 
         {/* Period comparison */}
         <div className="mb-4 rounded-lg border p-4" style={{ borderColor: "#E5E7EB", background: "#FFFFFF" }}>
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => setShowComparison((v) => !v)}
+            className="flex w-full items-center justify-between gap-3 text-right"
+          >
             <div>
               <div className="text-[12px] font-extrabold text-verdant-ink">השוואת תקופות</div>
               <div className="mt-0.5 text-[11px] text-verdant-muted">
                 ברירת המחדל היא הדוח האחרון מול הדוח שלפניו, מתוך הדוחות השמורים
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <span className="flex items-center gap-1 whitespace-nowrap text-[11px] font-bold text-[#2C7A5A]">
+              {showComparison ? "סגור" : "פתח"}
+              <span className="material-symbols-outlined text-[18px]">
+                {showComparison ? "expand_less" : "expand_more"}
+              </span>
+            </span>
+          </button>
+
+          {showComparison && (
+          <>
+          <div className="mb-3 mt-3 flex flex-wrap justify-end gap-2">
               <select
                 value={comparePortfolio}
                 onChange={(e) => {
@@ -769,7 +784,6 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
                   </select>
                 </>
               )}
-            </div>
           </div>
 
           {compareReports.length < 2 && (
@@ -861,6 +875,8 @@ export function SavedBrokerPortfolios({ onTotalsChange }: { onTotalsChange?: (to
                 <ComparisonList title="שינויים מרכזיים" items={comparison.changed} empty="אין שינוי מהותי" showUsd={comparison.showUsd} isDelta />
               </div>
             </>
+          )}
+          </>
           )}
         </div>
 
