@@ -61,7 +61,8 @@ export function Step1Family({
   const { confirm, modal } = useConfirm();
   const selectedFamilyStructure = fields.family_structure || "";
   const hasSpouse2Data = Boolean(
-    fields.p2_name ||
+    fields.p2_present === "1" ||
+      fields.p2_name ||
       fields.p2_id ||
       fields.p2_dob ||
       fields.p2_phone ||
