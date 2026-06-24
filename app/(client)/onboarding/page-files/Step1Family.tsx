@@ -25,6 +25,21 @@ import { Fld, FldSelect, ModalNumberInput, StepCard } from "./fields";
 import { CityAutocomplete } from "@/components/ui/CityAutocomplete";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 
+const SPOUSE1_FIELD_KEYS = [
+  "p1_name",
+  "p1_id",
+  "p1_dob",
+  "p1_phone",
+  "p1_email",
+  "p1_address_street",
+  "p1_address_city",
+  "p1_address_present",
+  "p1_emp_type",
+  "p1_employer",
+  "p1_role",
+  "p1_tenure",
+];
+
 const SPOUSE2_FIELD_KEYS = [
   "p2_name",
   "p2_id",
@@ -60,6 +75,19 @@ export function Step1Family({
 }) {
   const { confirm, modal } = useConfirm();
   const selectedFamilyStructure = fields.family_structure || "";
+  const hasSpouse1Data = Boolean(
+    fields.p1_name ||
+      fields.p1_id ||
+      fields.p1_dob ||
+      fields.p1_phone ||
+      fields.p1_email ||
+      fields.p1_address_street ||
+      fields.p1_address_city ||
+      fields.p1_emp_type ||
+      fields.p1_employer ||
+      fields.p1_role ||
+      fields.p1_tenure
+  );
   const hasSpouse2Data = Boolean(
     fields.p2_present === "1" ||
       fields.p2_name ||
@@ -100,12 +128,11 @@ export function Step1Family({
   const setFamilyStructure = async (value: string) => {
     if (value === selectedFamilyStructure) return;
 
-    // Switching to single clears spouse 2 + all children. If a second-spouse
-    // card is present (with typed data) or children exist, ask for
-    // explicit confirmation first (RTL modal).
-    if (value === "single" && (hasSpouse2Data || hasChildrenData)) {
+    // Switching to single clears all spouses + children. If any spouse data
+    // or children exist, ask for explicit confirmation first (RTL modal).
+    if (value === "single" && (hasSpouse1Data || hasSpouse2Data || hasChildrenData)) {
       const what = [
-        hasSpouse2Data ? "פרטי בן/בת הזוג" : "",
+        hasSpouse1Data || hasSpouse2Data ? "פרטי בן/בת הזוג" : "",
         hasChildrenData ? "פרטי הילדים" : "",
       ]
         .filter(Boolean)
@@ -134,6 +161,7 @@ export function Step1Family({
 
     setField("family_structure", value);
     if (value === "single") {
+      SPOUSE1_FIELD_KEYS.forEach((k) => setField(k, ""));
       SPOUSE2_FIELD_KEYS.forEach((k) => setField(k, ""));
       setField("has_children", "0");
       setChildren(() => []);
@@ -494,6 +522,10 @@ function ChildrenSection({
       }
       setField("has_children", "0");
       setChildren(() => []);
+      // If family structure is "family_with_children" and user says no kids, downgrade to "couple"
+      if (fields.family_structure === "family_with_children") {
+        setField("family_structure", "couple");
+      }
     } else {
       setField("has_children", "1");
       if (children.length === 0) {
