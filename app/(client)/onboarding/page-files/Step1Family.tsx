@@ -25,6 +25,28 @@ import { Fld, FldSelect, ModalNumberInput, StepCard } from "./fields";
 import { CityAutocomplete } from "@/components/ui/CityAutocomplete";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 
+const SPOUSE2_FIELD_KEYS = [
+  "p2_name",
+  "p2_id",
+  "p2_dob",
+  "p2_phone",
+  "p2_email",
+  "p2_address_street",
+  "p2_address_city",
+  "p2_address_present",
+  "p2_emp_type",
+  "p2_employer",
+  "p2_role",
+  "p2_tenure",
+  "p2_present",
+];
+
+const FAMILY_STRUCTURES = [
+  { value: "single", label: "רווק/ה או יחיד/ה" },
+  { value: "couple", label: "זוג ללא ילדים" },
+  { value: "family_with_children", label: "משפחה עם ילדים" },
+];
+
 export function Step1Family({
   fields,
   setField,
@@ -36,103 +58,181 @@ export function Step1Family({
   children: Child[];
   setChildren: (updater: (prev: Child[]) => Child[]) => void;
 }) {
-  const spouse2Visible =
-    fields.p2_present === "1" ||
-    Boolean(
-      fields.p2_name ||
-        fields.p2_id ||
-        fields.p2_dob ||
-        fields.p2_phone ||
-        fields.p2_email ||
-        fields.p2_address_street ||
-        fields.p2_address_city ||
-        fields.p2_emp_type ||
-        fields.p2_employer ||
-        fields.p2_role ||
-        fields.p2_tenure
-    );
+  const { confirm, modal } = useConfirm();
+  const selectedFamilyStructure = fields.family_structure || "";
+  const hasSpouse2Data = Boolean(
+    fields.p2_name ||
+      fields.p2_id ||
+      fields.p2_dob ||
+      fields.p2_phone ||
+      fields.p2_email ||
+      fields.p2_address_street ||
+      fields.p2_address_city ||
+      fields.p2_emp_type ||
+      fields.p2_employer ||
+      fields.p2_role ||
+      fields.p2_tenure
+  );
+  const spouseSectionVisible =
+    selectedFamilyStructure === "couple" ||
+    selectedFamilyStructure === "family_with_children";
 
-  const showSpouse2 = () => setField("p2_present", "1");
-  const hideSpouse2 = () => {
-    [
-      "p2_name",
-      "p2_id",
-      "p2_dob",
-      "p2_phone",
-      "p2_email",
-      "p2_address_street",
-      "p2_address_city",
-      "p2_address_present",
-      "p2_emp_type",
-      "p2_employer",
-      "p2_role",
-      "p2_tenure",
-      "p2_present",
-    ].forEach((k) => setField(k, ""));
+  const showSpouse2 = () => {
+    setField("p2_present", "1");
   };
+  const hideSpouse2 = async () => {
+    if (hasSpouse2Data) {
+      const ok = await confirm({
+        title: "הסרת בן/בת זוג",
+        body: "פעולה זו תמחק את כל פרטי בן/בת זוג 2 שהזנת. האם להמשיך?",
+        variant: "danger",
+        confirmLabel: "כן, מחק/י",
+        cancelLabel: "ביטול",
+      });
+      if (!ok) return;
+    }
+    SPOUSE2_FIELD_KEYS.forEach((k) => setField(k, ""));
+  };
+  const hasChildrenData = children.some(
+    (c) => c.name || c.birthYear || c.is_special_needs === "1"
+  );
+  const setFamilyStructure = async (value: string) => {
+    if (value === selectedFamilyStructure) return;
 
-  const sharedAddress = fields.address || "";
-  const spouseHasOwnAddress = (prefix: "p1" | "p2") =>
-    fields[`${prefix}_address_present`] === "1" ||
-    Boolean(fields[`${prefix}_address_street`] || fields[`${prefix}_address_city`]);
-  const showSpouseAddress = (prefix: "p1" | "p2") => setField(`${prefix}_address_present`, "1");
-  const hideSpouseAddress = (prefix: "p1" | "p2") => {
-    setField(`${prefix}_address_street`, "");
-    setField(`${prefix}_address_city`, "");
-    setField(`${prefix}_address_present`, "");
+    // Switching to single clears spouse 2 + all children. If a second-spouse
+    // card is present (with typed data) or children exist, ask for
+    // explicit confirmation first (RTL modal).
+    if (value === "single" && (hasSpouse2Data || hasChildrenData)) {
+      const what = [
+        hasSpouse2Data ? "פרטי בן/בת הזוג" : "",
+        hasChildrenData ? "פרטי הילדים" : "",
+      ]
+        .filter(Boolean)
+        .join(" ו");
+      const ok = await confirm({
+        title: "מעבר לתיק של רווק/ה",
+        body: `סימנת ״רווק/ה או יחיד/ה״. פעולה זו תמחק את ${what} שהזנת. האם להמשיך?`,
+        variant: "danger",
+        confirmLabel: "כן, מחק/י",
+        cancelLabel: "ביטול",
+      });
+      if (!ok) return;
+    }
+
+    // Switching to couple keeps spouse 1 but drops the children.
+    if (value === "couple" && hasChildrenData) {
+      const ok = await confirm({
+        title: "מעבר לזוג ללא ילדים",
+        body: "פעולה זו תמחק את פרטי הילדים שהזנת. האם להמשיך?",
+        variant: "danger",
+        confirmLabel: "כן, מחק/י",
+        cancelLabel: "ביטול",
+      });
+      if (!ok) return;
+    }
+
+    setField("family_structure", value);
+    if (value === "single") {
+      SPOUSE2_FIELD_KEYS.forEach((k) => setField(k, ""));
+      setField("has_children", "0");
+      setChildren(() => []);
+    }
+    if (value === "couple") {
+      setField("has_children", "0");
+      setChildren(() => []);
+    }
+    if (value === "family_with_children" && children.length === 0) {
+      setField("has_children", "1");
+      setChildren(() => [{ ...EMPTY_CHILD }]);
+    }
   };
 
   return (
     <StepCard num={1} title="פרופיל משפחתי ואישי" icon="people">
-      <div className="mb-6">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h3 className="flex items-center gap-2 text-sm font-extrabold text-verdant-ink">
-            <span className="material-symbols-outlined text-[18px] text-verdant-emerald">
-              people
-            </span>
-            פרטי בני הזוג
-          </h3>
-          {!spouse2Visible ? (
-            <button
-              type="button"
-              onClick={showSpouse2}
-              className="flex items-center gap-1 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-bold text-verdant-ink shadow-sm transition-colors hover:bg-gray-50"
-            >
-              <span className="material-symbols-outlined text-[14px]">add</span>
-              הוסף בן/בת זוג
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={hideSpouse2}
-              className="flex items-center gap-1 rounded-md border border-red-200 bg-white px-3 py-1.5 text-[11px] font-bold text-red-500 shadow-sm transition-colors hover:bg-red-50"
-            >
-              <span className="material-symbols-outlined text-[14px]">close</span>
-              הסר בן/בת זוג 2
-            </button>
-          )}
+      {modal}
+      <div className="mb-6 rounded-xl border border-verdant-line bg-[#FAFAF7] p-4">
+        <div className="mb-3 flex items-center gap-2 text-sm font-extrabold text-verdant-ink">
+          <span className="material-symbols-outlined text-[18px] text-verdant-emerald">
+            family_restroom
+          </span>
+          מבנה התיק
         </div>
-
-        <div className="space-y-4">
-          <SpouseCard
-            prefix="p1"
-            label="בן/בת זוג 1"
-            fields={fields}
-            setField={setField}
-            accent="primary"
-          />
-          {spouse2Visible && (
-            <SpouseCard
-              prefix="p2"
-              label="בן/בת זוג 2"
-              fields={fields}
-              setField={setField}
-              accent="secondary"
-              onRemove={hideSpouse2}
-            />
-          )}
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+          {FAMILY_STRUCTURES.map((option) => {
+            const active = selectedFamilyStructure === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setFamilyStructure(option.value)}
+                className={`rounded-lg border px-3 py-3 text-right text-[12px] font-extrabold transition-all ${
+                  active
+                    ? "border-verdant-emerald bg-verdant-emerald text-white shadow-sm"
+                    : "border-gray-200 bg-white text-verdant-ink hover:bg-gray-50"
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-2 text-[11px] leading-relaxed text-verdant-muted">
+          הבחירה כאן קובעת אם האפיון מציג בן/בת זוג שניים וילדים. במקרה של לקוח/ה יחיד/ה,
+          המערכת לא תניח שיש 2 בני משפחה.
         </div>
       </div>
+
+      {spouseSectionVisible && (
+        <div className="mb-6">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="flex items-center gap-2 text-sm font-extrabold text-verdant-ink">
+              <span className="material-symbols-outlined text-[18px] text-verdant-emerald">
+                people
+              </span>
+              פרטי בני הזוג
+            </h3>
+            {!hasSpouse2Data ? (
+              <button
+                type="button"
+                onClick={showSpouse2}
+                className="flex items-center gap-1 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-bold text-verdant-ink shadow-sm transition-colors hover:bg-gray-50"
+              >
+                <span className="material-symbols-outlined text-[14px]">add</span>
+                הוסף בן/בת זוג 2
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => hideSpouse2()}
+                className="flex items-center gap-1 rounded-md border border-red-200 bg-white px-3 py-1.5 text-[11px] font-bold text-red-500 shadow-sm transition-colors hover:bg-red-50"
+              >
+                <span className="material-symbols-outlined text-[14px]">close</span>
+                הסר בן/בת זוג 2
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <SpouseCard
+              prefix="p1"
+              label="בן/בת זוג 1"
+              fields={fields}
+              setField={setField}
+              accent="primary"
+            />
+            {hasSpouse2Data && (
+              <SpouseCard
+                prefix="p2"
+                label="בן/בת זוג 2"
+                fields={fields}
+                setField={setField}
+                accent="secondary"
+                onRemove={hideSpouse2}
+              />
+            )}
+          </div>
+        </div>
+      )}
       <div className="mb-3 grid grid-cols-1 gap-3 md:grid-cols-3">
         <Fld
           label="כתובת משפחתית משותפת"
@@ -151,7 +251,7 @@ export function Step1Family({
           name="marital"
           fields={fields}
           onChange={setField}
-          options={["נשואים", "ידועים בציבור", "פרודים", "גרושים", "אלמן/ה"]}
+          options={["רווק/ה", "נשואים", "ידועים בציבור", "פרודים", "גרושים", "אלמן/ה"]}
         />
       </div>
       <div className="mb-6 text-[11px] leading-relaxed text-verdant-muted">
@@ -159,7 +259,9 @@ export function Step1Family({
         בתוך הכרטיס שלו/שלה.
       </div>
 
-      <ChildrenSection fields={fields} setField={setField} children={children} setChildren={setChildren} />
+      {selectedFamilyStructure === "family_with_children" && (
+        <ChildrenSection fields={fields} setField={setField} children={children} setChildren={setChildren} />
+      )}
 
     </StepCard>
   );
@@ -180,7 +282,7 @@ function SpouseCard({
   fields: Fields;
   setField: (name: string, value: string) => void;
   accent: "primary" | "secondary";
-  onRemove?: () => void;
+  onRemove?: () => Promise<void> | void;
 }) {
   const sharedAddress = fields.address || "";
   const spouseHasOwnAddress = () =>

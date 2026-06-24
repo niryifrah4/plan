@@ -60,6 +60,7 @@ export function ConfirmModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-modal-title"
+      dir="rtl"
       onClick={(e) => {
         if (e.target === e.currentTarget) onCancel();
       }}
