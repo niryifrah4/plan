@@ -483,6 +483,18 @@ export function DocumentsTab() {
     setOverrides(next);
   }, []);
 
+  const handleNotesChange = useCallback(
+    (idx: number, notes: string) => {
+      if (!doc) return;
+      const tx = doc.transactions[idx];
+      if (tx) {
+        tx.userNotes = notes;
+        setDoc({ ...doc });
+      }
+    },
+    [doc]
+  );
+
   const toggleRowBusiness = useCallback(
     (idx: number) => {
       const next = { ...scopeOverridesRef.current };
@@ -921,6 +933,7 @@ export function DocumentsTab() {
           businessEnabled={businessEnabled}
           onAppendFiles={appendFiles}
           onCategoryChange={handleCategoryChange}
+          onNotesChange={handleNotesChange}
           onDelete={handleDelete}
           onToggleBusiness={toggleRowBusiness}
           onMarkSubscription={handleMarkSubscription}

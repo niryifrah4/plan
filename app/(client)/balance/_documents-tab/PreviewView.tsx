@@ -50,6 +50,7 @@ export function PreviewView({
   onToggleMappedCat,
   onCancel,
   onSave,
+  onNotesChange,
 }: {
   doc: ParsedDocument;
   effectiveTx: TxWithIdx[];
@@ -74,6 +75,7 @@ export function PreviewView({
   onToggleMappedCat: (key: string) => void;
   onCancel: () => void;
   onSave: () => void;
+  onNotesChange?: (idx: number, notes: string) => void;
 }) {
   const appendInputRef = useRef<HTMLInputElement>(null);
   // Pending "hide this business" confirmation — when set, the RTL modal asks
@@ -254,6 +256,7 @@ export function PreviewView({
           onToggleBusiness={onToggleBusiness}
           onMarkSubscription={onMarkSubscription}
           onRequestHide={requestHide}
+          onNotesChange={onNotesChange}
         />
       )}
 
@@ -269,6 +272,7 @@ export function PreviewView({
           onToggleBusiness={onToggleBusiness}
           onMarkSubscription={onMarkSubscription}
           onRequestHide={requestHide}
+          onNotesChange={onNotesChange}
         />
       )}
 
@@ -650,6 +654,7 @@ function ReviewZone({
   onToggleBusiness,
   onMarkSubscription,
   onRequestHide,
+  onNotesChange,
 }: {
   rows: TxWithIdx[];
   businessEnabled: boolean;
@@ -658,6 +663,7 @@ function ReviewZone({
   onToggleBusiness: (idx: number) => void;
   onMarkSubscription: (idx: number) => void;
   onRequestHide: (tx: TxWithIdx) => void;
+  onNotesChange?: (idx: number, notes: string) => void;
 }) {
   return (
     <div
@@ -720,6 +726,7 @@ function ReviewZone({
                 onToggleBusiness={onToggleBusiness}
                 onMarkSubscription={onMarkSubscription}
                 onRequestHide={onRequestHide}
+                onNotesChange={onNotesChange}
               />
             ))}
           </tbody>
@@ -737,6 +744,7 @@ function ReviewRow({
   onToggleBusiness,
   onMarkSubscription,
   onRequestHide,
+  onNotesChange,
 }: {
   tx: TxWithIdx;
   businessEnabled: boolean;
@@ -745,6 +753,7 @@ function ReviewRow({
   onToggleBusiness: (idx: number) => void;
   onMarkSubscription: (idx: number) => void;
   onRequestHide: (tx: TxWithIdx) => void;
+  onNotesChange?: (idx: number, notes: string) => void;
 }) {
   const isBiz = tx.scope === "business";
   return (
@@ -755,23 +764,35 @@ function ReviewRow({
       <td className="tabular w-20 px-5 py-2 text-xs font-bold text-verdant-ink" dir="ltr">
         {tx.date}
       </td>
-      <td className="max-w-[220px] px-3 py-2 text-xs font-bold text-verdant-ink">
-        <a
-          href={`https://www.google.com/search?q=${encodeURIComponent(tx.description + " ישראל")}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group/link inline-flex items-center gap-1 truncate hover:text-verdant-emerald hover:underline"
-          title="חפש בגוגל כדי לזהות את בית העסק"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <span className="truncate">{tx.description}</span>
-          <span
-            className="material-symbols-outlined flex-shrink-0 text-[11px] opacity-0 transition-opacity group-hover/link:opacity-100"
-            style={{ color: "#B45309" }}
+      <td className="max-w-[220px] px-3 py-2">
+        <div className="mb-1">
+          <a
+            href={`https://www.google.com/search?q=${encodeURIComponent(tx.description + " ישראל")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group/link inline-flex items-center gap-1 truncate text-xs font-bold text-verdant-ink hover:text-verdant-emerald hover:underline"
+            title="חפש בגוגל כדי לזהות את בית העסק"
+            onClick={(e) => e.stopPropagation()}
           >
-            open_in_new
-          </span>
-        </a>
+            <span className="truncate">{tx.description}</span>
+            <span
+              className="material-symbols-outlined flex-shrink-0 text-[11px] opacity-0 transition-opacity group-hover/link:opacity-100"
+              style={{ color: "#B45309" }}
+            >
+              open_in_new
+            </span>
+          </a>
+        </div>
+        {onNotesChange && (
+          <input
+            type="text"
+            value={tx.userNotes || ""}
+            onChange={(e) => onNotesChange(tx._idx, e.target.value)}
+            placeholder="הוסף הערה..."
+            className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-[10px] font-normal text-verdant-ink outline-none transition-all focus:ring-1 focus:ring-verdant-emerald"
+            title="הערה בנוגע לעסקה (למשל: העברה מאלן כהן)"
+          />
+        )}
       </td>
       <td className="w-44 px-3 py-1.5">
         <select
@@ -855,6 +876,7 @@ function MappedZone({
   onToggleBusiness,
   onMarkSubscription,
   onRequestHide,
+  onNotesChange,
 }: {
   mappedCount: number;
   mappedGroups: Record<string, TxWithIdx[]>;
@@ -866,6 +888,7 @@ function MappedZone({
   onToggleBusiness: (idx: number) => void;
   onMarkSubscription: (idx: number) => void;
   onRequestHide: (tx: TxWithIdx) => void;
+  onNotesChange?: (idx: number, notes: string) => void;
 }) {
   const sortedGroups = Object.entries(mappedGroups).sort((a, b) => {
     const totalA = a[1].reduce((s, t) => s + Math.abs(t.amount), 0);
@@ -950,6 +973,7 @@ function MappedZone({
                         onToggleBusiness={onToggleBusiness}
                         onMarkSubscription={onMarkSubscription}
                         onRequestHide={onRequestHide}
+                        onNotesChange={onNotesChange}
                       />
                     ))}
                   </div>
@@ -965,6 +989,7 @@ function MappedZone({
                           onToggleBusiness={onToggleBusiness}
                           onMarkSubscription={onMarkSubscription}
                           onRequestHide={onRequestHide}
+                          onNotesChange={onNotesChange}
                         />
                       ))}
                     </tbody>
@@ -989,6 +1014,7 @@ function MobileTransactionRow({
   onToggleBusiness,
   onMarkSubscription,
   onRequestHide,
+  onNotesChange,
 }: {
   tx: TxWithIdx;
   businessEnabled: boolean;
@@ -999,6 +1025,7 @@ function MobileTransactionRow({
   onToggleBusiness: (idx: number) => void;
   onMarkSubscription: (idx: number) => void;
   onRequestHide: (tx: TxWithIdx) => void;
+  onNotesChange?: (idx: number, notes: string) => void;
 }) {
   const isBiz = tx.scope === "business";
 
@@ -1094,6 +1121,7 @@ function MappedRow({
   onToggleBusiness,
   onMarkSubscription,
   onRequestHide,
+  onNotesChange,
 }: {
   tx: TxWithIdx;
   businessEnabled: boolean;
@@ -1102,6 +1130,7 @@ function MappedRow({
   onToggleBusiness: (idx: number) => void;
   onMarkSubscription: (idx: number) => void;
   onRequestHide: (tx: TxWithIdx) => void;
+  onNotesChange?: (idx: number, notes: string) => void;
 }) {
   const isBiz = tx.scope === "business";
   return (
@@ -1112,8 +1141,18 @@ function MappedRow({
       <td className="tabular w-20 px-5 py-2 text-xs font-bold text-verdant-ink" dir="ltr">
         {tx.date}
       </td>
-      <td className="max-w-[220px] truncate px-3 py-2 text-xs font-bold text-verdant-ink">
-        {tx.description}
+      <td className="max-w-[220px] px-3 py-2">
+        <div className="mb-1 truncate text-xs font-bold text-verdant-ink">{tx.description}</div>
+        {onNotesChange && (
+          <input
+            type="text"
+            value={tx.userNotes || ""}
+            onChange={(e) => onNotesChange(tx._idx, e.target.value)}
+            placeholder="הוסף הערה..."
+            className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-[10px] font-normal text-verdant-ink outline-none transition-all focus:ring-1 focus:ring-verdant-emerald"
+            title="הערה בנוגע לעסקה"
+          />
+        )}
       </td>
       <td className="w-44 px-3 py-1.5">
         <select

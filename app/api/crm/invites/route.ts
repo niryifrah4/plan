@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
         .insert({
           advisor_id: user.id,
           family_name: familyName,
-          members_count: 2,
+          members_count: 1,
           stage: "onboarding",
         })
         .select("id")

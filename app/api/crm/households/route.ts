@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.ok) return parsed.res;
 
   const familyName = parsed.data.familyName.trim();
-  const membersCount = parsed.data.membersCount ?? 2;
+  const membersCount = parsed.data.membersCount ?? 1;
 
   const { data: created, error } = await sb
     .from("households")

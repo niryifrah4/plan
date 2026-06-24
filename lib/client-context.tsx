@@ -9,6 +9,24 @@ import { ACTIVE_CLIENT_CHANGED, dispatchAllRefreshEvents, scopedKey } from "@/li
 import { reportError } from "@/lib/report-error";
 
 const ONB_CHILDREN_KEY = "verdant:onboarding:children";
+const ONB_FIELDS_KEY = "verdant:onboarding:fields";
+
+function countOnboardingAdults(): number | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(scopedKey(ONB_FIELDS_KEY));
+    if (!raw) return null;
+    const fields = JSON.parse(raw) as Record<string, string>;
+    if (fields.family_structure === "single") return 1;
+    if (fields.family_structure === "couple" || fields.family_structure === "family_with_children") {
+      return 2;
+    }
+    if ((fields.p2_name || "").trim() || fields.p2_present === "1") return 2;
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 /** Count children declared in the onboarding questionnaire. A row is "real"
  *  if it has at least a name OR a date of birth filled in — that's the same
@@ -97,6 +115,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [kidsCount, setKidsCount] = useState(0);
+  const [adultsCount, setAdultsCount] = useState<number | null>(null);
 
   // Read client ID from URL (?hh=<id>) or fallback to last used
   const hhParam = searchParams.get("hh");
@@ -130,7 +149,10 @@ export function ClientProvider({ children }: { children: ReactNode }) {
   //   - focus            → fall-back for any other path that mutates the list
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const refresh = () => setKidsCount(countOnboardingKids());
+    const refresh = () => {
+      setKidsCount(countOnboardingKids());
+      setAdultsCount(countOnboardingAdults());
+    };
     refresh();
     window.addEventListener("storage", refresh);
     window.addEventListener("verdant:kids_savings:updated", refresh);
@@ -197,10 +219,11 @@ export function ClientProvider({ children }: { children: ReactNode }) {
   const value: ClientContextValue = {
     clientId: client?.id ?? null,
     familyName: client ? client.family : "לקוח חדש",
-    // Couple count (from CRM, default 2) + live children count from
+    // Adult count from onboarding when available, otherwise CRM. Fresh clients
+    // default to one person until the advisor chooses the family structure.
     // the onboarding questionnaire. Without the live add, "X בני משפחה"
     // in the sidebar stayed stuck at 2 even after kids were entered.
-    membersCount: (client?.members ?? 2) + kidsCount,
+    membersCount: (adultsCount ?? client?.members ?? 1) + kidsCount,
     client,
     household,
     profile,

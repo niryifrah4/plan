@@ -32,6 +32,8 @@ export interface ParsedTransaction {
    * UI should surface transactions with confidence < 0.7 for manual review.
    */
   confidence?: number;
+  /** User-added notes for this transaction (e.g., "העברה מאלן כהן", "עסקה בחנות לבנים X"). */
+  userNotes?: string;
 }
 
 export interface ParsedDocument {

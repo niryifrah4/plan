@@ -41,6 +41,7 @@ export function isOnboardingFilled(
   const manualKeys = [
     "p1_dob",
     "p1_id",
+    "family_structure",
     "marital",
     "address",
     "p2_name",
@@ -87,7 +88,14 @@ export function OnboardingSummary({
   const monthlyIncome = incomes.reduce((sum, r) => sum + n(r.value || "0"), 0);
   const assetCount = assets.filter((r) => n(r.value || "0") > 0).length;
   const goalCount = goals.filter((r) => (r.name || "").trim().length > 0).length;
-  const partners = (fields.p2_name || "").trim().length > 0 ? 2 : 1;
+  const partners =
+    fields.family_structure === "single"
+      ? 1
+      : fields.family_structure === "couple" || fields.family_structure === "family_with_children"
+        ? 2
+        : (fields.p2_name || "").trim().length > 0
+          ? 2
+          : 1;
 
   const stats: Stat[] = [
     { icon: "groups", label: "בני משפחה", value: String(partners + children.length) },
