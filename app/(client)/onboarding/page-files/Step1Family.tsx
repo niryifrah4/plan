@@ -174,9 +174,18 @@ export function Step1Family({
       setField("has_children", "0");
       setChildren(() => []);
     }
-    if (value === "family_with_children" && children.length === 0) {
+    if (value === "family_with_children") {
+      if (selectedFamilyStructure === "single") {
+        SPOUSE1_FIELD_KEYS.forEach((k) => setField(k, ""));
+        SPOUSE2_FIELD_KEYS.forEach((k) => setField(k, ""));
+        setField("has_children", "1");
+        setChildren(() => [{ ...EMPTY_CHILD }]);
+        return;
+      }
       setField("has_children", "1");
-      setChildren(() => [{ ...EMPTY_CHILD }]);
+      if (children.length === 0) {
+        setChildren(() => [{ ...EMPTY_CHILD }]);
+      }
     }
   };
 
@@ -534,7 +543,7 @@ function ChildrenSection({
       }
     } else {
       setField("has_children", "1");
-      if (children.length === 0) {
+      if (children.length === 0 || hasChildren !== "1") {
         setChildren(() => [{ ...EMPTY_CHILD }]);
       }
     }
