@@ -106,7 +106,7 @@ export default function SettingsPage() {
             </Link>
 
             <Link
-              href={{ pathname: "/crm/settings/parsers" }}
+              href="/crm/settings/parsers"
               className="card-pad flex flex-col gap-3 hover:shadow-md transition-shadow group"
               style={{ background: "#FFFFFF" }}
             >
@@ -122,7 +122,7 @@ export default function SettingsPage() {
             </Link>
 
             <Link
-              href={{ pathname: "/crm/settings/pension-parsers" }}
+              href="/crm/settings/pension-parsers"
               className="card-pad flex flex-col gap-3 hover:shadow-md transition-shadow group"
               style={{ background: "#FFFFFF" }}
             >

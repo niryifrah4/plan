@@ -1,0 +1,29 @@
+12a13,40
+> 
+> /* ─── shadcn/ui token layer ───
+>    HSL values mapped onto the Morning palette so shadcn primitives render in
+>    the forest-green brand look. Consumed by tailwind.config.ts color tokens. */
+> @layer base {
+>   :root {
+>     --background: 72 14% 95%; /* morning-bg #F4F5F0 */
+>     --foreground: 0 0% 10%; /* morning-ink #1A1A1A */
+>     --card: 0 0% 100%; /* morning-surface */
+>     --card-foreground: 0 0% 10%;
+>     --popover: 0 0% 100%;
+>     --popover-foreground: 0 0% 10%;
+>     --primary: 152 47% 33%; /* morning-forest #2C7A5A */
+>     --primary-foreground: 0 0% 100%;
+>     --secondary: 80 53% 89%; /* morning-leaf-soft #E8F4D1 */
+>     --secondary-foreground: 152 47% 24%; /* forest-deep */
+>     --muted: 60 9% 97%; /* morning-surface-2 */
+>     --muted-foreground: 220 9% 46%; /* morning-muted #6B7280 */
+>     --accent: 75 60% 94%; /* morning-leaf-tint */
+>     --accent-foreground: 152 47% 24%;
+>     --destructive: 0 72% 51%; /* morning-danger #DC2626 */
+>     --destructive-foreground: 0 0% 100%;
+>     --border: 220 13% 91%; /* morning-border #E5E7EB */
+>     --input: 220 13% 91%;
+>     --ring: 152 47% 33%; /* forest */
+>     --radius: 0.75rem; /* Morning's soft card radius */
+>   }
+> }

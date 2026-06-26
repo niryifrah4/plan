@@ -27,7 +27,7 @@ export function StepCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="card overflow-hidden">
+    <section className="card overflow-visible">
       <div
         className="border-b px-5 py-4 text-verdant-ink"
         style={{ background: "#FAFAF7", borderColor: "#E5E7EB" }}

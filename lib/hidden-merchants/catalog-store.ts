@@ -47,7 +47,7 @@ export async function hydrateHiddenCatalogFromRemote(): Promise<boolean> {
       .from("hidden_merchants_catalog")
       .select("normalized_key, aliases, is_hidden, label");
     if (error || !data) return false;
-    const mapped: HiddenCatalogMerchant[] = data.map((r) => ({
+    const mapped: HiddenCatalogMerchant[] = data.map((r: any) => ({
       normalizedKey: r.normalized_key,
       aliases: Array.isArray(r.aliases) ? r.aliases : [],
       isHidden: r.is_hidden ?? true,

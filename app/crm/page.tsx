@@ -656,6 +656,33 @@ export default function CrmPage() {
     setToast(`✅ "${leadName}" הומר ללקוח בהצלחה`);
   }
 
+  async function enterClientHousehold(householdId: string | undefined, next = "/dashboard") {
+    if (!householdId) {
+      setToast("❌ רשומה ישנה ללא מזהה לקוח — רענן את הדף ונסה שוב");
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `/api/crm/impersonate/enter?household_id=${encodeURIComponent(householdId)}&next=${encodeURIComponent(next)}`
+      );
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        next?: string;
+        error?: string;
+      };
+      if (!res.ok || !data.ok) {
+        setRouteLoadingLabel(null);
+        setToast(data.error === "not_owned" ? "❌ אין הרשאה לתיק הזה" : "❌ הכניסה לתיק נכשלה");
+        return;
+      }
+      router.push(data.next || next);
+    } catch {
+      setRouteLoadingLabel(null);
+      setToast("❌ שגיאת רשת בכניסה לתיק");
+    }
+  }
+
   /* ═══════════════════════════════════════════════════════════════════
      RENDER
      ═══════════════════════════════════════════════════════════════════ */
@@ -1131,19 +1158,12 @@ export default function CrmPage() {
                         <td className="px-4 py-3.5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             {/* שאלון אפיון */}
-                            <a
-                              href={
-                                c.householdId
-                                  ? `/api/crm/impersonate/enter?household_id=${encodeURIComponent(c.householdId)}&next=${encodeURIComponent("/onboarding")}`
-                                  : "#"
-                              }
+                            <button
+                              type="button"
                               onClick={(e) => {
-                                if (c.householdId) {
-                                  setRouteLoadingLabel("פותח שאלון...");
-                                  return;
-                                }
                                 e.preventDefault();
-                                setToast("❌ רשומה ישנה ללא מזהה לקוח — רענן את הדף ונסה שוב");
+                                setRouteLoadingLabel("פותח שאלון...");
+                                void enterClientHousehold(c.householdId, "/onboarding");
                               }}
                               onMouseEnter={(e) => {
                                 const p = getFixedTooltipAnchor(e.currentTarget as HTMLElement);
@@ -1154,7 +1174,7 @@ export default function CrmPage() {
                               style={{ borderColor: "#E5E7EB", color: "#6B7280", background: "#FFFFFF" }}
                             >
                               <span className="material-symbols-outlined text-[16px]">assignment</span>
-                            </a>
+                            </button>
                             {/* כניסה לתיק */}
                             <button
                               type="button"
@@ -1175,19 +1195,7 @@ export default function CrmPage() {
                                   return;
                                 }
                                 setRouteLoadingLabel("פותח תיק...");
-                                // 2026-05-28 — switched from POST + JS
-                                // navigation to a single GET that does
-                                // cookie-set + 303 redirect atomically
-                                // on the server. The previous flow had a
-                                // race where the browser sometimes fired
-                                // the /dashboard navigation BEFORE
-                                // committing the Set-Cookie header from
-                                // the POST response, so the layout
-                                // resolved with the OLD cookie value
-                                // (yifrah's UUID lost, beser's UUID kept
-                                // → "click yifrah, see beser"). Atomic
-                                // GET eliminates the race entirely.
-                                window.location.href = `/api/crm/impersonate/enter?household_id=${encodeURIComponent(c.householdId)}`;
+                                await enterClientHousehold(c.householdId);
                               }}
                               onMouseEnter={(e) => {
                                 const p = getFixedTooltipAnchor(e.currentTarget as HTMLElement);

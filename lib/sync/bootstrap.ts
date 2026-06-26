@@ -397,7 +397,7 @@ export function watchRemoteHouseholdChanges(
         },
         () => scheduleRefresh(`realtime:${table}`)
       )
-      .subscribe((status) => {
+      .subscribe((status: any) => {
         if (status === "SUBSCRIBED") onReady?.(true);
       })
   );
@@ -517,7 +517,7 @@ export function watchBootstrapAuthState(
 
   const {
     data: { subscription },
-  } = sb.auth.onAuthStateChange((event, session) => {
+  } = sb.auth.onAuthStateChange((event: any, session: any) => {
     if (event === "SIGNED_OUT") {
       clearBootstrapMarkers();
       onReady?.(false);

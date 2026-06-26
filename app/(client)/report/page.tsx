@@ -815,7 +815,7 @@ function GoalsSection({ data }: { data: ReportData }) {
 /* ═════════════════════════════════════════════════════ */
 function PrintStyles() {
   return (
-    <style jsx global>{`
+    <style dangerouslySetInnerHTML={{ __html: `
       @media print {
         .no-print {
           display: none !important;
@@ -906,6 +906,6 @@ function PrintStyles() {
           padding: 0 !important;
         }
       }
-    `}</style>
+    `}} />
   );
 }

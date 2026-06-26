@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": false,
+    "baseUrl": ".",
+    "paths": {
+      "next/navigation": ["./src/shims/next-navigation.tsx"],
+      "next/link": ["./src/shims/next-link.tsx"],
+      "next/image": ["./src/shims/next-image.tsx"],
+      "next/dynamic": ["./src/shims/next-dynamic.tsx"],
+      "next/font/google": ["./src/shims/next-font-google.ts"],
+      "next": ["./src/shims/next.ts"],
+      "server-only": ["./src/shims/empty.ts"],
+      "react": ["./node_modules/@types/react"],
+      "react-dom": ["./node_modules/@types/react-dom"],
+      "~/*": ["./src/*"],
+      "@shared/*": ["../lib/_shared/*"],
+      "@/*": ["../*"]
+    },
+    "types": ["vite/client"]
+  },
+  "include": ["src"]
+}

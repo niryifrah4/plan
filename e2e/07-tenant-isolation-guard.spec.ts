@@ -26,7 +26,7 @@ import { test, expect, type Page } from "@playwright/test";
  */
 
 const ADVISOR_EMAIL = process.env.PW_ADVISOR_EMAIL || "niryifrah4@gmail.com";
-const ADVISOR_PASSWORD = process.env.PW_ADVISOR_PASSWORD || "";
+const ADVISOR_PASSWORD = process.env.PW_ADVISOR_PASSWORD || "112233";
 // A syntactically valid UUID that belongs to no household.
 const FOREIGN_HOUSEHOLD = "00000000-0000-4000-8000-000000000000";
 const IMPERSONATE_COOKIE = "plan_impersonate_hh";
@@ -94,12 +94,13 @@ test("guard: authed advisor entering a non-owned household → /crm?err=not_owne
   );
   await loginAsAdvisor(page);
 
-  await page.goto(
-    `/api/crm/impersonate/enter?household_id=${FOREIGN_HOUSEHOLD}`
-  );
-  await expect(page).toHaveURL(/\/crm(\?|.*&)err=not_owned/, {
-    timeout: 10_000,
-  });
+  const res = await page.evaluate(async (householdId) => {
+    const r = await fetch(`/api/crm/impersonate/enter?household_id=${householdId}`);
+    return { status: r.status, body: await r.json() };
+  }, FOREIGN_HOUSEHOLD);
+
+  expect(res.status).toBe(403);
+  expect(res.body.error).toBe("not_owned");
 
   const cookies = await context.cookies();
   expect(
@@ -118,8 +119,13 @@ test("guard: authed request with missing household_id is rejected (400), no cook
   );
   await loginAsAdvisor(page);
 
-  const res = await page.request.get("/api/crm/impersonate/enter");
-  expect(res.status()).toBe(400);
+  const res = await page.evaluate(async () => {
+    const r = await fetch("/api/crm/impersonate/enter");
+    return { status: r.status, body: await r.json() };
+  });
+
+  expect(res.status).toBe(400);
+  expect(res.body.error).toContain("missing");
 
   const cookies = await context.cookies();
   expect(cookies.find((c) => c.name === IMPERSONATE_COOKIE)).toBeFalsy();
@@ -135,10 +141,16 @@ test("guard: advisor client switch loads the selected household data, not the ad
   await loginAsAdvisor(page);
 
   for (const fixture of FIXTURE_HOUSEHOLDS) {
-    await page.goto(
-      `/api/crm/impersonate/enter?household_id=${fixture.householdId}`
-    );
-    await page.waitForURL(/\/dashboard/, { timeout: 15_000 });
+    // Call the enter API to set the cookie
+    const res = await page.evaluate(async (householdId) => {
+      const r = await fetch(`/api/crm/impersonate/enter?household_id=${householdId}&next=/dashboard`);
+      return { status: r.status, body: await r.json() };
+    }, fixture.householdId);
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+
+    // Then navigate to the next page as the frontend normally would
+    await page.goto(res.body.next);
     await page.goto("/files");
     await expect(page.getByText(fixture.familyName)).toBeVisible({
       timeout: 10_000,

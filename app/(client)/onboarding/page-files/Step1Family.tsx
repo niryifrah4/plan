@@ -167,6 +167,10 @@ export function Step1Family({
       setChildren(() => []);
     }
     if (value === "couple") {
+      if (selectedFamilyStructure === "single") {
+        SPOUSE1_FIELD_KEYS.forEach((k) => setField(k, ""));
+        SPOUSE2_FIELD_KEYS.forEach((k) => setField(k, ""));
+      }
       setField("has_children", "0");
       setChildren(() => []);
     }
@@ -264,7 +268,9 @@ export function Step1Family({
       )}
       <div className="mb-3 grid grid-cols-1 gap-3 md:grid-cols-3">
         <Fld
-          label="כתובת משפחתית משותפת"
+          label={
+            selectedFamilyStructure === "family_with_children" ? "כתובת משפחתית משותפת" : "כתובת"
+          }
           name="address"
           fields={fields}
           onChange={setField}

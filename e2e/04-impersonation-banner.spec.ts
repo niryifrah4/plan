@@ -12,8 +12,8 @@ test("impersonation opens client view with banner (R9)", async ({ page }) => {
   // Login.
   await page.goto("/login");
   await page.getByPlaceholder("mail@example.com").fill("niryifrah4@gmail.com");
-  await page.locator('input[type="password"]').fill("PlanAdvisor2026!");
-  await page.getByRole("button", { name: /התחבר|כניסה/ }).click();
+  await page.locator('input[type="password"]').fill("112233");
+  await page.locator('button[type="submit"]').click();
   await page.waitForURL(/\/crm/, { timeout: 15_000 });
 
   // Find the first client card / row and open it. CRM uses Link wrappers

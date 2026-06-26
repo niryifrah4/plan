@@ -84,7 +84,7 @@ export async function hydrateHiddenOverridesFromRemote(): Promise<boolean> {
       .select("normalized_key, aliases, decision, label, updated_at")
       .eq("household_id", hh);
     if (error || !data) return false;
-    const mapped: HiddenOverride[] = data.map((r) => ({
+    const mapped: HiddenOverride[] = data.map((r: any) => ({
       normalizedKey: r.normalized_key,
       aliases: Array.isArray(r.aliases) ? r.aliases : [],
       decision: r.decision as HiddenDecision,

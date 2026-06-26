@@ -102,7 +102,7 @@ export function CityAutocomplete({
         dir="rtl"
       />
       {open && query && (
-        <div className="absolute z-10 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg">
+        <div className="absolute z-50 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg">
           {loading ? (
             <div className="p-3 text-center text-[11px] text-gray-500">מחפש...</div>
           ) : results.length > 0 ? (

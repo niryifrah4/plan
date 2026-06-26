@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "server-only": ["./src/shims/server-only.ts"],
+      "@/lib/report-error": ["./src/lib/report-error.ts"],
+      "@supabase/supabase-js": ["../node_modules/@supabase/supabase-js"],
+      "@supabase/ssr": ["./src/shims/supabase-ssr.ts"],
+      "@shared/*": ["../lib/_shared/*"],
+      "@/*": ["../*"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

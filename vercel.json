@@ -1,8 +1,13 @@
 {
-  "crons": [
-    {
-      "path": "/api/market/prices",
-      "schedule": "0 15 * * 1-5"
+  "experimentalServices": {
+    "frontend": {
+      "entrypoint": "frontend",
+      "routePrefix": "/",
+      "framework": "vite"
+    },
+    "backend": {
+      "entrypoint": "backend",
+      "routePrefix": "/_/backend"
     }
-  ]
+  }
 }

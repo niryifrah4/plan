@@ -8,11 +8,11 @@ const config: Config = {
         // Morning design (2026-05-18) — Heebo for body (rounded, warm Hebrew),
         // Rubik for display weights. Inter kept in fallback chain for
         // tabular-nums compatibility across hundreds of existing usages.
-        sans: ["Heebo", "Rubik", "Assistant", "system-ui", "sans-serif"],
-        display: ["Rubik", "Heebo", "Assistant", "system-ui", "sans-serif"],
-        manrope: ["Rubik", "Heebo", "Assistant", "system-ui", "sans-serif"],
-        heading: ["Rubik", "Heebo", "Assistant", "system-ui", "sans-serif"],
-        body: ["Heebo", "Rubik", "Assistant", "system-ui", "sans-serif"],
+        sans: ["Heebo", "Assistant", "system-ui", "sans-serif"],
+        display: ["Heebo", "Assistant", "system-ui", "sans-serif"],
+        manrope: ["Heebo", "Assistant", "system-ui", "sans-serif"],
+        heading: ["Heebo", "Assistant", "system-ui", "sans-serif"],
+        body: ["Heebo", "Assistant", "system-ui", "sans-serif"],
       },
       colors: {
         // ─── Morning — Light / Forest design system (2026-05-18) ───

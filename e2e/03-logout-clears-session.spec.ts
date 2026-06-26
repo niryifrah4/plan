@@ -12,8 +12,8 @@ test("logout actually clears session (R6)", async ({ page }) => {
   // 1) Login as advisor.
   await page.goto("/login");
   await page.getByPlaceholder("mail@example.com").fill("niryifrah4@gmail.com");
-  await page.locator('input[type="password"]').fill("PlanAdvisor2026!");
-  await page.getByRole("button", { name: /התחבר|כניסה/ }).click();
+  await page.locator('input[type="password"]').fill("112233");
+  await page.locator('button[type="submit"]').click();
   await page.waitForURL(/\/crm/, { timeout: 15_000 });
 
   // 2) Click the logout button (title="התנתקות") and wait for /login.

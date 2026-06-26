@@ -5,8 +5,8 @@ test("advisor login → /crm", async ({ page }) => {
   await page.goto("/login");
   await expect(page.getByPlaceholder("mail@example.com")).toBeVisible();
   await page.getByPlaceholder("mail@example.com").fill("niryifrah4@gmail.com");
-  await page.locator('input[type="password"]').fill("PlanAdvisor2026!");
-  await page.getByRole("button", { name: /התחבר|כניסה/ }).click();
+  await page.locator('input[type="password"]').fill("112233");
+  await page.locator('button[type="submit"]').click();
   await page.waitForURL(/\/crm/, { timeout: 15_000 });
   await expect(page).toHaveURL(/\/crm/);
 });

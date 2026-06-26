@@ -22,3 +22,9 @@ supabase/.temp/
 test-results/
 playwright-report/
 playwright/.cache/
+
+.env*
+.flaskenv*
+!.env.project
+!.env.vault
+.vercel

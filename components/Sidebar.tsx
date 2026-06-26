@@ -579,7 +579,13 @@ export function Sidebar({
               </button>
 
               <button
-                onClick={onExit ?? (() => router.push("/login"))}
+                onClick={
+                  onExit ??
+                  (async () => {
+                    const { signOut } = await import("@/lib/auth");
+                    await signOut();
+                  })
+                }
                 className="btn-botanical-ghost flex h-11 items-center justify-center px-0"
                 style={{ minHeight: 44 }}
                 aria-label="התנתקות"
@@ -592,7 +598,13 @@ export function Sidebar({
             </div>
           ) : (
             <button
-              onClick={onExit ?? (() => router.push("/login"))}
+              onClick={
+                onExit ??
+                (async () => {
+                  const { signOut } = await import("@/lib/auth");
+                  await signOut();
+                })
+              }
               className={`mt-2 w-full ${isMobile ? "px-3 py-2 text-[12px]" : "px-4 py-2.5 text-[13px]"}`}
               style={{
                 background: "#FFFFFF",

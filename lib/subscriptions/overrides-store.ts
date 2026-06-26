@@ -99,7 +99,7 @@ export async function hydrateOverridesFromRemote(): Promise<boolean> {
       .select("normalized_key, aliases, decision, label, applies_to_past, updated_at")
       .eq("household_id", hh);
     if (error || !data) return false;
-    const mapped: SubscriptionOverride[] = data.map((r) => ({
+    const mapped: SubscriptionOverride[] = data.map((r: any) => ({
       normalizedKey: r.normalized_key,
       aliases: Array.isArray(r.aliases) ? r.aliases : [],
       decision: r.decision as SubscriptionDecision,

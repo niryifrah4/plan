@@ -49,7 +49,7 @@ export async function hydrateCatalogFromRemote(): Promise<boolean> {
       .from("subscription_merchants")
       .select("normalized_key, aliases, is_subscription, label");
     if (error || !data) return false;
-    const mapped: CatalogMerchant[] = data.map((r) => ({
+    const mapped: CatalogMerchant[] = data.map((r: any) => ({
       normalizedKey: r.normalized_key,
       aliases: Array.isArray(r.aliases) ? r.aliases : [],
       isSubscription: r.is_subscription ?? true,
