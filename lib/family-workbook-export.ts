@@ -91,7 +91,9 @@ export function fillTemplate(book: XLSX.WorkBook, data: WorkbookData): XLSX.Work
         ? { "שם בן/בת זוג 1": "שם מלא" }
         : id === "balance"
           ? { "עו״ש ופיקדונות": "עו\"ש ופיקדונות" }
-          : {};
+          : id === "calculators"
+            ? { "LTV — אחוז המימון הנוכחי": "◄ LTV — אחוז המימון הנוכחי" }
+            : {};
       const targetRow = labels.get(row.label) ?? labels.get(aliases[row.label] || "");
       if (targetRow === undefined) continue;
       if (monthly) {
