@@ -562,11 +562,11 @@ var require_dist = __commonJS({
       }
       return next();
     }
-    function __rewriteRelativeImportExtension(path, preserveJsx) {
-      if (typeof path === "string" && /^\.\.?\//.test(path)) return path.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
+    function __rewriteRelativeImportExtension(path2, preserveJsx) {
+      if (typeof path2 === "string" && /^\.\.?\//.test(path2)) return path2.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
         return tsx ? preserveJsx ? ".jsx" : ".js" : d && (!ext || !cm) ? m : d + ext + "." + cm.toLowerCase() + "js";
       });
-      return path;
+      return path2;
     }
     var extendStatics;
     var __assign;
@@ -9081,17 +9081,17 @@ function tryDeterministicParse(extracted) {
   };
   const inBand = (x, b) => x >= b[0] && x < b[1];
   const pickNum = (ay, b) => {
-    const c = items.filter((o) => inBand(o.x, b) && Math.abs(o.y - ay) <= 4 && parseNum2(o.str) != null).sort((a, z8) => Math.abs(a.y - ay) - Math.abs(z8.y - ay));
+    const c = items.filter((o) => inBand(o.x, b) && Math.abs(o.y - ay) <= 4 && parseNum2(o.str) != null).sort((a, z9) => Math.abs(a.y - ay) - Math.abs(z9.y - ay));
     return c.length ? parseNum2(c[0].str) : null;
   };
   const pickName = (ay) => {
     let c = items.filter((o) => inBand(o.x, bands.name) && Math.abs(o.y - ay) < 0.6);
     if (!c.length) c = items.filter((o) => inBand(o.x, bands.name) && Math.abs(o.y - ay) <= 4);
-    return c.sort((a, z8) => a.x - z8.x).map((o) => o.str).join("").replace(/\s+/g, " ").trim();
+    return c.sort((a, z9) => a.x - z9.x).map((o) => o.str).join("").replace(/\s+/g, " ").trim();
   };
   const anchors = items.filter(
     (o) => /^\d{6,8}$/.test(o.str.trim()) && o.x >= secMinX && o.y < headerY - 3 && o.y > totalY + 2
-  ).sort((a, z8) => z8.y - a.y);
+  ).sort((a, z9) => z9.y - a.y);
   const holdings = [];
   for (const a of anchors) {
     const value = pickNum(a.y, bands.value);
@@ -9114,7 +9114,7 @@ function tryDeterministicParse(extracted) {
   }
   const anchorYs = anchors.map((a) => a.y);
   const addedYs = [];
-  for (const o of items.slice().sort((a, z8) => z8.y - a.y)) {
+  for (const o of items.slice().sort((a, z9) => z9.y - a.y)) {
     if (!inBand(o.x, bands.value) || parseNum2(o.str) == null) continue;
     if (o.y >= headerY - 3 || o.y <= totalY + 2) continue;
     if (anchorYs.some((ay) => Math.abs(ay - o.y) <= 4)) continue;
@@ -9928,6 +9928,168 @@ marketRouter.post(
   }
 );
 
+// src/routes/family-workbook.ts
+import { Router as Router19 } from "express";
+import * as XLSX5 from "xlsx";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { z as z8 } from "zod";
+
+// ../lib/family-workbook-export.ts
+import * as XLSX4 from "xlsx";
+function putValue(sheet, row, col, value) {
+  const address = XLSX4.utils.encode_cell({ r: row, c: col });
+  sheet[address] = { t: "s", v: value };
+}
+function fillTemplate(book, data) {
+  const tabs = [
+    ["home", "\u05D1\u05D9\u05EA"],
+    ["questionnaire", "\u05E9\u05D0\u05DC\u05D5\u05DF"],
+    ["mapping", "\u05DE\u05D9\u05E4\u05D5\u05D9"],
+    ["debts", "\u05D7\u05D5\u05D1\u05D5\u05EA"],
+    ["balance", "\u05DE\u05D0\u05D6\u05DF"],
+    ["goals", "\u05DE\u05D8\u05E8\u05D5\u05EA \u05D5\u05D9\u05E2\u05D3\u05D9\u05DD"],
+    ["cashflow", "\u05EA\u05D6\u05E8\u05D9\u05DD"],
+    ["business", "\u05E2\u05E1\u05E7"],
+    ["annual", "\u05E1\u05D9\u05DB\u05D5\u05DD \u05E9\u05E0\u05EA\u05D9"],
+    ["insights", "\u05EA\u05D5\u05D1\u05E0\u05D5\u05EA"],
+    ["journal", "\u05D9\u05D5\u05DE\u05DF \u05DC\u05D9\u05D5\u05D5\u05D9"],
+    ["calculators", "\u05DE\u05D7\u05E9\u05D1\u05D5\u05E0\u05D9\u05DD"]
+  ];
+  for (const [id, label] of tabs) {
+    const sheet = book.Sheets[label];
+    if (!sheet) continue;
+    const rows = data[id] || [];
+    const monthly = id === "cashflow" || id === "business";
+    const range = XLSX4.utils.decode_range(sheet["!ref"] || "A1:A1");
+    const labels = /* @__PURE__ */ new Map();
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      for (let c = range.s.c; c <= Math.min(range.e.c, 5); c++) {
+        const cell = sheet[XLSX4.utils.encode_cell({ r, c })];
+        if (typeof cell?.v === "string" && cell.v.trim()) labels.set(cell.v.trim(), r);
+      }
+    }
+    if (id === "cashflow") {
+      const inputRows = [
+        ...Array.from({ length: 6 }, (_, i) => 5 + i),
+        ...Array.from({ length: 18 }, (_, i) => 14 + i),
+        ...Array.from({ length: 17 }, (_, i) => 35 + i)
+      ];
+      const sectionLabels = /* @__PURE__ */ new Set(["\u05EA\u05D7\u05D9\u05DC\u05EA \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA \u2014 \u05D7\u05D5\u05D3\u05E9", "\u05E9\u05E0\u05D4", "\u05E9\u05E0\u05EA \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA", "\u05D4\u05DB\u05E0\u05E1\u05D5\u05EA", "\u05D4\u05D5\u05E6\u05D0\u05D5\u05EA \u05E7\u05D1\u05D5\u05E2\u05D5\u05EA", "\u05D4\u05D5\u05E6\u05D0\u05D5\u05EA \u05DE\u05E9\u05EA\u05E0\u05D5\u05EA"]);
+      const editable = rows.filter((row) => row.cells && !row.calculated && !sectionLabels.has(row.label) && !row.label.startsWith("\u05E1\u05D4\u05F4\u05DB") && row.label !== "\u05EA\u05D6\u05E8\u05D9\u05DD \u05E0\u05D8\u05D5" && row.label !== "\u05DE\u05E6\u05D8\u05D1\u05E8 (\u05D1\u05D9\u05E6\u05D5\u05E2)" && !row.label.startsWith("\u05DB\u05E8\u05D9\u05EA"));
+      editable.slice(0, inputRows.length).forEach((row, index) => {
+        for (let i = 0; i < 24; i++) putValue(sheet, inputRows[index], 2 + i, row.cells?.[i] || "");
+      });
+    }
+    if (id === "business") {
+      const inputRows = [4, 5, 6, 7, 9];
+      rows.filter((row) => row.cells && !row.calculated && !row.label.startsWith("\u25C4") && !row.label.startsWith("\u05DE\u05E6\u05D8\u05D1\u05E8")).slice(0, inputRows.length).forEach((row, index) => {
+        for (let i = 0; i < 12; i++) putValue(sheet, inputRows[index], 2 + i, row.cells?.[i * 2] || "");
+      });
+    }
+    if (id === "debts") {
+      rows.filter((row) => row.value && !row.calculated && row.label !== "\u05D4\u05DC\u05D5\u05D5\u05D0\u05D5\u05EA").slice(0, 10).forEach((row, index) => {
+        const targetRow = 5 + index;
+        putValue(sheet, targetRow, 1, row.label);
+        putValue(sheet, targetRow, 4, row.value);
+      });
+    }
+    if (id === "goals") {
+      rows.filter((row) => row.value && !row.calculated && !["\u05E9\u05E0\u05EA \u05D4\u05D1\u05E1\u05D9\u05E1", "\u05E9\u05E0\u05EA \u05D9\u05E2\u05D3", "\u05E2\u05DC\u05D5\u05EA \u05D4\u05D9\u05D5\u05DD"].includes(row.label)).slice(0, 12).forEach((row, index) => {
+        const targetRow = 4 + index;
+        putValue(sheet, targetRow, 1, row.label);
+        putValue(sheet, targetRow, 13, row.value);
+      });
+    }
+    if (id === "journal") {
+      const start = rows.find((row) => row.label === "\u05EA\u05D0\u05E8\u05D9\u05DA \u05EA\u05D7\u05D9\u05DC\u05EA \u05D4\u05DC\u05D9\u05D5\u05D5\u05D9");
+      if (start) putValue(sheet, 2, 2, start.value);
+      for (let meeting = 1; meeting <= 5; meeting++) {
+        const base = 5 + (meeting - 1) * 9;
+        const fields = [
+          [`\u05E4\u05D2\u05D9\u05E9\u05D4 ${meeting} \u2014 \u05EA\u05D0\u05E8\u05D9\u05DA`, base, 2],
+          [`\u05E4\u05D2\u05D9\u05E9\u05D4 ${meeting} \u2014 \u05E0\u05D5\u05E9\u05D0`, base, 4],
+          [`\u05E4\u05D2\u05D9\u05E9\u05D4 ${meeting} \u2014 \u05DE\u05D4 \u05E1\u05D5\u05DB\u05DD`, base + 1, 2],
+          [`\u05E4\u05D2\u05D9\u05E9\u05D4 ${meeting} \u2014 \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05E2\u05D3 \u05D4\u05E4\u05D2\u05D9\u05E9\u05D4 \u05D4\u05D1\u05D0\u05D4`, base + 3, 2],
+          [`\u05E4\u05D2\u05D9\u05E9\u05D4 ${meeting} \u2014 \u05DE\u05D4 \u05DC\u05E7\u05D7\u05E0\u05D5 \u05DE\u05D4\u05E4\u05D2\u05D9\u05E9\u05D4`, base + 5, 2]
+        ];
+        for (const [labelName, targetRow, targetCol] of fields) {
+          const row = rows.find((candidate) => candidate.label === labelName);
+          if (row) putValue(sheet, targetRow, targetCol, row.value);
+        }
+      }
+    }
+    if (id === "questionnaire") {
+      const spouse1 = rows.find((row) => row.label === "\u05E9\u05DD \u05D1\u05DF/\u05D1\u05EA \u05D6\u05D5\u05D2 1");
+      const spouse2 = rows.find((row) => row.label === "\u05E9\u05DD \u05D1\u05DF/\u05D1\u05EA \u05D6\u05D5\u05D2 2");
+      if (spouse1?.value) putValue(sheet, 5, 2, spouse1.value);
+      if (spouse2?.value) putValue(sheet, 5, 3, spouse2.value);
+    }
+    for (const row of rows) {
+      if (monthly && (id === "cashflow" || id === "business")) continue;
+      if (id === "debts" || id === "goals" || id === "journal") continue;
+      const aliases = id === "questionnaire" ? { "\u05E9\u05DD \u05D1\u05DF/\u05D1\u05EA \u05D6\u05D5\u05D2 1": "\u05E9\u05DD \u05DE\u05DC\u05D0" } : id === "balance" ? { "\u05E2\u05D5\u05F4\u05E9 \u05D5\u05E4\u05D9\u05E7\u05D3\u05D5\u05E0\u05D5\u05EA": '\u05E2\u05D5"\u05E9 \u05D5\u05E4\u05D9\u05E7\u05D3\u05D5\u05E0\u05D5\u05EA' } : id === "calculators" ? { "LTV \u2014 \u05D0\u05D7\u05D5\u05D6 \u05D4\u05DE\u05D9\u05DE\u05D5\u05DF \u05D4\u05E0\u05D5\u05DB\u05D7\u05D9": "\u25C4 LTV \u2014 \u05D0\u05D7\u05D5\u05D6 \u05D4\u05DE\u05D9\u05DE\u05D5\u05DF \u05D4\u05E0\u05D5\u05DB\u05D7\u05D9" } : {};
+      const targetRow = labels.get(row.label) ?? labels.get(aliases[row.label] || "");
+      if (targetRow === void 0) continue;
+      if (monthly) {
+        for (let i = 0; i < 24; i++) putValue(sheet, targetRow, 2 + i, row.cells?.[i] || "");
+      } else {
+        putValue(sheet, targetRow, 2, row.value || "");
+        if (row.note) putValue(sheet, targetRow, 4, row.note);
+      }
+    }
+  }
+  return book;
+}
+
+// src/routes/family-workbook.ts
+var rowSchema = z8.object({
+  id: z8.string(),
+  label: z8.string(),
+  value: z8.string(),
+  cells: z8.array(z8.string()).optional(),
+  note: z8.string().optional(),
+  calculated: z8.boolean().optional()
+});
+var bodySchema = z8.object({
+  familyName: z8.string().trim().max(120).default("\u05DC\u05E7\u05D5\u05D7"),
+  data: z8.record(z8.array(rowSchema))
+});
+var familyWorkbookRouter = Router19();
+familyWorkbookRouter.use(requireUser);
+familyWorkbookRouter.post("/export", asyncHandler(async (req, res) => {
+  const parsed = bodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ ok: false, error: "invalid_workbook" });
+    return;
+  }
+  const candidates = [
+    path.resolve(process.cwd(), "frontend/public/family-workbook-template.xlsx"),
+    path.resolve(process.cwd(), "../frontend/public/family-workbook-template.xlsx")
+  ];
+  let templatePath;
+  for (const candidate of candidates) {
+    try {
+      await fs.access(candidate);
+      templatePath = candidate;
+      break;
+    } catch {
+    }
+  }
+  if (!templatePath) {
+    res.status(500).json({ ok: false, error: "template_missing" });
+    return;
+  }
+  const book = fillTemplate(XLSX5.read(await fs.readFile(templatePath), { type: "buffer", cellStyles: true }), parsed.data.data);
+  const spouse1 = parsed.data.data.questionnaire?.find((row) => row.label === "\u05E9\u05DD \u05D1\u05DF/\u05D1\u05EA \u05D6\u05D5\u05D2 1")?.value;
+  if (spouse1) book.Sheets["\u05E9\u05D0\u05DC\u05D5\u05DF"]["C6"] = { t: "s", v: spouse1 };
+  const buffer = XLSX5.write(book, { type: "buffer", bookType: "xlsx", cellStyles: true });
+  const safeName = parsed.data.familyName.replace(/[\\/:*?"<>|]/g, "_") || "\u05DC\u05E7\u05D5\u05D7";
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(`\u05D7\u05D5\u05D1\u05E8\u05EA-\u05DE\u05E9\u05E4\u05D7\u05D4-${safeName}.xlsx`)}`);
+  res.send(buffer);
+}));
+
 // src/server.ts
 var app = express();
 app.use(
@@ -9956,6 +10118,7 @@ app.use("/api/pension", pensionRouter);
 app.use("/api/securities", securitiesRouter);
 app.use("/api/investments", investmentsRouter);
 app.use("/api/market", marketRouter);
+app.use("/api/family-workbook", familyWorkbookRouter);
 app.use((_req, res) => {
   res.status(404).json({ error: "not_found" });
 });

@@ -20,6 +20,7 @@ import { pensionRouter } from "./routes/pension.js";
 import { securitiesRouter } from "./routes/securities.js";
 import { investmentsRouter } from "./routes/investments.js";
 import { marketRouter } from "./routes/market.js";
+import { familyWorkbookRouter } from "./routes/family-workbook.js";
 
 const app = express();
 
@@ -56,6 +57,7 @@ app.use("/api/pension", pensionRouter);
 app.use("/api/securities", securitiesRouter);
 app.use("/api/investments", investmentsRouter);
 app.use("/api/market", marketRouter);
+app.use("/api/family-workbook", familyWorkbookRouter);
 
 // --- 404 ---
 app.use((_req, res) => {

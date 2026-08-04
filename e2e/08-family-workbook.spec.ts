@@ -47,8 +47,9 @@ test("family workbook: 12 tabs, bidirectional name sync, XLSX export", async ({ 
   await page.getByRole("button", { name: "ייצוא XLSX", exact: true }).click();
   const file = await download;
   expect(file.suggestedFilename()).toContain("חוברת-משפחה");
-  const workbook = XLSX.readFile((await file.path()) || "");
+  const workbook = XLSX.readFile((await file.path()) || "", { cellStyles: true });
   expect(workbook.SheetNames).toEqual(["בית", "שאלון", "מיפוי", "חובות", "מאזן", "מטרות ויעדים", "תזרים", "עסק", "סיכום שנתי", "תובנות", "יומן ליווי", "מחשבונים"]);
   const exportedQuestionnaire = XLSX.utils.sheet_to_json<string[]>(workbook.Sheets["שאלון"], { header: 1 }).flat();
   expect(exportedQuestionnaire).toContain("רועי E2E");
+  expect(workbook.Sheets["שאלון"]["C6"]?.s).toBeTruthy();
 });

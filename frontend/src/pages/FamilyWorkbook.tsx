@@ -7,6 +7,7 @@ import { hydrateWorkbookFromSite, loadWorkbook, saveWorkbook, syncWorkbookRowToS
 import { useClient } from "@/lib/client-context";
 import { writeFamilyWorkbookXlsx } from "@/lib/family-workbook-export";
 import { scopedKey } from "@/lib/client-scope";
+import { getSupabase } from "~/lib/supabase";
 
 const money = (n: number) => new Intl.NumberFormat("he-IL", { maximumFractionDigits: 0 }).format(Math.round(n)) + " ₪";
 
@@ -76,6 +77,24 @@ export function FamilyWorkbookPage() {
         ? { ...row, value: fields.p1_name }
         : row);
     } catch { /* export continues with persisted workbook */ }
+    const session = (await getSupabase()?.auth.getSession())?.data.session;
+    if (session?.access_token) {
+      const response = await fetch("/api/family-workbook/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ familyName: familyName || "לקוח", data: latest }),
+      });
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = `חוברת-משפחה-${familyName || "לקוח"}.xlsx`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+        return;
+      }
+    }
     await writeFamilyWorkbookXlsx(latest, familyName || "לקוח");
   };
 
