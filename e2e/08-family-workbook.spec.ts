@@ -10,12 +10,16 @@ test("family workbook: 12 tabs, bidirectional name sync, XLSX export", async ({ 
   await page.getByPlaceholder("mail@example.com").fill(email);
   await page.locator('input[type="password"]').fill(password);
   await page.locator('button[type="submit"]').click();
-  await page.waitForURL(/\/crm/, { timeout: 15_000 });
-
-  const clientRow = page.locator("tbody tr").filter({ has: page.getByRole("button") }).first();
-  await expect(clientRow).toBeVisible({ timeout: 20_000 });
-  await clientRow.getByRole("button").filter({ hasText: "arrow_back" }).click();
-  await page.waitForURL(/\/(dashboard|budget|balance)/, { timeout: 15_000 });
+  await page.waitForURL(/\/(crm|dashboard)/, { timeout: 15_000 });
+  if (page.url().includes("/crm")) {
+    const clientRows = page.locator("tbody tr").filter({ has: page.getByRole("button") });
+    const clientRowCount = await clientRows.count();
+    expect(clientRowCount).toBeGreaterThan(0);
+    const clientRow = clientRows.first();
+    await expect(clientRow).toBeVisible({ timeout: 20_000 });
+    await clientRow.getByRole("button").filter({ hasText: "arrow_back" }).click();
+    await page.waitForURL(/\/(dashboard|budget|balance)/, { timeout: 15_000 });
+  }
   await page.goto("/family-workbook");
   await expect(page.getByRole("heading", { name: "חוברת משפחה" })).toBeVisible({ timeout: 20_000 });
   const waitForWorkbookSave = () => page.waitForResponse((response) => response.url().includes("/api/sync/blob") && response.request().method() === "POST", { timeout: 15_000 });

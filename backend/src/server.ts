@@ -38,7 +38,9 @@ app.use(
 );
 const apiLimiter = rateLimit({
   windowMs: 60_000,
-  limit: 240,
+  // Workbook hydration + cross-module sync can legitimately exceed 240
+  // requests/minute. Expensive routes still have their own tighter limits.
+  limit: 1000,
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: { error: "rate_limited" },
