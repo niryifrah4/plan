@@ -36,6 +36,7 @@ export function FamilyWorkbookPage() {
   const [saveState, setSaveState] = useState<"saved" | "saving" | "error">("saved");
   const [summary, setSummary] = useState({ assets: 0, debt: 0, goals: 0 });
   const hydrateRun = useRef(0);
+  const draftRef = useRef<WorkbookData>({});
 
   const hydrate = async () => {
     const run = ++hydrateRun.current;
@@ -82,6 +83,7 @@ export function FamilyWorkbookPage() {
     const insightValues: Record<string, string> = { "שווי נקי": money(assets - debtTotal), "מימון המטרות": String(buckets.length), "מינוף — חוב מהנכסים": assets ? `${Math.round((debtTotal / assets) * 100)}%` : "0%" };
     workbook.insights = workbook.insights.map((row) => insightValues[row.label] !== undefined ? { ...row, value: insightValues[row.label], calculated: true } : row);
     setData(workbook);
+    draftRef.current = workbook;
     setHydrated(true);
   };
 
@@ -104,23 +106,23 @@ export function FamilyWorkbookPage() {
   const updateRow = (row: WorkbookRow, value: string) => {
     const next = updateWorkbookRow(data[active]?.length ? data : { ...data, [active]: starter[active] || [] }, active, row.id, value);
     syncWorkbookRowToSite(active, row, value);
-    setData(next);
+    draftRef.current = next; setData(next);
   };
   const addRow = () => {
     const row = { id: `${active}-custom-${Date.now()}`, label: "אחר — ערוך שם סעיף", value: "", note: "שדה דינמי" };
     const next = { ...data, [active]: [...(data[active] || []), row] };
-    setData(next); void persist(next);
+    draftRef.current = next; setData(next);
   };
   const updateCell = (row: WorkbookRow, index: number, value: string) => {
     const next = updateWorkbookCell(data[active]?.length ? data : { ...data, [active]: starter[active] || [] }, active, row.id, index, value);
     if (index === 0) syncWorkbookRowToSite(active, row, value);
-    setData(next);
+    draftRef.current = next; setData(next);
   };
   const rows = data[active]?.length ? data[active] : (starter[active] || []);
 
   const changeTab = async (nextTab: string) => {
     if (nextTab === active) return;
-    await persist(data);
+    await persist(draftRef.current);
     setActive(nextTab);
   };
 
