@@ -28,6 +28,12 @@ if (result.SheetNames.length !== 12) throw new Error("Template must contain 12 s
 if (result.Sheets["תזרים"]?.C6?.v !== "32500") throw new Error("Template injection failed: תזרים!C6");
 if (result.Sheets["עסק"]?.C5?.v !== "12000") throw new Error("Template injection failed: עסק!C5");
 if (result.Sheets["חובות"]?.B6?.v !== "בנק E2E" || result.Sheets["חובות"]?.E6?.v !== "4500") throw new Error("Template injection failed: חובות!B6:E6");
+const customDebtResult = fillTemplate(source, {
+  debts: [{ id: "custom-loan", label: "הלוואה משפחתית", value: "1800", note: "החזר חודשי" }],
+});
+if (customDebtResult.Sheets["חובות"]?.B6?.v !== "הלוואה משפחתית" || customDebtResult.Sheets["חובות"]?.E6?.v !== "1800") {
+  throw new Error("Template injection failed: custom debt row");
+}
 if (result.Sheets["מטרות ויעדים"]?.B5?.v !== "קרן חירום" || result.Sheets["מטרות ויעדים"]?.N5?.v !== "1800") throw new Error("Template injection failed: מטרות ויעדים!B5:N5");
 if (result.Sheets["מאזן"]?.C6?.v !== "25000") throw new Error("Template injection failed: מאזן!C6");
 if (result.Sheets["יומן ליווי"]?.C6?.v !== "2026-08-04" || result.Sheets["יומן ליווי"]?.E6?.v !== "בדיקת תזרים") throw new Error("Template injection failed: יומן ליווי");

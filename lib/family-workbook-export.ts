@@ -69,7 +69,24 @@ export function fillTemplate(book: XLSX.WorkBook, data: WorkbookData): XLSX.Work
       // The workbook UI stores the fields as labelled rows.
       const field = (label: string) => rows.find((row) => row.label === label)?.value || "";
       const loan = [["שם ההלוואה / הבנק", 1], ["יתרת קרן", 2], ["ריבית שנתית", 3], ["החזר חודשי", 4], ["חודשים שנותרו", 5]] as const;
-      loan.forEach(([labelName, col]) => { const value = field(labelName); if (value) putValue(sheet, 5, col, value); });
+      const fixedValues = new Map(loan.map(([labelName, col]) => [col, field(labelName)]));
+      loan.forEach(([, col]) => {
+        const value = fixedValues.get(col);
+        if (value) putValue(sheet, 5, col, value);
+      });
+
+      // Custom rows are valid workbook entries too. The template has one
+      // primary-loan row, so use a custom row as a fallback when no canonical
+      // lender/payment pair exists; otherwise it silently disappears on export.
+      if (!fixedValues.get(1) && !fixedValues.get(4)) {
+        const custom = rows.find((row) =>
+          row.value && row.note === "החזר חודשי" && !["הלוואות", "מחשבון איחוד הלוואות"].includes(row.label),
+        );
+        if (custom) {
+          putValue(sheet, 5, 1, custom.label);
+          putValue(sheet, 5, 4, custom.value);
+        }
+      }
     }
     if (id === "goals") {
       // Excel goal rows are formula-labelled from the questionnaire. Write
