@@ -47,11 +47,33 @@ export function fillTemplate(book: XLSX.WorkBook, data: WorkbookData): XLSX.Work
         for (let i = 0; i < 12; i++) putValue(sheet, inputRows[index], 2 + i, row.cells?.[i * 2] || "");
       });
     }
+    if (id === "debts") {
+      // Site bridge exposes active loans as lender label + monthly payment.
+      // Excel keeps each loan across columns B:F, rows 6:15.
+      rows.filter((row) => row.value && !row.calculated && row.label !== "הלוואות").slice(0, 10).forEach((row, index) => {
+        const targetRow = 5 + index;
+        putValue(sheet, targetRow, 1, row.label);
+        putValue(sheet, targetRow, 4, row.value);
+      });
+    }
+    if (id === "goals") {
+      // Excel goal rows are formula-labelled from the questionnaire. Write
+      // current site goal name + monthly allocation into the visible goal
+      // table while preserving all surrounding formulas/styles.
+      rows.filter((row) => row.value && !row.calculated && !["שנת הבסיס", "שנת יעד", "עלות היום"].includes(row.label)).slice(0, 12).forEach((row, index) => {
+        const targetRow = 4 + index;
+        putValue(sheet, targetRow, 1, row.label);
+        putValue(sheet, targetRow, 13, row.value);
+      });
+    }
     for (const row of rows) {
       if (monthly && (id === "cashflow" || id === "business")) continue;
+      if (id === "debts" || id === "goals") continue;
       const aliases: Record<string, string> = id === "questionnaire"
         ? { "שם בן/בת זוג 1": "שם מלא" }
-        : {};
+        : id === "balance"
+          ? { "עו״ש ופיקדונות": "עו\"ש ופיקדונות" }
+          : {};
       const targetRow = labels.get(row.label) ?? labels.get(aliases[row.label] || "");
       if (targetRow === undefined) continue;
       if (monthly) {

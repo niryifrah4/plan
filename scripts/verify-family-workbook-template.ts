@@ -6,6 +6,9 @@ const result = fillTemplate(source, {
   questionnaire: [{ id: "sample", label: "שם בן/בת זוג 1", value: "רועי E2E" }],
   cashflow: [{ id: "income", label: "משכורת / הכנסה 1", value: "", cells: ["32500", ...Array(23).fill("")] }],
   business: [{ id: "business-income", label: "הכנסות תפעוליות", value: "", cells: ["12000", ...Array(23).fill("")] }],
+  debts: [{ id: "loan", label: "בנק E2E", value: "4500" }],
+  goals: [{ id: "goal", label: "קרן חירום", value: "1800" }],
+  balance: [{ id: "asset", label: "עו״ש ופיקדונות", value: "25000" }],
 });
 
 if (result.Sheets["שאלון"]?.C6?.v !== "רועי E2E") {
@@ -14,4 +17,7 @@ if (result.Sheets["שאלון"]?.C6?.v !== "רועי E2E") {
 if (result.SheetNames.length !== 12) throw new Error("Template must contain 12 sheets");
 if (result.Sheets["תזרים"]?.C6?.v !== "32500") throw new Error("Template injection failed: תזרים!C6");
 if (result.Sheets["עסק"]?.C5?.v !== "12000") throw new Error("Template injection failed: עסק!C5");
-console.log("family workbook template verified: 12 sheets, questionnaire, cashflow, business populated");
+if (result.Sheets["חובות"]?.B6?.v !== "בנק E2E" || result.Sheets["חובות"]?.E6?.v !== "4500") throw new Error("Template injection failed: חובות!B6:E6");
+if (result.Sheets["מטרות ויעדים"]?.B5?.v !== "קרן חירום" || result.Sheets["מטרות ויעדים"]?.N5?.v !== "1800") throw new Error("Template injection failed: מטרות ויעדים!B5:N5");
+if (result.Sheets["מאזן"]?.C6?.v !== "25000") throw new Error("Template injection failed: מאזן!C6");
+console.log("family workbook template verified: 12 sheets, questionnaire, cashflow, business, debts, goals, balance populated");
