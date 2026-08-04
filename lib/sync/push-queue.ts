@@ -17,6 +17,7 @@
 
 import { reportError } from "@/lib/report-error";
 import { safeParse } from "@/lib/safe-json";
+import { getSupabaseBrowser } from "@/lib/supabase/browser";
 
 export const SYNC_PENDING_EVENT = "verdant:sync:pending-changed";
 const QUEUE_LS_KEY = "verdant:push_queue";
@@ -167,11 +168,15 @@ type PushOutcome = "ok" | "conflict" | "retry";
 
 async function pushOne(item: QueueItem): Promise<PushOutcome> {
   const expected = getLocalVersion(item.householdId, item.key);
+  const sb = getSupabaseBrowser();
+  const { data: sessionData } = (await sb?.auth.getSession()) ?? { data: { session: null } };
+  const token = sessionData.session?.access_token;
+  if (!token) return "retry";
   let res: Response;
   try {
     res = await fetch("/api/sync/blob", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({
         key: item.key,
         value: item.value ?? null,
