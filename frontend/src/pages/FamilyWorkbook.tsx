@@ -130,10 +130,10 @@ export function FamilyWorkbookPage() {
 
   const changeTab = async (nextTab: string) => {
     if (nextTab === active) return;
-    const saved = await persist(draftRef.current);
-    if (!saved) return;
-    pushOnboardingSnapshot();
+    const snapshot = draftRef.current;
     setActive(nextTab);
+    const saved = await persist(snapshot);
+    if (saved) pushOnboardingSnapshot();
   };
 
   const exportXlsx = async () => {
