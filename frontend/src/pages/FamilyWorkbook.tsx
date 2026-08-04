@@ -55,8 +55,15 @@ export function FamilyWorkbookPage() {
     setSummary({ assets, debt: debtTotal, goals: buckets.length });
     const remoteWorkbook = await pullBlob<WorkbookData>("family_workbook");
     if (run !== hydrateRun.current) return;
+    const template = loadWorkbook();
     const hasRows = remoteWorkbook && Object.values(remoteWorkbook).some((tab) => Array.isArray(tab) && tab.length > 0);
-    const workbook = hydrateWorkbookFromSite(hasRows ? remoteWorkbook : loadWorkbook());
+    const source = hasRows ? remoteWorkbook : template;
+    // A partial/old blob may contain empty tabs. Never render those as a
+    // blank workbook: preserve saved tabs and fill only missing/empty tabs
+    // from the canonical template.
+    const workbook = hydrateWorkbookFromSite(Object.fromEntries(
+      Object.keys(template).map((tab) => [tab, source?.[tab]?.length ? source[tab] : template[tab]])
+    ));
     const balanceValues: Record<string, string> = {
       "עו״ש ופיקדונות": String(totalBankBalance(accounts)),
       "דירה (שווי שוק)": String(properties.reduce((sum, p) => sum + Number(p.currentValue || 0), 0)),
@@ -133,7 +140,7 @@ export function FamilyWorkbookPage() {
     setSaveState("error");
   };
 
-  return <main dir="rtl" className="family-workbook min-h-screen px-3 py-5 md:px-8" style={{ background: "var(--verdant-bg, #f4f7f2)" }}><div className="mx-auto max-w-[1500px]">
+  return <main dir="rtl" className="family-workbook min-h-screen px-1 py-3 md:px-3 md:py-4" style={{ background: "var(--verdant-bg, #f4f7f2)" }}><div className="mx-auto w-full max-w-none">
     <header className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-black text-slate-800">חוברת משפחה</h1><p className="text-sm text-slate-500">{familyName || "לקוח חדש"} · מבנה זהה לאקסל</p></div><div className="flex items-center gap-2"><button type="button" onClick={exportXlsx} className="rounded-xl bg-slate-800 px-4 py-2 text-xs font-black text-white">ייצוא XLSX</button><div role="status" className={`rounded-xl bg-white px-4 py-2 text-xs font-bold ${saveState === "error" ? "text-red-700" : "text-slate-500"}`}>{saveState === "saved" ? "נשמר בשרת" : saveState === "saving" ? "שומר בשרת..." : "השמירה נכשלה — הנתון לא נשמר"}</div></div></header>
     <nav aria-label="לשוניות חוברת המשפחה" className="mb-4 flex gap-1 overflow-x-auto rounded-2xl bg-white p-2 shadow-sm">{WORKBOOK_TABS.map((tab) => <button key={tab.id} type="button" onClick={() => setActive(tab.id)} className={`shrink-0 rounded-xl px-4 py-2 text-sm font-extrabold transition ${active === tab.id ? "bg-emerald-700 text-white" : "text-slate-600 hover:bg-emerald-50"}`}>{tab.label}</button>)}</nav>
     {active === "home" ? <HomeSummary summary={{ ...summary, netWorth }} onTab={setActive} /> : <WorkbookSheet tab={active} label={WORKBOOK_TABS.find((tab) => tab.id === active)?.label || "לשונית"} rows={rows} onUpdate={updateRow} onCellUpdate={updateCell} onAdd={addRow} />}
