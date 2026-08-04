@@ -34,11 +34,12 @@ const customDebtResult = fillTemplate(source, {
 if (customDebtResult.Sheets["חובות"]?.B6?.v !== "הלוואה משפחתית" || customDebtResult.Sheets["חובות"]?.E6?.v !== "1800") {
   throw new Error("Template injection failed: custom debt row");
 }
-const sectionResult = fillTemplate(source, {
-  mapping: [{ id: "annual-section", label: "הוצאות שנתיות (חלוקה חודשית)", value: "נתן דוגמה 23" }],
-});
-if (sectionResult.Sheets["מיפוי"]?.C30?.v === "נתן דוגמה 23") {
-  throw new Error("Demo data leaked into section row: מיפוי!C30");
+for (const label of ["הוצאות שנתיות (חלוקה חודשית)", "מנויים", "ביטוחים", "הוצאות שנתיות (מתחלק ל-12)"]) {
+  const sectionResult = fillTemplate(source, {
+    mapping: [{ id: "section", label, value: "נתן דוגמה 23" }],
+  });
+  const leaked = Object.values(sectionResult.Sheets["מיפוי"] || {}).some((cell) => cell?.v === "נתן דוגמה 23");
+  if (leaked) throw new Error(`Demo data leaked into section row: ${label}`);
 }
 if (result.Sheets["מטרות ויעדים"]?.B5?.v !== "קרן חירום" || result.Sheets["מטרות ויעדים"]?.N5?.v !== "1800") throw new Error("Template injection failed: מטרות ויעדים!B5:N5");
 if (result.Sheets["מאזן"]?.C6?.v !== "25000") throw new Error("Template injection failed: מאזן!C6");
