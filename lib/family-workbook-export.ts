@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import type { WorkbookData } from "./family-workbook";
 
 const MONTHS = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"];
@@ -156,5 +157,34 @@ export async function writeFamilyWorkbookXlsx(data: WorkbookData, familyName: st
     XLSX.read(templateBuffer, { type: "array", cellStyles: true }),
     data,
   );
-  XLSX.writeFile(book, `חוברת-משפחה-${familyName || "לקוח"}.xlsx`);
+  const archive = unzipSync(new Uint8Array(templateBuffer));
+  for (let sheetIndex = 0; sheetIndex < 12; sheetIndex++) {
+    const sheet = book.Sheets[book.SheetNames[sheetIndex]];
+    const file = archive[`xl/worksheets/sheet${sheetIndex + 1}.xml`];
+    if (!sheet || !file) continue;
+    const range = XLSX.utils.decode_range(sheet["!ref"] || "A1:A1");
+    let xmlText = strFromU8(file);
+    for (let row = range.s.r; row <= range.e.r; row++) for (let col = range.s.c; col <= range.e.c; col++) {
+      const ref = XLSX.utils.encode_cell({ r: row, c: col });
+      const cell = sheet[ref] as XLSX.CellObject | undefined;
+      if (!cell || cell.v === undefined || cell.v === "") continue;
+      const value = String(cell.v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+      const numeric = typeof cell.v === "number" && Number.isFinite(cell.v);
+      const pattern = new RegExp(`<c\\b([^>]*\\br="${ref}"[^>]*)>(?:[\\s\\S]*?<\\/c>)?`);
+      xmlText = xmlText.replace(pattern, (_whole, attrs: string) => {
+        const kept = attrs.replace(/\s+t="[^"]*"/g, "");
+        return numeric ? `<c${kept} t="n"><v>${cell.v}</v></c>` : `<c${kept} t="inlineStr"><is><t>${value}</t></is></c>`;
+      });
+    }
+    archive[`xl/worksheets/sheet${sheetIndex + 1}.xml`] = strToU8(xmlText);
+  }
+  const output = new Blob([zipSync(archive, { level: 6 })], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const url = URL.createObjectURL(output);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `חוברת-משפחה-${familyName || "לקוח"}.xlsx`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
 }
