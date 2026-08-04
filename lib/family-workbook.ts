@@ -113,7 +113,11 @@ export function hydrateWorkbookFromSite(data: WorkbookData): WorkbookData {
         ? { ...row, value: values[row.label] }
         : row
     ),
-    mapping: withValues("mapping", budgetValues),
+    mapping: withValues("mapping", budgetValues).map((row) =>
+      ["סה״כ הכנסות", "סה״כ קבועות", "סה״כ משתנות", "סה״כ הוצאות", "תזרים נטו — מה נשאר"].includes(row.label)
+        ? { ...row, calculated: true }
+        : row
+    ),
     goals: (data.goals || []).map((row) => {
       const match = goals.find((goal) => goal.name === row.label);
       return match ? { ...row, value: String(match.monthlyContribution ?? match.targetAmount ?? "") } : row;

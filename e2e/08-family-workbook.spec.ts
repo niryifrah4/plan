@@ -41,6 +41,15 @@ test("family workbook: 12 tabs, bidirectional name sync, XLSX export", async ({ 
   await page.getByLabel("הכנסות תפעוליות ינואר תכנון", { exact: true }).fill("12000");
   await expect.poll(async () => page.evaluate(() => Object.values(localStorage).some((value) => value.includes("12000")))).toBe(true);
 
+  await page.getByRole("button", { name: "חובות", exact: true }).click();
+  await page.getByRole("button", { name: /הוסף אחר/ }).click();
+  await page.getByLabel("אחר — ערוך שם סעיף", { exact: true }).fill("4500");
+  await expect.poll(async () => page.evaluate(() => Object.values(localStorage).some((value) => value.includes("4500")))).toBe(true);
+
+  await page.getByRole("button", { name: "מיפוי", exact: true }).click();
+  await expect(page.getByText("סה״כ הכנסות", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("סה״כ הכנסות", { exact: true })).toHaveCount(0);
+
   await page.getByRole("link", { name: /אפיון הלקוח/ }).click();
   await page.waitForURL(/\/onboarding/);
   await page.goto("/onboarding?step=1");
