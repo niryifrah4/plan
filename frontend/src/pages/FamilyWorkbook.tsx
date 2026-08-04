@@ -64,8 +64,8 @@ export function FamilyWorkbookPage() {
   };
   const rows = data[active] || [];
 
-  const exportXlsx = () => {
-    writeFamilyWorkbookXlsx(data, familyName || "לקוח");
+  const exportXlsx = async () => {
+    await writeFamilyWorkbookXlsx(data, familyName || "לקוח");
   };
 
   return <main dir="rtl" className="min-h-screen px-3 py-5 md:px-8" style={{ background: "var(--verdant-bg, #f4f7f2)" }}><div className="mx-auto max-w-[1500px]">
