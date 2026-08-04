@@ -20,7 +20,7 @@ services:
     buildCommand: cd backend && npm install && npm run build
     startCommand: cd backend && npm start
     healthCheckPath: /api/health
-    autoDeploy: true
+    autoDeploy: false
     branch: main
     envVars:
       - key: NODE_ENV
@@ -49,7 +49,7 @@ services:
     region: frankfurt
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: ./frontend/dist
-    autoDeploy: true
+    autoDeploy: false
     branch: main
     envVars:
       - key: VITE_SUPABASE_URL
