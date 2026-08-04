@@ -65,7 +65,9 @@ export function FamilyWorkbookPage() {
   const rows = data[active] || [];
 
   const exportXlsx = async () => {
-    await writeFamilyWorkbookXlsx(data, familyName || "לקוח");
+    // Read latest persisted workbook at click time. Avoid stale React closure
+    // after an input event and keep export identical to what user sees.
+    await writeFamilyWorkbookXlsx(hydrateWorkbookFromSite(loadWorkbook()), familyName || "לקוח");
   };
 
   return <main dir="rtl" className="min-h-screen px-3 py-5 md:px-8" style={{ background: "var(--verdant-bg, #f4f7f2)" }}><div className="mx-auto max-w-[1500px]">
