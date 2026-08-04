@@ -12,6 +12,15 @@ export class ErrorBoundary extends React.Component<{ children: React.ReactNode }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("ErrorBoundary caught an error:", error, errorInfo);
+    if (/dynamically imported module|Importing a module script failed|Loading chunk/i.test(error.message)) {
+      const key = "plan:stale-chunk-reload";
+      if (!sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, "1");
+        const url = new URL(window.location.href);
+        url.searchParams.set("_v", String(Date.now()));
+        window.location.replace(url.toString());
+      }
+    }
   }
 
   render() {
