@@ -17,7 +17,7 @@
     "lint": "eslint .",
     "security:check": "node scripts/verify-security-baseline.mjs",
     "workbook:check": "tsx scripts/verify-family-workbook-template.ts && tsx scripts/verify-family-workbook-export.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "npm run typecheck --prefix frontend && npm run typecheck --prefix backend",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:types": "supabase gen types typescript --local > types/supabase.ts"

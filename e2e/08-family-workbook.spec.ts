@@ -3,9 +3,12 @@ import * as XLSX from "xlsx";
 
 test("family workbook: 12 tabs, bidirectional name sync, XLSX export", async ({ page }) => {
   test.setTimeout(120_000);
+  const email = process.env.E2E_EMAIL;
+  const password = process.env.E2E_PASSWORD;
+  if (!email || !password) throw new Error("E2E_EMAIL and E2E_PASSWORD must be set");
   await page.goto("/login");
-  await page.getByPlaceholder("mail@example.com").fill("niryifrah4@gmail.com");
-  await page.locator('input[type="password"]').fill("112233");
+  await page.getByPlaceholder("mail@example.com").fill(email);
+  await page.locator('input[type="password"]').fill(password);
   await page.locator('button[type="submit"]').click();
   await page.waitForURL(/\/crm/, { timeout: 15_000 });
 
