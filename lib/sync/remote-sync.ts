@@ -28,7 +28,9 @@ export function getHouseholdId(): string | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem("verdant:active_household_id");
-    if (raw && raw.trim()) return raw.trim();
+    const id = raw?.trim();
+    if (id && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) return id;
+    if (id) reportError("sync/remote-sync:invalid-household", new Error("invalid_household_id"));
   } catch (e) { reportError("sync/remote-sync", e); }
   return null;
 }
@@ -36,6 +38,10 @@ export function getHouseholdId(): string | null {
 export function setHouseholdId(id: string | null) {
   if (typeof window === "undefined") return;
   try {
+    if (id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+      reportError("sync/remote-sync:set-invalid-household", new Error("invalid_household_id"));
+      return;
+    }
     if (id) localStorage.setItem("verdant:active_household_id", id);
     else localStorage.removeItem("verdant:active_household_id");
   } catch (e) { reportError("sync/remote-sync", e); }

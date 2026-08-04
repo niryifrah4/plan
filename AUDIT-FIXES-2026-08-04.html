@@ -29,6 +29,7 @@
     <div class="item done"><strong>הקשחת multipart</strong><br>נוספו מגבלות על מספר קבצים, שדות, parts וגודל שדה. חריגה מחזירה 413 כללי ולא stack trace.</div>
     <div class="item done"><strong>מניעת דליפת מידע</strong><br>שגיאות 500 מחזירות <code>internal_error</code> בלבד. פרטי DB ו־stack trace נשארים בלוג השרת.</div>
     <div class="item done"><strong>סנכרון</strong><br>כשל כתיבה מרחוק כבר לא נחשב הצלחה שקטה: נשלח אירוע <code>verdant:sync:result</code> ומדווחת שגיאה.</div>
+    <div class="item done"><strong>Tenant guard</strong><br>סנכרון מרחוק מקבל household ID רק אם הוא UUID תקין. ערך מזויף או פגום עוצר כתיבה.</div>
     <div class="item done"><strong>RPC מצב לקוח</strong><br>נוספה migration שמקשיחה את <code>upsert_client_state</code>: search_path קבוע, בדיקת מפתח, נעילה אטומית ו־grant מפורש למשתמשים מחוברים בלבד.</div>
     <div class="item done"><strong>CI</strong><br>נשמר workflow קיים והורחב ל־typecheck ו־build לפרונט ולבק, והרצת audit כתוצאה מדווחת. Lint עדיין דורש ניקוי ייעודי כי אין לו כרגע קונפיגורציה תקינה.</div>
     <div class="item done"><strong>שומר אבטחה אוטומטי</strong><br>נוסף <code>security:check</code> שסורק migrations, RLS, RPC מוגן, ו־service_role בפרונט. הבדיקה עברה.</div>
