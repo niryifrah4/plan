@@ -262,7 +262,7 @@ export async function pushDebtToTables(
     }
     const migratedMortgageId = new Map<string, string>();
     const normalizedMortgages = sourceMortgages.map((m) => {
-      if (!isUuid(m.id) || ownedMortgageIds.has(m.id)) return m;
+      if (isUuid(m.id) && ownedMortgageIds.has(m.id)) return m;
       const id = stableMigratedUuid(m.id, hh);
       migratedMortgageId.set(m.id, id);
       return { ...m, id };
