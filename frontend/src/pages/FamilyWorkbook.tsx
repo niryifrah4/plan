@@ -37,8 +37,10 @@ export function FamilyWorkbookPage() {
   const [summary, setSummary] = useState({ assets: 0, debt: 0, goals: 0 });
   const hydrateRun = useRef(0);
   const draftRef = useRef<WorkbookData>({});
+  const draftDirty = useRef(false);
 
   const hydrate = async () => {
+    if (draftDirty.current) return;
     const run = ++hydrateRun.current;
     // Remote first: the workbook must reflect the same household state as
     // dashboard, budget, debt and real-estate screens after refresh/device
@@ -101,20 +103,24 @@ export function FamilyWorkbookPage() {
     if (!hydrated) return;
     setSaveState("saving");
     const ok = await saveWorkbook(next);
+    if (ok) draftDirty.current = false;
     setSaveState(ok ? "saved" : "error");
   };
   const updateRow = (row: WorkbookRow, value: string) => {
     const next = updateWorkbookRow(data[active]?.length ? data : { ...data, [active]: starter[active] || [] }, active, row.id, value);
+    draftDirty.current = true;
     syncWorkbookRowToSite(active, row, value);
     draftRef.current = next; setData(next);
   };
   const addRow = () => {
     const row = { id: `${active}-custom-${Date.now()}`, label: "אחר — ערוך שם סעיף", value: "", note: "שדה דינמי" };
     const next = { ...data, [active]: [...(data[active] || []), row] };
+    draftDirty.current = true;
     draftRef.current = next; setData(next);
   };
   const updateCell = (row: WorkbookRow, index: number, value: string) => {
     const next = updateWorkbookCell(data[active]?.length ? data : { ...data, [active]: starter[active] || [] }, active, row.id, index, value);
+    draftDirty.current = true;
     if (index === 0) syncWorkbookRowToSite(active, row, value);
     draftRef.current = next; setData(next);
   };
