@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { hydrateAccountsFromRemote, loadAccounts, totalBankBalance } from "@/lib/accounts-store";
 import { hydrateDebtFromRemote, loadDebtData } from "@/lib/debt-store";
 import { loadBuckets } from "@/lib/buckets-store";
@@ -34,8 +34,10 @@ export function FamilyWorkbookPage() {
   const [data, setData] = useState<WorkbookData>({});
   const [saveState, setSaveState] = useState<"saved" | "saving" | "error">("saved");
   const [summary, setSummary] = useState({ assets: 0, debt: 0, goals: 0 });
+  const hydrateRun = useRef(0);
 
   const hydrate = async () => {
+    const run = ++hydrateRun.current;
     // Remote first: the workbook must reflect the same household state as
     // dashboard, budget, debt and real-estate screens after refresh/device
     // switch. Local stores are only the synchronous read model fallback.
@@ -51,6 +53,7 @@ export function FamilyWorkbookPage() {
     const debtTotal = debt.loans.reduce((sum, l) => sum + Number(l.monthlyPayment || 0), 0) + debt.mortgages.reduce((sum, m) => sum + m.tracks.reduce((trackSum, track) => trackSum + Number(track.remainingBalance || 0), 0), 0);
     setSummary({ assets, debt: debtTotal, goals: buckets.length });
     const remoteWorkbook = await pullBlob<WorkbookData>("family_workbook");
+    if (run !== hydrateRun.current) return;
     const workbook = hydrateWorkbookFromSite(remoteWorkbook && Object.keys(remoteWorkbook).length ? remoteWorkbook : loadWorkbook());
     const balanceValues: Record<string, string> = {
       "עו״ש ופיקדונות": String(totalBankBalance(accounts)),
@@ -71,7 +74,9 @@ export function FamilyWorkbookPage() {
 
   useEffect(() => {
     hydrate();
-    const events = ["storage", "verdant:family_workbook:updated", "verdant:onboarding:updated", "verdant:assumptions", "verdant:assumptions:updated", "verdant:budgets:updated", "verdant:debt:updated", "verdant:buckets:updated", "verdant:goals:updated", "verdant:realestate:updated"];
+    // Workbook save already updates local React state. Listening to its own
+    // save event causes a stale remote read to overwrite fresh input.
+    const events = ["storage", "verdant:onboarding:updated", "verdant:assumptions", "verdant:assumptions:updated", "verdant:budgets:updated", "verdant:debt:updated", "verdant:buckets:updated", "verdant:goals:updated", "verdant:realestate:updated"];
     events.forEach((event) => window.addEventListener(event, hydrate));
     return () => events.forEach((event) => window.removeEventListener(event, hydrate));
   }, []);
