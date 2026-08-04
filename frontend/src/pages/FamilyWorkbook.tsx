@@ -6,6 +6,7 @@ import { hydratePropertiesFromRemote, loadProperties } from "@/lib/realestate-st
 import { hydrateBudgetsFromRemote } from "@/lib/budget-store";
 import { hydrateTransactionsFromRemote } from "@/lib/budget-import";
 import { loadWorkbook, saveWorkbook, starter, syncWorkbookRowToSite, updateWorkbookCell, updateWorkbookRow, WORKBOOK_TABS, type WorkbookData, type WorkbookRow } from "@/lib/family-workbook";
+import { writeFamilyWorkbookXlsx } from "@/lib/family-workbook-export";
 import { useClient } from "@/lib/client-context";
 import { getSupabase } from "~/lib/supabase";
 import { pullBlob } from "@/lib/sync/blob-sync";
@@ -182,27 +183,7 @@ export function FamilyWorkbookPage() {
 
   const exportXlsx = async () => {
     try {
-      // Read latest persisted workbook at click time. Avoid stale React closure
-      // after an input event and keep export identical to what user sees.
-      const latest = draftRef.current;
-      const session = (await getSupabase()?.auth.getSession())?.data.session;
-      if (!session?.access_token) throw new Error("missing_session");
-      const response = await fetch("/api/family-workbook/export", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ familyName: familyName || "לקוח", data: latest }),
-      });
-      if (!response.ok) throw new Error(`export_failed_${response.status}`);
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = `חוברת-משפחה-${familyName || "לקוח"}.xlsx`;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(url);
-      return;
+      await writeFamilyWorkbookXlsx(draftRef.current, familyName || "לקוח");
     } catch (error) {
       console.error("[family-workbook] XLSX export failed", error);
       setSaveState("error");
