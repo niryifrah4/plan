@@ -191,7 +191,16 @@ export function FamilyWorkbookPage() {
   };
 
   if (!hydrated) {
-    return <main dir="rtl" className="family-workbook -mx-3 min-h-screen px-1 py-3 sm:-mx-6 md:-mx-10 md:px-3 md:py-4" style={{ background: "var(--verdant-bg, #f4f7f2)" }}><div className="flex min-h-[40vh] items-center justify-center text-sm font-bold text-slate-500">טוען נתוני משפחה…</div></main>;
+    return <main dir="rtl" className="family-workbook -mx-3 min-h-screen px-1 py-3 sm:-mx-6 md:-mx-10 md:px-3 md:py-4" style={{ background: "var(--verdant-bg, #f4f7f2)" }}>
+      <div className="family-workbook-loader flex min-h-[60vh] items-center justify-center px-4" role="status" aria-live="polite" aria-label="טוען נתוני משפחה">
+        <div className="w-full max-w-md rounded-[2rem] border border-white/80 bg-white/85 p-8 text-center shadow-[0_20px_70px_rgba(37,80,57,0.12)] backdrop-blur-sm">
+          <div className="family-workbook-loader__mark mx-auto mb-6" aria-hidden="true"><span className="family-workbook-loader__orbit family-workbook-loader__orbit--outer" /><span className="family-workbook-loader__orbit family-workbook-loader__orbit--inner" /><span className="family-workbook-loader__leaf">✦</span></div>
+          <p className="mb-2 text-xl font-black text-slate-800">מכינים את חוברת המשפחה</p>
+          <p className="text-sm font-medium text-slate-500">מחברים את הנתונים לתמונה אחת ברורה</p>
+          <div className="family-workbook-loader__progress mt-7" aria-hidden="true"><span /></div>
+        </div>
+      </div>
+    </main>;
   }
   return <main dir="rtl" className="family-workbook -mx-3 min-h-screen px-1 py-3 sm:-mx-6 md:-mx-10 md:px-3 md:py-4" style={{ background: "var(--verdant-bg, #f4f7f2)" }}><div className="mx-auto w-full max-w-none">
     <header className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-black text-slate-800">חוברת משפחה</h1><p className="text-sm text-slate-500">{familyName || "לקוח חדש"} · מבנה זהה לאקסל</p></div><div className="flex items-center gap-2"><button type="button" onClick={exportXlsx} className="rounded-xl bg-slate-800 px-4 py-2 text-xs font-black text-white">ייצוא XLSX</button><div role="status" className={`rounded-xl bg-white px-4 py-2 text-xs font-bold ${saveState === "error" ? "text-red-700" : "text-slate-500"}`}>{saveState === "saved" ? "נשמר בשרת" : saveState === "saving" ? "שומר בשרת..." : "השמירה נכשלה — הנתון לא נשמר"}</div></div></header>

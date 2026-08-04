@@ -715,6 +715,89 @@ body {
   }
 }
 
+@keyframes family-loader-orbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes family-loader-orbit-reverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+@keyframes family-loader-breathe {
+  0%, 100% { transform: scale(0.94); opacity: 0.72; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+
+@keyframes family-loader-progress {
+  0% { transform: translateX(115%); }
+  100% { transform: translateX(-115%); }
+}
+
+.family-workbook-loader__mark {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  display: grid;
+  place-items: center;
+  color: #087f5b;
+}
+
+.family-workbook-loader__orbit {
+  position: absolute;
+  inset: 5px;
+  border: 2px solid rgba(8, 127, 91, 0.16);
+  border-top-color: #0b8f68;
+  border-right-color: #f2b94b;
+  border-radius: 999px;
+  animation: family-loader-orbit 1.8s linear infinite;
+}
+
+.family-workbook-loader__orbit--inner {
+  inset: 18px;
+  border-width: 3px;
+  border-top-color: #f2b94b;
+  border-right-color: rgba(8, 127, 91, 0.22);
+  animation: family-loader-orbit-reverse 1.25s linear infinite;
+}
+
+.family-workbook-loader__leaf {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 14px 14px 14px 4px;
+  background: #edf8dd;
+  color: #087f5b;
+  font-size: 22px;
+  box-shadow: 0 8px 20px rgba(8, 127, 91, 0.12);
+  animation: family-loader-breathe 2s ease-in-out infinite;
+}
+
+.family-workbook-loader__progress {
+  position: relative;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e9f0e9;
+}
+
+.family-workbook-loader__progress span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 42%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #087f5b, #8bc34a, #f2b94b);
+  animation: family-loader-progress 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .family-workbook-loader__orbit,
+  .family-workbook-loader__leaf,
+  .family-workbook-loader__progress span { animation: none; }
+}
+
 /* Scrollbar polish — light surface */
 ::-webkit-scrollbar {
   width: 8px;
