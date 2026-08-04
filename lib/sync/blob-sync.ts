@@ -118,34 +118,6 @@ async function pushBlobViaServerRoute<T = any>(
   }
 }
 
-async function pushBlobDirect<T = any>(
-  key: string,
-  value: T,
-  householdIdOverride?: string | null
-): Promise<boolean> {
-  if (!isSupabaseConfigured()) return false;
-  const hh = householdIdOverride ?? getHouseholdId();
-  if (!hh) return false;
-  const sb = getSupabaseBrowser();
-  if (!sb) return false;
-  try {
-    const { error } = await sb
-      .from("client_state")
-      .upsert(
-        { household_id: hh, state_key: key, state_value: value as any },
-        { onConflict: "household_id,state_key" }
-      );
-    if (error) {
-      console.warn(`[blob-sync:${key}] direct upsert error:`, error.message);
-      return false;
-    }
-    return true;
-  } catch (e) {
-    console.warn(`[blob-sync:${key}] direct threw:`, e);
-    return false;
-  }
-}
-
 /**
  * Push a blob to Supabase, scoped to a household.
  *
@@ -154,9 +126,9 @@ async function pushBlobDirect<T = any>(
  * to the household that was active **at the moment of save**, not at the
  * moment the async push resolves.
  *
- * The primary write path is now a server route so the browser no longer
- * writes directly to Supabase. If that route is unavailable, we fall back
- * to the legacy direct client write to avoid losing data during rollout.
+ * The only write path is the authenticated server route + canonical RPC.
+ * Failure stays in the retry queue; it never bypasses authorization through
+ * a second browser-to-database path.
  */
 export async function pushBlob<T = any>(
   key: string,
@@ -173,12 +145,6 @@ export async function pushBlob<T = any>(
     return true;
   }
 
-  const viaDirect = await pushBlobDirect(key, value, hh);
-  if (viaDirect) {
-    dequeuePush(hh, key);
-    return true;
-  }
-  
   return false;
 }
 
@@ -197,7 +163,7 @@ export function pushBlobInBackground<T = any>(
   import("./push-queue")
     .then((m) => m.enqueuePush(key, value, hh))
     .catch(() => {
-      // אם התור לא נטען משום מה — נופלים חזרה לדחיפה הישירה הישנה.
+      // אם התור לא נטען — לא עוקפים את מסלול הכתיבה הקנוני.
       void pushBlob(key, value, hh);
     });
 }

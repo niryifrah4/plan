@@ -32,6 +32,7 @@
     <div class="item done"><strong>סנכרון</strong><br>כשל כתיבה מרחוק כבר לא נחשב הצלחה שקטה: נשלח אירוע <code>verdant:sync:result</code> ומדווחת שגיאה.</div>
     <div class="item done"><strong>Tenant guard</strong><br>סנכרון מרחוק מקבל household ID רק אם הוא UUID תקין. ערך מזויף או פגום עוצר כתיבה.</div>
     <div class="item done"><strong>RPC מצב לקוח</strong><br>נוספה migration שמקשיחה את <code>upsert_client_state</code>: search_path קבוע, בדיקת מפתח, נעילה אטומית ו־grant מפורש למשתמשים מחוברים בלבד.</div>
+    <div class="item done"><strong>מסלול כתיבה קנוני</strong><br>שמירת <code>client_state</code> עוברת רק דרך API מאומת ו־RPC אטומי. הוסר fallback ישיר מהדפדפן ומסלול legacy; כשל נשאר בתור retry.</div>
     <div class="item done"><strong>CI</strong><br>נשמר workflow קיים והורחב ל־typecheck ו־build לפרונט ולבק, והרצת audit כתוצאה מדווחת. Lint עדיין דורש ניקוי ייעודי כי אין לו כרגע קונפיגורציה תקינה.</div>
     <div class="item done"><strong>שומר אבטחה אוטומטי</strong><br>נוסף <code>security:check</code> שסורק migrations, RLS, RPC מוגן, ו־service_role בפרונט. הבדיקה עברה.</div>
   </section>
@@ -47,6 +48,8 @@
       <li>UI בדפדפן פתוח — משתמש מחובר פתח את <code>/family-workbook</code>, ערך בכל 12 הלשוניות, והחוברת נטענה.</li>
       <li>Supabase migration <code>20260804100000</code> — הוחל ב־remote ואומת.</li>
       <li>UI מחובר ב־Command+B — דשבורד נטען, חוברת נטענה, וכל 12 הלשוניות נפתחו.</li>
+      <li>בדיקת UI חיה — 11 לשוניות תוכן עברו בכותרת ובמבנה; בית נטען עם סיכום בית ייעודי.</li>
+      <li>בדיקת עריכה חיה — שדה בן/בת זוג קיבל ערך זמני, נשמר, והוחזר לערך המקורי.</li>
       <li>Features E2E עם auth bypass — 7/7 עברו. Desktop מלא ללא session — 32 עברו ו־4 נבלמו ב־login, כלומר בעיית סביבת בדיקה ולא כשל מוצר.</li>
     </ul>
   </section>
@@ -55,7 +58,7 @@
     <h2>מה עדיין דורש טיפול</h2>
     <div class="item critical"><strong>הרשאות DB רחבות</strong><br>קיימים grants כלליים ל־authenticated. ה־RPC המרכזי הוקשח, אבל צריך לצמצם לפי טבלה/פעולה לאחר מיפוי כל המסכים, אחרת אפשר לשבור את האפליקציה.</div>
     <div class="item critical"><strong>localStorage כמקור אמת</strong><br>עדיין קיימת ארכיטקטורת localStorage-first. צריך להפוך את Supabase למקור האמת, עם cache מקומי בלבד ומצב שמירה גלוי.</div>
-    <div class="item"><strong>מסלולי כתיבה מרובים</strong><br>יש כמה מנגנוני sync. צריך command קנוני לכל תחום ו־transaction/idempotency לשינויים מורכבים.</div>
+    <div class="item"><strong>מסלולי כתיבה בתחומים אחרים</strong><br>מצב client_state נסגר למסלול קנוני. עדיין צריך להחיל אותו דפוס על תחומי הנתונים הישירים האחרים.</div>
     <div class="item"><strong>xlsx</strong><br>ה־dependency מדווחת חולשות Prototype Pollution ו־ReDoS. צריך להחליף או לבודד את parser, במיוחד בקבצים שמגיעים ממשתמשים.</div>
     <div class="item"><strong>Production</strong><br>צריך להוסיף CI branch protection, backup/restore test, schema drift check, ניטור, alerting ו־rollback.</div>
     <div class="item"><strong>אימות מלא</strong><br>בדיקות UI מלאות למסכים מאומתים דורשות session בדפדפן. כרגע נבדק רק שער ההתחברות.</div>

@@ -8,7 +8,8 @@ import { assertHouseholdAccess } from "../lib/household-auth.js";
 /**
  * POST /api/sync/blob — ported from app/api/sync/blob.
  * Atomic client_state upsert with optimistic concurrency via the
- * upsert_client_state RPC, with a legacy fallback for pre-migration DBs.
+ * upsert_client_state RPC. There is one write command and one transaction
+ * boundary; legacy direct table writes are intentionally not supported.
  */
 export const syncRouter = Router();
 
@@ -43,22 +44,8 @@ syncRouter.post(
     });
 
     if (error) {
-      const code = (error as { code?: string }).code;
-      if (code === "PGRST202" || code === "42883") {
-        const { error: upErr } = await sb
-          .from("client_state")
-          .upsert(
-            { household_id: householdId, state_key: key, state_value: (value ?? null) as never },
-            { onConflict: "household_id,state_key" }
-          );
-        if (upErr) {
-          res.status(500).json({ ok: false, error: "upsert_failed", detail: upErr.message });
-          return;
-        }
-        res.json({ ok: true, version: null });
-        return;
-      }
-      res.status(500).json({ ok: false, error: "upsert_failed", detail: error.message });
+      console.error("[sync/blob] canonical RPC failed", error.message);
+      res.status(500).json({ ok: false, error: "upsert_failed" });
       return;
     }
 
