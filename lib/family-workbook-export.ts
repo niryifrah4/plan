@@ -5,6 +5,13 @@ import type { WorkbookData } from "./family-workbook";
 const MONTHS = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"];
 
 const TEMPLATE_URL = "/family-workbook-template.xlsx";
+const SECTION_LABELS = new Set([
+  "פרטים אישיים", "פרטים פיננסיים — הערכה גסה", "ידע פיננסי וסיכון", "ביטוחים ומשפחה",
+  "תכנון וציפיות — השיחה האמיתית", "הכנסות", "הוצאות קבועות", "הוצאות משתנות",
+  "מה יש לנו — נכסים", "מה אנחנו חייבים — התחייבויות", "חשבונות בנק — הכלים של הזוג",
+  "היסטוריית מאזן", "הלוואות", "מחשבון איחוד הלוואות", "עסקאות בתשלומים", "משכנתא",
+  "לאן הולך הכסף — שנתי, תכנון מול ביצוע", "הוצאות שנתיות (חלוקה חודשית)",
+]);
 
 function putValue(sheet: XLSX.WorkSheet, row: number, col: number, value: string): void {
   const address = XLSX.utils.encode_cell({ r: row, c: col });
@@ -123,6 +130,10 @@ export function fillTemplate(book: XLSX.WorkBook, data: WorkbookData): XLSX.Work
       if (spouse2?.value) putValue(sheet, 5, 3, spouse2.value);
     }
     for (const row of rows) {
+      // Section headers are layout rows, not user-input fields. Writing a
+      // stored value into them can leak demo data into the adjacent template
+      // cell (for example "נתן דוגמה 23").
+      if (SECTION_LABELS.has(row.label)) continue;
       if (monthly && (id === "cashflow" || id === "business")) continue;
       if (id === "debts" || id === "goals" || id === "journal") continue;
       const aliases: Record<string, string> = id === "questionnaire"
