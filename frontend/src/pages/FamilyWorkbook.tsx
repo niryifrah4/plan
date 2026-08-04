@@ -39,6 +39,7 @@ export function FamilyWorkbookPage() {
   const hydrateRun = useRef(0);
   const draftRef = useRef<WorkbookData>({});
   const draftDirty = useRef(false);
+  const hydrationReady = useRef(false);
 
   const hydrate = async () => {
     if (draftDirty.current) return;
@@ -87,6 +88,7 @@ export function FamilyWorkbookPage() {
     workbook.insights = workbook.insights.map((row) => insightValues[row.label] !== undefined ? { ...row, value: insightValues[row.label], calculated: true } : row);
     setData(workbook);
     draftRef.current = workbook;
+    hydrationReady.current = true;
     setHydrated(true);
   };
 
@@ -135,6 +137,7 @@ export function FamilyWorkbookPage() {
     if (nextTab === active) return;
     const snapshot = draftRef.current;
     setActive(nextTab);
+    if (!hydrationReady.current) return;
     const saved = await persist(snapshot);
     if (saved) pushOnboardingSnapshot();
   };
