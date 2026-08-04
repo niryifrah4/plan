@@ -35,17 +35,23 @@ test("family workbook: 12 tabs, bidirectional name sync, XLSX export", async ({ 
 
   await page.getByRole("button", { name: "מיפוי", exact: true }).click();
   const budgetSave = waitForWorkbookSave();
-  await page.getByLabel("מזון לבית (סופר)", { exact: true }).fill("3200");
+  const foodInput = page.getByLabel("מזון לבית (סופר)", { exact: true });
+  await foodInput.waitFor({ state: "visible", timeoutMs: 15_000 });
+  await foodInput.fill("3200");
   await budgetSave;
 
   await page.getByRole("button", { name: "מטרות ויעדים", exact: true }).click();
   const goalSave = waitForWorkbookSave();
-  await page.getByLabel("קרן חירום", { exact: true }).fill("1800");
+  const goalInput = page.getByLabel("קרן חירום", { exact: true });
+  await goalInput.waitFor({ state: "visible", timeoutMs: 15_000 });
+  await goalInput.fill("1800");
   await goalSave;
 
   await page.getByRole("button", { name: "עסק", exact: true }).click();
   const businessSave = waitForWorkbookSave();
-  await page.getByLabel("הכנסות תפעוליות ינואר תכנון", { exact: true }).fill("12000");
+  const businessInput = page.getByLabel("הכנסות תפעוליות ינואר תכנון", { exact: true });
+  await businessInput.waitFor({ state: "visible", timeoutMs: 15_000 });
+  await businessInput.fill("12000");
   await businessSave;
 
   await page.getByRole("button", { name: "חובות", exact: true }).click();
