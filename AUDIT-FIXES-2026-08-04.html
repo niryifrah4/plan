@@ -27,6 +27,7 @@
     <div class="item done"><strong>תיקון טעינת env ב־Vite</strong><br>Vite קרא רק <code>VITE_*</code> ולכן עם קובץ env שמכיל <code>NEXT_PUBLIC_*</code> נכנס למצב דמו. נוסף fallback מפורש ל־<code>NEXT_PUBLIC_SUPABASE_URL</code> ו־<code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>.</div>
     <div class="item done"><strong>בדיקת UI בדפדפן הפתוח</strong><br>העמוד החי נטען. 12/12 לשוניות נפתחו. סטטוס השמירה הציג “נשמר בשרת”. הנתונים הקיימים הופיעו גם בדשבורד וגם בחוברת.</div>
     <div class="item critical"><strong>E2E login</strong><br>הבדיקה משתמשת כעת רק ב־<code>E2E_EMAIL</code> ו־<code>E2E_PASSWORD</code> וטוענת את <code>.env</code>. ההרצה נעצרה לפני המסכים כי Supabase החזיר <code>Invalid login credentials</code>. אין סימון ירוק עד שיוזן משתמש בדיקה קיים בסביבת Supabase שמוגדרת ב־env.</div>
+    <div class="item done"><strong>RLS collision במשכנתאות</strong><br>בדיקת UI זיהתה כתיבות חוזרות שנחסמו. נוספה בדיקת בעלות לפני upsert ומיגרציית מזהה דטרמיניסטית למזהה שהגיע מ־household אחר. RLS נשאר פעיל; אין עקיפת הרשאות.</div>
   </section>
 
   <section>

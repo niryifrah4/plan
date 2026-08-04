@@ -188,6 +188,22 @@ function rowToInstallment(row: InstallmentRow): Installment {
   };
 }
 
+// Local snapshots can contain an id copied from another household. PostgREST
+// then treats upsert as UPDATE and RLS rejects it. Derive a stable replacement
+// id so the same legacy row migrates once without weakening tenant policies.
+function stableMigratedUuid(sourceId: string, householdId: string): string {
+  let a = 2166136261;
+  let b = 16777619;
+  for (const ch of `${householdId}:${sourceId}`) {
+    a = Math.imul(a ^ ch.charCodeAt(0), 16777619);
+    b = Math.imul(b ^ ch.charCodeAt(0), 2246822519);
+  }
+  const hex = `${(a >>> 0).toString(16).padStart(8, "0")}${(b >>> 0).toString(16).padStart(8, "0")}`
+    .padEnd(32, "0")
+    .slice(0, 32);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-${((parseInt(hex.slice(16, 18), 16) & 0x3f) | 0x80).toString(16).padStart(2, "0")}${hex.slice(18, 20)}-${hex.slice(20, 32)}`;
+}
+
 /* ── Push (write whole snapshot) ─────────────────────────────────────────── */
 
 /**
@@ -227,8 +243,34 @@ export async function pushDebtToTables(
       return safe;
     };
 
-    // Mortgages — upsert then delete stale rows.
-    const mortgageRows = (data.mortgages || []).map((m) => mortgageToRow(m, hh));
+    // Mortgages — upsert then delete stale rows. Preflight IDs first: an old
+    // snapshot may reuse a primary key owned by another household.
+    const sourceMortgages = data.mortgages || [];
+    const sourceMortgageIds = filterIds(sourceMortgages.map((m) => m.id));
+    const ownedMortgageIds = new Set<string>();
+    if (sourceMortgageIds.length > 0) {
+      const { data: owned, error: ownedErr } = await sb
+        .from("mortgages")
+        .select("id")
+        .eq("household_id", hh)
+        .in("id", sourceMortgageIds);
+      if (ownedErr) {
+        console.warn("[debt-tables] mortgage ownership check failed:", ownedErr.message);
+        return false;
+      }
+      for (const row of owned || []) ownedMortgageIds.add(String(row.id));
+    }
+    const migratedMortgageId = new Map<string, string>();
+    const normalizedMortgages = sourceMortgages.map((m) => {
+      if (!isUuid(m.id) || ownedMortgageIds.has(m.id)) return m;
+      const id = stableMigratedUuid(m.id, hh);
+      migratedMortgageId.set(m.id, id);
+      return { ...m, id };
+    });
+    if (migratedMortgageId.size > 0) {
+      console.warn(`[debt-tables] migrated ${migratedMortgageId.size} cross-household mortgage id(s)`);
+    }
+    const mortgageRows = normalizedMortgages.map((m) => mortgageToRow(m, hh));
     const mortgageIds = filterIds(mortgageRows.map((r) => r.id));
     if (mortgageRows.length > 0) {
       const { error: mErr } = await sb
@@ -256,7 +298,7 @@ export async function pushDebtToTables(
     }
 
     // Tracks — upsert each mortgage's tracks, then delete stale tracks for that mortgage.
-    for (const m of data.mortgages || []) {
+    for (const m of normalizedMortgages) {
       const trackRows = (m.tracks || []).map((t) => trackToRow(t, m.id));
       const trackIds = filterIds(trackRows.map((r) => r.id));
       if (trackRows.length > 0) {
