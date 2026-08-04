@@ -34,9 +34,14 @@ export async function pullBlob<T = any>(key: string): Promise<T | null> {
       let lastError: unknown;
       for (let attempt = 0; attempt < 5; attempt += 1) {
         try {
-          return await fetch(`/api/sync/blob?key=${encodeURIComponent(key)}&householdId=${encodeURIComponent(householdId)}`, {
+          const response = await fetch(`/api/sync/blob?key=${encodeURIComponent(key)}&householdId=${encodeURIComponent(householdId)}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
+          if (response.status >= 500 && attempt < 4) {
+            await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+            continue;
+          }
+          return response;
         } catch (error) {
           lastError = error;
           await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
