@@ -50,15 +50,14 @@ cryptoRouter.post(
 
       if (!r.ok) {
         const text = await r.text();
-        let detail: unknown = text;
         try {
-          detail = JSON.parse(text);
+          JSON.parse(text); // consume/validate provider response, never return it
         } catch (e) {
           reportError("api/crypto/binance/balances", e);
         }
         res
           .status(r.status === 401 || r.status === 403 ? 401 : 502)
-          .json({ error: `Binance returned ${r.status}`, detail });
+          .json({ error: r.status === 401 || r.status === 403 ? "invalid_exchange_credentials" : "exchange_unavailable" });
         return;
       }
 
@@ -72,10 +71,8 @@ cryptoRouter.post(
         .filter((b) => b.total > 0);
       res.json({ balances });
     } catch (err) {
-      res.status(502).json({
-        error: "Failed to reach Binance",
-        message: err instanceof Error ? err.message : String(err),
-      });
+      reportError("api/crypto/binance/balances:upstream", err);
+      res.status(502).json({ error: "exchange_unavailable" });
     }
   })
 );

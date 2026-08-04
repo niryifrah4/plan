@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Audit ארכיטקטורה — plan</title>
+  <style>
+    :root{font-family:Arial,sans-serif;color:#17221b;background:#f3f7f2;line-height:1.65}
+    body{max-width:1050px;margin:0 auto;padding:28px}
+    header,section{background:#fff;border:1px solid #dfe9df;border-radius:18px;padding:22px;margin-bottom:16px;box-shadow:0 4px 16px #193b1610}
+    h1{margin:0 0 5px;color:#12633d}h2{color:#12633d;margin-top:0}.meta{color:#66756b}
+    .item{border-right:5px solid #e3a400;padding:10px 14px;margin:12px 0;background:#fffaf0;border-radius:8px}
+    .done{border-color:#1c9b61;background:#f1fbf5}.critical{border-color:#c74343;background:#fff5f5}
+    code{direction:ltr;unicode-bidi:embed;background:#eef2ee;padding:2px 5px;border-radius:5px}
+    li{margin:7px 0}.small{font-size:.92rem;color:#5e6a62}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Audit ארכיטקטורה והקשחה</h1>
+    <div class="meta">פרויקט plan-nir-yifrah · 4 באוגוסט 2026 · בדיקה ותיקונים ללא נגיעה בגיבוי Next</div>
+    <p><strong>מצב:</strong> בוצעו תיקונים בטוחים ומאומתים. נשארו עבודות עמוקות שדורשות תכנון DB/Production ולא בוצעו באופן עיוור.</p>
+  </header>
+
+  <section>
+    <h2>מה בוצע</h2>
+    <div class="item done"><strong>הקשחת API</strong><br>נוספו Security Headers דרך Helmet, הוסרה חתימת Express, נוסף Rate Limit גלובלי ל־API, ו־CORS מאשר רק origins מוגדרים.</div>
+    <div class="item done"><strong>הקטנת שטח תקיפה</strong><br>Body JSON גלובלי ירד מ־10MB ל־2MB. העלאות קבצים עדיין מוגבלות ל־20MB ובדיקות magic-bytes קיימות במסלולים.</div>
+    <div class="item done"><strong>מניעת דליפת מידע</strong><br>שגיאות 500 מחזירות <code>internal_error</code> בלבד. פרטי DB ו־stack trace נשארים בלוג השרת.</div>
+    <div class="item done"><strong>סנכרון</strong><br>כשל כתיבה מרחוק כבר לא נחשב הצלחה שקטה: נשלח אירוע <code>verdant:sync:result</code> ומדווחת שגיאה.</div>
+    <div class="item done"><strong>CI</strong><br>נשמר workflow קיים והורחב ל־typecheck ו־build לפרונט ולבק, והרצת audit כתוצאה מדווחת. Lint עדיין דורש ניקוי ייעודי כי אין לו כרגע קונפיגורציה תקינה.</div>
+  </section>
+
+  <section>
+    <h2>בדיקות שבוצעו</h2>
+    <ul>
+      <li>Backend typecheck — עבר.</li>
+      <li>Frontend typecheck — עבר.</li>
+      <li>Backend build — עבר.</li>
+      <li>Frontend build — עבר.</li>
+      <li>E2E חוברת משפחה — עבר: 12 לשוניות, סנכרון, עריכה וייצוא XLSX.</li>
+      <li>UI בדפדפן פתוח — הנתיב <code>/family-workbook</code> מוגן ומפנה להתחברות ללא session.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>מה עדיין דורש טיפול</h2>
+    <div class="item critical"><strong>הרשאות DB רחבות</strong><br>קיימים grants כלליים ל־authenticated. צריך לצמצם לפי טבלה/פעולה לאחר מיפוי כל המסכים, אחרת אפשר לשבור את האפליקציה.</div>
+    <div class="item critical"><strong>localStorage כמקור אמת</strong><br>עדיין קיימת ארכיטקטורת localStorage-first. צריך להפוך את Supabase למקור האמת, עם cache מקומי בלבד ומצב שמירה גלוי.</div>
+    <div class="item"><strong>מסלולי כתיבה מרובים</strong><br>יש כמה מנגנוני sync. צריך command קנוני לכל תחום ו־transaction/idempotency לשינויים מורכבים.</div>
+    <div class="item"><strong>xlsx</strong><br>ה־dependency מדווחת חולשות Prototype Pollution ו־ReDoS. צריך להחליף או לבודד את parser, במיוחד בקבצים שמגיעים ממשתמשים.</div>
+    <div class="item"><strong>Production</strong><br>צריך להוסיף CI branch protection, backup/restore test, schema drift check, ניטור, alerting ו־rollback.</div>
+    <div class="item"><strong>אימות מלא</strong><br>בדיקות UI מלאות למסכים מאומתים דורשות session בדפדפן. כרגע נבדק רק שער ההתחברות.</div>
+  </section>
+
+  <section>
+    <h2>סדר עבודה מומלץ להמשך</h2>
+    <ol>
+      <li>להחליף <code>xlsx</code> או להעביר parsing מסוכן לשירות מבודד.</li>
+      <li>למפות כל table ו־policy ולצמצם grants.</li>
+      <li>להגדיר API/commands קנוניים ו־transactions.</li>
+      <li>להפוך Supabase למקור אמת ולשמור localStorage כ־cache.</li>
+      <li>להוסיף בדיקות tenant isolation לכל route ולכל table.</li>
+      <li>להגדיר backup, restore, monitoring ו־rollback אמיתיים.</li>
+    </ol>
+  </section>
+</body>
+</html>

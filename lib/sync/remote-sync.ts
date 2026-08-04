@@ -5,7 +5,9 @@
  *
  * Pattern: "localStorage-first, Supabase-best-effort".
  * - All reads serve from localStorage immediately (sync, fast).
- * - On save, we write LS first (never loses), then push to Supabase in background.
+ * - On save, we write the local cache first for responsive UI, then push to
+ *   Supabase in background. Remote failure is surfaced as a visible event;
+ *   it is never silently treated as success.
  * - On app boot / household switch, we pull from Supabase and overwrite LS
  *   so the user sees fresh cross-device data.
  *
@@ -155,5 +157,11 @@ export function pushToRemoteInBackground<TLocal, TRow = any>(
   items: TLocal[]
 ) {
   const hh = getHouseholdId();
-  void pushToRemote(cfg, items, hh);
+  void pushToRemote(cfg, items, hh).then((result) => {
+    if (typeof window === "undefined") return;
+    window.dispatchEvent(new CustomEvent("verdant:sync:result", {
+      detail: { table: cfg.table, householdId: hh, ...result },
+    }));
+    if (!result.ok) reportError(`sync:${cfg.table}:remote-write`, new Error(result.error || "remote_write_failed"));
+  });
 }

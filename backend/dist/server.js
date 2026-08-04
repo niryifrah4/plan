@@ -2967,6 +2967,8 @@ transactions array with a warning that explains why.`;
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import rateLimit2 from "express-rate-limit";
 
 // src/env.ts
 import { config } from "dotenv";
@@ -6851,13 +6853,12 @@ cryptoRouter.post(
       });
       if (!r.ok) {
         const text = await r.text();
-        let detail = text;
         try {
-          detail = JSON.parse(text);
+          JSON.parse(text);
         } catch (e) {
           reportError("api/crypto/binance/balances", e);
         }
-        res.status(r.status === 401 || r.status === 403 ? 401 : 502).json({ error: `Binance returned ${r.status}`, detail });
+        res.status(r.status === 401 || r.status === 403 ? 401 : 502).json({ error: r.status === 401 || r.status === 403 ? "invalid_exchange_credentials" : "exchange_unavailable" });
         return;
       }
       const data = await r.json();
@@ -6868,10 +6869,8 @@ cryptoRouter.post(
       }).filter((b) => b.total > 0);
       res.json({ balances });
     } catch (err) {
-      res.status(502).json({
-        error: "Failed to reach Binance",
-        message: err instanceof Error ? err.message : String(err)
-      });
+      reportError("api/crypto/binance/balances:upstream", err);
+      res.status(502).json({ error: "exchange_unavailable" });
     }
   })
 );
@@ -10092,13 +10091,33 @@ familyWorkbookRouter.post("/export", asyncHandler(async (req, res) => {
 
 // src/server.ts
 var app = express();
+app.disable("x-powered-by");
+app.set("trust proxy", 1);
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    // frontend owns its CSP; API must not break it
+    crossOriginResourcePolicy: { policy: "same-site" }
+  })
+);
+var apiLimiter = rateLimit2({
+  windowMs: 6e4,
+  limit: 240,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "rate_limited" }
+});
+app.use("/api", apiLimiter);
 app.use(
   cors({
-    origin: env.CORS_ORIGINS,
+    origin(origin, callback) {
+      if (!origin || env.CORS_ORIGINS.includes(origin)) return callback(null, true);
+      return callback(new Error("cors_origin_not_allowed"));
+    },
     credentials: true
   })
 );
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "2mb" }));
 app.use(cookieParser());
 app.use("/api/health", healthRouter);
 app.use("/api/crm/invites", invitesRouter);
@@ -10123,9 +10142,8 @@ app.use((_req, res) => {
   res.status(404).json({ error: "not_found" });
 });
 app.use((err, _req, res, _next) => {
-  const message = err instanceof Error ? err.message : "internal_error";
   console.error("[error]", err);
-  res.status(500).json({ error: message });
+  res.status(500).json({ error: "internal_error" });
 });
 try {
   assertSupabaseEnv();

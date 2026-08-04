@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { env, assertSupabaseEnv } from "./env.js";
 import { healthRouter } from "./routes/health.js";
 import { crmRouter } from "./routes/crm.js";
@@ -24,14 +26,36 @@ import { familyWorkbookRouter } from "./routes/family-workbook.js";
 
 const app = express();
 
+// Baseline API hardening. Route-specific limits below protect expensive
+// endpoints; this global limit mainly stops accidental request floods.
+app.disable("x-powered-by");
+app.set("trust proxy", 1);
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // frontend owns its CSP; API must not break it
+    crossOriginResourcePolicy: { policy: "same-site" },
+  })
+);
+const apiLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 240,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "rate_limited" },
+});
+app.use("/api", apiLimiter);
+
 // --- Global middleware ---
 app.use(
   cors({
-    origin: env.CORS_ORIGINS,
+    origin(origin, callback) {
+      if (!origin || env.CORS_ORIGINS.includes(origin)) return callback(null, true);
+      return callback(new Error("cors_origin_not_allowed"));
+    },
     credentials: true,
   })
 );
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "2mb" }));
 app.use(cookieParser());
 
 // --- Routes ---
@@ -67,9 +91,9 @@ app.use((_req, res) => {
 // --- Error handler ---
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  const message = err instanceof Error ? err.message : "internal_error";
   console.error("[error]", err);
-  res.status(500).json({ error: message });
+  // Never expose stack traces, database messages, or provider secrets to the browser.
+  res.status(500).json({ error: "internal_error" });
 });
 
 // --- Boot ---
