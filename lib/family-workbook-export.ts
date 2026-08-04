@@ -29,7 +29,26 @@ export function fillTemplate(book: XLSX.WorkBook, data: WorkbookData): XLSX.Work
         if (typeof cell?.v === "string" && cell.v.trim()) labels.set(cell.v.trim(), r);
       }
     }
+    if (id === "cashflow") {
+      const inputRows = [
+        ...Array.from({ length: 6 }, (_, i) => 5 + i),
+        ...Array.from({ length: 18 }, (_, i) => 14 + i),
+        ...Array.from({ length: 17 }, (_, i) => 35 + i),
+      ];
+      const sectionLabels = new Set(["תחילת פעילות — חודש", "שנה", "שנת פעילות", "הכנסות", "הוצאות קבועות", "הוצאות משתנות"]);
+      const editable = rows.filter((row) => row.cells && !row.calculated && !sectionLabels.has(row.label) && !row.label.startsWith("סה״כ") && row.label !== "תזרים נטו" && row.label !== "מצטבר (ביצוע)" && !row.label.startsWith("כרית"));
+      editable.slice(0, inputRows.length).forEach((row, index) => {
+        for (let i = 0; i < 24; i++) putValue(sheet, inputRows[index], 2 + i, row.cells?.[i] || "");
+      });
+    }
+    if (id === "business") {
+      const inputRows = [4, 5, 6, 7, 9];
+      rows.filter((row) => row.cells && !row.calculated && !row.label.startsWith("◄") && !row.label.startsWith("מצטבר")).slice(0, inputRows.length).forEach((row, index) => {
+        for (let i = 0; i < 12; i++) putValue(sheet, inputRows[index], 2 + i, row.cells?.[i * 2] || "");
+      });
+    }
     for (const row of rows) {
+      if (monthly && (id === "cashflow" || id === "business")) continue;
       const aliases: Record<string, string> = id === "questionnaire"
         ? { "שם בן/בת זוג 1": "שם מלא" }
         : {};
