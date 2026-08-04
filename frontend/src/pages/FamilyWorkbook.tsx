@@ -6,7 +6,6 @@ import { loadProperties } from "@/lib/realestate-store";
 import { hydrateWorkbookFromSite, loadWorkbook, saveWorkbook, syncWorkbookRowToSite, updateWorkbookCell, updateWorkbookRow, WORKBOOK_TABS, type WorkbookData, type WorkbookRow } from "@/lib/family-workbook";
 import { useClient } from "@/lib/client-context";
 import { writeFamilyWorkbookXlsx } from "@/lib/family-workbook-export";
-import { scopedKey } from "@/lib/client-scope";
 import { getSupabase } from "~/lib/supabase";
 import { pullBlob } from "@/lib/sync/blob-sync";
 import { fmtILS } from "@/lib/_shared/format";
@@ -93,13 +92,6 @@ export function FamilyWorkbookPage() {
     // Read latest persisted workbook at click time. Avoid stale React closure
     // after an input event and keep export identical to what user sees.
     const latest = hydrateWorkbookFromSite(data);
-    try {
-      const rawFields = localStorage.getItem(scopedKey("verdant:onboarding:fields"));
-      const fields = rawFields ? JSON.parse(rawFields) as Record<string, string> : {};
-      latest.questionnaire = latest.questionnaire.map((row) => row.label === "שם בן/בת זוג 1" && fields.p1_name
-        ? { ...row, value: fields.p1_name }
-        : row);
-    } catch { /* export continues with persisted workbook */ }
     const session = (await getSupabase()?.auth.getSession())?.data.session;
     if (session?.access_token) {
       const response = await fetch("/api/family-workbook/export", {
@@ -137,7 +129,7 @@ function WorkbookSheet({ tab, label, rows, onUpdate, onCellUpdate, onAdd }: { ta
   const monthly = tab === "cashflow" || tab === "business";
   if (monthly) return <MonthlySheet label={label} rows={rows} onCellUpdate={onCellUpdate} onAdd={onAdd} />;
   const headers = tab === "questionnaire" ? ["שדה", "בן/בת זוג 1", "בן/בת זוג 2", "הערות"] : tab === "goals" ? ["מטרה", "שנת יעד", "עלות היום", "עלות עתידית", "תשואה נטו", "חסר", "הפקדה חודשית", "מקצים בפועל", "פער", "הערות"] : ["סעיף", "ערך / תכנון", "הערות"];
-  return <section className="overflow-hidden rounded-2xl bg-white shadow-sm"><div className="flex items-center justify-between border-b border-slate-200 px-5 py-4"><div><h2 className="text-lg font-black text-slate-800">{label}</h2><p className="text-xs text-slate-500">מבנה מקביל ל־template · צהוב לעריכה · אפור לחישוב</p></div><button type="button" onClick={onAdd} className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-black text-white">+ הוסף אחר</button></div><div className="overflow-x-auto"><table className="w-full min-w-[850px] border-collapse"><thead><tr className="bg-slate-100 text-right text-xs font-black text-slate-600">{headers.map((header) => <th key={header} className="border border-slate-200 p-3">{header}</th>)}</tr></thead><tbody>{rows.length ? rows.map((row) => sectionLabels.has(row.label) ? <tr key={row.id} className="bg-slate-700 text-white"><td colSpan={headers.length} className="border border-slate-200 px-3 py-2 font-black">{row.label}</td></tr> : <tr key={row.id}><td className="border border-slate-200 p-3 font-bold text-slate-700">{row.label}</td><td className="border border-slate-200 p-2">{row.calculated ? <span className="block rounded-lg bg-slate-100 p-2 text-slate-700"><WorkbookValue label={row.label} value={row.value} /></span> : <input dir="ltr" aria-label={row.label} value={row.value} onChange={(event) => onUpdate(row, event.target.value)} className="w-full rounded-lg border border-amber-300 bg-amber-50 p-2 text-left text-sm outline-none focus:ring-2 focus:ring-emerald-400" />}</td><td colSpan={headers.length - 2} className="border border-slate-200 p-3 text-sm text-slate-500">{row.note || ""}</td></tr>) : <tr><td colSpan={headers.length} className="p-8 text-center text-slate-500">אין עדיין נתונים.</td></tr>}</tbody></table></div></section>;
+  return <section className="overflow-hidden rounded-2xl bg-white shadow-sm"><div className="flex items-center justify-between border-b border-slate-200 px-5 py-4"><div><h2 className="text-lg font-black text-slate-800">{label}</h2><p className="text-xs text-slate-500">צהוב לעריכה · אפור לחישוב</p></div><button type="button" onClick={onAdd} className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-black text-white">+ הוסף אחר</button></div><div className="overflow-x-auto"><table className="w-full min-w-[850px] border-collapse"><thead><tr className="bg-slate-100 text-right text-xs font-black text-slate-600">{headers.map((header) => <th key={header} className="border border-slate-200 p-3">{header}</th>)}</tr></thead><tbody>{rows.length ? rows.map((row) => sectionLabels.has(row.label) ? <tr key={row.id} className="bg-slate-700 text-white"><td colSpan={headers.length} className="border border-slate-200 px-3 py-2 font-black">{row.label}</td></tr> : <tr key={row.id}><td className="border border-slate-200 p-3 font-bold text-slate-700">{row.label}</td><td className="border border-slate-200 p-2">{row.calculated ? <span className="block rounded-lg bg-slate-100 p-2 text-slate-700"><WorkbookValue label={row.label} value={row.value} /></span> : <input dir="ltr" aria-label={row.label} value={row.value} onChange={(event) => onUpdate(row, event.target.value)} className="w-full rounded-lg border border-amber-300 bg-amber-50 p-2 text-left text-sm outline-none focus:ring-2 focus:ring-emerald-400" />}</td><td colSpan={headers.length - 2} className="border border-slate-200 p-3 text-sm text-slate-500">{row.note || ""}</td></tr>) : <tr><td colSpan={headers.length} className="p-8 text-center text-slate-500">אין עדיין נתונים.</td></tr>}</tbody></table></div></section>;
 }
 
 function MonthlySheet({ label, rows, onCellUpdate, onAdd }: { label: string; rows: WorkbookRow[]; onCellUpdate: (row: WorkbookRow, index: number, value: string) => void; onAdd: () => void }) {
