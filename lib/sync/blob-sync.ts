@@ -87,9 +87,13 @@ async function pushBlobViaServerRoute<T = any>(
   householdId: string
 ): Promise<boolean> {
   try {
+    const sb = getSupabaseBrowser();
+    const { data: sessionData } = (await sb?.auth.getSession()) ?? { data: { session: null } };
+    const token = sessionData.session?.access_token;
+    if (!token) return false;
     const response = await fetch("/api/sync/blob", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({
         key,
         value: value ?? null,
