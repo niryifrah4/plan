@@ -30,16 +30,26 @@ export async function pullBlob<T = any>(key: string): Promise<T | null> {
       : null;
     const targetHousehold = canonicalForUser || hh;
     if (targetHousehold !== hh) setHouseholdId(targetHousehold);
-    let response = await fetch(`/api/sync/blob?key=${encodeURIComponent(key)}&householdId=${encodeURIComponent(targetHousehold)}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const fetchBlob = async (householdId: string) => {
+      let lastError: unknown;
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        try {
+          return await fetch(`/api/sync/blob?key=${encodeURIComponent(key)}&householdId=${encodeURIComponent(householdId)}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        } catch (error) {
+          lastError = error;
+          await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+        }
+      }
+      throw lastError;
+    };
+    let response = await fetchBlob(targetHousehold);
     if (response.status === 403) {
       const canonical = await resolveHouseholdIdFromRemote();
       if (canonical && canonical !== targetHousehold) {
         setHouseholdId(canonical);
-        response = await fetch(`/api/sync/blob?key=${encodeURIComponent(key)}&householdId=${encodeURIComponent(canonical)}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        response = await fetchBlob(canonical);
       }
     }
     if (!response.ok) return null;
@@ -51,9 +61,7 @@ export async function pullBlob<T = any>(key: string): Promise<T | null> {
       const canonical = await resolveHouseholdIdFromRemote();
       if (canonical && canonical !== targetHousehold) {
         setHouseholdId(canonical);
-        response = await fetch(`/api/sync/blob?key=${encodeURIComponent(key)}&householdId=${encodeURIComponent(canonical)}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        response = await fetchBlob(canonical);
         if (response.ok) data = await response.json() as { value?: T; version?: number | null };
       }
     }
