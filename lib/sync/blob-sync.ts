@@ -28,8 +28,6 @@ export async function pullBlob<T = any>(key: string): Promise<T | null> {
     let response = await fetch(`/api/sync/blob?key=${encodeURIComponent(key)}&householdId=${encodeURIComponent(hh)}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    // Active client can survive account/client switches in localStorage.
-    // Retry once with the authenticated user's canonical household.
     if (response.status === 403) {
       const canonical = await resolveHouseholdIdFromRemote();
       if (canonical && canonical !== hh) {
@@ -40,7 +38,20 @@ export async function pullBlob<T = any>(key: string): Promise<T | null> {
       }
     }
     if (!response.ok) return null;
-    const data = await response.json() as { value?: T; version?: number | null };
+    let data = await response.json() as { value?: T; version?: number | null };
+    // Active client can survive account/client switches in localStorage.
+    // Retry on forbidden OR an empty blob with authenticated user's canonical household.
+    const empty = data.value == null || (typeof data.value === "object" && data.value !== null && Object.keys(data.value as object).length === 0);
+    if (empty) {
+      const canonical = await resolveHouseholdIdFromRemote();
+      if (canonical && canonical !== hh) {
+        setHouseholdId(canonical);
+        response = await fetch(`/api/sync/blob?key=${encodeURIComponent(key)}&householdId=${encodeURIComponent(canonical)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) data = await response.json() as { value?: T; version?: number | null };
+      }
+    }
     // שומרים את הגרסה שנמשכה כך שהשמירה הבאה תשלח expectedVersion נכון
     // (optimistic concurrency). פורמט המפתח חייב להתאים ל-push-queue.
     try {
