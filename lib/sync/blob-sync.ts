@@ -17,13 +17,25 @@ import { getPendingPush, getPendingPushesByPrefix, dequeuePush } from "./push-qu
 
 export async function pullBlob<T = any>(key: string): Promise<T | null> {
   if (!isSupabaseConfigured()) return null;
-  const hh = getHouseholdId() ?? await resolveHouseholdIdFromRemote();
+  let hh = getHouseholdId();
+  // The auth session and client_users row can hydrate after the first render.
+  // Resolve the household again instead of falling back to an empty template.
+  for (let attempt = 0; !hh && attempt < 8; attempt += 1) {
+    hh = await resolveHouseholdIdFromRemote();
+    if (!hh) await new Promise((resolve) => setTimeout(resolve, 500));
+  }
   if (!hh) return null;
   const sb = getSupabaseBrowser();
   if (!sb) return null;
   try {
-    const { data: sessionData } = await sb.auth.getSession();
-    const token = sessionData.session?.access_token;
+    // Auth bootstrap can finish a moment after React mounts. Do not turn that
+    // short window into a blank workbook/template read.
+    let token: string | undefined;
+    for (let attempt = 0; attempt < 8 && !token; attempt += 1) {
+      const { data: sessionData } = await sb.auth.getSession();
+      token = sessionData.session?.access_token;
+      if (!token) await new Promise((resolve) => setTimeout(resolve, 500));
+    }
     if (!token) return null;
     const canonicalForUser = (key === "family_workbook" || key === "onboarding_snapshot")
       ? await resolveHouseholdIdFromRemote()
