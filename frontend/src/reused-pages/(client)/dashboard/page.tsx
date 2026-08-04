@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo, Suspense } from "react";
-import dynamic from "~/lib/dynamic";
 import { Link } from "~/lib/router-compat";
 import { useRouter } from "~/lib/router-compat";
 import { fmtILS, fmtPct } from "@/lib/format";
@@ -50,14 +49,10 @@ import type { Assumptions } from "@/lib/assumptions";
 import { AssetDonut } from "@/components/charts/AssetDonut";
 import { buildLifeCoverage } from "@/lib/life-coverage";
 import { useClient } from "@/lib/client-context";
-// MacroPanel makes its own network call to fetch BoI rates and renders
-// a chart — fully below-fold-ish on the dashboard and not part of the
-// "answer in 3 seconds" promise. Lazy-load it so it doesn't block the
-// initial paint.
-const MacroPanel = dynamic(() => import("@/components/MacroPanel").then((m) => m.MacroPanel), {
-  ssr: false,
-  loading: () => null,
-});
+// Keep this small dashboard panel in the main bundle. A lazy chunk can remain
+// referenced by an already-open production tab after a deployment and fail
+// with "Failed to fetch dynamically imported module".
+import { MacroPanel } from "@/components/MacroPanel";
 import { buildNudges, type Nudge } from "@/lib/benchmark-advice";
 import {
   syncGoalsToDepositPlans,
