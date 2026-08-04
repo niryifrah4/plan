@@ -5,7 +5,7 @@ import { loadBuckets } from "@/lib/buckets-store";
 import { hydratePropertiesFromRemote, loadProperties } from "@/lib/realestate-store";
 import { hydrateBudgetsFromRemote } from "@/lib/budget-store";
 import { hydrateTransactionsFromRemote } from "@/lib/budget-import";
-import { hydrateWorkbookFromSite, loadWorkbook, saveWorkbook, syncWorkbookRowToSite, updateWorkbookCell, updateWorkbookRow, WORKBOOK_TABS, type WorkbookData, type WorkbookRow } from "@/lib/family-workbook";
+import { hydrateWorkbookFromSite, loadWorkbook, saveWorkbook, starter, syncWorkbookRowToSite, updateWorkbookCell, updateWorkbookRow, WORKBOOK_TABS, type WorkbookData, type WorkbookRow } from "@/lib/family-workbook";
 import { useClient } from "@/lib/client-context";
 import { getSupabase } from "~/lib/supabase";
 import { pullBlob } from "@/lib/sync/blob-sync";
@@ -55,7 +55,10 @@ export function FamilyWorkbookPage() {
     setSummary({ assets, debt: debtTotal, goals: buckets.length });
     const remoteWorkbook = await pullBlob<WorkbookData>("family_workbook");
     if (run !== hydrateRun.current) return;
-    const template = loadWorkbook();
+    const template = Object.fromEntries(Object.entries(starter).map(([tab, tabRows]) => [
+      tab,
+      tabRows.map((row) => ({ ...row, cells: row.cells ? [...row.cells] : undefined })),
+    ])) as WorkbookData;
     const hasRows = remoteWorkbook && Object.values(remoteWorkbook).some((tab) => Array.isArray(tab) && tab.length > 0);
     const source = hasRows ? remoteWorkbook : template;
     // A partial/old blob may contain empty tabs. Never render those as a
@@ -99,7 +102,7 @@ export function FamilyWorkbookPage() {
     setSaveState(ok ? "saved" : "error");
   };
   const updateRow = (row: WorkbookRow, value: string) => {
-    const next = updateWorkbookRow(data, active, row.id, value);
+    const next = updateWorkbookRow(data[active]?.length ? data : { ...data, [active]: starter[active] || [] }, active, row.id, value);
     syncWorkbookRowToSite(active, row, value);
     setData(next); void persist(next);
   };
@@ -109,11 +112,11 @@ export function FamilyWorkbookPage() {
     setData(next); void persist(next);
   };
   const updateCell = (row: WorkbookRow, index: number, value: string) => {
-    const next = updateWorkbookCell(data, active, row.id, index, value);
+    const next = updateWorkbookCell(data[active]?.length ? data : { ...data, [active]: starter[active] || [] }, active, row.id, index, value);
     if (index === 0) syncWorkbookRowToSite(active, row, value);
     setData(next); void persist(next);
   };
-  const rows = data[active] || [];
+  const rows = data[active]?.length ? data[active] : (starter[active] || []);
 
   const exportXlsx = async () => {
     // Read latest persisted workbook at click time. Avoid stale React closure
