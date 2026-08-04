@@ -5,7 +5,7 @@ import { pushBlob } from "./sync/blob-sync";
 import { getHouseholdId } from "./sync/remote-sync";
 import { loadAssumptions, saveAssumptions } from "./assumptions";
 import { loadBudgets, saveBudgets } from "./budget-store";
-import { loadDebtData, saveDebtData } from "./debt-store";
+import { createStableDebtId, loadDebtData, saveDebtData } from "./debt-store";
 import { pushOnboardingSnapshot } from "./onboarding-remote";
 
 export type WorkbookRow = { id: string; label: string; value: string; cells?: string[]; note?: string; calculated?: boolean };
@@ -179,10 +179,25 @@ export function syncWorkbookRowToSite(tab: string, row: WorkbookRow, value: stri
   }
   if (tab === "debts") {
     const debt = loadDebtData();
-    const firstLoan = debt.loans[0];
-    if (firstLoan && row.label === "החזר חודשי") {
-      saveDebtData({ ...debt, loans: debt.loans.map((loan, index) => index === 0 ? { ...loan, monthlyPayment: Number(value) || 0 } : loan) });
-    }
+    const firstLoan = debt.loans[0] || {
+      id: createStableDebtId("family-workbook-loan-1"),
+      lender: "הלוואה מהחוברת",
+      startDate: new Date().toISOString().slice(0, 7),
+      totalPayments: 120,
+      monthlyPayment: 0,
+      interestRate: 0.05,
+    };
+    const numeric = Number(value.replace(/,/g, "")) || 0;
+    const nextLoan = row.label === "שם ההלוואה / הבנק"
+      ? { ...firstLoan, lender: value || "הלוואה מהחוברת" }
+      : row.label === "החזר חודשי" || row.note === "החזר חודשי"
+        ? { ...firstLoan, monthlyPayment: numeric }
+        : row.label === "חודשים שנותרו"
+          ? { ...firstLoan, totalPayments: numeric || 120 }
+          : row.label === "ריבית שנתית"
+            ? { ...firstLoan, interestRate: numeric > 1 ? numeric / 100 : numeric }
+            : firstLoan;
+    saveDebtData({ ...debt, loans: [nextLoan, ...debt.loans.slice(1)] });
     return;
   }
   if (tab !== "questionnaire") return;
