@@ -66,9 +66,27 @@ export function fillTemplate(book: XLSX.WorkBook, data: WorkbookData): XLSX.Work
         putValue(sheet, targetRow, 13, row.value);
       });
     }
+    if (id === "journal") {
+      const start = rows.find((row) => row.label === "תאריך תחילת הליווי");
+      if (start) putValue(sheet, 2, 2, start.value);
+      for (let meeting = 1; meeting <= 5; meeting++) {
+        const base = 5 + (meeting - 1) * 9;
+        const fields: Array<[string, number, number]> = [
+          [`פגישה ${meeting} — תאריך`, base, 2],
+          [`פגישה ${meeting} — נושא`, base, 4],
+          [`פגישה ${meeting} — מה סוכם`, base + 1, 2],
+          [`פגישה ${meeting} — משימות עד הפגישה הבאה`, base + 3, 2],
+          [`פגישה ${meeting} — מה לקחנו מהפגישה`, base + 5, 2],
+        ];
+        for (const [labelName, targetRow, targetCol] of fields) {
+          const row = rows.find((candidate) => candidate.label === labelName);
+          if (row) putValue(sheet, targetRow, targetCol, row.value);
+        }
+      }
+    }
     for (const row of rows) {
       if (monthly && (id === "cashflow" || id === "business")) continue;
-      if (id === "debts" || id === "goals") continue;
+      if (id === "debts" || id === "goals" || id === "journal") continue;
       const aliases: Record<string, string> = id === "questionnaire"
         ? { "שם בן/בת זוג 1": "שם מלא" }
         : id === "balance"
