@@ -5,6 +5,7 @@ import { loadBuckets } from "@/lib/buckets-store";
 import { loadProperties } from "@/lib/realestate-store";
 import { hydrateWorkbookFromSite, loadWorkbook, saveWorkbook, syncWorkbookRowToSite, updateWorkbookCell, updateWorkbookRow, WORKBOOK_TABS, type WorkbookData, type WorkbookRow } from "@/lib/family-workbook";
 import { useClient } from "@/lib/client-context";
+import * as XLSX from "xlsx";
 
 const money = (n: number) => new Intl.NumberFormat("he-IL", { maximumFractionDigits: 0 }).format(Math.round(n)) + " ₪";
 
@@ -63,8 +64,24 @@ export function FamilyWorkbookPage() {
   };
   const rows = data[active] || [];
 
+  const exportXlsx = () => {
+    const book = XLSX.utils.book_new();
+    for (const tab of WORKBOOK_TABS) {
+      const sheetRows = data[tab.id] || [];
+      const monthly = tab.id === "cashflow" || tab.id === "business";
+      const values = monthly
+        ? [["קטגוריה", ...["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"].flatMap((month) => [`${month} — תכנון`, `${month} — ביצוע`])], ...sheetRows.map((row) => [row.label, ...(row.cells || Array.from({ length: 24 }, () => ""))])]
+        : [["סעיף", "ערך / תכנון", "הערות"], ...sheetRows.map((row) => [row.label, row.value, row.note || ""])];
+      const sheet = XLSX.utils.aoa_to_sheet(values);
+      sheet["!views"] = [{ rightToLeft: true }];
+      sheet["!cols"] = monthly ? [{ wch: 28 }, ...Array.from({ length: 24 }, () => ({ wch: 12 }))] : [{ wch: 38 }, { wch: 18 }, { wch: 32 }];
+      XLSX.utils.book_append_sheet(book, sheet, tab.label.slice(0, 31));
+    }
+    XLSX.writeFile(book, `חוברת-משפחה-${familyName || "לקוח"}.xlsx`);
+  };
+
   return <main dir="rtl" className="min-h-screen px-3 py-5 md:px-8" style={{ background: "var(--verdant-bg, #f4f7f2)" }}><div className="mx-auto max-w-[1500px]">
-    <header className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-black text-slate-800">חוברת משפחה</h1><p className="text-sm text-slate-500">{familyName || "לקוח חדש"} · מבנה זהה לאקסל</p></div><div className="rounded-xl bg-white px-4 py-2 text-xs font-bold text-slate-500">{saved ? "נשמר" : "שומר..."}</div></header>
+    <header className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-black text-slate-800">חוברת משפחה</h1><p className="text-sm text-slate-500">{familyName || "לקוח חדש"} · מבנה זהה לאקסל</p></div><div className="flex items-center gap-2"><button type="button" onClick={exportXlsx} className="rounded-xl bg-slate-800 px-4 py-2 text-xs font-black text-white">ייצוא XLSX</button><div className="rounded-xl bg-white px-4 py-2 text-xs font-bold text-slate-500">{saved ? "נשמר" : "שומר..."}</div></div></header>
     <nav aria-label="לשוניות חוברת המשפחה" className="mb-4 flex gap-1 overflow-x-auto rounded-2xl bg-white p-2 shadow-sm">{WORKBOOK_TABS.map((tab) => <button key={tab.id} type="button" onClick={() => setActive(tab.id)} className={`shrink-0 rounded-xl px-4 py-2 text-sm font-extrabold transition ${active === tab.id ? "bg-emerald-700 text-white" : "text-slate-600 hover:bg-emerald-50"}`}>{tab.label}</button>)}</nav>
     {active === "home" ? <HomeSummary summary={{ ...summary, netWorth }} onTab={setActive} /> : <WorkbookSheet tab={active} label={WORKBOOK_TABS.find((tab) => tab.id === active)?.label || "לשונית"} rows={rows} onUpdate={updateRow} onCellUpdate={updateCell} onAdd={addRow} />}
   </div></main>;
