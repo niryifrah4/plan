@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { loadAccounts, totalBankBalance } from "@/lib/accounts-store";
-import { loadDebtData } from "@/lib/debt-store";
+import { hydrateAccountsFromRemote, loadAccounts, totalBankBalance } from "@/lib/accounts-store";
+import { hydrateDebtFromRemote, loadDebtData } from "@/lib/debt-store";
 import { loadBuckets } from "@/lib/buckets-store";
-import { loadProperties } from "@/lib/realestate-store";
+import { hydratePropertiesFromRemote, loadProperties } from "@/lib/realestate-store";
+import { hydrateBudgetsFromRemote } from "@/lib/budget-store";
+import { hydrateTransactionsFromRemote } from "@/lib/budget-import";
 import { hydrateWorkbookFromSite, loadWorkbook, saveWorkbook, syncWorkbookRowToSite, updateWorkbookCell, updateWorkbookRow, WORKBOOK_TABS, type WorkbookData, type WorkbookRow } from "@/lib/family-workbook";
 import { useClient } from "@/lib/client-context";
 import { getSupabase } from "~/lib/supabase";
@@ -34,6 +36,16 @@ export function FamilyWorkbookPage() {
   const [summary, setSummary] = useState({ assets: 0, debt: 0, goals: 0 });
 
   const hydrate = async () => {
+    // Remote first: the workbook must reflect the same household state as
+    // dashboard, budget, debt and real-estate screens after refresh/device
+    // switch. Local stores are only the synchronous read model fallback.
+    await Promise.allSettled([
+      hydrateAccountsFromRemote(),
+      hydrateDebtFromRemote(),
+      hydratePropertiesFromRemote(),
+      hydrateBudgetsFromRemote(),
+      hydrateTransactionsFromRemote(),
+    ]);
     const accounts = loadAccounts(); const debt = loadDebtData(); const properties = loadProperties(); const buckets = loadBuckets();
     const assets = totalBankBalance(accounts) + properties.reduce((sum, p) => sum + Number(p.currentValue || 0), 0);
     const debtTotal = debt.loans.reduce((sum, l) => sum + Number(l.monthlyPayment || 0), 0) + debt.mortgages.reduce((sum, m) => sum + m.tracks.reduce((trackSum, track) => trackSum + Number(track.remainingBalance || 0), 0), 0);
