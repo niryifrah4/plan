@@ -93,6 +93,11 @@ app.use((_req, res) => {
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error("[error]", err);
   // Never expose stack traces, database messages, or provider secrets to the browser.
+  if (typeof err === "object" && err !== null && "code" in err &&
+      String((err as { code?: unknown }).code).startsWith("LIMIT_")) {
+    res.status(413).json({ error: "upload_too_large_or_complex" });
+    return;
+  }
   res.status(500).json({ error: "internal_error" });
 });
 

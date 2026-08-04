@@ -5979,7 +5979,13 @@ async function deleteMerchantCategoryVotes(sb, merchantKeys) {
 import multer from "multer";
 var upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 }
+  limits: {
+    fileSize: 20 * 1024 * 1024,
+    files: 8,
+    fields: 20,
+    parts: 30,
+    fieldSize: 256 * 1024
+  }
 });
 
 // src/lib/rate-limit.ts
@@ -10143,6 +10149,10 @@ app.use((_req, res) => {
 });
 app.use((err, _req, res, _next) => {
   console.error("[error]", err);
+  if (typeof err === "object" && err !== null && "code" in err && String(err.code).startsWith("LIMIT_")) {
+    res.status(413).json({ error: "upload_too_large_or_complex" });
+    return;
+  }
   res.status(500).json({ error: "internal_error" });
 });
 try {
