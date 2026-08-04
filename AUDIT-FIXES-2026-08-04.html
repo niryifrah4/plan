@@ -59,7 +59,7 @@
     <div class="item critical"><strong>הרשאות DB רחבות</strong><br>קיימים grants כלליים ל־authenticated. ה־RPC המרכזי הוקשח, אבל צריך לצמצם לפי טבלה/פעולה לאחר מיפוי כל המסכים, אחרת אפשר לשבור את האפליקציה.</div>
     <div class="item"><strong>נתוני מודולים ותיקים</strong><br>נמצאו 108 קבצים עם שימוש ב־localStorage. חוברת המשפחה עצמה כבר אינה שומרת cache מקומי, אבל נדרשת מיגרציה מדורגת של שאר המודולים לשרת, עם בדיקות לפני כל מעבר.</div>
     <div class="item"><strong>מסלולי כתיבה בתחומים אחרים</strong><br>מצב client_state נסגר למסלול קנוני. עדיין צריך להחיל אותו דפוס על תחומי הנתונים הישירים האחרים.</div>
-    <div class="item"><strong>Dependencies</strong><br>בדיקת npm audit הנוכחית מדווחת 6 חולשות production (3 high, 2 moderate, 1 low). קיים בידוד ובדיקת מבנה לקבצי XLSX, אך עדיין צריך עדכון או החלפה של parser ובדיקת regression.</div>
+    <div class="item"><strong>Dependencies</strong><br>postcss עודכן אל מחוץ לטווח החולשה. בדיקת npm audit הנוכחית מדווחת 5 חולשות production (2 high, 2 moderate, 1 low): בעיקר xlsx ללא תיקון upstream ותלויות transitve. קיים בידוד ובדיקת מבנה לקבצי XLSX, אך עדיין צריך עדכון או החלפה של parser ובדיקת regression.</div>
     <div class="item"><strong>Production</strong><br>צריך להוסיף CI branch protection, backup/restore test, schema drift check, ניטור, alerting ו־rollback.</div>
     <div class="item"><strong>אימות מלא</strong><br>חוברת המשפחה נבדקה בפועל עם session מחובר. בדיקות E2E אוטומטיות מלאות למסכים מאומתים עדיין דורשות פרטי בדיקה תקינים; המשתמש הקיים החזיר Invalid login credentials.</div>
   </section>
