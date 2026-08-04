@@ -84,6 +84,12 @@ export function fillTemplate(book: XLSX.WorkBook, data: WorkbookData): XLSX.Work
         }
       }
     }
+    if (id === "questionnaire") {
+      const spouse1 = rows.find((row) => row.label === "שם בן/בת זוג 1");
+      const spouse2 = rows.find((row) => row.label === "שם בן/בת זוג 2");
+      if (spouse1?.value) putValue(sheet, 5, 2, spouse1.value);
+      if (spouse2?.value) putValue(sheet, 5, 3, spouse2.value);
+    }
     for (const row of rows) {
       if (monthly && (id === "cashflow" || id === "business")) continue;
       if (id === "debts" || id === "goals" || id === "journal") continue;
