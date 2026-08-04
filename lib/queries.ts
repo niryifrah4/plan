@@ -3,7 +3,7 @@
  * Centralised queries — keeps components thin and decouples Supabase specifics.
  */
 
-import type { SupabaseClient<any> } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   Household,
   Profile,

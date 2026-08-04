@@ -13,7 +13,7 @@
  * שמקבלת householdId מהלקוח.
  */
 
-import type { SupabaseClient<any> } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export async function assertHouseholdAccess(
   sb: SupabaseClient<any>,

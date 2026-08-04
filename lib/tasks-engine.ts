@@ -7,7 +7,7 @@
  *   high → 20pts, medium → 8pts, low → 3pts (deducted from 100).
  */
 
-import type { SupabaseClient<any> } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   CashflowSummary,
   NetWorth,

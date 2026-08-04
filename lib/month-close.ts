@@ -7,7 +7,7 @@
  * 2. Re-runs the tasks engine to refresh recommendations.
  */
 
-import type { SupabaseClient<any> } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { runRules, persistTasks } from "./tasks-engine";
 import { getCashflowSummary, getNetWorth, listGoals, listLiabilities, listAssets } from "./queries";
 

@@ -15,6 +15,7 @@
     "dev:backend": "npm run dev --prefix backend --silent",
     "dev": "concurrently --raw \"npm run dev:frontend --silent\" \"npm run dev:backend --silent\"",
     "lint": "eslint .",
+    "security:check": "node scripts/verify-security-baseline.mjs",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
