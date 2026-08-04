@@ -25,12 +25,17 @@ export async function pullBlob<T = any>(key: string): Promise<T | null> {
     const { data: sessionData } = await sb.auth.getSession();
     const token = sessionData.session?.access_token;
     if (!token) return null;
-    let response = await fetch(`/api/sync/blob?key=${encodeURIComponent(key)}&householdId=${encodeURIComponent(hh)}`, {
+    const canonicalForUser = (key === "family_workbook" || key === "onboarding_snapshot")
+      ? await resolveHouseholdIdFromRemote()
+      : null;
+    const targetHousehold = canonicalForUser || hh;
+    if (targetHousehold !== hh) setHouseholdId(targetHousehold);
+    let response = await fetch(`/api/sync/blob?key=${encodeURIComponent(key)}&householdId=${encodeURIComponent(targetHousehold)}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (response.status === 403) {
       const canonical = await resolveHouseholdIdFromRemote();
-      if (canonical && canonical !== hh) {
+      if (canonical && canonical !== targetHousehold) {
         setHouseholdId(canonical);
         response = await fetch(`/api/sync/blob?key=${encodeURIComponent(key)}&householdId=${encodeURIComponent(canonical)}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -44,7 +49,7 @@ export async function pullBlob<T = any>(key: string): Promise<T | null> {
     const empty = data.value == null || (typeof data.value === "object" && data.value !== null && Object.keys(data.value as object).length === 0);
     if (empty) {
       const canonical = await resolveHouseholdIdFromRemote();
-      if (canonical && canonical !== hh) {
+      if (canonical && canonical !== targetHousehold) {
         setHouseholdId(canonical);
         response = await fetch(`/api/sync/blob?key=${encodeURIComponent(key)}&householdId=${encodeURIComponent(canonical)}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -57,7 +62,7 @@ export async function pullBlob<T = any>(key: string): Promise<T | null> {
     try {
       const v = (data as { version?: number }).version;
       if (typeof v === "number" && typeof window !== "undefined") {
-        localStorage.setItem(`verdant:__ver:${hh}::${key}`, String(v));
+        localStorage.setItem(`verdant:__ver:${targetHousehold}::${key}`, String(v));
       }
     } catch {
       /* גרסה לא נשמרה — לא קריטי, השמירה הבאה תיפול ל-legacy upsert */
