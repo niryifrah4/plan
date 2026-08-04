@@ -6,7 +6,6 @@ import { getHouseholdId } from "./sync/remote-sync";
 import { loadAssumptions, saveAssumptions } from "./assumptions";
 import { loadBudgets, saveBudgets } from "./budget-store";
 import { createStableDebtId, loadDebtData, saveDebtData } from "./debt-store";
-import { pushOnboardingSnapshot } from "./onboarding-remote";
 
 export type WorkbookRow = { id: string; label: string; value: string; cells?: string[]; note?: string; calculated?: boolean };
 export type WorkbookData = Record<string, WorkbookRow[]>;
@@ -227,7 +226,8 @@ export function syncWorkbookRowToSite(tab: string, row: WorkbookRow, value: stri
     const assumptions = loadAssumptions();
     saveAssumptions({ ...assumptions, monthlyExpenses: Number(value) || 0 });
   }
+  // Workbook persists on tab transition. Do not enqueue a remote write for
+  // every keystroke; this used to create overlapping retry/conflict writes.
   window.dispatchEvent(new Event("verdant:onboarding:updated"));
   window.dispatchEvent(new Event("verdant:assumptions:updated"));
-  pushOnboardingSnapshot();
 }

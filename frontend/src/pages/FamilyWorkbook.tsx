@@ -10,6 +10,7 @@ import { useClient } from "@/lib/client-context";
 import { getSupabase } from "~/lib/supabase";
 import { pullBlob } from "@/lib/sync/blob-sync";
 import { fmtILS } from "@/lib/_shared/format";
+import { pushOnboardingSnapshot } from "@/lib/onboarding-remote";
 
 const money = (n: number) => fmtILS(n);
 const months = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"];
@@ -99,12 +100,13 @@ export function FamilyWorkbookPage() {
   }, []);
 
   const netWorth = useMemo(() => summary.assets - summary.debt, [summary]);
-  const persist = async (next: WorkbookData) => {
-    if (!hydrated) return;
+  const persist = async (next: WorkbookData): Promise<boolean> => {
+    if (!hydrated) return false;
     setSaveState("saving");
     const ok = await saveWorkbook(next);
     if (ok) draftDirty.current = false;
     setSaveState(ok ? "saved" : "error");
+    return ok;
   };
   const updateRow = (row: WorkbookRow, value: string) => {
     const next = updateWorkbookRow(data[active]?.length ? data : { ...data, [active]: starter[active] || [] }, active, row.id, value);
@@ -128,7 +130,9 @@ export function FamilyWorkbookPage() {
 
   const changeTab = async (nextTab: string) => {
     if (nextTab === active) return;
-    await persist(draftRef.current);
+    const saved = await persist(draftRef.current);
+    if (!saved) return;
+    pushOnboardingSnapshot();
     setActive(nextTab);
   };
 
