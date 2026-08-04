@@ -104,7 +104,7 @@ export function FamilyWorkbookPage() {
   const updateRow = (row: WorkbookRow, value: string) => {
     const next = updateWorkbookRow(data[active]?.length ? data : { ...data, [active]: starter[active] || [] }, active, row.id, value);
     syncWorkbookRowToSite(active, row, value);
-    setData(next); void persist(next);
+    setData(next);
   };
   const addRow = () => {
     const row = { id: `${active}-custom-${Date.now()}`, label: "אחר — ערוך שם סעיף", value: "", note: "שדה דינמי" };
@@ -114,9 +114,15 @@ export function FamilyWorkbookPage() {
   const updateCell = (row: WorkbookRow, index: number, value: string) => {
     const next = updateWorkbookCell(data[active]?.length ? data : { ...data, [active]: starter[active] || [] }, active, row.id, index, value);
     if (index === 0) syncWorkbookRowToSite(active, row, value);
-    setData(next); void persist(next);
+    setData(next);
   };
   const rows = data[active]?.length ? data[active] : (starter[active] || []);
+
+  const changeTab = async (nextTab: string) => {
+    if (nextTab === active) return;
+    await persist(data);
+    setActive(nextTab);
+  };
 
   const exportXlsx = async () => {
     // Read latest persisted workbook at click time. Avoid stale React closure
@@ -145,8 +151,8 @@ export function FamilyWorkbookPage() {
 
   return <main dir="rtl" className="family-workbook min-h-screen px-1 py-3 md:px-3 md:py-4" style={{ background: "var(--verdant-bg, #f4f7f2)" }}><div className="mx-auto w-full max-w-none">
     <header className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-black text-slate-800">חוברת משפחה</h1><p className="text-sm text-slate-500">{familyName || "לקוח חדש"} · מבנה זהה לאקסל</p></div><div className="flex items-center gap-2"><button type="button" onClick={exportXlsx} className="rounded-xl bg-slate-800 px-4 py-2 text-xs font-black text-white">ייצוא XLSX</button><div role="status" className={`rounded-xl bg-white px-4 py-2 text-xs font-bold ${saveState === "error" ? "text-red-700" : "text-slate-500"}`}>{saveState === "saved" ? "נשמר בשרת" : saveState === "saving" ? "שומר בשרת..." : "השמירה נכשלה — הנתון לא נשמר"}</div></div></header>
-    <nav aria-label="לשוניות חוברת המשפחה" className="mb-4 flex gap-1 overflow-x-auto rounded-2xl bg-white p-2 shadow-sm">{WORKBOOK_TABS.map((tab) => <button key={tab.id} type="button" onClick={() => setActive(tab.id)} className={`shrink-0 rounded-xl px-4 py-2 text-sm font-extrabold transition ${active === tab.id ? "bg-emerald-700 text-white" : "text-slate-600 hover:bg-emerald-50"}`}>{tab.label}</button>)}</nav>
-    {active === "home" ? <HomeSummary summary={{ ...summary, netWorth }} onTab={setActive} /> : <WorkbookSheet tab={active} label={WORKBOOK_TABS.find((tab) => tab.id === active)?.label || "לשונית"} rows={rows} onUpdate={updateRow} onCellUpdate={updateCell} onAdd={addRow} />}
+    <nav aria-label="לשוניות חוברת המשפחה" className="mb-4 flex gap-1 overflow-x-auto rounded-2xl bg-white p-2 shadow-sm">{WORKBOOK_TABS.map((tab) => <button key={tab.id} type="button" onClick={() => void changeTab(tab.id)} className={`shrink-0 rounded-xl px-4 py-2 text-sm font-extrabold transition ${active === tab.id ? "bg-emerald-700 text-white" : "text-slate-600 hover:bg-emerald-50"}`}>{tab.label}</button>)}</nav>
+    {active === "home" ? <HomeSummary summary={{ ...summary, netWorth }} onTab={(tab) => void changeTab(tab)} /> : <WorkbookSheet tab={active} label={WORKBOOK_TABS.find((tab) => tab.id === active)?.label || "לשונית"} rows={rows} onUpdate={updateRow} onCellUpdate={updateCell} onAdd={addRow} />}
   </div></main>;
 }
 
