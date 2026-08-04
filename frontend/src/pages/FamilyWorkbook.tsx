@@ -95,8 +95,22 @@ export function FamilyWorkbookPage() {
       "השווי הנקי של המשפחה": String(assets - debtTotal),
     };
     workbook.balance = workbook.balance.map((row) => balanceValues[row.label] !== undefined ? { ...row, value: balanceValues[row.label], calculated: true } : row);
-    const debtRows = debt.loans.map((loan) => ({ id: `loan-${loan.id}`, label: loan.lender || "הלוואה", value: String(loan.monthlyPayment || 0), note: "החזר חודשי" }));
-    if (debtRows.length) workbook.debts = debtRows;
+    // Keep the full debt template. Replacing it with one short row caused
+    // mortgage/installment fields to disappear from the XLSX export.
+    const firstLoan = debt.loans[0];
+    const mortgageBalance = debt.mortgages.reduce((sum, m) => sum + m.tracks.reduce((trackSum, track) => trackSum + Number(track.remainingBalance || 0), 0), 0);
+    const mortgagePayment = debt.mortgages.reduce((sum, m) => sum + m.tracks.reduce((trackSum, track) => trackSum + Number(track.monthlyPayment || 0), 0), 0);
+    const propertyValue = properties.reduce((sum, p) => sum + Number(p.currentValue || 0), 0);
+    const debtValues: Record<string, string> = {
+      "שם ההלוואה / הבנק": firstLoan?.lender || "",
+      "יתרת קרן": String(firstLoan?.remainingBalance ?? firstLoan?.principal ?? firstLoan?.amount ?? ""),
+      "ריבית שנתית": firstLoan ? String(Number(firstLoan.interestRate || 0) * 100) : "",
+      "החזר חודשי": firstLoan ? String(firstLoan.monthlyPayment || 0) : "",
+      "חודשים שנותרו": firstLoan ? String(firstLoan.totalPayments || "") : "",
+      "שווי הנכס": String(propertyValue), "יתרת המשכנתא": String(mortgageBalance),
+      "החזר חודשי משכנתא": String(mortgagePayment),
+    };
+    workbook.debts = workbook.debts.map((row) => debtValues[row.label] !== undefined ? { ...row, value: debtValues[row.label] } : row);
     const insightValues: Record<string, string> = { "שווי נקי": money(assets - debtTotal), "מימון המטרות": String(buckets.length), "מינוף — חוב מהנכסים": assets ? `${Math.round((debtTotal / assets) * 100)}%` : "0%" };
     workbook.insights = workbook.insights.map((row) => insightValues[row.label] !== undefined ? { ...row, value: insightValues[row.label], calculated: true } : row);
     setData(workbook);
@@ -167,28 +181,32 @@ export function FamilyWorkbookPage() {
   };
 
   const exportXlsx = async () => {
-    // Read latest persisted workbook at click time. Avoid stale React closure
-    // after an input event and keep export identical to what user sees.
-    const latest = hydrateWorkbookFromSite(data);
-    const session = (await getSupabase()?.auth.getSession())?.data.session;
-    if (session?.access_token) {
+    try {
+      // Read latest persisted workbook at click time. Avoid stale React closure
+      // after an input event and keep export identical to what user sees.
+      const latest = draftRef.current;
+      const session = (await getSupabase()?.auth.getSession())?.data.session;
+      if (!session?.access_token) throw new Error("missing_session");
       const response = await fetch("/api/family-workbook/export", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ familyName: familyName || "לקוח", data: latest }),
       });
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = `חוברת-משפחה-${familyName || "לקוח"}.xlsx`;
-        anchor.click();
-        URL.revokeObjectURL(url);
-        return;
-      }
+      if (!response.ok) throw new Error(`export_failed_${response.status}`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `חוברת-משפחה-${familyName || "לקוח"}.xlsx`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      return;
+    } catch (error) {
+      console.error("[family-workbook] XLSX export failed", error);
+      setSaveState("error");
     }
-    setSaveState("error");
   };
 
   if (!hydrated) {

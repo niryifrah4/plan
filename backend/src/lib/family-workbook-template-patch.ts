@@ -23,14 +23,16 @@ export function patchFamilyTemplate(template: Buffer, generated: XLSX.WorkBook):
     for (let row = range.s.r; row <= range.e.r; row++) {
       for (let col = range.s.c; col <= range.e.c; col++) {
         const cell = sheet[XLSX.utils.encode_cell({ r: row, c: col })] as XLSX.CellObject | undefined;
-        if (!cell || cell.f === undefined || cell.v === undefined || cell.v === "") continue;
+        // Export both formula results and ordinary input cells. The ordinary
+        // yellow input cells are the main user data and have no formula.
+        if (!cell || cell.v === undefined || cell.v === "") continue;
         const ref = XLSX.utils.encode_cell({ r: row, c: col });
         const value = String(cell.v);
         const numeric = typeof cell.v === "number" && Number.isFinite(cell.v);
         const cellPattern = new RegExp(`<c\\b([^>]*\\br="${ref}"[^>]*)>(?:[\\s\\S]*?<\\/c>)?`);
         content = content.replace(cellPattern, (_whole, rawAttrs: string) => {
           // Keep the template's style index and every other cell attribute.
-          const attrs = rawAttrs.replace(/\\s+t="[^"]*"/g, "");
+          const attrs = rawAttrs.replace(/\s+t="[^"]*"/g, "");
           return numeric
             ? `<c${attrs} t="n"><v>${cell.v}</v></c>`
             : `<c${attrs} t="inlineStr"><is><t>${xml(value)}</t></is></c>`;

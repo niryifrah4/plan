@@ -31,6 +31,20 @@ export function fillTemplate(book: XLSX.WorkBook, data: WorkbookData): XLSX.Work
         if (typeof cell?.v === "string" && cell.v.trim()) labels.set(cell.v.trim(), r);
       }
     }
+    if (id === "home") {
+      // Home is a calculated dashboard in the template, not an editable tab.
+      // Feed its KPI cells from the canonical workbook tabs so it never exports
+      // the template's placeholder zeroes.
+      const value = (tab: string, label: string) => data[tab]?.find((row) => row.label === label)?.value || "";
+      const cashflow = value("cashflow", "תזרים נטו") || value("annual", "תזרים נטו");
+      const emergency = value("insights", "כרית חירום (חודשים)");
+      const goals = value("insights", "% מהמטרות שמומן") || value("insights", "מימון המטרות");
+      if (cashflow) putValue(sheet, 4, 1, cashflow);
+      if (emergency) putValue(sheet, 4, 3, emergency);
+      if (goals) putValue(sheet, 4, 5, goals);
+      const year = value("cashflow", "שנה") || value("annual", "שנה");
+      if (year) putValue(sheet, 20, 4, year);
+    }
     if (id === "cashflow") {
       const inputRows = [
         ...Array.from({ length: 6 }, (_, i) => 5 + i),
@@ -50,13 +64,11 @@ export function fillTemplate(book: XLSX.WorkBook, data: WorkbookData): XLSX.Work
       });
     }
     if (id === "debts") {
-      // Site bridge exposes active loans as lender label + monthly payment.
-      // Excel keeps each loan across columns B:F, rows 6:15.
-      rows.filter((row) => row.value && !row.calculated && row.label !== "הלוואות").slice(0, 10).forEach((row, index) => {
-        const targetRow = 5 + index;
-        putValue(sheet, targetRow, 1, row.label);
-        putValue(sheet, targetRow, 4, row.value);
-      });
+      // Excel's loan table is horizontal: one loan occupies B:F on row 6.
+      // The workbook UI stores the fields as labelled rows.
+      const field = (label: string) => rows.find((row) => row.label === label)?.value || "";
+      const loan = [["שם ההלוואה / הבנק", 1], ["יתרת קרן", 2], ["ריבית שנתית", 3], ["החזר חודשי", 4], ["חודשים שנותרו", 5]] as const;
+      loan.forEach(([labelName, col]) => { const value = field(labelName); if (value) putValue(sheet, 5, col, value); });
     }
     if (id === "goals") {
       // Excel goal rows are formula-labelled from the questionnaire. Write
