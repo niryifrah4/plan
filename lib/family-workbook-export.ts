@@ -185,6 +185,9 @@ export async function writeFamilyWorkbookXlsx(data: WorkbookData, familyName: st
       const ref = XLSX.utils.encode_cell({ r: row, c: col });
       const cell = sheet[ref] as XLSX.CellObject | undefined;
       if (!cell || cell.v === undefined || cell.v === "") continue;
+      // Keep the formula from the original template. Replacing a formula cell
+      // with its cached value turns the workbook into a static snapshot.
+      if (cell.f) continue;
       const value = String(cell.v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
       const numeric = typeof cell.v === "number" && Number.isFinite(cell.v);
       const pattern = new RegExp(`<c\\b([^>]*\\br="${ref}"[^>]*)>(?:[\\s\\S]*?<\\/c>)?`);

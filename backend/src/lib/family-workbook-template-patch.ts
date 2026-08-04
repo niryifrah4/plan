@@ -23,9 +23,10 @@ export function patchFamilyTemplate(template: Buffer, generated: XLSX.WorkBook):
     for (let row = range.s.r; row <= range.e.r; row++) {
       for (let col = range.s.c; col <= range.e.c; col++) {
         const cell = sheet[XLSX.utils.encode_cell({ r: row, c: col })] as XLSX.CellObject | undefined;
-        // Export both formula results and ordinary input cells. The ordinary
-        // yellow input cells are the main user data and have no formula.
+        // Export ordinary input cells only. Formula cells must remain untouched
+        // so Excel can recalculate them after the user changes an input.
         if (!cell || cell.v === undefined || cell.v === "") continue;
+        if (cell.f) continue;
         const ref = XLSX.utils.encode_cell({ r: row, c: col });
         const value = String(cell.v);
         const numeric = typeof cell.v === "number" && Number.isFinite(cell.v);
