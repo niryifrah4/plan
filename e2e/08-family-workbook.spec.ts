@@ -29,6 +29,18 @@ test("family workbook: 12 tabs, bidirectional name sync, XLSX export", async ({ 
   await page.getByLabel("שם בן/בת זוג 1", { exact: true }).fill("רועי E2E");
   await expect.poll(async () => page.evaluate(() => Object.values(localStorage).some((value) => value.includes("רועי E2E")))).toBe(true);
 
+  await page.getByRole("button", { name: "מיפוי", exact: true }).click();
+  await page.getByLabel("מזון לבית (סופר)", { exact: true }).fill("3200");
+  await expect.poll(async () => page.evaluate(() => Object.values(localStorage).some((value) => value.includes("3200")))).toBe(true);
+
+  await page.getByRole("button", { name: "מטרות ויעדים", exact: true }).click();
+  await page.getByLabel("קרן חירום", { exact: true }).fill("1800");
+  await expect.poll(async () => page.evaluate(() => Object.values(localStorage).some((value) => value.includes("1800")))).toBe(true);
+
+  await page.getByRole("button", { name: "עסק", exact: true }).click();
+  await page.getByLabel("הכנסות תפעוליות ינואר תכנון", { exact: true }).fill("12000");
+  await expect.poll(async () => page.evaluate(() => Object.values(localStorage).some((value) => value.includes("12000")))).toBe(true);
+
   await page.getByRole("link", { name: /אפיון הלקוח/ }).click();
   await page.waitForURL(/\/onboarding/);
   await page.goto("/onboarding?step=1");
