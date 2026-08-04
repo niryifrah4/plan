@@ -6,7 +6,10 @@ const result = fillTemplate(source, {
   questionnaire: [{ id: "sample", label: "שם בן/בת זוג 1", value: "רועי E2E" }],
   cashflow: [{ id: "income", label: "משכורת / הכנסה 1", value: "", cells: ["32500", ...Array(23).fill("")] }],
   business: [{ id: "business-income", label: "הכנסות תפעוליות", value: "", cells: ["12000", ...Array(23).fill("")] }],
-  debts: [{ id: "loan", label: "בנק E2E", value: "4500" }],
+  debts: [
+    { id: "loan-name", label: "שם ההלוואה / הבנק", value: "בנק E2E" },
+    { id: "loan-payment", label: "החזר חודשי", value: "4500" },
+  ],
   goals: [{ id: "goal", label: "קרן חירום", value: "1800" }],
   balance: [{ id: "asset", label: "עו״ש ופיקדונות", value: "25000" }],
   journal: [
