@@ -32,6 +32,7 @@ export function FamilyWorkbookPage() {
   const { familyName } = useClient();
   const [active, setActive] = useState("home");
   const [data, setData] = useState<WorkbookData>({});
+  const [hydrated, setHydrated] = useState(false);
   const [saveState, setSaveState] = useState<"saved" | "saving" | "error">("saved");
   const [summary, setSummary] = useState({ assets: 0, debt: 0, goals: 0 });
   const hydrateRun = useRef(0);
@@ -54,7 +55,8 @@ export function FamilyWorkbookPage() {
     setSummary({ assets, debt: debtTotal, goals: buckets.length });
     const remoteWorkbook = await pullBlob<WorkbookData>("family_workbook");
     if (run !== hydrateRun.current) return;
-    const workbook = hydrateWorkbookFromSite(remoteWorkbook && Object.keys(remoteWorkbook).length ? remoteWorkbook : loadWorkbook());
+    const hasRows = remoteWorkbook && Object.values(remoteWorkbook).some((tab) => Array.isArray(tab) && tab.length > 0);
+    const workbook = hydrateWorkbookFromSite(hasRows ? remoteWorkbook : loadWorkbook());
     const balanceValues: Record<string, string> = {
       "עו״ש ופיקדונות": String(totalBankBalance(accounts)),
       "דירה (שווי שוק)": String(properties.reduce((sum, p) => sum + Number(p.currentValue || 0), 0)),
@@ -70,6 +72,7 @@ export function FamilyWorkbookPage() {
     const insightValues: Record<string, string> = { "שווי נקי": money(assets - debtTotal), "מימון המטרות": String(buckets.length), "מינוף — חוב מהנכסים": assets ? `${Math.round((debtTotal / assets) * 100)}%` : "0%" };
     workbook.insights = workbook.insights.map((row) => insightValues[row.label] !== undefined ? { ...row, value: insightValues[row.label], calculated: true } : row);
     setData(workbook);
+    setHydrated(true);
   };
 
   useEffect(() => {
@@ -83,6 +86,7 @@ export function FamilyWorkbookPage() {
 
   const netWorth = useMemo(() => summary.assets - summary.debt, [summary]);
   const persist = async (next: WorkbookData) => {
+    if (!hydrated) return;
     setSaveState("saving");
     const ok = await saveWorkbook(next);
     setSaveState(ok ? "saved" : "error");
