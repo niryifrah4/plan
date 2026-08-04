@@ -28,6 +28,7 @@
     <div class="item done"><strong>הקטנת שטח תקיפה</strong><br>Body JSON גלובלי ירד מ־10MB ל־2MB. העלאות קבצים עדיין מוגבלות ל־20MB ובדיקות magic-bytes קיימות במסלולים.</div>
     <div class="item done"><strong>מניעת דליפת מידע</strong><br>שגיאות 500 מחזירות <code>internal_error</code> בלבד. פרטי DB ו־stack trace נשארים בלוג השרת.</div>
     <div class="item done"><strong>סנכרון</strong><br>כשל כתיבה מרחוק כבר לא נחשב הצלחה שקטה: נשלח אירוע <code>verdant:sync:result</code> ומדווחת שגיאה.</div>
+    <div class="item done"><strong>RPC מצב לקוח</strong><br>נוספה migration שמקשיחה את <code>upsert_client_state</code>: search_path קבוע, בדיקת מפתח, נעילה אטומית ו־grant מפורש למשתמשים מחוברים בלבד.</div>
     <div class="item done"><strong>CI</strong><br>נשמר workflow קיים והורחב ל־typecheck ו־build לפרונט ולבק, והרצת audit כתוצאה מדווחת. Lint עדיין דורש ניקוי ייעודי כי אין לו כרגע קונפיגורציה תקינה.</div>
   </section>
 
@@ -45,7 +46,7 @@
 
   <section>
     <h2>מה עדיין דורש טיפול</h2>
-    <div class="item critical"><strong>הרשאות DB רחבות</strong><br>קיימים grants כלליים ל־authenticated. צריך לצמצם לפי טבלה/פעולה לאחר מיפוי כל המסכים, אחרת אפשר לשבור את האפליקציה.</div>
+    <div class="item critical"><strong>הרשאות DB רחבות</strong><br>קיימים grants כלליים ל־authenticated. ה־RPC המרכזי הוקשח, אבל צריך לצמצם לפי טבלה/פעולה לאחר מיפוי כל המסכים, אחרת אפשר לשבור את האפליקציה.</div>
     <div class="item critical"><strong>localStorage כמקור אמת</strong><br>עדיין קיימת ארכיטקטורת localStorage-first. צריך להפוך את Supabase למקור האמת, עם cache מקומי בלבד ומצב שמירה גלוי.</div>
     <div class="item"><strong>מסלולי כתיבה מרובים</strong><br>יש כמה מנגנוני sync. צריך command קנוני לכל תחום ו־transaction/idempotency לשינויים מורכבים.</div>
     <div class="item"><strong>xlsx</strong><br>ה־dependency מדווחת חולשות Prototype Pollution ו־ReDoS. צריך להחליף או לבודד את parser, במיוחד בקבצים שמגיעים ממשתמשים.</div>
