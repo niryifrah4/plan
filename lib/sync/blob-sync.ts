@@ -12,32 +12,24 @@
  */
 
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/browser";
-import { getHouseholdId } from "./remote-sync";
+import { getHouseholdId, resolveHouseholdIdFromRemote } from "./remote-sync";
 import { getPendingPush, getPendingPushesByPrefix, dequeuePush } from "./push-queue";
 
 export async function pullBlob<T = any>(key: string): Promise<T | null> {
   if (!isSupabaseConfigured()) return null;
-  const hh = getHouseholdId();
+  const hh = getHouseholdId() ?? await resolveHouseholdIdFromRemote();
   if (!hh) return null;
-
-  // If there's a pending push for this key, return it immediately!
-  // This prevents hydration race conditions where a quick page refresh
-  // pulls stale DB data before the push queue flushes, overwriting local state.
-  const pending = getPendingPush(hh, key);
-  if (pending !== undefined) {
-    return pending as T;
-  }
-
   const sb = getSupabaseBrowser();
   if (!sb) return null;
   try {
-    const { data, error } = await sb
-      .from("client_state")
-      .select("state_value, version")
-      .eq("household_id", hh)
-      .eq("state_key", key)
-      .maybeSingle();
-    if (error || !data) return null;
+    const { data: sessionData } = await sb.auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (!token) return null;
+    const response = await fetch(`/api/sync/blob?key=${encodeURIComponent(key)}&householdId=${encodeURIComponent(hh)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) return null;
+    const data = await response.json() as { value?: T; version?: number | null };
     // שומרים את הגרסה שנמשכה כך שהשמירה הבאה תשלח expectedVersion נכון
     // (optimistic concurrency). פורמט המפתח חייב להתאים ל-push-queue.
     try {
@@ -48,7 +40,7 @@ export async function pullBlob<T = any>(key: string): Promise<T | null> {
     } catch {
       /* גרסה לא נשמרה — לא קריטי, השמירה הבאה תיפול ל-legacy upsert */
     }
-    return (data.state_value as T) ?? null;
+    return data.value ?? null;
   } catch {
     return null;
   }
@@ -136,7 +128,7 @@ export async function pushBlob<T = any>(
   householdIdOverride?: string | null
 ): Promise<boolean> {
   if (!isSupabaseConfigured()) return false;
-  const hh = householdIdOverride ?? getHouseholdId();
+  const hh = householdIdOverride ?? getHouseholdId() ?? await resolveHouseholdIdFromRemote();
   if (!hh) return false;
 
   const viaRoute = await pushBlobViaServerRoute(key, value, hh);

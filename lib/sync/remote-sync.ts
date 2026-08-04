@@ -47,6 +47,24 @@ export function setHouseholdId(id: string | null) {
   } catch (e) { reportError("sync/remote-sync", e); }
 }
 
+/** Resolve tenant from Supabase when the browser has no local identity hint. */
+export async function resolveHouseholdIdFromRemote(): Promise<string | null> {
+  if (!isSupabaseConfigured()) return null;
+  const sb = getSupabaseBrowser();
+  if (!sb) return null;
+  try {
+    const { data: userData } = await sb.auth.getUser();
+    const userId = userData.user?.id;
+    if (!userId) return null;
+    const { data: client } = await sb.from("client_users").select("household_id").eq("user_id", userId).maybeSingle();
+    if (client?.household_id) return client.household_id;
+    const { data: household } = await sb.from("households").select("id").eq("advisor_id", userId).order("created_at", { ascending: true }).limit(1).maybeSingle();
+    return household?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export interface SyncConfig<TLocal, TRow> {
   /** Supabase table name, e.g. "pension_products" */
   table: string;

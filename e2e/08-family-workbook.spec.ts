@@ -15,6 +15,7 @@ test("family workbook: 12 tabs, bidirectional name sync, XLSX export", async ({ 
   await page.waitForURL(/\/(dashboard|budget|balance)/, { timeout: 15_000 });
   await page.goto("/family-workbook");
   await expect(page.getByRole("heading", { name: "חוברת משפחה" })).toBeVisible({ timeout: 20_000 });
+  const waitForWorkbookSave = () => page.waitForResponse((response) => response.url().includes("/api/sync/blob") && response.request().method() === "POST", { timeout: 15_000 });
 
   for (const label of ["בית", "שאלון", "מיפוי", "חובות", "מאזן", "מטרות ויעדים", "תזרים", "עסק", "סיכום שנתי", "תובנות", "יומן ליווי", "מחשבונים"]) {
     await page.getByRole("button", { name: label, exact: true }).click();
@@ -26,25 +27,34 @@ test("family workbook: 12 tabs, bidirectional name sync, XLSX export", async ({ 
   }
 
   await page.getByRole("button", { name: "שאלון", exact: true }).click();
+  const spouseSave = waitForWorkbookSave();
   await page.getByLabel("שם בן/בת זוג 1", { exact: true }).fill("רועי E2E");
-  await expect.poll(async () => page.evaluate(() => Object.values(localStorage).some((value) => value.includes("רועי E2E")))).toBe(true);
+  expect((await spouseSave).status()).toBe(200);
 
   await page.getByRole("button", { name: "מיפוי", exact: true }).click();
+  const budgetSave = waitForWorkbookSave();
   await page.getByLabel("מזון לבית (סופר)", { exact: true }).fill("3200");
-  await expect.poll(async () => page.evaluate(() => Object.values(localStorage).some((value) => value.includes("3200")))).toBe(true);
+  expect((await budgetSave).status()).toBe(200);
 
   await page.getByRole("button", { name: "מטרות ויעדים", exact: true }).click();
+  const goalSave = waitForWorkbookSave();
   await page.getByLabel("קרן חירום", { exact: true }).fill("1800");
-  await expect.poll(async () => page.evaluate(() => Object.values(localStorage).some((value) => value.includes("1800")))).toBe(true);
+  expect((await goalSave).status()).toBe(200);
 
   await page.getByRole("button", { name: "עסק", exact: true }).click();
+  const businessSave = waitForWorkbookSave();
   await page.getByLabel("הכנסות תפעוליות ינואר תכנון", { exact: true }).fill("12000");
-  await expect.poll(async () => page.evaluate(() => Object.values(localStorage).some((value) => value.includes("12000")))).toBe(true);
+  expect((await businessSave).status()).toBe(200);
 
   await page.getByRole("button", { name: "חובות", exact: true }).click();
   await page.getByRole("button", { name: /הוסף אחר/ }).click();
-  await page.getByLabel("אחר — ערוך שם סעיף", { exact: true }).fill("4500");
-  await expect.poll(async () => page.evaluate(() => Object.values(localStorage).some((value) => value.includes("4500")))).toBe(true);
+  const customRows = page.getByRole("row", { name: "אחר — ערוך שם סעיף שדה דינמי" });
+  const customRowCount = await customRows.count();
+  expect(customRowCount).toBeGreaterThan(0);
+  const newestCustomRow = customRows.last();
+  const customSave = waitForWorkbookSave();
+  await newestCustomRow.getByLabel("אחר — ערוך שם סעיף", { exact: true }).fill("4500");
+  expect((await customSave).status()).toBe(200);
 
   await page.getByRole("button", { name: "מיפוי", exact: true }).click();
   await expect(page.getByText("סה״כ הכנסות", { exact: true })).toBeVisible();
@@ -59,7 +69,6 @@ test("family workbook: 12 tabs, bidirectional name sync, XLSX export", async ({ 
   await page.getByRole("button", { name: "זוג ללא ילדים", exact: true }).click();
   await expect.poll(async () => page.locator("input").count()).toBeGreaterThan(0);
   await expect.poll(async () => page.locator("input").evaluateAll((inputs) => inputs.some((input) => (input as HTMLInputElement).value === "רועי E2E"))).toBe(true);
-  await expect.poll(async () => page.evaluate(() => Object.values(localStorage).some((value) => value.includes("רועי E2E")))).toBe(true);
 
   await page.goto("/family-workbook");
   await page.getByRole("button", { name: "שאלון", exact: true }).click();

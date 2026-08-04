@@ -1,7 +1,8 @@
 "use client";
 
 import { scopedKey } from "./client-scope";
-import { pushBlobInBackground } from "./sync/blob-sync";
+import { pushBlob } from "./sync/blob-sync";
+import { getHouseholdId } from "./sync/remote-sync";
 import { loadAssumptions, saveAssumptions } from "./assumptions";
 import { loadBudgets, saveBudgets } from "./budget-store";
 import { loadDebtData, saveDebtData } from "./debt-store";
@@ -35,18 +36,9 @@ export const starter: WorkbookData = {
 };
 
 export function loadWorkbook(): WorkbookData {
-  if (typeof window === "undefined") return starter;
-  try {
-    const raw = localStorage.getItem(scopedKey(KEY));
-    if (!raw) return starter;
-    const parsed = JSON.parse(raw) as WorkbookData;
-    const markers: Record<string, string> = { questionnaire: "פרטים אישיים", mapping: "הכנסות", debts: "הלוואות", balance: "מה יש לנו — נכסים", goals: "שנת הבסיס", cashflow: "תחילת פעילות — חודש", business: "הכנסות תפעוליות", annual: "הכנסה שנתית", insights: "שווי נקי", journal: "תאריך תחילת הליווי", calculators: "שווי הנכס ו-LTV — הגדלת משכנתא" };
-    return Object.fromEntries(WORKBOOK_TABS.map((tab) => {
-      const savedRows = parsed[tab.id];
-      const validSaved = Array.isArray(savedRows) && savedRows.length > 0 && (!markers[tab.id] || savedRows.some((row) => row?.label === markers[tab.id]));
-      return [tab.id, validSaved ? savedRows : starter[tab.id] ?? []];
-    }));
-  } catch { return starter; }
+  // No workbook data cache. The authoritative read is remote and async in the
+  // page; this synchronous function is only a safe empty-state fallback.
+  return starter;
 }
 
 /** Pull canonical site fields back into the workbook before rendering. */
@@ -138,11 +130,11 @@ export function hydrateWorkbookFromSite(data: WorkbookData): WorkbookData {
     }),
   };
 }
-export function saveWorkbook(data: WorkbookData): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(scopedKey(KEY), JSON.stringify(data));
-  window.dispatchEvent(new Event("verdant:family_workbook:updated"));
-  pushBlobInBackground("family_workbook", data);
+export async function saveWorkbook(data: WorkbookData): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  const ok = await pushBlob("family_workbook", data, getHouseholdId());
+  if (ok) window.dispatchEvent(new Event("verdant:family_workbook:updated"));
+  return ok;
 }
 export function updateWorkbookRow(data: WorkbookData, tab: string, id: string, value: string): WorkbookData {
   return { ...data, [tab]: (data[tab] || []).map((row) => row.id === id ? { ...row, value } : row) };

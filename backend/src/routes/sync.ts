@@ -62,3 +62,33 @@ syncRouter.post(
     res.json({ ok: true, version: row?.out_version ?? null });
   })
 );
+
+syncRouter.get(
+  "/blob",
+  asyncHandler(async (req, res) => {
+    const sb = req.sb!;
+    const parsed = validate(req.query, z.object({
+      key: z.string().trim().min(1).max(200),
+      householdId: z.string().uuid(),
+    }), res);
+    if (!parsed.ok) return;
+    const { key, householdId } = parsed.data;
+    const allowed = await assertHouseholdAccess(sb, req.user!.id, householdId);
+    if (!allowed) {
+      res.status(403).json({ ok: false, error: "forbidden" });
+      return;
+    }
+    const { data, error } = await sb
+      .from("client_state")
+      .select("state_value, version")
+      .eq("household_id", householdId)
+      .eq("state_key", key)
+      .maybeSingle();
+    if (error) {
+      console.error("[sync/blob] read failed", error.message);
+      res.status(500).json({ ok: false, error: "read_failed" });
+      return;
+    }
+    res.json({ ok: true, value: data?.state_value ?? null, version: data?.version ?? null });
+  })
+);
