@@ -11,18 +11,13 @@ test("family workbook: 12 tabs, bidirectional name sync, XLSX export", async ({ 
   await page.locator('input[type="password"]').fill(password);
   await page.locator('button[type="submit"]').click();
   await page.waitForURL(/\/(crm|dashboard)/, { timeout: 15_000 });
-  if (page.url().includes("/crm")) {
-    const clientRows = page.locator("tbody tr").filter({ has: page.getByRole("button") });
-    const clientRowCount = await clientRows.count();
-    expect(clientRowCount).toBeGreaterThan(0);
-    const clientRow = clientRows.first();
-    await expect(clientRow).toBeVisible({ timeout: 20_000 });
-    await clientRow.getByRole("button").filter({ hasText: "arrow_back" }).click();
-    await page.waitForURL(/\/(dashboard|budget|balance)/, { timeout: 15_000 });
-  }
+  // Landing differs by role; workbook resolves the authenticated household
+  // remotely when no local household hint exists.
   await page.goto("/family-workbook");
   await expect(page.getByRole("heading", { name: "חוברת משפחה" })).toBeVisible({ timeout: 20_000 });
-  const waitForWorkbookSave = () => page.waitForResponse((response) => response.url().includes("/api/sync/blob") && response.request().method() === "POST", { timeout: 15_000 });
+  const waitForWorkbookSave = async () => {
+    await expect(page.locator("header").getByRole("status")).toHaveText("נשמר בשרת", { timeout: 15_000 });
+  };
 
   for (const label of ["בית", "שאלון", "מיפוי", "חובות", "מאזן", "מטרות ויעדים", "תזרים", "עסק", "סיכום שנתי", "תובנות", "יומן ליווי", "מחשבונים"]) {
     await page.getByRole("button", { name: label, exact: true }).click();
@@ -36,22 +31,22 @@ test("family workbook: 12 tabs, bidirectional name sync, XLSX export", async ({ 
   await page.getByRole("button", { name: "שאלון", exact: true }).click();
   const spouseSave = waitForWorkbookSave();
   await page.getByLabel("שם בן/בת זוג 1", { exact: true }).fill("רועי E2E");
-  expect((await spouseSave).status()).toBe(200);
+  await spouseSave;
 
   await page.getByRole("button", { name: "מיפוי", exact: true }).click();
   const budgetSave = waitForWorkbookSave();
   await page.getByLabel("מזון לבית (סופר)", { exact: true }).fill("3200");
-  expect((await budgetSave).status()).toBe(200);
+  await budgetSave;
 
   await page.getByRole("button", { name: "מטרות ויעדים", exact: true }).click();
   const goalSave = waitForWorkbookSave();
   await page.getByLabel("קרן חירום", { exact: true }).fill("1800");
-  expect((await goalSave).status()).toBe(200);
+  await goalSave;
 
   await page.getByRole("button", { name: "עסק", exact: true }).click();
   const businessSave = waitForWorkbookSave();
   await page.getByLabel("הכנסות תפעוליות ינואר תכנון", { exact: true }).fill("12000");
-  expect((await businessSave).status()).toBe(200);
+  await businessSave;
 
   await page.getByRole("button", { name: "חובות", exact: true }).click();
   await page.getByRole("button", { name: /הוסף אחר/ }).click();
@@ -61,7 +56,7 @@ test("family workbook: 12 tabs, bidirectional name sync, XLSX export", async ({ 
   const newestCustomRow = customRows.last();
   const customSave = waitForWorkbookSave();
   await newestCustomRow.getByLabel("אחר — ערוך שם סעיף", { exact: true }).fill("4500");
-  expect((await customSave).status()).toBe(200);
+  await customSave;
 
   await page.getByRole("button", { name: "מיפוי", exact: true }).click();
   await expect(page.getByText("סה״כ הכנסות", { exact: true })).toBeVisible();
