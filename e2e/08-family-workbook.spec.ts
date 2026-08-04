@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import * as XLSX from "xlsx";
 
 test("family workbook: 12 tabs, bidirectional name sync, XLSX export", async ({ page }) => {
   test.setTimeout(120_000);
@@ -29,7 +30,13 @@ test("family workbook: 12 tabs, bidirectional name sync, XLSX export", async ({ 
   await expect.poll(async () => page.evaluate(() => Object.values(localStorage).some((value) => value.includes("רועי E2E")))).toBe(true);
 
   await page.goto("/family-workbook");
+  await page.getByRole("button", { name: "שאלון", exact: true }).click();
+  await expect(page.getByLabel("שם בן/בת זוג 1", { exact: true })).toHaveValue("רועי E2E");
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "ייצוא XLSX", exact: true }).click();
-  expect((await download).suggestedFilename()).toContain("חוברת-משפחה");
+  const file = await download;
+  expect(file.suggestedFilename()).toContain("חוברת-משפחה");
+  const workbook = XLSX.readFile((await file.path()) || "");
+  expect(workbook.SheetNames).toEqual(["בית", "שאלון", "מיפוי", "חובות", "מאזן", "מטרות ויעדים", "תזרים", "עסק", "סיכום שנתי", "תובנות", "יומן ליווי", "מחשבונים"]);
+  expect(XLSX.utils.sheet_to_json(workbook.Sheets["שאלון"], { header: 1 }).length).toBeGreaterThan(1);
 });

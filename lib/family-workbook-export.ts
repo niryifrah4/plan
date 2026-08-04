@@ -10,7 +10,7 @@ function putValue(sheet: XLSX.WorkSheet, row: number, col: number, value: string
   sheet[address] = { t: "s", v: value };
 }
 
-function fillTemplate(book: XLSX.WorkBook, data: WorkbookData): XLSX.WorkBook {
+export function fillTemplate(book: XLSX.WorkBook, data: WorkbookData): XLSX.WorkBook {
   const tabs = [
     ["home", "בית"], ["questionnaire", "שאלון"], ["mapping", "מיפוי"], ["debts", "חובות"],
     ["balance", "מאזן"], ["goals", "מטרות ויעדים"], ["cashflow", "תזרים"], ["business", "עסק"],
@@ -30,7 +30,10 @@ function fillTemplate(book: XLSX.WorkBook, data: WorkbookData): XLSX.WorkBook {
       }
     }
     for (const row of rows) {
-      const targetRow = labels.get(row.label);
+      const aliases: Record<string, string> = id === "questionnaire"
+        ? { "שם בן/בת זוג 1": "שם מלא" }
+        : {};
+      const targetRow = labels.get(row.label) ?? labels.get(aliases[row.label] || "");
       if (targetRow === undefined) continue;
       if (monthly) {
         for (let i = 0; i < 24; i++) putValue(sheet, targetRow, 2 + i, row.cells?.[i] || "");
