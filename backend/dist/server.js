@@ -10027,6 +10027,17 @@ function fillTemplate(book, data) {
         if (typeof cell?.v === "string" && cell.v.trim()) labels.set(cell.v.trim(), r);
       }
     }
+    if (id === "home") {
+      const value = (tab, label2) => data[tab]?.find((row) => row.label === label2)?.value || "";
+      const cashflow = value("cashflow", "\u05EA\u05D6\u05E8\u05D9\u05DD \u05E0\u05D8\u05D5") || value("annual", "\u05EA\u05D6\u05E8\u05D9\u05DD \u05E0\u05D8\u05D5");
+      const emergency = value("insights", "\u05DB\u05E8\u05D9\u05EA \u05D7\u05D9\u05E8\u05D5\u05DD (\u05D7\u05D5\u05D3\u05E9\u05D9\u05DD)");
+      const goals = value("insights", "% \u05DE\u05D4\u05DE\u05D8\u05E8\u05D5\u05EA \u05E9\u05DE\u05D5\u05DE\u05DF") || value("insights", "\u05DE\u05D9\u05DE\u05D5\u05DF \u05D4\u05DE\u05D8\u05E8\u05D5\u05EA");
+      if (cashflow) putValue(sheet, 4, 1, cashflow);
+      if (emergency) putValue(sheet, 4, 3, emergency);
+      if (goals) putValue(sheet, 4, 5, goals);
+      const year = value("cashflow", "\u05E9\u05E0\u05D4") || value("annual", "\u05E9\u05E0\u05D4");
+      if (year) putValue(sheet, 20, 4, year);
+    }
     if (id === "cashflow") {
       const inputRows = [
         ...Array.from({ length: 6 }, (_, i) => 5 + i),
@@ -10046,10 +10057,11 @@ function fillTemplate(book, data) {
       });
     }
     if (id === "debts") {
-      rows.filter((row) => row.value && !row.calculated && row.label !== "\u05D4\u05DC\u05D5\u05D5\u05D0\u05D5\u05EA").slice(0, 10).forEach((row, index) => {
-        const targetRow = 5 + index;
-        putValue(sheet, targetRow, 1, row.label);
-        putValue(sheet, targetRow, 4, row.value);
+      const field = (label2) => rows.find((row) => row.label === label2)?.value || "";
+      const loan = [["\u05E9\u05DD \u05D4\u05D4\u05DC\u05D5\u05D5\u05D0\u05D4 / \u05D4\u05D1\u05E0\u05E7", 1], ["\u05D9\u05EA\u05E8\u05EA \u05E7\u05E8\u05DF", 2], ["\u05E8\u05D9\u05D1\u05D9\u05EA \u05E9\u05E0\u05EA\u05D9\u05EA", 3], ["\u05D4\u05D7\u05D6\u05E8 \u05D7\u05D5\u05D3\u05E9\u05D9", 4], ["\u05D7\u05D5\u05D3\u05E9\u05D9\u05DD \u05E9\u05E0\u05D5\u05EA\u05E8\u05D5", 5]];
+      loan.forEach(([labelName, col]) => {
+        const value = field(labelName);
+        if (value) putValue(sheet, 5, col, value);
       });
     }
     if (id === "goals") {
@@ -10118,13 +10130,13 @@ function patchFamilyTemplate(template, generated) {
     for (let row = range.s.r; row <= range.e.r; row++) {
       for (let col = range.s.c; col <= range.e.c; col++) {
         const cell = sheet[XLSX5.utils.encode_cell({ r: row, c: col })];
-        if (!cell || cell.f === void 0 || cell.v === void 0 || cell.v === "") continue;
+        if (!cell || cell.v === void 0 || cell.v === "") continue;
         const ref = XLSX5.utils.encode_cell({ r: row, c: col });
         const value = String(cell.v);
         const numeric = typeof cell.v === "number" && Number.isFinite(cell.v);
         const cellPattern = new RegExp(`<c\\b([^>]*\\br="${ref}"[^>]*)>(?:[\\s\\S]*?<\\/c>)?`);
         content = content.replace(cellPattern, (_whole, rawAttrs) => {
-          const attrs = rawAttrs.replace(/\\s+t="[^"]*"/g, "");
+          const attrs = rawAttrs.replace(/\s+t="[^"]*"/g, "");
           return numeric ? `<c${attrs} t="n"><v>${cell.v}</v></c>` : `<c${attrs} t="inlineStr"><is><t>${xml(value)}</t></is></c>`;
         });
       }
@@ -10199,7 +10211,9 @@ app.use(
 );
 var apiLimiter = rateLimit2({
   windowMs: 6e4,
-  limit: 240,
+  // Workbook hydration + cross-module sync can legitimately exceed 240
+  // requests/minute. Expensive routes still have their own tighter limits.
+  limit: 1e3,
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: { error: "rate_limited" },
