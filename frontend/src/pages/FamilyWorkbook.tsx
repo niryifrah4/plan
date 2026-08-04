@@ -94,11 +94,19 @@ export function FamilyWorkbookPage() {
 
   useEffect(() => {
     hydrate();
+    // Auth/backend bootstrap can finish after the first pull. Retry once so
+    // a transient empty response never leaves the workbook on the template.
+    const retryHydration = window.setTimeout(() => {
+      if (!draftDirty.current) void hydrate();
+    }, 3000);
     // Workbook save already updates local React state. Listening to its own
     // save event causes a stale remote read to overwrite fresh input.
     const events = ["storage", "verdant:onboarding:updated", "verdant:assumptions", "verdant:assumptions:updated", "verdant:budgets:updated", "verdant:debt:updated", "verdant:buckets:updated", "verdant:goals:updated", "verdant:realestate:updated"];
     events.forEach((event) => window.addEventListener(event, hydrate));
-    return () => events.forEach((event) => window.removeEventListener(event, hydrate));
+    return () => {
+      window.clearTimeout(retryHydration);
+      events.forEach((event) => window.removeEventListener(event, hydrate));
+    };
   }, []);
 
   const netWorth = useMemo(() => summary.assets - summary.debt, [summary]);
