@@ -33,7 +33,11 @@ test("family workbook: 12 tabs, bidirectional name sync, XLSX export", async ({ 
   await page.waitForURL(/\/onboarding/);
   await page.goto("/onboarding?step=1");
   const start = page.getByRole("button", { name: "בואו נתחיל" });
-  if (await start.count()) await start.click();
+  await expect(start).toBeVisible({ timeout: 20_000 });
+  await start.click();
+  await page.getByRole("button", { name: "זוג ללא ילדים", exact: true }).click();
+  await expect.poll(async () => page.locator("input").count()).toBeGreaterThan(0);
+  await expect.poll(async () => page.locator("input").evaluateAll((inputs) => inputs.some((input) => (input as HTMLInputElement).value === "רועי E2E"))).toBe(true);
   await expect.poll(async () => page.evaluate(() => Object.values(localStorage).some((value) => value.includes("רועי E2E")))).toBe(true);
 
   await page.goto("/family-workbook");

@@ -165,11 +165,20 @@ export default function OnboardingPage() {
       const fresh = data
         ? buildOnboardingState((key) => data[key] ?? null)
         : loadInitialOnboardingState();
+      // Concurrent hydrate calls can resolve in opposite order. Preserve
+      // meaningful local edits when a stale remote snapshot is empty.
+      const localFresh = loadInitialOnboardingState();
+      const mergedFields = { ...fresh.fields };
+      for (const [key, value] of Object.entries(localFresh.fields)) {
+        if (String(value ?? "").trim() && !String(mergedFields[key] ?? "").trim()) {
+          mergedFields[key] = value;
+        }
+      }
       // Preserve an explicit ?step deep-link; otherwise adopt the saved step.
       const hasStepParam =
         typeof window !== "undefined" && new URLSearchParams(window.location.search).has("step");
       if (!hasStepParam) setStep(fresh.step);
-      setFields(fresh.fields);
+      setFields(mergedFields);
       setChildren(fresh.children);
       setAssets(fresh.assets);
       setLiabilities(fresh.liabilities);
