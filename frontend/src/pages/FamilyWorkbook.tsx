@@ -101,7 +101,7 @@ export function FamilyWorkbookPage() {
 
   const netWorth = useMemo(() => summary.assets - summary.debt, [summary]);
   const persist = async (next: WorkbookData): Promise<boolean> => {
-    if (!hydrated) return false;
+    if (!Object.keys(next).length) return false;
     setSaveState("saving");
     const ok = await saveWorkbook(next);
     if (ok) draftDirty.current = false;
