@@ -8,6 +8,7 @@ import {
 import { requireUser } from "../middleware/auth.js";
 import { asyncHandler } from "../lib/async-handler.js";
 import { upload } from "../lib/upload.js";
+import { isSafeXlsxContainer } from "../lib/safe-zip.js";
 
 /**
  * POST /api/pension/parse-pdf — ported from app/api/pension/parse-pdf.
@@ -105,6 +106,9 @@ pensionRouter.post(
       const kind = classifyUpload(name, buffer);
       if (!kind) {
         return errJson(`סוג הקובץ ${name} לא נתמך או שהקובץ לא תקין — העלה PDF, Excel או CSV`, "INVALID_FILE_TYPE", 400);
+      }
+      if (kind === "spreadsheet" && name.toLowerCase().endsWith(".xlsx") && !isSafeXlsxContainer(buffer)) {
+        return errJson("קובץ XLSX לא תקין או מסוכן", "UNSAFE_XLSX", 415);
       }
       files.push({ name, buffer, kind });
     }

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import * as XLSX from "xlsx";
 import { requireUser } from "../middleware/auth.js";
+import { isSafeXlsxContainer } from "../lib/safe-zip.js";
 import { asyncHandler } from "../lib/async-handler.js";
 import { upload } from "../lib/upload.js";
 
@@ -267,6 +268,10 @@ securitiesRouter.post(
     const isXls = /\.xls$/i.test(name) && !isXlsx;
     if (isXlsx && !(buf[0] === 0x50 && buf[1] === 0x4b)) {
       res.status(415).json({ error: "הקובץ אינו קובץ Excel תקין (.xlsx)", code: "BAD_MAGIC" });
+      return;
+    }
+    if (isXlsx && !isSafeXlsxContainer(buf)) {
+      res.status(415).json({ error: "קובץ Excel מורכב או דחוס מדי", code: "UNSAFE_XLSX" });
       return;
     }
     if (isXls && !(buf[0] === 0xd0 && buf[1] === 0xcf && buf[2] === 0x11 && buf[3] === 0xe0)) {

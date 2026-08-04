@@ -27,6 +27,7 @@
     <div class="item done"><strong>הקשחת API</strong><br>נוספו Security Headers דרך Helmet, הוסרה חתימת Express, נוסף Rate Limit גלובלי ל־API, ו־CORS מאשר רק origins מוגדרים.</div>
     <div class="item done"><strong>הקטנת שטח תקיפה</strong><br>Body JSON גלובלי ירד מ־10MB ל־2MB. העלאות קבצים עדיין מוגבלות ל־20MB ובדיקות magic-bytes קיימות במסלולים.</div>
     <div class="item done"><strong>הקשחת multipart</strong><br>נוספו מגבלות על מספר קבצים, שדות, parts וגודל שדה. חריגה מחזירה 413 כללי ולא stack trace.</div>
+    <div class="item done"><strong>הגנת XLSX</strong><br>נבדק מבנה ZIP לפני parser: מספר entries, גודל מרכזי, יחס דחיסה וגודל פתיחה מצטבר. קובץ חשוד נחסם.</div>
     <div class="item done"><strong>מניעת דליפת מידע</strong><br>שגיאות 500 מחזירות <code>internal_error</code> בלבד. פרטי DB ו־stack trace נשארים בלוג השרת.</div>
     <div class="item done"><strong>סנכרון</strong><br>כשל כתיבה מרחוק כבר לא נחשב הצלחה שקטה: נשלח אירוע <code>verdant:sync:result</code> ומדווחת שגיאה.</div>
     <div class="item done"><strong>Tenant guard</strong><br>סנכרון מרחוק מקבל household ID רק אם הוא UUID תקין. ערך מזויף או פגום עוצר כתיבה.</div>
@@ -43,10 +44,10 @@
       <li>Backend build — עבר.</li>
       <li>Frontend build — עבר.</li>
       <li>E2E חוברת משפחה — עבר: 12 לשוניות, סנכרון, עריכה וייצוא XLSX.</li>
-      <li>UI בדפדפן פתוח — הנתיב <code>/family-workbook</code> מוגן ומפנה להתחברות ללא session.</li>
+      <li>UI בדפדפן פתוח — משתמש מחובר פתח את <code>/family-workbook</code>, ערך בכל 12 הלשוניות, והחוברת נטענה.</li>
       <li>Supabase migration <code>20260804100000</code> — הוחל ב־remote ואומת.</li>
       <li>UI מחובר ב־Command+B — דשבורד נטען, חוברת נטענה, וכל 12 הלשוניות נפתחו.</li>
-      <li>Desktop E2E מלא — 32 עברו; 4 כשלים הם טסטי features שנחתו ב־login כי סביבת הטסט לא עלתה עם <code>DEV_AUTH_BYPASS</code>.</li>
+      <li>Features E2E עם auth bypass — 7/7 עברו. Desktop מלא ללא session — 32 עברו ו־4 נבלמו ב־login, כלומר בעיית סביבת בדיקה ולא כשל מוצר.</li>
     </ul>
   </section>
 

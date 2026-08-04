@@ -7,6 +7,7 @@ import { requireUser } from "../middleware/auth.js";
 import { asyncHandler } from "../lib/async-handler.js";
 import { upload } from "../lib/upload.js";
 import { rateLimit, getClientIp, RATE_LIMITS } from "../lib/rate-limit.js";
+import { isSafeXlsxContainer } from "../lib/safe-zip.js";
 
 /**
  * POST /api/documents/parse — ported from app/api/documents/parse.
@@ -68,6 +69,10 @@ documentsRouter.post(
       } else if (ext === "xlsx") {
         if (header.length < 4 || header[0] !== 0x50 || header[1] !== 0x4b) {
           res.status(400).json({ error: `הקובץ ${file.originalname} אינו Excel תקין (.xlsx)`, code: "INVALID_XLSX" });
+          return;
+        }
+        if (!isSafeXlsxContainer(file.buffer)) {
+          res.status(400).json({ error: `הקובץ ${file.originalname} גדול או מורכב מדי`, code: "UNSAFE_XLSX" });
           return;
         }
       } else if (ext === "xls") {
