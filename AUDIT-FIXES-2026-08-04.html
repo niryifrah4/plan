@@ -19,7 +19,7 @@
   <header>
     <h1>Audit ארכיטקטורה והקשחה</h1>
     <div class="meta">פרויקט plan-nir-yifrah · 4 באוגוסט 2026 · בדיקה ותיקונים ללא נגיעה בגיבוי Next</div>
-    <p><strong>מצב:</strong> בוצעו תיקונים בטוחים ומאומתים. ה־migration של Supabase הורץ ואומת ב־remote.</p>
+    <p><strong>מצב:</strong> בוצעו תיקונים בטוחים. חוברת המשפחה נשמרת בשרת ללא cache מקומי של החוברת. בדיקת Supabase וה־typecheck עברו; בדיקת login מלאה ממתינה ל־session תקין.</p>
   </header>
 
   <section>
@@ -35,6 +35,9 @@
     <div class="item done"><strong>מסלול כתיבה קנוני</strong><br>שמירת <code>client_state</code> עוברת רק דרך API מאומת ו־RPC אטומי. הוסר fallback ישיר מהדפדפן ומסלול legacy; כשל נשאר בתור retry.</div>
     <div class="item done"><strong>CI</strong><br>נשמר workflow קיים והורחב ל־typecheck ו־build לפרונט ולבק, והרצת audit כתוצאה מדווחת. Lint עדיין דורש ניקוי ייעודי כי אין לו כרגע קונפיגורציה תקינה.</div>
     <div class="item done"><strong>שומר אבטחה אוטומטי</strong><br>נוסף <code>security:check</code> שסורק migrations, RLS, RPC מוגן, ו־service_role בפרונט. הבדיקה עברה.</div>
+    <div class="item done"><strong>חוברת משפחה ללא cache מקומי</strong><br>קריאת החוברת מגיעה מ־Supabase דרך GET מאומת; כתיבה עוברת דרך POST קנוני ו־RPC. אין שמירת נתוני חוברת ב־localStorage.</div>
+    <div class="item done"><strong>מבנה לשוניות</strong><br>נוספו כותרות וסעיפי־על לפי ה־template, טבלת שאלון, מטרות, חובות/מאזן ותצוגת 12 חודשים עם תכנון וביצוע לתזרים ולעסק.</div>
+    <div class="item done"><strong>מספרים ב־RTL</strong><br>מספרים, מטבע וסימן מינוס עטופים ב־LTR כדי שמינוס יוצג משמאל: <code>-2,500,000 ₪</code>.</div>
   </section>
 
   <section>
@@ -44,20 +47,17 @@
       <li>Frontend typecheck — עבר.</li>
       <li>Backend build — עבר.</li>
       <li>Frontend build — עבר.</li>
-      <li>E2E חוברת משפחה — עבר: 12 לשוניות, סנכרון, עריכה וייצוא XLSX.</li>
-      <li>UI בדפדפן פתוח — משתמש מחובר פתח את <code>/family-workbook</code>, ערך בכל 12 הלשוניות, והחוברת נטענה.</li>
+      <li>E2E חוברת משפחה — הבדיקה הורצה אך נעצרה ב־login/חוסר session תקין; לא מסומן כעבר.</li>
+      <li>UI בדפדפן — עמוד ההתחברות נטען. כניסה עם פרטי הבדיקה החזירה <code>Invalid login credentials</code>, ולכן לא נטען מסך מאומת.</li>
       <li>Supabase migration <code>20260804100000</code> — הוחל ב־remote ואומת.</li>
-      <li>UI מחובר ב־Command+B — דשבורד נטען, חוברת נטענה, וכל 12 הלשוניות נפתחו.</li>
-      <li>בדיקת UI חיה — 11 לשוניות תוכן עברו בכותרת ובמבנה; בית נטען עם סיכום בית ייעודי.</li>
-      <li>בדיקת עריכה חיה — שדה בן/בת זוג קיבל ערך זמני, נשמר, והוחזר לערך המקורי.</li>
-      <li>Features E2E עם auth bypass — 7/7 עברו. Desktop מלא ללא session — 32 עברו ו־4 נבלמו ב־login, כלומר בעיית סביבת בדיקה ולא כשל מוצר.</li>
+      <li>בדיקת UI מאומתת מלאה — חסומה כרגע בגלל session/credentials, לא בגלל כשל UI מוכח.</li>
     </ul>
   </section>
 
   <section>
     <h2>מה עדיין דורש טיפול</h2>
     <div class="item critical"><strong>הרשאות DB רחבות</strong><br>קיימים grants כלליים ל־authenticated. ה־RPC המרכזי הוקשח, אבל צריך לצמצם לפי טבלה/פעולה לאחר מיפוי כל המסכים, אחרת אפשר לשבור את האפליקציה.</div>
-    <div class="item critical"><strong>localStorage כמקור אמת</strong><br>עדיין קיימת ארכיטקטורת localStorage-first. צריך להפוך את Supabase למקור האמת, עם cache מקומי בלבד ומצב שמירה גלוי.</div>
+    <div class="item"><strong>נתוני מודולים ותיקים</strong><br>חלק מהמסכים הוותיקים עדיין קוראים localStorage. חוברת המשפחה עצמה כבר אינה שומרת cache מקומי, אבל נדרש מיגרציה מלאה של שאר המודולים לשרת.</div>
     <div class="item"><strong>מסלולי כתיבה בתחומים אחרים</strong><br>מצב client_state נסגר למסלול קנוני. עדיין צריך להחיל אותו דפוס על תחומי הנתונים הישירים האחרים.</div>
     <div class="item"><strong>xlsx</strong><br>ה־dependency מדווחת חולשות Prototype Pollution ו־ReDoS. צריך להחליף או לבודד את parser, במיוחד בקבצים שמגיעים ממשתמשים.</div>
     <div class="item"><strong>Production</strong><br>צריך להוסיף CI branch protection, backup/restore test, schema drift check, ניטור, alerting ו־rollback.</div>
@@ -70,7 +70,7 @@
       <li>להחליף <code>xlsx</code> או להעביר parsing מסוכן לשירות מבודד.</li>
       <li>למפות כל table ו־policy ולצמצם grants.</li>
       <li>להגדיר API/commands קנוניים ו־transactions.</li>
-      <li>להפוך Supabase למקור אמת ולשמור localStorage כ־cache.</li>
+      <li>להעביר את שאר המודולים מ־localStorage לקריאה וכתיבה ישירה לשרת, ללא cache מקומי.</li>
       <li>להוסיף בדיקות tenant isolation לכל route ולכל table.</li>
       <li>להגדיר backup, restore, monitoring ו־rollback אמיתיים.</li>
     </ol>
