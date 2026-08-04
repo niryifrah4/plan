@@ -5,7 +5,7 @@ import { loadBuckets } from "@/lib/buckets-store";
 import { hydratePropertiesFromRemote, loadProperties } from "@/lib/realestate-store";
 import { hydrateBudgetsFromRemote } from "@/lib/budget-store";
 import { hydrateTransactionsFromRemote } from "@/lib/budget-import";
-import { hydrateWorkbookFromSite, loadWorkbook, saveWorkbook, starter, syncWorkbookRowToSite, updateWorkbookCell, updateWorkbookRow, WORKBOOK_TABS, type WorkbookData, type WorkbookRow } from "@/lib/family-workbook";
+import { loadWorkbook, saveWorkbook, starter, syncWorkbookRowToSite, updateWorkbookCell, updateWorkbookRow, WORKBOOK_TABS, type WorkbookData, type WorkbookRow } from "@/lib/family-workbook";
 import { useClient } from "@/lib/client-context";
 import { getSupabase } from "~/lib/supabase";
 import { pullBlob } from "@/lib/sync/blob-sync";
@@ -37,28 +37,37 @@ export function FamilyWorkbookPage() {
   const [saveState, setSaveState] = useState<"saved" | "saving" | "error">("saved");
   const [summary, setSummary] = useState({ assets: 0, debt: 0, goals: 0 });
   const hydrateRun = useRef(0);
+  const hydrationInFlight = useRef(false);
   const draftRef = useRef<WorkbookData>({});
   const draftDirty = useRef(false);
   const hydrationReady = useRef(false);
 
   const hydrate = async () => {
-    if (draftDirty.current) return;
+    if (draftDirty.current || hydrationInFlight.current) return;
+    hydrationInFlight.current = true;
     const run = ++hydrateRun.current;
+    try {
     // Remote first: the workbook must reflect the same household state as
     // dashboard, budget, debt and real-estate screens after refresh/device
     // switch. Local stores are only the synchronous read model fallback.
-    await Promise.allSettled([
-      hydrateAccountsFromRemote(),
-      hydrateDebtFromRemote(),
-      hydratePropertiesFromRemote(),
-      hydrateBudgetsFromRemote(),
-      hydrateTransactionsFromRemote(),
+    await Promise.race([
+      Promise.allSettled([
+        hydrateAccountsFromRemote(),
+        hydrateDebtFromRemote(),
+        hydratePropertiesFromRemote(),
+        hydrateBudgetsFromRemote(),
+        hydrateTransactionsFromRemote(),
+      ]),
+      new Promise((resolve) => window.setTimeout(resolve, 6000)),
     ]);
     const accounts = loadAccounts(); const debt = loadDebtData(); const properties = loadProperties(); const buckets = loadBuckets();
     const assets = totalBankBalance(accounts) + properties.reduce((sum, p) => sum + Number(p.currentValue || 0), 0);
     const debtTotal = debt.loans.reduce((sum, l) => sum + Number(l.monthlyPayment || 0), 0) + debt.mortgages.reduce((sum, m) => sum + m.tracks.reduce((trackSum, track) => trackSum + Number(track.remainingBalance || 0), 0), 0);
     setSummary({ assets, debt: debtTotal, goals: buckets.length });
-    const remoteWorkbook = await pullBlob<WorkbookData>("family_workbook");
+    const remoteWorkbook = await Promise.race([
+      pullBlob<WorkbookData>("family_workbook"),
+      new Promise<null>((resolve) => window.setTimeout(() => resolve(null), 8000)),
+    ]);
     if (run !== hydrateRun.current) return;
     const template = Object.fromEntries(Object.entries(starter).map(([tab, tabRows]) => [
       tab,
@@ -69,9 +78,13 @@ export function FamilyWorkbookPage() {
     // A partial/old blob may contain empty tabs. Never render those as a
     // blank workbook: preserve saved tabs and fill only missing/empty tabs
     // from the canonical template.
-    const workbook = hydrateWorkbookFromSite(Object.fromEntries(
+    const workbookSource = Object.fromEntries(
       Object.keys(template).map((tab) => [tab, source?.[tab]?.length ? source[tab] : template[tab]])
-    ));
+    ) as WorkbookData;
+    // A persisted workbook is authoritative. Do not let legacy localStorage
+    // values overwrite it during hydration; this was the source of values
+    // appearing, disappearing, and returning after refresh.
+    const workbook = workbookSource;
     const balanceValues: Record<string, string> = {
       "עו״ש ופיקדונות": String(totalBankBalance(accounts)),
       "דירה (שווי שוק)": String(properties.reduce((sum, p) => sum + Number(p.currentValue || 0), 0)),
@@ -90,6 +103,9 @@ export function FamilyWorkbookPage() {
     draftRef.current = workbook;
     hydrationReady.current = true;
     setHydrated(true);
+    } finally {
+      hydrationInFlight.current = false;
+    }
   };
 
   useEffect(() => {
@@ -175,7 +191,10 @@ export function FamilyWorkbookPage() {
     setSaveState("error");
   };
 
-  return <main dir="rtl" className="family-workbook min-h-screen px-1 py-3 md:px-3 md:py-4" style={{ background: "var(--verdant-bg, #f4f7f2)" }}><div className="mx-auto w-full max-w-none">
+  if (!hydrated) {
+    return <main dir="rtl" className="family-workbook -mx-3 min-h-screen px-1 py-3 sm:-mx-6 md:-mx-10 md:px-3 md:py-4" style={{ background: "var(--verdant-bg, #f4f7f2)" }}><div className="flex min-h-[40vh] items-center justify-center text-sm font-bold text-slate-500">טוען נתוני משפחה…</div></main>;
+  }
+  return <main dir="rtl" className="family-workbook -mx-3 min-h-screen px-1 py-3 sm:-mx-6 md:-mx-10 md:px-3 md:py-4" style={{ background: "var(--verdant-bg, #f4f7f2)" }}><div className="mx-auto w-full max-w-none">
     <header className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-black text-slate-800">חוברת משפחה</h1><p className="text-sm text-slate-500">{familyName || "לקוח חדש"} · מבנה זהה לאקסל</p></div><div className="flex items-center gap-2"><button type="button" onClick={exportXlsx} className="rounded-xl bg-slate-800 px-4 py-2 text-xs font-black text-white">ייצוא XLSX</button><div role="status" className={`rounded-xl bg-white px-4 py-2 text-xs font-bold ${saveState === "error" ? "text-red-700" : "text-slate-500"}`}>{saveState === "saved" ? "נשמר בשרת" : saveState === "saving" ? "שומר בשרת..." : "השמירה נכשלה — הנתון לא נשמר"}</div></div></header>
     <nav aria-label="לשוניות חוברת המשפחה" className="mb-4 flex gap-1 overflow-x-auto rounded-2xl bg-white p-2 shadow-sm">{WORKBOOK_TABS.map((tab) => <button key={tab.id} type="button" onClick={() => void changeTab(tab.id)} className={`shrink-0 rounded-xl px-4 py-2 text-sm font-extrabold transition ${active === tab.id ? "bg-emerald-700 text-white" : "text-slate-600 hover:bg-emerald-50"}`}>{tab.label}</button>)}</nav>
     {active === "home" ? <HomeSummary summary={{ ...summary, netWorth }} onTab={(tab) => void changeTab(tab)} /> : <WorkbookSheet tab={active} label={WORKBOOK_TABS.find((tab) => tab.id === active)?.label || "לשונית"} rows={rows} onUpdate={updateRow} onCellUpdate={updateCell} onAdd={addRow} />}

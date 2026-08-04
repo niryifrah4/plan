@@ -3515,20 +3515,8 @@ syncRouter.post(
       p_expected: expectedVersion ?? null
     });
     if (error) {
-      const code = error.code;
-      if (code === "PGRST202" || code === "42883") {
-        const { error: upErr } = await sb.from("client_state").upsert(
-          { household_id: householdId, state_key: key, state_value: value ?? null },
-          { onConflict: "household_id,state_key" }
-        );
-        if (upErr) {
-          res.status(500).json({ ok: false, error: "upsert_failed", detail: upErr.message });
-          return;
-        }
-        res.json({ ok: true, version: null });
-        return;
-      }
-      res.status(500).json({ ok: false, error: "upsert_failed", detail: error.message });
+      console.error("[sync/blob] canonical RPC failed", error.message);
+      res.status(500).json({ ok: false, error: "upsert_failed" });
       return;
     }
     const row = Array.isArray(data) ? data[0] : data;
@@ -3542,6 +3530,30 @@ syncRouter.post(
       return;
     }
     res.json({ ok: true, version: row?.out_version ?? null });
+  })
+);
+syncRouter.get(
+  "/blob",
+  asyncHandler(async (req, res) => {
+    const sb = req.sb;
+    const parsed = validate(req.query, z3.object({
+      key: z3.string().trim().min(1).max(200),
+      householdId: z3.string().uuid()
+    }), res);
+    if (!parsed.ok) return;
+    const { key, householdId } = parsed.data;
+    const allowed = await assertHouseholdAccess(sb, req.user.id, householdId);
+    if (!allowed) {
+      res.status(403).json({ ok: false, error: "forbidden" });
+      return;
+    }
+    const { data, error } = await sb.from("client_state").select("state_value, version").eq("household_id", householdId).eq("state_key", key).maybeSingle();
+    if (error) {
+      console.error("[sync/blob] read failed", error.message);
+      res.status(500).json({ ok: false, error: "read_failed" });
+      return;
+    }
+    res.json({ ok: true, value: data?.state_value ?? null, version: data?.version ?? null });
   })
 );
 
@@ -6022,6 +6034,36 @@ var RATE_LIMITS = {
   GENERIC: { limit: 60, windowMs: 6e4 }
 };
 
+// src/lib/safe-zip.ts
+var EOCD = Buffer.from([80, 75, 5, 6]);
+var CENTRAL = Buffer.from([80, 75, 1, 2]);
+function isSafeXlsxContainer(buffer) {
+  if (buffer.length < 22 || buffer[0] !== 80 || buffer[1] !== 75) return false;
+  const eocd = buffer.lastIndexOf(EOCD, buffer.length - 22);
+  if (eocd < 0 || buffer.length - eocd > 22 + 65535) return false;
+  const entries = buffer.readUInt16LE(eocd + 10);
+  const centralSize = buffer.readUInt32LE(eocd + 12);
+  const centralOffset = buffer.readUInt32LE(eocd + 16);
+  if (entries === 0 || entries > 1e3 || centralSize > 2 * 1024 * 1024) return false;
+  if (centralOffset + centralSize > buffer.length) return false;
+  let cursor = centralOffset;
+  let totalUncompressed = 0;
+  for (let i = 0; i < entries; i++) {
+    if (cursor + 46 > buffer.length || !buffer.subarray(cursor, cursor + 4).equals(CENTRAL)) return false;
+    const compressed = buffer.readUInt32LE(cursor + 20);
+    const uncompressed = buffer.readUInt32LE(cursor + 24);
+    const nameLength = buffer.readUInt16LE(cursor + 28);
+    const extraLength = buffer.readUInt16LE(cursor + 30);
+    const commentLength = buffer.readUInt16LE(cursor + 32);
+    if (compressed === 0 && uncompressed > 0) return false;
+    if (compressed > 0 && uncompressed / compressed > 100) return false;
+    totalUncompressed += uncompressed;
+    if (totalUncompressed > 100 * 1024 * 1024) return false;
+    cursor += 46 + nameLength + extraLength + commentLength;
+  }
+  return true;
+}
+
 // src/routes/documents.ts
 var documentsRouter = Router7();
 var ALLOWED_EXTS = ["pdf", "xlsx", "xls", "csv"];
@@ -6070,6 +6112,10 @@ documentsRouter.post(
       } else if (ext === "xlsx") {
         if (header.length < 4 || header[0] !== 80 || header[1] !== 75) {
           res.status(400).json({ error: `\u05D4\u05E7\u05D5\u05D1\u05E5 ${file.originalname} \u05D0\u05D9\u05E0\u05D5 Excel \u05EA\u05E7\u05D9\u05DF (.xlsx)`, code: "INVALID_XLSX" });
+          return;
+        }
+        if (!isSafeXlsxContainer(file.buffer)) {
+          res.status(400).json({ error: `\u05D4\u05E7\u05D5\u05D1\u05E5 ${file.originalname} \u05D2\u05D3\u05D5\u05DC \u05D0\u05D5 \u05DE\u05D5\u05E8\u05DB\u05D1 \u05DE\u05D3\u05D9`, code: "UNSAFE_XLSX" });
           return;
         }
       } else if (ext === "xls") {
@@ -8456,6 +8502,9 @@ pensionRouter.post(
       if (!kind) {
         return errJson(`\u05E1\u05D5\u05D2 \u05D4\u05E7\u05D5\u05D1\u05E5 ${name} \u05DC\u05D0 \u05E0\u05EA\u05DE\u05DA \u05D0\u05D5 \u05E9\u05D4\u05E7\u05D5\u05D1\u05E5 \u05DC\u05D0 \u05EA\u05E7\u05D9\u05DF \u2014 \u05D4\u05E2\u05DC\u05D4 PDF, Excel \u05D0\u05D5 CSV`, "INVALID_FILE_TYPE", 400);
       }
+      if (kind === "spreadsheet" && name.toLowerCase().endsWith(".xlsx") && !isSafeXlsxContainer(buffer)) {
+        return errJson("\u05E7\u05D5\u05D1\u05E5 XLSX \u05DC\u05D0 \u05EA\u05E7\u05D9\u05DF \u05D0\u05D5 \u05DE\u05E1\u05D5\u05DB\u05DF", "UNSAFE_XLSX", 415);
+      }
       files.push({ name, buffer, kind });
     }
     const pdfFiles = files.filter((f) => f.kind === "pdf");
@@ -8727,6 +8776,10 @@ securitiesRouter.post(
     const isXls = /\.xls$/i.test(name) && !isXlsx;
     if (isXlsx && !(buf[0] === 80 && buf[1] === 75)) {
       res.status(415).json({ error: "\u05D4\u05E7\u05D5\u05D1\u05E5 \u05D0\u05D9\u05E0\u05D5 \u05E7\u05D5\u05D1\u05E5 Excel \u05EA\u05E7\u05D9\u05DF (.xlsx)", code: "BAD_MAGIC" });
+      return;
+    }
+    if (isXlsx && !isSafeXlsxContainer(buf)) {
+      res.status(415).json({ error: "\u05E7\u05D5\u05D1\u05E5 Excel \u05DE\u05D5\u05E8\u05DB\u05D1 \u05D0\u05D5 \u05D3\u05D7\u05D5\u05E1 \u05DE\u05D3\u05D9", code: "UNSAFE_XLSX" });
       return;
     }
     if (isXls && !(buf[0] === 208 && buf[1] === 207 && buf[2] === 17 && buf[3] === 224)) {
@@ -9935,7 +9988,7 @@ marketRouter.post(
 
 // src/routes/family-workbook.ts
 import { Router as Router19 } from "express";
-import * as XLSX5 from "xlsx";
+import * as XLSX6 from "xlsx";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z as z8 } from "zod";
@@ -9944,7 +9997,7 @@ import { z as z8 } from "zod";
 import * as XLSX4 from "xlsx";
 function putValue(sheet, row, col, value) {
   const address = XLSX4.utils.encode_cell({ r: row, c: col });
-  sheet[address] = { t: "s", v: value };
+  sheet[address] = { ...sheet[address] || {}, t: "s", v: value };
 }
 function fillTemplate(book, data) {
   const tabs = [
@@ -10047,6 +10100,40 @@ function fillTemplate(book, data) {
   return book;
 }
 
+// src/lib/family-workbook-template-patch.ts
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
+import * as XLSX5 from "xlsx";
+function xml(value) {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+}
+function patchFamilyTemplate(template, generated) {
+  const archive = unzipSync(new Uint8Array(template));
+  for (let sheetIndex = 0; sheetIndex < 12; sheetIndex++) {
+    const sheetName = generated.SheetNames[sheetIndex];
+    const sheet = sheetName ? generated.Sheets[sheetName] : void 0;
+    const file = archive[`xl/worksheets/sheet${sheetIndex + 1}.xml`];
+    if (!sheet || !file) continue;
+    const range = XLSX5.utils.decode_range(sheet["!ref"] || "A1:A1");
+    let content = strFromU8(file);
+    for (let row = range.s.r; row <= range.e.r; row++) {
+      for (let col = range.s.c; col <= range.e.c; col++) {
+        const cell = sheet[XLSX5.utils.encode_cell({ r: row, c: col })];
+        if (!cell || cell.f === void 0 || cell.v === void 0 || cell.v === "") continue;
+        const ref = XLSX5.utils.encode_cell({ r: row, c: col });
+        const value = String(cell.v);
+        const numeric = typeof cell.v === "number" && Number.isFinite(cell.v);
+        const cellPattern = new RegExp(`<c\\b([^>]*\\br="${ref}"[^>]*)>(?:[\\s\\S]*?<\\/c>)?`);
+        content = content.replace(cellPattern, (_whole, rawAttrs) => {
+          const attrs = rawAttrs.replace(/\\s+t="[^"]*"/g, "");
+          return numeric ? `<c${attrs} t="n"><v>${cell.v}</v></c>` : `<c${attrs} t="inlineStr"><is><t>${xml(value)}</t></is></c>`;
+        });
+      }
+    }
+    archive[`xl/worksheets/sheet${sheetIndex + 1}.xml`] = strToU8(content);
+  }
+  return Buffer.from(zipSync(archive, { level: 6 }));
+}
+
 // src/routes/family-workbook.ts
 var rowSchema = z8.object({
   id: z8.string(),
@@ -10085,10 +10172,14 @@ familyWorkbookRouter.post("/export", asyncHandler(async (req, res) => {
     res.status(500).json({ ok: false, error: "template_missing" });
     return;
   }
-  const book = fillTemplate(XLSX5.read(await fs.readFile(templatePath), { type: "buffer", cellStyles: true }), parsed.data.data);
+  const templateBuffer = await fs.readFile(templatePath);
+  const book = fillTemplate(XLSX6.read(templateBuffer, { type: "buffer", cellStyles: true }), parsed.data.data);
   const spouse1 = parsed.data.data.questionnaire?.find((row) => row.label === "\u05E9\u05DD \u05D1\u05DF/\u05D1\u05EA \u05D6\u05D5\u05D2 1")?.value;
-  if (spouse1) book.Sheets["\u05E9\u05D0\u05DC\u05D5\u05DF"]["C6"] = { t: "s", v: spouse1 };
-  const buffer = XLSX5.write(book, { type: "buffer", bookType: "xlsx", cellStyles: true });
+  if (spouse1) {
+    const cell = book.Sheets["\u05E9\u05D0\u05DC\u05D5\u05DF"]["C6"] || {};
+    book.Sheets["\u05E9\u05D0\u05DC\u05D5\u05DF"]["C6"] = { ...cell, t: "s", v: spouse1 };
+  }
+  const buffer = patchFamilyTemplate(templateBuffer, book);
   const safeName = parsed.data.familyName.replace(/[\\/:*?"<>|]/g, "_") || "\u05DC\u05E7\u05D5\u05D7";
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
   res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(`\u05D7\u05D5\u05D1\u05E8\u05EA-\u05DE\u05E9\u05E4\u05D7\u05D4-${safeName}.xlsx`)}`);
@@ -10111,7 +10202,9 @@ var apiLimiter = rateLimit2({
   limit: 240,
   standardHeaders: "draft-7",
   legacyHeaders: false,
-  message: { error: "rate_limited" }
+  message: { error: "rate_limited" },
+  // Liveness probes must remain available during request bursts.
+  skip: (req) => req.path === "/health" || req.path === "/health/"
 });
 app.use("/api", apiLimiter);
 app.use(
