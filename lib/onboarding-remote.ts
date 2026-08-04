@@ -184,8 +184,23 @@ export async function hydrateOnboardingFromRemote(): Promise<Record<string, stri
   // even if local has stale data from a previous session.
   if (local && local.savedAt && local.savedAt >= remote.savedAt) return local.data;
 
+  // A delayed/failed remote write can return an older empty snapshot with a
+  // newer server timestamp. Never erase meaningful local user input in that
+  // case. Keep only fields where local has content and remote is empty.
+  const mergedRemote = { ...remote.data };
+  if (local?.data) {
+    try {
+      const localFields = JSON.parse(local.data["verdant:onboarding:fields"] || "{}") as Record<string, unknown>;
+      const remoteFields = JSON.parse(remote.data["verdant:onboarding:fields"] || "{}") as Record<string, unknown>;
+      for (const [key, value] of Object.entries(localFields)) {
+        if (String(value ?? "").trim() && !String(remoteFields[key] ?? "").trim()) remoteFields[key] = value;
+      }
+      mergedRemote["verdant:onboarding:fields"] = JSON.stringify(remoteFields);
+    } catch { /* malformed legacy snapshot: keep remote */ }
+  }
+
   let wrote = false;
-  for (const [k, v] of Object.entries(remote.data)) {
+  for (const [k, v] of Object.entries(mergedRemote)) {
     try {
       localStorage.setItem(scopedKey(k), v);
       wrote = true;
@@ -194,5 +209,5 @@ export async function hydrateOnboardingFromRemote(): Promise<Record<string, stri
   // After successful hydrate, adopt the remote's savedAt so subsequent
   // comparisons reflect that local now matches remote.
   if (wrote) writeLocalSavedAt(remote.savedAt);
-  return remote.data;
+  return mergedRemote;
 }

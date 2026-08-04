@@ -29,6 +29,13 @@ test("family workbook: 12 tabs, bidirectional name sync, XLSX export", async ({ 
   await page.getByLabel("שם בן/בת זוג 1", { exact: true }).fill("רועי E2E");
   await expect.poll(async () => page.evaluate(() => Object.values(localStorage).some((value) => value.includes("רועי E2E")))).toBe(true);
 
+  await page.getByRole("link", { name: /אפיון הלקוח/ }).click();
+  await page.waitForURL(/\/onboarding/);
+  await page.goto("/onboarding?step=1");
+  const start = page.getByRole("button", { name: "בואו נתחיל" });
+  if (await start.count()) await start.click();
+  await expect.poll(async () => page.evaluate(() => Object.values(localStorage).some((value) => value.includes("רועי E2E")))).toBe(true);
+
   await page.goto("/family-workbook");
   await page.getByRole("button", { name: "שאלון", exact: true }).click();
   await expect(page.getByLabel("שם בן/בת זוג 1", { exact: true })).toHaveValue("רועי E2E");
