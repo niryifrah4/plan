@@ -6,6 +6,7 @@ import { loadProperties } from "@/lib/realestate-store";
 import { hydrateWorkbookFromSite, loadWorkbook, saveWorkbook, syncWorkbookRowToSite, updateWorkbookCell, updateWorkbookRow, WORKBOOK_TABS, type WorkbookData, type WorkbookRow } from "@/lib/family-workbook";
 import { useClient } from "@/lib/client-context";
 import { writeFamilyWorkbookXlsx } from "@/lib/family-workbook-export";
+import { scopedKey } from "@/lib/client-scope";
 
 const money = (n: number) => new Intl.NumberFormat("he-IL", { maximumFractionDigits: 0 }).format(Math.round(n)) + " ₪";
 
@@ -67,7 +68,15 @@ export function FamilyWorkbookPage() {
   const exportXlsx = async () => {
     // Read latest persisted workbook at click time. Avoid stale React closure
     // after an input event and keep export identical to what user sees.
-    await writeFamilyWorkbookXlsx(hydrateWorkbookFromSite(loadWorkbook()), familyName || "לקוח");
+    const latest = hydrateWorkbookFromSite(loadWorkbook());
+    try {
+      const rawFields = localStorage.getItem(scopedKey("verdant:onboarding:fields"));
+      const fields = rawFields ? JSON.parse(rawFields) as Record<string, string> : {};
+      latest.questionnaire = latest.questionnaire.map((row) => row.label === "שם בן/בת זוג 1" && fields.p1_name
+        ? { ...row, value: fields.p1_name }
+        : row);
+    } catch { /* export continues with persisted workbook */ }
+    await writeFamilyWorkbookXlsx(latest, familyName || "לקוח");
   };
 
   return <main dir="rtl" className="min-h-screen px-3 py-5 md:px-8" style={{ background: "var(--verdant-bg, #f4f7f2)" }}><div className="mx-auto max-w-[1500px]">
