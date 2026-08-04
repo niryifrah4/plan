@@ -19,7 +19,7 @@
   <header>
     <h1>Audit ארכיטקטורה והקשחה</h1>
     <div class="meta">פרויקט plan-nir-yifrah · 4 באוגוסט 2026 · בדיקה ותיקונים ללא נגיעה בגיבוי Next</div>
-    <p><strong>מצב:</strong> בוצעו תיקונים בטוחים. חוברת המשפחה נשמרת בשרת ללא cache מקומי של החוברת. בדיקת Supabase וה־typecheck עברו; בדיקת login מלאה ממתינה ל־session תקין.</p>
+    <p><strong>מצב:</strong> בוצעו תיקונים בטוחים. חוברת המשפחה נשמרת בשרת ללא cache מקומי של החוברת. בדיקת Supabase, typecheck ובדיקת UI עם session מחובר עברו.</p>
   </header>
 
   <section>
@@ -48,9 +48,9 @@
       <li>Backend build — עבר.</li>
       <li>Frontend build — עבר.</li>
       <li>E2E חוברת משפחה — הבדיקה הורצה אך נעצרה ב־login/חוסר session תקין; לא מסומן כעבר.</li>
-      <li>UI בדפדפן — עמוד ההתחברות נטען. כניסה עם פרטי הבדיקה החזירה <code>Invalid login credentials</code>, ולכן לא נטען מסך מאומת.</li>
+      <li>UI בדפדפן — session מחובר פתח את <code>/family-workbook</code>; 12/12 לשוניות נפתחו עם כותרת נכונה.</li>
       <li>Supabase migration <code>20260804100000</code> — הוחל ב־remote ואומת.</li>
-      <li>בדיקת UI מאומתת מלאה — חסומה כרגע בגלל session/credentials, לא בגלל כשל UI מוכח.</li>
+      <li>בדיקת מבנה UI — שאלון כולל בן/בת זוג 1, בן/בת זוג 2 והערות; תזרים כולל חודשים ותכנון/ביצוע; הסטטוס הציג "נשמר בשרת".</li>
     </ul>
   </section>
 
