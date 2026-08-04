@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { Link } from "~/lib/router-compat";
+import { usePathname, useRouter } from "~/lib/router-compat";
 import { useEffect, useState } from "react";
 import { NAV_SECTIONS, type NavGroup, type NavItem } from "@/lib/nav";
 import { manualFactoryResetAsync } from "@/lib/factory-reset";

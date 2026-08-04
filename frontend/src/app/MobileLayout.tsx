@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
-import { MobileBootstrap } from "@/app/m/MobileBootstrap";
-import { MobileTabBar } from "@/app/m/MobileTabBar";
+import { MobileBootstrap } from "@/frontend/src/reused-pages/m/MobileBootstrap";
+import { MobileTabBar } from "@/frontend/src/reused-pages/m/MobileTabBar";
 import { ErrorBoundary } from "./ErrorBoundary";
 
 type Impersonation = { householdId: string; familyName: string } | null;

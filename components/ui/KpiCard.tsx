@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "~/lib/router-compat";
 import { Card } from "./Card";
 import { fmtILS } from "@/lib/format";
 import { MoneyText } from "./MoneyText";

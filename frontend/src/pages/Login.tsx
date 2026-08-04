@@ -38,7 +38,7 @@ export function LoginPage() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  } = useForm<FormValues>({ resolver: zodResolver(schema as any) as any });
 
   const onSubmit = async (values: FormValues) => {
     const sb = getSupabase();

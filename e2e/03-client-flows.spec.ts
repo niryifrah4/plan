@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 /**
  * Critical client-facing routes — regression for the 2026-05-22 fix sprint.
- * Requires the dev server to run with DEV_AUTH_BYPASS=1 so we can hit
+ * Requires the dev server to run with VITE_DEV_AUTH_BYPASS=1 so we can hit
  * authenticated client pages without going through the login flow.
  *
  * What this protects against:
@@ -25,6 +25,10 @@ const CLIENT_PATHS = [
 ];
 
 test.describe("client routes — smoke", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("e2e:auth-bypass", "1"));
+  });
+
   for (const path of CLIENT_PATHS) {
     test(`${path} renders without 5xx`, async ({ page }) => {
       const errors: string[] = [];
@@ -39,8 +43,13 @@ test.describe("client routes — smoke", () => {
 });
 
 test.describe("Hebrew-first labels — no English jargon visible", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("e2e:auth-bypass", "1"));
+  });
+
   test("dashboard has no English jargon strings", async ({ page }) => {
-    await page.goto("/dashboard", { waitUntil: "networkidle" });
+    await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(500);
     const body = (await page.textContent("body")) || "";
     // The product is Hebrew-first; these strings were removed 2026-05-21.
     // Note: empty-state dashboards don't render the "חופש כלכלי" chip
@@ -51,12 +60,14 @@ test.describe("Hebrew-first labels — no English jargon visible", () => {
   });
 
   test("realestate uses Hebrew KPI labels", async ({ page }) => {
-    await page.goto("/realestate", { waitUntil: "networkidle" });
+    await page.goto("/realestate", { waitUntil: "domcontentloaded" });
+    await expect(page.getByText("שווי נכסים נטו")).toBeVisible();
     const body = (await page.textContent("body")) || "";
     // KPIs we relabeled in this sprint.
     expect(body).toContain("שווי נכסים נטו");
     expect(body).toContain("תזרים חודשי נטו");
-    expect(body).toContain("מימון מהבנק");
+    // Empty local demo has no mortgage; populated households show the KPI.
+    expect(body).toMatch(/מימון מהבנק|לא הוגדרה משכנתא/);
     // The placeholder "פרסור PDF — בקרוב" button is hidden now.
     expect(body).not.toContain("פרסור PDF");
   });

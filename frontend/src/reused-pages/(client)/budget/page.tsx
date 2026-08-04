@@ -1,0 +1,2678 @@
+"use client";
+
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import dynamic from "~/lib/dynamic";
+import { fmtILS } from "@/lib/format";
+import { savingsRate as calcSavingsRate } from "@/lib/financial-math";
+import { loadDebtData, getDebtSummary, type DebtData } from "@/lib/debt-store";
+import { loadAssumptions } from "@/lib/assumptions";
+import { getPassiveIncomeSummary } from "@/lib/passive-income";
+import { NumberEditModal } from "@/components/ui/NumberEditModal";
+import {
+  loadSalaryProfile,
+  computeSalaryBreakdown,
+  hasSavedSalaryProfile,
+  SALARY_PROFILE_EVENT,
+} from "@/lib/salary-engine";
+import {
+  loadParsedTransactions,
+  filterByMonth,
+  importTransactionsIntoBudget,
+  type ImportSummary,
+} from "@/lib/budget-import";
+import { syncOnboardingToStores } from "@/lib/onboarding-sync";
+import { pushMonthlyBudgetInBackground } from "@/lib/budget-store";
+
+const BudgetPie = dynamic(() => import("./BudgetPie"), { ssr: false });
+const MonthlyInsights = dynamic(() => import("./MonthlyInsights"), { ssr: false });
+const CashflowForecast = dynamic(
+  () => import("@/components/budget/CashflowForecast").then((m) => m.CashflowForecast),
+  { ssr: false }
+);
+const DailyCashflowTab = dynamic(
+  () => import("./DailyCashflowTab").then((m) => m.DailyCashflowTab),
+  { ssr: false }
+);
+const DiscoverTab = dynamic(
+  () => import("./DiscoverTab").then((m) => m.DiscoverTab),
+  { ssr: false }
+);
+const DepositsTab = dynamic(
+  () => import("./DepositsTab").then((m) => m.DepositsTab),
+  { ssr: false }
+);
+const InvestmentSurplusCard = dynamic(
+  () => import("@/components/budget/InvestmentSurplusCard").then((m) => m.InvestmentSurplusCard),
+  { ssr: false }
+);
+const InstallmentsTimeline = dynamic(
+  () => import("./InstallmentsTimeline").then((m) => m.InstallmentsTimeline),
+  { ssr: false }
+);
+
+import type { BudgetAdjustment } from "./MonthlyInsights";
+import { scopedKey } from "@/lib/client-scope";
+import { type Scope, SCOPE_LABELS, SCOPE_COLORS, effectiveScope } from "@/lib/scope-types";
+import {
+  isBusinessScopeEnabled,
+  setBusinessScopeOverride,
+  BUSINESS_SCOPE_EVENT,
+} from "@/lib/business-scope";
+import { useConfirm } from "@/components/ui/ConfirmModal";
+import { reportError } from "@/lib/report-error";
+
+/* ═══════════════════════════════════════════════════════════
+   Types & Constants
+   ═══════════════════════════════════════════════════════════ */
+
+interface SubItem {
+  id: string;
+  name: string;
+  budget: number;
+  actual: number;
+  avg3: number;
+  notes?: string;
+}
+
+interface BudgetRow {
+  id: string;
+  name: string;
+  budget: number;
+  actual: number;
+  avg3: number;
+  subItems?: SubItem[];
+  /** Locked rows are read-only — synced from another store (debt / assets). */
+  locked?: boolean;
+  /** Origin of a locked row. Undefined = manual user entry. */
+  source?: "debt" | "passive" | "salary" | "onboarding" | "rent";
+  notes?: string;
+  /** Business / personal / mixed tag. Undefined = personal. */
+  scope?: Scope;
+}
+
+interface BudgetData {
+  year: number;
+  month: number;
+  sections: Record<string, BudgetRow[]>;
+  settled: boolean;
+}
+
+type SectionKey = "income" | "fixed" | "variable" | "business";
+
+const SECTION_META: Record<
+  SectionKey,
+  { label: string; icon: string; type: "income" | "expense" }
+> = {
+  income: { label: "הכנסות", icon: "payments", type: "income" },
+  fixed: { label: "הוצאות קבועות", icon: "lock", type: "expense" },
+  variable: { label: "הוצאות משתנות", icon: "shuffle", type: "expense" },
+  business: { label: "הוצאות עסקיות", icon: "business_center", type: "expense" },
+};
+
+const SECTION_ORDER: SectionKey[] = ["income", "fixed", "variable", "business"];
+
+/** Default business expense rows for self-employed clients. */
+const DEFAULT_BUSINESS_ROWS: string[] = [
+  "משכורות",
+  "מע״מ",
+  "מקדמות מס הכנסה",
+  "מקדמות ביטוח לאומי",
+  "שכירות",
+  "חשמל",
+  "ארנונה",
+  "רואה חשבון",
+  "ביטוחים",
+  "טלפון ואינטרנט",
+  "הוצאות משרד",
+  "פרסום",
+  "שיווק",
+  "אנשי מכירות",
+  "ציוד וסחורות",
+  "עו״ד",
+  "הוצאות דלק",
+  "כיבוד",
+  "אגרות שונות",
+  "חומרי גלם",
+  "הכשרות מקצועיות",
+  "עמלות בנקים",
+  "עמלות סליקה",
+  "עמלות שת״פ",
+  "עמלות כרטיסי אשראי",
+  "ריבית על הלוואה",
+  "שירותים נוספים",
+];
+const HE_MONTHS = [
+  "ינואר",
+  "פברואר",
+  "מרץ",
+  "אפריל",
+  "מאי",
+  "יוני",
+  "יולי",
+  "אוגוסט",
+  "ספטמבר",
+  "אוקטובר",
+  "נובמבר",
+  "דצמבר",
+];
+
+const uid = () => "r" + Math.random().toString(36).slice(2, 9);
+
+/* Drilldown categories — parent rows that expand into sub-items.
+ * Each parent auto-sums its children's budget + actual.
+ * When a row name matches (by substring), sub-items are seeded on first use. */
+// 2026-05-07: rich Israeli household defaults inspired by Daniel Navon's
+// TradingIL budget excel. Each parent category opens to a curated list of
+// 8-15 specific sub-items so couples don't stare at an empty section
+// wondering "what would I put here". User edits / deletes anything they
+// don't need — the list is a starting point, not a checklist.
+const DRILLDOWN_DEFAULTS: Record<string, string[]> = {
+  // ── Fixed groups ───────────────────────────────────────
+  דיור: [
+    "משכנתא / שכירות",
+    "ועד בית",
+    "ארנונה",
+    "חשמל",
+    "מים",
+    "גז",
+    "תיקונים וטכנאים",
+    "עוזרת בית",
+    "תחזוקת הגינה",
+    "בר מים",
+  ],
+  מנויים: [
+    "אינטרנט",
+    "סלולר",
+    "טלוויזיה / כבלים",
+    "נטפליקס",
+    "ספוטיפיי",
+    "יוטיוב פרימיום",
+    "אפליקציות",
+    "עיתונים",
+    "חדר כושר",
+  ],
+  ביטוחים: [
+    "ביטוח בריאות",
+    "ביטוח חיים",
+    "ביטוח חיים למשכנתא",
+    "ביטוח דירה",
+    "ביטוח רכב",
+    "קופת חולים",
+    "טיפולי שיניים",
+    "תרופות",
+  ],
+  "גן / חינוך": [
+    "מטפלת",
+    "מעון",
+    "גן ילדים",
+    "צהרון",
+    "בית ספר",
+    "חטיבה ותיכון",
+    "חוגים",
+    "שיעורים פרטיים",
+    "ספרי לימוד ועזרים",
+    "דמי כיס",
+    "בייביסיטר",
+  ],
+  "חסכונות והשקעות": [
+    "העברה לחיסכון",
+    "קרן השתלמות",
+    "פנסיה פרטית",
+    "פוליסת חיסכון",
+    "קופת גמל להשקעה",
+    "קרן כספית",
+    "חיסכון לילדים",
+    "הפקדה לחשבון מסחר",
+  ],
+  // ── Variable groups ────────────────────────────────────
+  רכב: [
+    "דלק",
+    "תחבורה ציבורית",
+    "מוסך",
+    "טסט",
+    "רישיון רכב",
+    "ביטוח רכב",
+    "חניונים",
+    "פנגו",
+    "כביש 6",
+    "רכבת",
+    "אוטובוס",
+  ],
+  "פנאי ובילוי": [
+    "מסעדות",
+    "בתי קפה",
+    "בתי מלון וטיסות",
+    "הצגות",
+    "סרטים",
+    "חופשות",
+    "מכון כושר",
+    "בילוי משפחתי",
+    "יציאות עם חברים",
+  ],
+  תחביבים: ["תרבות", "ספרים", "סדנאות", "קורסים"],
+  בריאות: [
+    "תרופות",
+    "רופאים פרטיים",
+    "טיפולים",
+    "פיזיותרפיה",
+    "פסיכולוג",
+    "טיפולי שיניים נוספים",
+    "טיפולים אלטרנטיביים",
+  ],
+  טיפוח: [
+    "ביגוד",
+    "נעליים",
+    "קוסמטיקה",
+    "מספרה",
+    "תספורת",
+    "קוסמטיקאית",
+    "עדשות ראיה",
+    "משקפיים",
+  ],
+  "עזרה בבית": ["עוזרת / ניקיון", "בייביסיטר", "שיעורים פרטיים"],
+  "סופר / מזון": [
+    "קניות בסופר",
+    "השלמות בקיוסק",
+    "השלמות במכולת",
+    "מאפיה",
+    "ירקן",
+    "פיצוחים",
+    "משלוחים",
+    "רשתות פארם",
+  ],
+  "מתנות ותרומות": ["מתנות", "תרומות", "מתנות חתונות וברית", "מועדוני לקוחות"],
+  "חופשות וטיולים": ["חופשה משפחתית", "טיולים בארץ", "חופשה זוגית", "מלון", "חבילת טיסה"],
+  "חיות מחמד": [
+    "מזון לחיית מחמד",
+    "ביטוח / טיפולים לחיית מחמד",
+    "אביזרים ומשחקים",
+  ],
+  "תחזוקת בית": [
+    "תיקונים",
+    "ריהוט",
+    "אביזרי בית",
+    "כלי בית",
+    "כלי גן",
+  ],
+  שונות: ["סיגריות", "תשלום מזונות", "רכישה חריגה", "לימודים וקורסים"],
+};
+
+function getDrilldownKey(name: string): string | null {
+  for (const k of Object.keys(DRILLDOWN_DEFAULTS)) {
+    if (name.includes(k) || k.includes(name)) return k;
+  }
+  return null;
+}
+
+function defaultSubItems(categoryName: string): SubItem[] {
+  const key = getDrilldownKey(categoryName);
+  if (!key) return [];
+  return DRILLDOWN_DEFAULTS[key].map((name) => ({
+    id: uid(),
+    name,
+    budget: 0,
+    actual: 0,
+    avg3: 0,
+  }));
+}
+
+/* Check if any sub-item has overspend */
+function hasSubOverspend(row: BudgetRow): boolean {
+  if (!row.subItems || row.subItems.length === 0) return false;
+  return row.subItems.some((s) => (Number(s.actual) || 0) > (Number(s.budget) || 0));
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Canonical category lists — Finav-inspired taxonomy.
+   Single source of truth for DEFAULT_SECTIONS + migrateBudget backfill.
+   ═══════════════════════════════════════════════════════════ */
+
+/** Personal income sources. */
+// 2026-05-05 per Nir: משק בית מנוהל על נטו. השורות של ההכנסות מגיעות
+// אוטומטית — מהאונבורדינג (שכר בני הזוג, קצבאות) או מהמשך-עבודה (שכר דירה
+// מנכסים, ריבית מהפקדות). הסרנו את הplaceholders של 'משכורת נטו 1/2' שיצרו
+// כפילות לא-ברורה מול שורות האונבורדינג שכבר נושאות את הערכים האמיתיים.
+const EXPECTED_INCOME_ROWS: string[] = [
+  "עצמאי / פרילנס",
+  "שכר דירה",
+  "קצבאות וזיכויים",
+  "הכנסה נוספת",
+];
+
+/** Fixed monthly obligations — recurring at similar amount each month.
+ * Grouped parents (see DRILLDOWN_DEFAULTS) expand into sub-items automatically. */
+const EXPECTED_FIXED_ROWS: string[] = [
+  "דיור", // drilldown: משכנתא/שכירות, ועד, ארנונה, חשמל, מים, גז
+  "מנויים", // drilldown: אינטרנט+טלוויזיה, סלולר, סטרימינג, כושר...
+  "ביטוחים", // drilldown: בריאות, חיים, רכב, דירה
+  "גן / חינוך", // drilldown: גן, צהרון, חוגים
+  "תחבורה (ליסינג / מנוי)",
+  "חסכונות והשקעות", // drilldown: העברה לחיסכון, קרן השתלמות, פנסיה פרטית
+  "החזר הלוואות", // auto-injected from debt store (locked)
+  "עסקאות תשלומים", // credit-card installments, furniture payments, etc.
+];
+
+/** Variable day-to-day spending — merged & grouped for simplicity. */
+const EXPECTED_VARIABLE_ROWS: string[] = [
+  "סופר / מזון",
+  "רכב", // drilldown: דלק, תחב״צ, חניה, תחזוקה
+  "פנאי ובילוי", // drilldown: מסעדות, בילויים, קפה
+  "תחביבים", // drilldown: תרבות, ספרים, סדנאות
+  "בריאות", // drilldown: תרופות, רופאים פרטיים, טיפולים
+  "טיפוח", // drilldown: ביגוד, נעליים, קוסמטיקה, מספרה
+  "עזרה בבית", // drilldown: עוזרת, בייביסיטר, שיעורים פרטיים
+  "חופשות וטיולים",
+  "חיות מחמד",
+  "מתנות ותרומות", // drilldown: מתנות, תרומות
+  "תחזוקת בית",
+  "שונות",
+];
+
+/** Legacy row names that were split across the old flat taxonomy.
+ * On migration, these are removed IF empty (budget=0 AND actual=0 AND no sub-items)
+ * to prevent duplication with the new grouped parents. Non-empty legacy rows stay
+ * untouched so the user never loses data. */
+const LEGACY_FLAT_ROWS: string[] = [
+  // Fixed — now inside "דיור"
+  "משכנתא / שכירות",
+  "ועד בית",
+  "ארנונה",
+  "חשמל",
+  "מים",
+  "גז",
+  // Fixed — now inside "מנויים"
+  "אינטרנט + טלוויזיה",
+  "סלולר",
+  // Fixed — now inside "חסכונות והשקעות"
+  "חיסכון חודשי",
+  "קרן השתלמות",
+  "פנסיה פרטית / ביטוח מנהלים",
+  // Variable — now inside "רכב"
+  "דלק",
+  "תחבורה ציבורית",
+  "חניה ואגרות",
+  "תחזוקת רכב",
+  // Variable — merged into "פנאי ובילוי"
+  "מסעדות",
+  // Variable — merged into "תחביבים"
+  "תרבות וספרים",
+  // Variable — merged into "בריאות"
+  "תרופות",
+  "בריאות ורופאים פרטיים",
+  // Variable — merged into "טיפוח"
+  "ביגוד",
+  "נעליים",
+  "קוסמטיקה וטיפוח",
+  "מספרה",
+  // Variable — merged into "עזרה בבית"
+  "שיעורים פרטיים וחוגים",
+  // Variable — merged into "מתנות ותרומות"
+  "מתנות",
+  "תרומות",
+];
+
+function makeRow(name: string): BudgetRow {
+  return {
+    id: uid(),
+    name,
+    budget: 0,
+    actual: 0,
+    avg3: 0,
+    ...(getDrilldownKey(name) ? { subItems: defaultSubItems(name) } : {}),
+  };
+}
+
+const DEFAULT_SECTIONS: Record<string, BudgetRow[]> = {
+  income: EXPECTED_INCOME_ROWS.map(makeRow),
+  fixed: EXPECTED_FIXED_ROWS.map(makeRow),
+  variable: EXPECTED_VARIABLE_ROWS.map(makeRow),
+  business: DEFAULT_BUSINESS_ROWS.map((name) => ({
+    id: uid(),
+    name,
+    budget: 0,
+    actual: 0,
+    avg3: 0,
+    scope: "business" as Scope,
+  })),
+};
+
+/* ═══════════════════════════════════════════════════════════
+   localStorage helpers
+   ═══════════════════════════════════════════════════════════ */
+
+function budgetKey(year: number, month: number) {
+  return `verdant:budget_${year}_${String(month + 1).padStart(2, "0")}`;
+}
+
+function migrateBudget(data: BudgetData): BudgetData {
+  // 1. Prune empty legacy flat rows — they're replaced by grouped parents.
+  //    Non-empty legacy rows (budget>0 OR actual>0 OR subItems populated)
+  //    stay so the user never loses entered data.
+  const isEmpty = (r: BudgetRow): boolean => {
+    const hasSub = r.subItems?.some((s) => (s.budget || 0) + (s.actual || 0) > 0);
+    return (r.budget || 0) === 0 && (r.actual || 0) === 0 && !hasSub && !r.locked;
+  };
+  for (const key of Object.keys(data.sections)) {
+    data.sections[key] = data.sections[key].filter(
+      (r) => !(LEGACY_FLAT_ROWS.includes(r.name) && isEmpty(r))
+    );
+  }
+
+  // 2. Add subItems to drilldown categories that were saved without them
+  for (const key of Object.keys(data.sections)) {
+    data.sections[key] = data.sections[key].map((row) => {
+      if (!row.subItems && getDrilldownKey(row.name)) {
+        return { ...row, subItems: defaultSubItems(row.name) };
+      }
+      return row;
+    });
+  }
+  // Migrate old "debt" section into "fixed" if present
+  if (data.sections.debt && data.sections.debt.length > 0) {
+    const fixedRows = data.sections.fixed || [];
+    data.sections.fixed = [...fixedRows, ...data.sections.debt];
+    delete data.sections.debt;
+  }
+  // Generic backfill: make sure every canonical row from the expected lists
+  // exists in each section. Old rows stay where the user put them (avoid reorder).
+  const backfillSection = (key: "income" | "fixed" | "variable", expected: string[]) => {
+    const existing = data.sections[key] || [];
+    const missing: BudgetRow[] = [];
+    for (const name of expected) {
+      if (!existing.some((r) => r.name === name)) missing.push(makeRow(name));
+    }
+    if (missing.length > 0) data.sections[key] = [...existing, ...missing];
+  };
+  backfillSection("income", EXPECTED_INCOME_ROWS);
+  backfillSection("fixed", EXPECTED_FIXED_ROWS);
+  backfillSection("variable", EXPECTED_VARIABLE_ROWS);
+  // Backfill: ensure business section exists
+  if (!data.sections.business || data.sections.business.length === 0) {
+    data.sections.business = DEFAULT_BUSINESS_ROWS.map((name) => ({
+      id: uid(),
+      name,
+      budget: 0,
+      actual: 0,
+      avg3: 0,
+      scope: "business" as Scope,
+    }));
+  }
+  return data;
+}
+
+function loadBudget(year: number, month: number): BudgetData | null {
+  try {
+    const raw = localStorage.getItem(scopedKey(budgetKey(year, month)));
+    if (raw) return migrateBudget(JSON.parse(raw));
+  } catch (e) { reportError("client/budget/page", e); }
+  return null;
+}
+
+function saveBudget(data: BudgetData) {
+  try {
+    localStorage.setItem(scopedKey(budgetKey(data.year, data.month)), JSON.stringify(data));
+    // 2026-05-27 — per-month budget was localStorage-only, so it didn't
+    // survive `wipeForTenantSwitch`. push (race-safe via blob-sync) so
+    // the snapshot lives in Supabase under the correct household_id.
+    pushMonthlyBudgetInBackground(data.year, data.month, data);
+  } catch (e) {
+    console.warn("[Budget] save failed:", e);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Carry Forward — copy previous month's structure, reset actuals
+   ═══════════════════════════════════════════════════════════ */
+
+function carryForward(prevBudget: BudgetData, year: number, month: number): BudgetData {
+  const sections: Record<string, BudgetRow[]> = {};
+  for (const [key, rows] of Object.entries(prevBudget.sections)) {
+    // Skip old debt section if still present
+    if (key === "debt") continue;
+    sections[key] = rows
+      .filter((r) => !r.locked) // Don't carry locked debt rows — they'll be re-injected
+      .map((r) => {
+        // 2026-04-28 per Nir: previous month's ACTUAL becomes the new budget.
+        // The reasoning: the user's real-world spend is more accurate than
+        // the original (often optimistic) plan. Falls back to the old plan
+        // when there was no actual (newly added rows mid-month).
+        const newBudget = r.actual > 0 ? Math.round(r.actual) : r.budget;
+        return {
+          ...r,
+          id: uid(),
+          budget: newBudget,
+          actual: 0,
+          avg3: r.avg3,
+          subItems: r.subItems?.map((s) => ({
+            ...s,
+            id: uid(),
+            budget: s.actual > 0 ? Math.round(s.actual) : s.budget,
+            actual: 0,
+          })),
+        };
+      });
+  }
+  return { year, month, sections, settled: false };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Inject locked debt rows into the "fixed" section
+   ═══════════════════════════════════════════════════════════ */
+
+function injectDebtRows(budget: BudgetData): BudgetData {
+  const debt = loadDebtData();
+  const summary = getDebtSummary(debt, loadAssumptions().primeRate);
+
+  // Remove any existing LOCKED rows (mortgage tracks). Unlocked "החזר הלוואות" stays.
+  const fixedClean = (budget.sections.fixed || []).filter((r) => !r.locked);
+
+  const lockedRows: BudgetRow[] = [];
+
+  // Mortgage tracks remain locked (per-track planning is legitimate)
+  if (summary.mortgageTracks.length > 0) {
+    for (const track of summary.mortgageTracks) {
+      if (track.monthlyPayment > 0) {
+        lockedRows.push({
+          id: uid(),
+          name: `משכנתא — ${track.name || "מסלול"}`,
+          budget: track.monthlyPayment,
+          actual: track.monthlyPayment,
+          avg3: 0,
+          // 2026-05-05 per Nir: rows are editable. Auto-injection still
+      // refreshes them from source data on each mount.
+          source: "debt",
+        });
+      }
+    }
+  } else if (summary.mortgageMonthly > 0) {
+    lockedRows.push({
+      id: uid(),
+      name: "משכנתא",
+      budget: summary.mortgageMonthly,
+      actual: summary.mortgageMonthly,
+      avg3: 0,
+      // 2026-05-05 per Nir: rows are editable. Auto-injection still
+      // refreshes them from source data on each mount.
+    });
+  }
+
+  // Aggregate all loans + installments into one editable "החזר הלוואות" row.
+  // 2026-05-05 per Nir: build sub-items so each loan / installment shows as
+  // its own line under the parent row. The user can expand the row in /budget
+  // and see exactly which lender / merchant is consuming each shekel.
+  const loansMonthly = summary.activeLoans.reduce((s, l) => s + (l.monthlyPayment || 0), 0);
+  const installmentsMonthly = summary.installmentsMonthly || 0;
+  const totalLoansMonthly = loansMonthly + installmentsMonthly;
+
+  const loanSubItems = [
+    ...summary.activeLoans.map((loan) => ({
+      id: uid(),
+      name: loan.lender || "הלוואה",
+      budget: loan.monthlyPayment || 0,
+      actual: loan.monthlyPayment || 0,
+      avg3: loan.monthlyPayment || 0,
+    })),
+    ...summary.activeInstallments.map((inst) => ({
+      id: uid(),
+      name: inst.merchant ? `${inst.merchant} (תשלומים)` : "עסקת תשלומים",
+      budget: inst.monthlyAmount || 0,
+      actual: inst.monthlyAmount || 0,
+      avg3: inst.monthlyAmount || 0,
+    })),
+  ];
+
+  const loanRowIdx = fixedClean.findIndex((r) => r.name === "החזר הלוואות");
+  if (loanRowIdx >= 0) {
+    // Update actual to reflect real repayment; only overwrite budget if user hasn't set one
+    const existing = fixedClean[loanRowIdx];
+    fixedClean[loanRowIdx] = {
+      ...existing,
+      actual: totalLoansMonthly,
+      budget: existing.budget > 0 ? existing.budget : totalLoansMonthly,
+      subItems: loanSubItems.length > 0 ? loanSubItems : existing.subItems,
+    };
+  } else if (totalLoansMonthly > 0) {
+    // Safety net: if somehow the row is missing, add it
+    fixedClean.push({
+      id: uid(),
+      name: "החזר הלוואות",
+      budget: totalLoansMonthly,
+      actual: totalLoansMonthly,
+      avg3: 0,
+      subItems: loanSubItems,
+    });
+  }
+
+  // If there's a "משכנתא / שכירות" row with budget=0 and we have mortgage locked rows, remove it to avoid duplication
+  const hasMortgageLocked = lockedRows.some((r) => r.name.startsWith("משכנתא"));
+  const finalFixed = hasMortgageLocked
+    ? fixedClean.filter(
+        (r) =>
+          !(r.name.includes("משכנתא") && (Number(r.budget) || 0) === 0 && r.name !== "החזר הלוואות")
+      )
+    : fixedClean;
+
+  return {
+    ...budget,
+    sections: {
+      ...budget.sections,
+      fixed: [...finalFixed, ...lockedRows],
+    },
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Inject personal-rent row (tenants) into FIXED expenses
+
+   Read once from onboarding's `exp_rent`. Tenants who don't own
+   the apartment they live in have no mortgage to flow through
+   the debt store, so without this they'd need to add a "שכר דירה"
+   row by hand — the most predictable fixed expense in their life.
+   Source-tagged so re-injection on mount overwrites the same row
+   (rather than duplicating).
+   ═══════════════════════════════════════════════════════════ */
+
+function loadMonthlyRentFromOnboarding(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const raw = localStorage.getItem(scopedKey("verdant:onboarding:fields"));
+    if (!raw) return 0;
+    const fields = JSON.parse(raw);
+    const v = parseFloat(fields.exp_rent);
+    return isFinite(v) && v > 0 ? v : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function injectRentRow(budget: BudgetData): BudgetData {
+  const monthlyRent = loadMonthlyRentFromOnboarding();
+  const fixedClean = (budget.sections.fixed || []).filter((r) => r.source !== "rent");
+
+  if (monthlyRent <= 0) {
+    return { ...budget, sections: { ...budget.sections, fixed: fixedClean } };
+  }
+
+  const rentRow: BudgetRow = {
+    id: uid(),
+    name: "שכר דירה",
+    budget: monthlyRent,
+    actual: monthlyRent,
+    avg3: 0,
+    source: "rent",
+  };
+
+  return {
+    ...budget,
+    sections: { ...budget.sections, fixed: [...fixedClean, rentRow] },
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Inject passive-income rows (rental / dividends) into INCOME
+   ═══════════════════════════════════════════════════════════ */
+
+function injectPassiveIncomeRows(budget: BudgetData): BudgetData {
+  const summary = getPassiveIncomeSummary();
+
+  // Strip any previously-injected passive rows; keep manual income entries.
+  const incomeClean = (budget.sections.income || []).filter((r) => r.source !== "passive");
+
+  const passiveRows: BudgetRow[] = summary.sources.map((src) => ({
+    id: uid(),
+    name: src.label,
+    budget: src.monthly,
+    actual: src.monthly,
+    avg3: src.monthly,
+    locked: true,
+    source: "passive",
+  }));
+
+  return {
+    ...budget,
+    sections: {
+      ...budget.sections,
+      income: [...incomeClean, ...passiveRows],
+    },
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Inject onboarding-questionnaire incomes (allowances, other)
+   ═══════════════════════════════════════════════════════════
+   The onboarding step 2 lets the client list extra income streams
+   (קצבאות, עזרה מההורים, הרצאות וכו'). Salary and rental are already
+   covered by dedicated sources — so we SKIP those labels here to avoid
+   double-counting, and inject the rest as locked rows the client can't
+   accidentally edit in the budget table. */
+
+const ONB_INCOMES_KEY = "verdant:onboarding:incomes";
+
+/** Labels that are covered by other auto-injections → skip. */
+const ONB_SKIP_LABEL_PATTERNS = [
+  /שכר\s*ב?ן?\/?ב?ת?\s*זוג/, // "שכר בן/בת זוג 1/2 (נטו)"  — comes from salary profile
+  /^\s*שכר\s*\(/, // plain "שכר (נטו)"
+  /^משכורת/, // "משכורת נטו"
+  /שכ[״""]?ד/, // "שכ״ד" / שכ"ד — comes from realestate passive injection
+  /שכר\s+דירה/, // "שכר דירה"
+  /נכסים\s+מניבים/, // "הכנסה מנכסים מניבים" — comes from realestate
+];
+
+function injectOnboardingIncomeRows(budget: BudgetData): BudgetData {
+  if (typeof window === "undefined") return budget;
+
+  // Strip previously-injected onboarding rows AND empty legacy salary
+  // placeholders ("משכורת נטו" / "משכורת נטו 2" with value=0). The latter
+  // were default rows in older budgets that now duplicate the onboarding-
+  // injected rows — confusing users into thinking their entries didn't sync.
+  // 2026-05-05: also strip empty stale salary-engine rows when the user
+  // has no salary profile (so we don't carry forward dead placeholders).
+  const isEmptySalaryPlaceholder = (r: BudgetRow) =>
+    (r.budget || 0) === 0 &&
+    (r.actual || 0) === 0 &&
+    (r.avg3 || 0) === 0 &&
+    !r.subItems?.length &&
+    /^משכורת\s*נטו(\s*\d*)?$/.test(r.name.trim());
+
+  const incomeClean = (budget.sections.income || []).filter(
+    (r) => r.source !== "onboarding" && !isEmptySalaryPlaceholder(r)
+  );
+
+  let list: Array<{ label?: string; value?: string }> = [];
+  try {
+    // 2026-05-24 — scoped-only read. The prior fallback to the unscoped
+    // key leaked the previous client's onboarding incomes into the new
+    // client's budget. usePersistedState now writes scoped on the form side.
+    const raw = localStorage.getItem(scopedKey(ONB_INCOMES_KEY));
+    if (raw) list = JSON.parse(raw);
+  } catch {
+    /* ignore corrupt JSON */
+  }
+
+  if (!Array.isArray(list) || list.length === 0) {
+    return { ...budget, sections: { ...budget.sections, income: incomeClean } };
+  }
+
+  // 2026-04-29 fix: only skip salary labels if the salary profile WILL inject
+  // them via injectSalaryRow. Otherwise the user's net-salary entry just falls
+  // off the budget. Same for rent: if no real-estate property has rent set,
+  // keep the onboarding line.
+  const salaryWillBeInjected = hasSavedSalaryProfile();
+  const rentWillBeInjected = (() => {
+    try {
+      const props = JSON.parse(localStorage.getItem(scopedKey("verdant:properties")) || "[]");
+      return Array.isArray(props) && props.some((p: any) => (p.monthlyRent || 0) > 0);
+    } catch {
+      return false;
+    }
+  })();
+
+  const SALARY_RX = [/^משכורת/, /^\s*שכר\s*\(/, /שכר\s*ב?ן?\/?ב?ת?\s*זוג/];
+  const RENT_RX = [/שכ[״""]?ד/, /שכר\s+דירה/, /נכסים\s+מניבים/];
+
+  const salaryRows: BudgetRow[] = [];
+  const otherRows: BudgetRow[] = [];
+  for (const item of list) {
+    const label = (item?.label || "").trim();
+    const amount = Number(item?.value) || 0;
+    if (!label || amount <= 0) continue;
+
+    const isSalaryLabel = SALARY_RX.some((rx) => rx.test(label));
+    const isRentLabel = RENT_RX.some((rx) => rx.test(label));
+
+    if (isSalaryLabel && salaryWillBeInjected) continue; // covered by injectSalaryRow
+    if (isRentLabel && rentWillBeInjected) continue; // covered by injectPassiveIncomeRows
+
+    const row: BudgetRow = {
+      id: uid(),
+      name: label,
+      budget: amount,
+      actual: amount,
+      avg3: amount,
+      // 2026-05-05 per Nir: rows are editable. Auto-injection still
+      // refreshes them from source data on each mount.
+      source: "onboarding",
+    };
+    // Salary rows always sit at the top of income — that's the anchor
+    // line a couple looks for first. (2026-05-09 per Nir.) Without this
+    // split, onboarding-injected salary lines fall to the bottom of the
+    // list whenever there's no separate salary profile filled out.
+    if (isSalaryLabel) salaryRows.push(row);
+    else otherRows.push(row);
+  }
+
+  return {
+    ...budget,
+    sections: {
+      ...budget.sections,
+      income: [...salaryRows, ...incomeClean, ...otherRows],
+    },
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Inject salary (gross→net) into INCOME as a locked row
+   ═══════════════════════════════════════════════════════════ */
+
+function injectSalaryRow(budget: BudgetData): BudgetData {
+  // Strip any previously-injected salary rows; keep manual income entries.
+  const incomeClean = (budget.sections.income || []).filter((r) => r.source !== "salary");
+
+  if (!hasSavedSalaryProfile()) {
+    return { ...budget, sections: { ...budget.sections, income: incomeClean } };
+  }
+
+  const breakdown = computeSalaryBreakdown(loadSalaryProfile());
+  const net = Math.round(breakdown.netMonthly);
+  if (net <= 0) {
+    return { ...budget, sections: { ...budget.sections, income: incomeClean } };
+  }
+
+  const salaryRow: BudgetRow = {
+    id: uid(),
+    name: "משכורת נטו",
+    budget: net,
+    actual: net,
+    avg3: net,
+    locked: true,
+    source: "salary",
+  };
+
+  // Place salary row first (hero income line)
+  return {
+    ...budget,
+    sections: {
+      ...budget.sections,
+      income: [salaryRow, ...incomeClean],
+    },
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Helpers
+   ═══════════════════════════════════════════════════════════ */
+
+function rowEffective(row: BudgetRow, field: "budget" | "actual"): number {
+  if (row.subItems && row.subItems.length > 0) {
+    return row.subItems.reduce((s, sub) => s + (Number(sub[field]) || 0), 0);
+  }
+  return Number(row[field]) || 0;
+}
+
+function sectionTotal(rows: BudgetRow[], field: "budget" | "actual") {
+  return rows.reduce((s, r) => s + rowEffective(r, field), 0);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PAGE COMPONENT
+   ═══════════════════════════════════════════════════════════ */
+
+export default function BudgetPage() {
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth());
+  const [budget, setBudget] = useState<BudgetData | null>(null);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  // 2026-05-09 per ui-agent audit: page split into views.
+  //  • "snapshot" — default — Hero + Pie + 12-month forecast. Read-only.
+  //    What a couple wants to see when they pop in for a weekly check.
+  //  • "daily" — added 2026-05-12. Day-by-day cashflow projection for
+  //    THIS month: when does the checking account dip lowest? Lives in
+  //    /budget (not /balance — cashflow with cashflow).
+  //  • "edit" — manage strip + insights + the editable section tables.
+  //    Where they go when they actually want to change a number.
+  const [viewTab, setViewTab] = useState<
+    "snapshot" | "discover" | "daily" | "edit" | "deposits"
+  >("snapshot");
+  // Deep-link: /budget?tab=daily opens the daily-cashflow tab directly. Used
+  // by the /balance soft-redirect that catches old bookmarks, the /deposits
+  // soft-redirect (2026-05-19), and as a stable anchor from external links.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (
+      t === "snapshot" ||
+      t === "discover" ||
+      t === "daily" ||
+      t === "edit" ||
+      t === "deposits"
+    )
+      setViewTab(t);
+  }, []);
+  const [showInsights, setShowInsights] = useState(false);
+  /** Scope filter: 'all' | 'personal' | 'business'. Not persisted. */
+  const [scopeFilter, setScopeFilter] = useState<"all" | "personal" | "business">("all");
+  /** Whether business scope UI is enabled (derived from employment type or manual override). */
+  const [businessEnabled, setBusinessEnabled] = useState(false);
+  useEffect(() => {
+    setBusinessEnabled(isBusinessScopeEnabled());
+    const handler = () => setBusinessEnabled(isBusinessScopeEnabled());
+    window.addEventListener(BUSINESS_SCOPE_EVENT, handler);
+    window.addEventListener("storage", handler);
+    return () => {
+      window.removeEventListener(BUSINESS_SCOPE_EVENT, handler);
+      window.removeEventListener("storage", handler);
+    };
+  }, []);
+
+  /* Pull the latest onboarding snapshot → stores on every mount so newly-added
+     rental properties / allowances reach this page without a detour through
+     /dashboard. Idempotent: each sub-syncer guards against duplicates. */
+  useEffect(() => {
+    syncOnboardingToStores();
+  }, []);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Transaction import modal state
+  const [importPreview, setImportPreview] = useState<{
+    summary: ImportSummary;
+    updatedBudget: BudgetData;
+    installmentExtraction?: import("@/lib/installment-extractor").ExtractionResult;
+  } | null>(null);
+  const [importToast, setImportToast] = useState<string | null>(null);
+
+  // Listen for debt + asset changes — re-inject locked rows (debt + passive).
+  // Also re-run on window focus so that data entered in /onboarding in another
+  // tab flows in as soon as the user switches back here, without a manual reload.
+  useEffect(() => {
+    const handler = () => {
+      // Pull the freshest snapshot from the questionnaire first, then re-inject.
+      syncOnboardingToStores();
+      setBudget((prev) => {
+        if (!prev) return prev;
+        const updated = injectOnboardingIncomeRows(
+          injectSalaryRow(injectPassiveIncomeRows(injectRentRow(injectDebtRows(prev))))
+        );
+        saveBudget(updated);
+        return updated;
+      });
+    };
+    window.addEventListener("storage", handler);
+    window.addEventListener("verdant:realestate:updated", handler);
+    window.addEventListener(SALARY_PROFILE_EVENT, handler);
+    window.addEventListener("focus", handler);
+    return () => {
+      window.removeEventListener("storage", handler);
+      window.removeEventListener("verdant:realestate:updated", handler);
+      window.removeEventListener(SALARY_PROFILE_EVENT, handler);
+      window.removeEventListener("focus", handler);
+    };
+  }, []);
+
+  // Load / init budget on month change — carry forward + inject debts
+  useEffect(() => {
+    const existing = loadBudget(year, month);
+    if (existing) {
+      // Re-inject debt + passive income rows in case they changed
+      const withSync = injectOnboardingIncomeRows(
+        injectSalaryRow(injectPassiveIncomeRows(injectRentRow(injectDebtRows(existing))))
+      );
+      setBudget(withSync);
+      return;
+    }
+
+    // ═══ Try carry forward from previous month ═══
+    let prevMonth = month - 1;
+    let prevYear = year;
+    if (prevMonth < 0) {
+      prevMonth = 11;
+      prevYear--;
+    }
+    const prev = loadBudget(prevYear, prevMonth);
+
+    let fresh: BudgetData;
+    if (prev) {
+      fresh = carryForward(prev, year, month);
+    } else {
+      // No previous month — use defaults
+      fresh = {
+        year,
+        month,
+        sections: JSON.parse(JSON.stringify(DEFAULT_SECTIONS)),
+        settled: false,
+      };
+      // Generate fresh IDs
+      Object.values(fresh.sections).forEach((rows) =>
+        rows.forEach((r) => {
+          r.id = uid();
+          r.subItems?.forEach((s) => {
+            s.id = uid();
+          });
+        })
+      );
+    }
+
+    // Inject locked debt rows + passive income
+    fresh = injectOnboardingIncomeRows(
+      injectSalaryRow(injectPassiveIncomeRows(injectRentRow(injectDebtRows(fresh))))
+    );
+
+    setBudget(fresh);
+    saveBudget(fresh);
+  }, [year, month]);
+
+  // Auto-save with debounce
+  const autoSave = useCallback((data: BudgetData) => {
+    setSaveStatus("saving");
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      saveBudget(data);
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus("idle"), 1500);
+    }, 400);
+  }, []);
+
+  // Update a field on a row (skip locked rows)
+  const updateRow = useCallback(
+    (sectionKey: string, rowId: string, field: string, value: string | number) => {
+      setBudget((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, sections: { ...prev.sections } };
+        next.sections[sectionKey] = next.sections[sectionKey].map((r) => {
+          if (r.id !== rowId || r.locked) return r;
+          // Text fields stay as strings; everything else is coerced to number.
+          const isText = field === "name" || field === "notes";
+          return { ...r, [field]: isText ? value : Number(value) || 0 };
+        });
+        autoSave(next);
+        return next;
+      });
+    },
+    [autoSave]
+  );
+
+  // Set a row's scope tag directly (popover picker — no cycling guesswork)
+  const setRowScope = useCallback(
+    (sectionKey: string, rowId: string, newScope: Scope | undefined) => {
+      setBudget((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, sections: { ...prev.sections } };
+        next.sections[sectionKey] = next.sections[sectionKey].map((r) => {
+          if (r.id !== rowId || r.locked) return r;
+          return { ...r, scope: newScope };
+        });
+        autoSave(next);
+        return next;
+      });
+      // Auto-widen filter so the row stays visible after scope change
+      if (newScope === "business" && scopeFilter === "personal") setScopeFilter("all");
+      if ((newScope === undefined || newScope === "personal") && scopeFilter === "business")
+        setScopeFilter("all");
+    },
+    [autoSave, scopeFilter]
+  );
+
+  const addRow = useCallback(
+    (sectionKey: string) => {
+      setBudget((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, sections: { ...prev.sections } };
+        // Determine scope for the new row:
+        // - business section always → business
+        // - otherwise inherit the active filter so the new row stays visible
+        let newScope: Scope | undefined;
+        if (sectionKey === "business") newScope = "business";
+        else if (scopeFilter === "business") newScope = "business";
+        else newScope = undefined; // personal default
+        // Insert before locked rows
+        const unlocked = (next.sections[sectionKey] || []).filter((r) => !r.locked);
+        const locked = (next.sections[sectionKey] || []).filter((r) => r.locked);
+        next.sections[sectionKey] = [
+          ...unlocked,
+          {
+            id: uid(),
+            name: "",
+            budget: 0,
+            actual: 0,
+            avg3: 0,
+            ...(newScope ? { scope: newScope } : {}),
+          },
+          ...locked,
+        ];
+        autoSave(next);
+        return next;
+      });
+    },
+    [autoSave, scopeFilter]
+  );
+
+  const deleteRow = useCallback(
+    (sectionKey: string, rowId: string) => {
+      setBudget((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, sections: { ...prev.sections } };
+        // Don't delete locked rows
+        next.sections[sectionKey] = next.sections[sectionKey].filter(
+          (r) => r.id !== rowId || r.locked
+        );
+        autoSave(next);
+        return next;
+      });
+    },
+    [autoSave]
+  );
+
+  const updateSubItem = useCallback(
+    (sectionKey: string, rowId: string, subId: string, field: string, value: string | number) => {
+      setBudget((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, sections: { ...prev.sections } };
+        next.sections[sectionKey] = next.sections[sectionKey].map((r) => {
+          if (r.id !== rowId || !r.subItems) return r;
+          const isText = field === "name" || field === "notes";
+          const updatedSubs = r.subItems.map((s) =>
+            s.id === subId ? { ...s, [field]: isText ? value : Number(value) || 0 } : s
+          );
+          const subBudget = updatedSubs.reduce((sum, s) => sum + (Number(s.budget) || 0), 0);
+          const subActual = updatedSubs.reduce((sum, s) => sum + (Number(s.actual) || 0), 0);
+          return { ...r, subItems: updatedSubs, budget: subBudget, actual: subActual };
+        });
+        autoSave(next);
+        return next;
+      });
+    },
+    [autoSave]
+  );
+
+  const addSubItem = useCallback(
+    (sectionKey: string, rowId: string) => {
+      setBudget((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, sections: { ...prev.sections } };
+        next.sections[sectionKey] = next.sections[sectionKey].map((r) => {
+          if (r.id !== rowId) return r;
+          return {
+            ...r,
+            subItems: [
+              ...(r.subItems || []),
+              { id: uid(), name: "", budget: 0, actual: 0, avg3: 0 },
+            ],
+          };
+        });
+        autoSave(next);
+        return next;
+      });
+    },
+    [autoSave]
+  );
+
+  const deleteSubItem = useCallback(
+    (sectionKey: string, rowId: string, subId: string) => {
+      setBudget((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, sections: { ...prev.sections } };
+        next.sections[sectionKey] = next.sections[sectionKey].map((r) => {
+          if (r.id !== rowId || !r.subItems) return r;
+          const updatedSubs = r.subItems.filter((s) => s.id !== subId);
+          const subBudget = updatedSubs.reduce((sum, s) => sum + (Number(s.budget) || 0), 0);
+          const subActual = updatedSubs.reduce((sum, s) => sum + (Number(s.actual) || 0), 0);
+          return { ...r, subItems: updatedSubs, budget: subBudget, actual: subActual };
+        });
+        autoSave(next);
+        return next;
+      });
+    },
+    [autoSave]
+  );
+
+  // Open the import-preview modal using the currently saved parsed transactions
+  const openImportPreview = useCallback(async () => {
+    if (!budget) return;
+    const all = loadParsedTransactions();
+    const forMonth = filterByMonth(all, year, month);
+    if (forMonth.length === 0) {
+      setImportToast("העלה קובץ במאזן קודם.");
+      setTimeout(() => setImportToast(null), 3000);
+      return;
+    }
+    const { budget: updatedBudget, summary } = importTransactionsIntoBudget(budget, forMonth);
+    // Scan ALL parsed transactions for installment series (not just this
+    // month's) — the "תשלום 3 מתוך 12" pattern is often visible only in
+    // months that aren't the latest, so we want the widest window possible.
+    const { extractInstallments } = await import("@/lib/installment-extractor");
+    const installmentExtraction = extractInstallments(all);
+    setImportPreview({ summary, updatedBudget, installmentExtraction });
+  }, [budget, year, month]);
+
+  // Confirm — persist the preview, close modal, show feedback
+  const confirmImport = useCallback(async () => {
+    if (!importPreview) return;
+    const { updatedBudget, summary, installmentExtraction } = importPreview;
+    setBudget(updatedBudget);
+    saveBudget(updatedBudget);
+    setSaveStatus("saving");
+    setTimeout(() => {
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus("idle"), 1500);
+    }, 250);
+
+    // Roll detected installment series into the debt store. Idempotent —
+    // existing series get their currentPayment bumped forward only.
+    let installmentMsg = "";
+    if (installmentExtraction && installmentExtraction.detected.length > 0) {
+      const { mergeIntoDebtStore } = await import("@/lib/installment-extractor");
+      const { added, updated } = mergeIntoDebtStore(installmentExtraction.detected);
+      if (added > 0 || updated > 0) {
+        installmentMsg = ` · ${added} חדשות + ${updated} עודכנו ב-/debt`;
+      }
+    }
+
+    setImportPreview(null);
+    setImportToast(`יובאו ${summary.matched + summary.unmatched} תנועות${installmentMsg}`);
+    setTimeout(() => setImportToast(null), 4000);
+  }, [importPreview]);
+
+  const cancelImport = useCallback(() => setImportPreview(null), []);
+
+  const openNewMonth = useCallback(() => {
+    let newMonth = month + 1;
+    let newYear = year;
+    if (newMonth > 11) {
+      newMonth = 0;
+      newYear++;
+    }
+    setYear(newYear);
+    setMonth(newMonth);
+  }, [month, year]);
+
+  // Apply monthly insight recommendations to budget plan values
+  const applyInsights = useCallback(
+    (adjustments: BudgetAdjustment[]) => {
+      setBudget((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, sections: { ...prev.sections } };
+
+        for (const adj of adjustments) {
+          const sectionRows = next.sections[adj.sectionKey];
+          if (!sectionRows) continue;
+
+          next.sections[adj.sectionKey] = sectionRows.map((row) => {
+            if (row.locked) return row; // Never modify locked rows
+            // Match by name (partial match to handle names like "סופר / מזון")
+            if (!row.name.includes(adj.rowName) && !adj.rowName.includes(row.name)) return row;
+
+            if (row.subItems && row.subItems.length > 0) {
+              const updatedSubs = row.subItems.map((sub) => {
+                const currentBudget = Number(sub.budget) || 0;
+                if (currentBudget <= 0) return sub;
+                const newVal =
+                  adj.absolute != null
+                    ? adj.absolute
+                    : Math.round(currentBudget * (adj.multiplier || 1));
+                return { ...sub, budget: newVal };
+              });
+              const subBudget = updatedSubs.reduce((s, sub) => s + (Number(sub.budget) || 0), 0);
+              return { ...row, subItems: updatedSubs, budget: subBudget };
+            } else {
+              const currentBudget = Number(row.budget) || 0;
+              if (currentBudget <= 0 && adj.absolute == null) return row;
+              const newVal =
+                adj.absolute != null
+                  ? adj.absolute
+                  : Math.round(currentBudget * (adj.multiplier || 1));
+              return { ...row, budget: newVal };
+            }
+          });
+        }
+
+        autoSave(next);
+        return next;
+      });
+    },
+    [autoSave]
+  );
+
+  // Row visibility predicate based on the active scope filter.
+  // undefined scope = "personal". Locked debt rows always visible.
+  const rowVisibleForFilter = useCallback(
+    (row: BudgetRow): boolean => {
+      if (row.locked) return true;
+      if (scopeFilter === "all") return true;
+      const eff = effectiveScope(row.scope);
+      if (scopeFilter === "personal") return eff === "personal" || eff === "mixed";
+      if (scopeFilter === "business") return eff === "business" || eff === "mixed";
+      return true;
+    },
+    [scopeFilter]
+  );
+
+  // Filtered budget drives both totals and rendering, so sections
+  // and overspend warnings reflect the selected scope.
+  const filteredBudget = useMemo(() => {
+    if (!budget) return null;
+    if (scopeFilter === "all") return budget;
+    const sections: Record<string, BudgetRow[]> = {};
+    for (const [k, rows] of Object.entries(budget.sections)) {
+      sections[k] = rows.filter(rowVisibleForFilter);
+    }
+    return { ...budget, sections };
+  }, [budget, scopeFilter, rowVisibleForFilter]);
+
+  // Derived totals — debts are already inside fixed section as locked rows.
+  // 2026-04-29 owner-draw model: in "business" view, business section is
+  // treated as expenses (it's a profit/loss view of the business). In "all"
+  // (unified) view, business profit (positive) becomes a virtual income line
+  // — "משיכת בעלים" — bridging business → personal cashflow.
+  const totals = useMemo(() => {
+    if (!filteredBudget)
+      return {
+        incBudget: 0,
+        incActual: 0,
+        expBudget: 0,
+        expActual: 0,
+        savingsTransfersBudget: 0,
+        savingsTransfersActual: 0,
+        ownerDrawBudget: 0,
+        ownerDrawActual: 0,
+      };
+
+    if (scopeFilter === "business") {
+      // Business-only: sum business section as expense, no income lines.
+      const expBudget = sectionTotal(filteredBudget.sections.business || [], "budget");
+      const expActual = sectionTotal(filteredBudget.sections.business || [], "actual");
+      return {
+        incBudget: 0,
+        incActual: 0,
+        expBudget,
+        expActual,
+        savingsTransfersBudget: 0,
+        savingsTransfersActual: 0,
+        ownerDrawBudget: 0,
+        ownerDrawActual: 0,
+      };
+    }
+
+    const incBudget = sectionTotal(filteredBudget.sections.income || [], "budget");
+    const incActual = sectionTotal(filteredBudget.sections.income || [], "actual");
+    const expBudget = (["fixed", "variable"] as const).reduce(
+      (s, k) => s + sectionTotal(filteredBudget.sections[k] || [], "budget"),
+      0
+    );
+    const expActual = (["fixed", "variable"] as const).reduce(
+      (s, k) => s + sectionTotal(filteredBudget.sections[k] || [], "actual"),
+      0
+    );
+
+    // Savings transfers (העברה לחיסכון, קרן השתלמות, פנסיה פרטית) live under
+    // the "חסכונות והשקעות" parent in `fixed`. They're savings, not consumption.
+    // 2026-05-05 per finance-agent: these were being counted as expenses, so the
+    // displayed savings rate under-stated the truth (often by 2-3×). Compute
+    // `savingsTransfers` so the rate calc can subtract them. Net consumption =
+    // expBudget - savingsTransfers.
+    const findSavingsRow = (rows: BudgetRow[]) =>
+      rows.find((r) => r.name === "חסכונות והשקעות");
+    const savingsRowBudget = findSavingsRow(filteredBudget.sections.fixed || []);
+    const savingsTransfersBudget = savingsRowBudget ? rowEffective(savingsRowBudget, "budget") : 0;
+    const savingsTransfersActual = savingsRowBudget ? rowEffective(savingsRowBudget, "actual") : 0;
+
+    // Compute owner draw — business profit that flows to the family.
+    // Negative profit (loss) doesn't pull from personal cashflow; clamp at 0.
+    let ownerDrawBudget = 0,
+      ownerDrawActual = 0;
+    if (scopeFilter === "all" && businessEnabled && budget) {
+      // Use unfiltered budget for business rows so personal-mode users still
+      // see their owner draw if they happen to have business data.
+      const bizRows = budget.sections.business || [];
+      const bizExpB = sectionTotal(bizRows, "budget");
+      const bizExpA = sectionTotal(bizRows, "actual");
+      // For now we approximate business income as 0 (the future business
+      // section will carry its own income rows). Owner draw = -expense?
+      // No — better: don't double-count. Skip until business income exists.
+      void bizExpB;
+      void bizExpA;
+    }
+
+    return {
+      incBudget,
+      incActual,
+      expBudget,
+      expActual,
+      savingsTransfersBudget,
+      savingsTransfersActual,
+      ownerDrawBudget,
+      ownerDrawActual,
+    };
+  }, [filteredBudget, scopeFilter, businessEnabled, budget]);
+
+  // Savings rate — uses CONSUMPTION (expenses minus savings-transfer rows),
+  // not raw expenses. Otherwise the rate gets diluted by money the family
+  // is actually saving (העברה לחיסכון, קרן השתלמות, פנסיה פרטית).
+  const balance = totals.incBudget - totals.expBudget;
+  const consumptionBudget = totals.expBudget - totals.savingsTransfersBudget;
+  const savingsRate = calcSavingsRate(totals.incBudget, consumptionBudget) * 100;
+
+  /* ── Daily allowance — the "how much can I spend today" number ──
+     Only meaningful for the CURRENT month. For past/future months we hide it.
+     Formula: (expense budget − expense actual) ÷ days remaining in month.
+     This is the Finav/YNAB daily-pace number: "at your current pace, you have
+     X shekels per remaining day to stay within budget". */
+  const dailyAllowance = useMemo(() => {
+    const today = new Date();
+    const isCurrentMonth = year === today.getFullYear() && month === today.getMonth();
+    if (!isCurrentMonth) return null;
+    // Days in month (month is 0-indexed; `new Date(y, m+1, 0)` = last day of month m)
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysRemaining = Math.max(1, daysInMonth - today.getDate() + 1);
+    const remainingBudget = Math.max(0, totals.expBudget - totals.expActual);
+    const perDay = remainingBudget / daysRemaining;
+    // Pace warning: if we've already exceeded the expected spend-by-today, flag it
+    const expectedByNow = totals.expBudget * (today.getDate() / daysInMonth);
+    const overPace = totals.expActual > expectedByNow;
+    return { perDay, daysRemaining, remainingBudget, overPace };
+  }, [year, month, totals.expBudget, totals.expActual]);
+
+  /* ── Pie slices: per-row expense breakdown for the donut ──
+     Uses actual spend if any row has actual > 0; otherwise falls back
+     to budgeted amounts so the chart stays useful during planning. */
+  const pieData = useMemo(() => {
+    if (!filteredBudget) return { slices: [], mode: "actual" as const };
+    const sectionKeys = ["fixed", "variable", "business"] as const;
+    const sectionColorBase: Record<string, string> = {
+      fixed: "#2C7A5A",
+      variable: "#d97706",
+      business: "#2C7A5A",
+    };
+    type RawSlice = {
+      label: string;
+      value: number;
+      color: string;
+      section: "fixed" | "variable" | "business";
+    };
+    const rawBudget: RawSlice[] = [];
+    const rawActual: RawSlice[] = [];
+    const sectionCounts: Record<string, number> = { fixed: 0, variable: 0, business: 0 };
+
+    for (const key of sectionKeys) {
+      const rows = filteredBudget.sections[key] || [];
+      for (const r of rows) {
+        const base = sectionColorBase[key];
+        // Stagger shades so rows of same section are distinguishable.
+        const shadeIdx = sectionCounts[key]++;
+        const alpha = 1 - Math.min(0.55, shadeIdx * 0.08);
+        // Convert hex → rgba to fade within section
+        const hex = base.replace("#", "");
+        const r_ = parseInt(hex.substring(0, 2), 16);
+        const g_ = parseInt(hex.substring(2, 4), 16);
+        const b_ = parseInt(hex.substring(4, 6), 16);
+        const color = `rgba(${r_}, ${g_}, ${b_}, ${alpha.toFixed(2)})`;
+
+        const budgetVal = rowEffective(r, "budget");
+        const actualVal = rowEffective(r, "actual");
+        if (budgetVal > 0) rawBudget.push({ label: r.name, value: budgetVal, color, section: key });
+        if (actualVal > 0) rawActual.push({ label: r.name, value: actualVal, color, section: key });
+      }
+    }
+
+    if (rawActual.length > 0) return { slices: rawActual, mode: "actual" as const };
+    return { slices: rawBudget, mode: "budget" as const };
+  }, [filteredBudget]);
+
+  if (!budget || !filteredBudget) {
+    // Loading skeleton — matches final layout so there's no flash-of-wrong-content.
+    return (
+      <div className="mx-auto max-w-4xl py-4 md:py-8" dir="rtl">
+        <section
+          className="mb-5 animate-pulse rounded-3xl p-8"
+          style={{
+            background: "linear-gradient(135deg, #2C7A5A 0%, #1F5A42 100%)",
+            minHeight: 180,
+          }}
+        >
+          <div className="mb-4 h-3 w-32 rounded bg-white/20" />
+          <div className="mb-3 h-10 w-48 rounded bg-white/20" />
+          <div className="h-3 w-24 rounded bg-white/15" />
+        </section>
+        <div className="card-pad flex items-center gap-3 text-[13px] text-verdant-muted">
+          <span className="material-symbols-outlined animate-spin text-[18px]">
+            progress_activity
+          </span>
+          טוען תקציב...
+        </div>
+      </div>
+    );
+  }
+
+  const yearOptions = [year - 1, year, year + 1];
+
+  // ─── Month navigation helpers ───────────────────────────────
+  const goPrevMonth = () => {
+    let m = month - 1;
+    let y = year;
+    if (m < 0) {
+      m = 11;
+      y--;
+    }
+    setMonth(m);
+    setYear(y);
+  };
+  const goNextMonth = () => {
+    let m = month + 1;
+    let y = year;
+    if (m > 11) {
+      m = 0;
+      y++;
+    }
+    setMonth(m);
+    setYear(y);
+  };
+
+  const balancePct =
+    totals.incBudget > 0 ? Math.max(0, Math.min(100, (balance / totals.incBudget) * 100)) : 0;
+
+  return (
+    <div className="mx-auto max-w-4xl pb-4 pt-0 md:pb-8" dir="rtl">
+      {/* ═══════════════════════════════════════════════════════════
+          HERO — one clear number per screen, Finav-inspired
+          ═══════════════════════════════════════════════════════════ */}
+      <section
+        className="relative mb-6 overflow-hidden rounded-[20px] mx-auto max-w-[360px] md:max-w-[520px]"
+        style={{
+          background: "#2D6A4F",
+          color: "#FFFFFF",
+          padding: "20px",
+          boxShadow: "0 8px 24px rgba(44, 122, 90, 0.18)",
+        }}
+      >
+        {/* Top row — month nav */}
+        <div className="flex items-center justify-between mb-5">
+          <button
+            onClick={goPrevMonth}
+            className="flex items-center justify-center w-8 h-8 border-none rounded-lg text-white text-[16px] cursor-pointer"
+            style={{ background: "rgba(255,255,255,0.15)" }}
+            title="חודש קודם"
+          >
+            <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+          </button>
+          
+          <div className="flex items-center gap-2">
+            <select
+              value={month}
+              onChange={(e) => setMonth(Number(e.target.value))}
+              className="px-3.5 py-1.5 text-[14px] font-medium rounded-[10px] cursor-pointer focus:outline-none appearance-none text-center"
+              style={{ background: "rgba(255,255,255,0.18)", color: "white" }}
+            >
+              {HE_MONTHS.map((m, i) => (
+                <option key={i} value={i} style={{ color: "#1A1A1A" }}>
+                  {m}
+                </option>
+              ))}
+            </select>
+            <select
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+              className="px-3.5 py-1.5 text-[14px] font-medium rounded-[10px] cursor-pointer focus:outline-none appearance-none text-center"
+              style={{ background: "rgba(255,255,255,0.18)", color: "white" }}
+            >
+              {yearOptions.map((y) => (
+                <option key={y} value={y} style={{ color: "#1A1A1A" }}>
+                  {y}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            onClick={goNextMonth}
+            className="flex items-center justify-center w-8 h-8 border-none rounded-lg text-white text-[16px] cursor-pointer"
+            style={{ background: "rgba(255,255,255,0.15)" }}
+            title="חודש הבא"
+          >
+            <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+          </button>
+        </div>
+
+        {/* Main numbers */}
+        <div className="text-center mb-1">
+          <div
+            className="text-[13px] mb-1"
+            style={{
+              color: balance >= 0 ? "rgba(255,255,255,0.7)" : "#FCA5A5",
+            }}
+          >
+            {balance < 0 && (
+              <span className="material-symbols-outlined text-[14px] inline-block align-middle ml-1">warning</span>
+            )}
+            {balance >= 0 ? "נשאר בחודש" : "חריגה בחודש"}
+          </div>
+          <div
+            className="text-[38px] font-semibold tabular-nums tracking-[-1px] mb-3 leading-tight"
+            style={{ color: balance >= 0 ? "#FFFFFF" : "#FCA5A5" }}
+          >
+            {fmtILS(Math.abs(balance))}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-1.5 text-[13px] mb-5" style={{ color: "rgba(255,255,255,0.75)" }}>
+          <span className="whitespace-nowrap">הכנסות {fmtILS(totals.incBudget)}</span>
+          <span style={{ color: "rgba(255,255,255,0.4)" }}>·</span>
+          <span className="whitespace-nowrap">הוצאות {fmtILS(totals.expBudget)}</span>
+          <span style={{ color: "rgba(255,255,255,0.4)" }}>·</span>
+          <span className="whitespace-nowrap">חיסכון {savingsRate.toFixed(0)}%</span>
+        </div>
+
+        <hr className="border-none m-0 mb-4" style={{ borderTop: "1px solid rgba(255,255,255,0.15)" }} />
+
+        {/* Bottom row: Daily allowance & days left */}
+        {dailyAllowance && (
+          <div className="flex justify-between items-end">
+            <div className="text-[12px] text-right" style={{ color: "rgba(255,255,255,0.6)" }}>
+              {dailyAllowance.daysRemaining} ימים נותרו
+              {dailyAllowance.overPace && (
+                <div>
+                  <span className="inline-block mt-1 px-2 py-0.5 text-[11px] rounded-md" style={{ background: "rgba(255,100,80,0.22)", color: "#FFB3A7" }}>
+                    חורג
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="text-left">
+              <div className="text-[12px] mb-0.5" style={{ color: "rgba(255,255,255,0.65)" }}>
+                מותר/יום
+              </div>
+              <div
+                className="text-[22px] font-semibold tabular-nums leading-none"
+                style={{ color: dailyAllowance.overPace ? "#FFB3A7" : "#FFFFFF" }}
+              >
+                {fmtILS(Math.round(dailyAllowance.perDay))}
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════
+          TAB SWITCHER — תמונת מצב / עריכה
+          A weekly check-in just wants to *see* — open in snapshot.
+          Editing rows is the rarer action; gated behind one click so
+          the page doesn't hand a couple a wall of inputs by default.
+          ═══════════════════════════════════════════════════════════ */}
+      <div className="mb-3 flex justify-center">
+        <div
+          className="flex flex-wrap sm:inline-flex justify-center rounded-2xl sm:rounded-full p-1"
+          style={{ background: "#FAFAF7", border: "1px solid #E5E7EB" }}
+        >
+          {(
+            [
+              { key: "snapshot", label: "איפה אני?", icon: "donut_large" },
+              { key: "discover", label: "מה קרה?", icon: "search" },
+              { key: "daily", label: "מה יקרה?", icon: "calendar_month" },
+              { key: "edit", label: "עריכה", icon: "tune" },
+              { key: "deposits", label: "הפקדות", icon: "savings" },
+            ] as const
+          ).map((tab) => {
+            const active = viewTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setViewTab(tab.key)}
+                className="inline-flex flex-grow sm:flex-grow-0 justify-center items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-bold transition-colors"
+                style={{
+                  background: active ? "#2C7A5A" : "transparent",
+                  color: active ? "#FFFFFF" : "#6B7280",
+                }}
+              >
+                <span className="material-symbols-outlined text-[16px]">{tab.icon}</span>
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════
+          SNAPSHOT — read-only at-a-glance
+          ═══════════════════════════════════════════════════════════ */}
+      {viewTab === "snapshot" && (
+        <>
+          {/* Surfaces the "כמה אני יכול לקחת להשקעות" answer up top — it's
+              the question Nir said clients open the page to answer. Reads
+              from the same 12-month forecast as CashflowForecast below, so
+              numbers are consistent. */}
+          <InvestmentSurplusCard
+            currentIncome={totals.incBudget}
+            currentExpenses={totals.expBudget}
+          />
+          <div className="mb-5">
+            <BudgetPie
+              slices={pieData.slices}
+              mode={pieData.mode}
+              subtitle={pieData.mode === "actual" ? "בפועל" : "מתוכנן"}
+            />
+          </div>
+          <InstallmentsTimeline />
+          <CashflowForecast />
+        </>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════
+          DISCOVER — past N months Spending Snapshot
+          ═══════════════════════════════════════════════════════════ */}
+      {viewTab === "discover" && <DiscoverTab />}
+
+      {/* ═══════════════════════════════════════════════════════════
+          DAILY — day-by-day cashflow projection for this month
+          ═══════════════════════════════════════════════════════════ */}
+      {viewTab === "daily" && <DailyCashflowTab />}
+
+      {/* ═══════════════════════════════════════════════════════════
+          DEPOSITS — monthly recurring contribution tracker (2026-05-19)
+          Moved from the standalone /deposits page; that route now soft-
+          redirects to /budget?tab=deposits.
+          ═══════════════════════════════════════════════════════════ */}
+      {viewTab === "deposits" && <DepositsTab />}
+
+      {/* ═══════════════════════════════════════════════════════════
+          EDIT — manage strip + insights + section tables
+          ═══════════════════════════════════════════════════════════ */}
+      {viewTab === "edit" && (
+        <>
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex gap-1.5">
+              <button
+                onClick={openImportPreview}
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors hover:bg-[#e8efe2]"
+                style={{ background: "#FAFAF7", color: "#2C7A5A" }}
+                title="ייבא תנועות מקובץ בנק/אשראי שהועלה"
+              >
+                <span className="material-symbols-outlined text-[14px]">sync_alt</span>
+                ייבא תנועות
+              </button>
+              <button
+                onClick={() => setShowInsights((v) => !v)}
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors"
+                style={{
+                  background: showInsights ? "#2C7A5A" : "transparent",
+                  color: showInsights ? "#FFFFFF" : "#6B7280",
+                }}
+              >
+                <span className="material-symbols-outlined text-[14px]">lightbulb</span>
+                תובנות
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Scope filter — only shown when business scope enabled */}
+              {businessEnabled && (
+                <div className="flex items-center gap-1">
+                  {(
+                    [
+                      { key: "all", label: "הכל" },
+                      { key: "personal", label: "פרטי" },
+                      { key: "business", label: "עסקי" },
+                    ] as const
+                  ).map((tab) => {
+                    const active = scopeFilter === tab.key;
+                    return (
+                      <button
+                        key={tab.key}
+                        onClick={() => setScopeFilter(tab.key)}
+                        className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-all"
+                        style={{
+                          background: active ? "#FFFFFF" : "transparent",
+                          color: active ? "#1A1A1A" : "#6B7280",
+                          border: active ? "1px solid #E5E7EB" : "1px solid transparent",
+                        }}
+                      >
+                        {tab.key === "business" && (
+                          <span
+                            className="inline-block h-1.5 w-1.5 rounded-full"
+                            style={{ background: active ? "#FFFFFF" : SCOPE_COLORS.business }}
+                          />
+                        )}
+                        {tab.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Business / personal scope toggle. Restored 2026-05-04 per Nir
+                  — the colored split is a key feature for self-employed couples. */}
+              <button
+                onClick={() => setBusinessScopeOverride(!businessEnabled)}
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-all hover:bg-verdant-bg"
+                style={{
+                  color: businessEnabled ? "#FFFFFF" : "#6B7280",
+                  border: `1px solid ${businessEnabled ? SCOPE_COLORS.business : "#E5E7EB"}`,
+                  background: businessEnabled ? "#FAFAF7" : "transparent",
+                }}
+                title={
+                  businessEnabled
+                    ? "הפרדת עסקי / פרטי פעילה. לחיצה תכבה את ההפרדה."
+                    : "הפעל הפרדה בין הוצאות פרטיות לעסקיות (מומלץ אם אחד מבני הזוג עצמאי)."
+                }
+              >
+                <span className="material-symbols-outlined text-[13px]">work</span>
+                {businessEnabled ? "כבה הפרדת עסקי / פרטי" : "הפעל הפרדת עסקי / פרטי"}
+              </button>
+            </div>
+          </div>
+
+          {showInsights && <MonthlyInsights month={month} year={year} onApply={applyInsights} />}
+
+          {SECTION_ORDER.filter(
+            (sk) => !(sk === "business" && (!businessEnabled || scopeFilter === "personal"))
+          ).map((sectionKey, idx) => (
+            <BudgetSection
+              key={sectionKey}
+              sectionKey={sectionKey}
+              meta={SECTION_META[sectionKey]}
+              rows={filteredBudget.sections[sectionKey] || []}
+              incomeTotal={totals.incBudget}
+              onUpdate={updateRow}
+              onAdd={addRow}
+              onDelete={deleteRow}
+              onUpdateSub={updateSubItem}
+              onAddSub={addSubItem}
+              onDeleteSub={deleteSubItem}
+              onSetScope={setRowScope}
+              showScopePicker={businessEnabled}
+              defaultOpen={idx < 2}
+            />
+          ))}
+        </>
+      )}
+
+      {/* ═══════ Import Preview Modal ═══════ */}
+      {importPreview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(10,25,41,0.45)" }}
+          onClick={cancelImport}
+        >
+          <div
+            className="w-full max-w-lg rounded-organic p-6 shadow-soft"
+            style={{ background: "#FFFFFF" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4">
+              <div
+                className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.18em]"
+                style={{ color: "#6B7280" }}
+              >
+                ייבוא תנועות
+              </div>
+              <h2
+                className="text-[18px] font-extrabold tracking-tight"
+                style={{ color: "#1A1A1A" }}
+              >
+                ייבוא תנועות לתקציב
+              </h2>
+              <p className="mt-2 text-xs" style={{ color: "#6B7280" }}>
+                נמצאו {importPreview.summary.matched + importPreview.summary.unmatched} תנועות לחודש{" "}
+                {HE_MONTHS[month]} {year}
+              </p>
+            </div>
+
+            <div
+              className="mb-4 max-h-72 overflow-y-auto rounded-lg p-3"
+              style={{ background: "#FAFAF7", border: "1px solid #E5E7EB" }}
+            >
+              {importPreview.summary.byRow.length === 0 ? (
+                <div className="text-xs" style={{ color: "#6B7280" }}>
+                  אין תנועות לתצוגה.
+                </div>
+              ) : (
+                <ul className="space-y-1.5">
+                  {importPreview.summary.byRow.map((r, i) => (
+                    <li key={i} className="flex items-center justify-between text-xs">
+                      <span className="truncate font-bold" style={{ color: "#1A1A1A" }}>
+                        {r.rowName}
+                      </span>
+                      <span
+                        className="flex shrink-0 items-center gap-3 tabular-nums"
+                        style={{ color: "#6B7280" }}
+                      >
+                        <span>{r.count} תנועות</span>
+                        <span className="font-extrabold" style={{ color: "#1A1A1A" }}>
+                          {fmtILS(r.total)}
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {importPreview.summary.unmatched > 0 && (
+              <div
+                className="mb-4 rounded-lg p-2.5 text-xs"
+                style={{ background: "rgba(217,119,6,0.10)", color: "#9a3412", border: "1px solid rgba(217,119,6,0.20)" }}
+              >
+                <span className="font-bold">שים לב: </span>
+                {importPreview.summary.unmatched} תנועות ללא מיפוי יתווספו כשורות חדשות.
+              </div>
+            )}
+
+            {/* Installment auto-detection — the "blind hole" Nir called out.
+                When the importer recognised "תשלום X מתוך Y" patterns, list
+                them here so the user sees them BEFORE confirming and isn't
+                surprised by new rows in /debt. */}
+            {importPreview.installmentExtraction &&
+              (importPreview.installmentExtraction.detected.length > 0 ||
+                importPreview.installmentExtraction.existing.length > 0) && (
+                <div
+                  className="mb-4 rounded-xl p-3 text-xs"
+                  style={{ background: "#FAFAF7", border: "1px solid #E5E7EB" }}
+                >
+                  <div className="mb-2 flex items-center gap-2 text-[13px] font-extrabold text-verdant-ink">
+                    <span className="material-symbols-outlined text-[16px] text-verdant-emerald">
+                      credit_score
+                    </span>
+                    זיהוי עסקאות תשלומים
+                  </div>
+                  {importPreview.installmentExtraction.detected.length > 0 && (
+                    <div className="mb-2">
+                      <div
+                        className="mb-1 text-[11px] font-bold"
+                        style={{ color: "#2C7A5A" }}
+                      >
+                        {importPreview.installmentExtraction.detected.length} עסקאות
+                        חדשות — יתווספו אוטומטית ל-/debt עם האישור
+                      </div>
+                      <ul
+                        className="max-h-32 space-y-1 overflow-y-auto rounded-lg bg-[#FFFFFF] px-2 py-1.5"
+                        style={{ border: "1px solid #E5E7EB" }}
+                      >
+                        {importPreview.installmentExtraction.detected.map((e, i) => (
+                          <li
+                            key={i}
+                            className="flex items-center justify-between text-[11px]"
+                          >
+                            <span
+                              className="truncate font-bold"
+                              style={{ color: "#1A1A1A" }}
+                            >
+                              {e.merchant}
+                            </span>
+                            <span
+                              className="flex shrink-0 items-center gap-3 tabular-nums"
+                              style={{ color: "#6B7280" }}
+                            >
+                              <span>
+                                תשלום {e.currentPayment}/{e.totalPayments}
+                              </span>
+                              <span
+                                className="font-extrabold"
+                                style={{ color: "#2C7A5A" }}
+                              >
+                                {fmtILS(e.monthlyAmount)}/ח׳
+                              </span>
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {importPreview.installmentExtraction.existing.length > 0 && (
+                    <div
+                      className="text-[11px] font-bold"
+                      style={{ color: "#6B7280" }}
+                    >
+                      ועוד {importPreview.installmentExtraction.existing.length} עסקאות
+                      קיימות יתעדכנו (מספר תשלום נוכחי)
+                    </div>
+                  )}
+                </div>
+              )}
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={cancelImport}
+                className="btn-botanical-ghost inline-flex items-center gap-1.5 !px-4 !py-2 text-xs"
+              >
+                ביטול
+              </button>
+              <button
+                onClick={confirmImport}
+                className="btn-botanical inline-flex items-center gap-1.5 !px-4 !py-2 text-xs"
+              >
+                <span className="material-symbols-outlined text-[14px]">check</span>
+                ייבא ועדכן
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════ Import Toast ═══════ */}
+      {importToast && (
+        <div
+          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg px-4 py-2.5 text-xs font-bold shadow-lg"
+          style={{
+            background: "var(--morning-ink)",
+            color: "#FFFFFF",
+            border: "1px solid var(--morning-border-strong)",
+          }}
+        >
+          {importToast}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Budget Section (card with table) — 4 columns, locked row support
+   ═══════════════════════════════════════════════════════════ */
+
+function BudgetSection({
+  sectionKey,
+  meta,
+  rows,
+  incomeTotal,
+  onUpdate,
+  onAdd,
+  onDelete,
+  onUpdateSub,
+  onAddSub,
+  onDeleteSub,
+  onSetScope,
+  showScopePicker = true,
+  defaultOpen = true,
+}: {
+  sectionKey: string;
+  meta: { label: string; icon: string; type: string };
+  rows: BudgetRow[];
+  /** Total monthly income — drives the "% of income" metric on this section. */
+  incomeTotal: number;
+  onUpdate: (section: string, rowId: string, field: string, value: string | number) => void;
+  onAdd: (section: string) => void;
+  onDelete: (section: string, rowId: string) => void;
+  onUpdateSub: (
+    section: string,
+    rowId: string,
+    subId: string,
+    field: string,
+    value: string | number
+  ) => void;
+  onAddSub: (section: string, rowId: string) => void;
+  onDeleteSub: (section: string, rowId: string, subId: string) => void;
+  onSetScope: (section: string, rowId: string, scope: Scope | undefined) => void;
+  showScopePicker?: boolean;
+  defaultOpen?: boolean;
+}) {
+  const { confirm, modal } = useConfirm();
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [open, setOpen] = useState(defaultOpen);
+  const [editNum, setEditNum] = useState<{
+    rowId: string;
+    subId?: string;
+    field: "budget" | "actual";
+    value: string | number;
+    name: string;
+  } | null>(null);
+  const secBudget = sectionTotal(rows, "budget");
+  const secActual = sectionTotal(rows, "actual");
+  const isIncome = meta.type === "income";
+  const ok = isIncome ? secActual >= secBudget : secActual <= secBudget;
+  const over = !ok && !isIncome;
+
+  // Accent color per section type
+  const accent = isIncome
+    ? "#059669"
+    : sectionKey === "fixed"
+      ? "#B45309"
+      : sectionKey === "business"
+        ? "#6B7280"
+        : "#2C7A5A";
+  const accentSoft = isIncome ? "#2C7A5A" : sectionKey === "fixed" ? "rgba(217,119,6,0.12)" : "#FAFAF7";
+
+  const toggleExpand = (rowId: string) => {
+    setExpanded((prev) => ({ ...prev, [rowId]: !prev[rowId] }));
+  };
+
+  return (
+    <>
+      {modal}
+      {editNum && (
+        <NumberEditModal
+          title={`עריכת ${editNum.field === "budget" ? "תקציב" : "בפועל"} - ${editNum.name}`}
+          initialValue={editNum.value}
+          onSave={(val) => {
+            if (editNum.subId) {
+              onUpdateSub(sectionKey, editNum.rowId, editNum.subId, editNum.field, val);
+            } else {
+              onUpdate(sectionKey, editNum.rowId, editNum.field, val);
+            }
+            setEditNum(null);
+          }}
+          onClose={() => setEditNum(null)}
+        />
+      )}
+      <section
+      // 2026-05-05 visual-cleanup: lighter border + bigger bottom margin so
+      // sections breathe between each other. Was mb-3 (cramped) + a darker
+      // border that made each section feel like a heavy card.
+      className="mb-5 overflow-hidden rounded-2xl bg-[#FFFFFF]"
+      style={{ border: "1px solid #FAFAF7", boxShadow: "none" }}
+    >
+      {/* Clickable section header (disclosure) */}
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-3 px-5 py-4 transition-colors hover:bg-[#FAFAF7]"
+        aria-expanded={open}
+      >
+        {/* Chevron */}
+        <span
+          className="material-symbols-outlined text-[20px] transition-transform"
+          style={{ color: "#6B7280", transform: open ? "rotate(0deg)" : "rotate(90deg)" }}
+        >
+          expand_more
+        </span>
+
+        {/* Icon circle */}
+        <span
+          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl"
+          style={{ background: accentSoft }}
+        >
+          <span className="material-symbols-outlined text-[18px]" style={{ color: accent }}>
+            {meta.icon}
+          </span>
+        </span>
+
+        {/* Label */}
+        <div className="flex-1 text-right">
+          <div className="text-[15px] font-extrabold" style={{ color: "#1A1A1A" }}>
+            {meta.label}
+          </div>
+          {/* 2026-05-05 visual-cleanup: dropped the "X שורות" prefix — once
+              the section is open the user sees the rows directly. Keeping
+              just the % of income and the overrun warning gives a calm
+              two-piece line instead of three. */}
+          <div className="mt-0.5 text-[12px] font-semibold" style={{ color: "#6B7280" }}>
+            {!isIncome && incomeTotal > 0 && secBudget > 0 && (
+              <span style={{ color: accent }}>
+                {Math.round((secBudget / incomeTotal) * 100)}% מההכנסה
+              </span>
+            )}
+            {isIncome && <span>סה״כ {fmtILS(secBudget)}</span>}
+            {over && (
+              <>
+                {" · "}
+                <span style={{ color: "#DC2626" }}>חריגה {fmtILS(secActual - secBudget)}</span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Big total */}
+        <div className="shrink-0 text-left">
+          <div
+            className="text-[18px] font-extrabold tabular-nums leading-none"
+            style={{ color: isIncome ? "#059669" : over ? "#DC2626" : "#1A1A1A" }}
+          >
+            {fmtILS(secBudget)}
+          </div>
+          {secActual > 0 && secActual !== secBudget && (
+            <div className="mt-1 text-[10px] font-bold tabular-nums" style={{ color: "#6B7280" }}>
+              בפועל <span style={{ color: ok ? "#2C7A5A" : "#DC2626" }}>{fmtILS(secActual)}</span>
+            </div>
+          )}
+        </div>
+      </button>
+
+      {/* Collapsed → stop here */}
+      {!open ? null : (
+        <div className="px-5 pb-5 pt-1">
+          {/* Income section explainer — passive income is auto-synced from assets */}
+          {/* Passive-income note removed 2026-04-28 — info already in tooltip on locked rows. */}
+
+          {/* Column headers — 5 columns. Label uses natural width so it sits
+          tight next to the numbers; notes takes remaining space. */}
+          <div
+            className="mb-1 grid items-center pb-1 text-[11px] font-extrabold uppercase tracking-[0.08em] grid-cols-[105px_65px_65px_65px_minmax(60px,1fr)] sm:grid-cols-[130px_70px_70px_70px_minmax(80px,1fr)] gap-x-1 sm:gap-x-[10px]"
+            style={{
+              color: "#6B7280",
+              borderBottom: "1px solid #E5E7EB",
+            }}
+          >
+            <div>קטגוריה</div>
+            <div className="text-center tabular-nums">תקציב</div>
+            <div className="text-center tabular-nums">בפועל</div>
+            <div className="text-center tabular-nums">הפרש</div>
+            <div className="text-right">הערות</div>
+          </div>
+
+          {/* Rows */}
+          {rows.map((row) => {
+            const hasSubs = row.subItems && row.subItems.length > 0;
+            const isExpanded = expanded[row.id] ?? false;
+            const isLocked = row.locked === true;
+            const b = hasSubs ? rowEffective(row, "budget") : Number(row.budget) || 0;
+            const a = hasSubs ? rowEffective(row, "actual") : Number(row.actual) || 0;
+            const gap = b - a;
+            const gapPositive = isIncome ? gap <= 0 : gap >= 0;
+            const gapStr = fmtILS(gap, { signed: true });
+            const subOverspend = hasSubOverspend(row);
+
+            const nameLen = row.name ? row.name.length : 0;
+            const rowNameSize = nameLen > 18 ? "text-[10px]" : nameLen > 14 ? "text-[11.5px]" : "text-[13px]";
+
+            return (
+              <div key={row.id}>
+                {/* Parent row — same 5-col grid as the header above */}
+                <div
+                  className="group relative grid items-center py-1.5 grid-cols-[105px_65px_65px_65px_minmax(60px,1fr)] sm:grid-cols-[130px_70px_70px_70px_minmax(80px,1fr)] gap-x-1 sm:gap-x-[10px]"
+                  style={{
+                    borderBottom: isExpanded ? "none" : "1px solid #E5E7EB",
+                    opacity: isLocked ? 0.85 : 1,
+                  }}
+                >
+                  {/* Name */}
+                  <div className="flex items-center gap-1.5">
+                    {isLocked ? (
+                      row.source === "passive" ? (
+                        <div
+                          className={`flex items-center gap-1.5 font-semibold ${rowNameSize}`}
+                          style={{ color: "#2C7A5A" }}
+                          title="מסונכרן מנדל״ן"
+                        >
+                          <span
+                            className="material-symbols-outlined text-[13px]"
+                            style={{ color: "#059669" }}
+                          >
+                            home_work
+                          </span>
+                          {row.name}
+                          <span
+                            className="material-symbols-outlined text-[11px]"
+                            style={{ color: "#6B7280" }}
+                          >
+                            sync
+                          </span>
+                        </div>
+                      ) : (
+                        <div
+                          className={`flex items-center gap-1.5 font-semibold ${rowNameSize}`}
+                          style={{ color: "#6B7280" }}
+                          title="הוצאה קשיחה — נמשכת מדף חובות"
+                        >
+                          <span
+                            className="material-symbols-outlined text-[13px]"
+                            style={{ color: "#9a6458" }}
+                          >
+                            lock
+                          </span>
+                          {row.name}
+                        </div>
+                      )
+                    ) : hasSubs ? (
+                      <button
+                        onClick={() => toggleExpand(row.id)}
+                        className={`flex cursor-pointer items-center gap-1 border-none bg-transparent font-semibold transition-opacity hover:opacity-80 ${rowNameSize}`}
+                        style={{ color: subOverspend ? "#DC2626" : "#1A1A1A" }}
+                      >
+                        <span
+                          className="material-symbols-outlined text-[14px] transition-transform"
+                          style={{
+                            transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                            color: "#6B7280",
+                          }}
+                        >
+                          chevron_left
+                        </span>
+                        {row.name}
+                        {subOverspend && (
+                          <span
+                            className="material-symbols-outlined mr-0.5 text-[12px]"
+                            style={{ color: "#DC2626" }}
+                          >
+                            error
+                          </span>
+                        )}
+                      </button>
+                    ) : (
+                      <input
+                        type="text"
+                        value={row.name}
+                        onChange={(e) => onUpdate(sectionKey, row.id, "name", e.target.value)}
+                        placeholder="שם קטגוריה"
+                        className={`w-full border-none bg-transparent font-semibold focus:outline-none ${rowNameSize}`}
+                        style={{ color: "#1A1A1A", borderBottom: "1px dotted transparent" }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderBottomColor = "#059669";
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderBottomColor = "transparent";
+                        }}
+                      />
+                    )}
+                  </div>
+                  {/* Budget */}
+                  {isLocked || hasSubs ? (
+                    <div
+                      className="text-center text-[13px] font-bold tabular-nums"
+                      style={{
+                        color: isLocked
+                          ? row.source === "passive"
+                            ? "#2C7A5A"
+                            : "#9a6458"
+                          : "#1A1A1A",
+                      }}
+                    >
+                      {fmtILS(b)}
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setEditNum({ rowId: row.id, field: "budget", value: row.budget || 0, name: row.name })}
+                      className="w-full border-none bg-transparent text-center text-[13px] font-bold tabular-nums focus:outline-none hover:opacity-80"
+                      style={{ color: "#1A1A1A", borderBottom: "1px dotted transparent" }}
+                    >
+                      {fmtILS(row.budget || 0)}
+                    </button>
+                  )}
+                  {/* Actual */}
+                  {isLocked || hasSubs ? (
+                    <div
+                      className="text-center text-[13px] font-bold tabular-nums"
+                      style={{ color: isLocked ? "#9a6458" : subOverspend ? "#DC2626" : "#1A1A1A" }}
+                    >
+                      {fmtILS(a)}
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setEditNum({ rowId: row.id, field: "actual", value: row.actual || 0, name: row.name })}
+                      className="w-full border-none bg-transparent text-center text-[13px] font-bold tabular-nums focus:outline-none hover:opacity-80"
+                      style={{ color: "#1A1A1A", borderBottom: "1px dotted transparent" }}
+                    >
+                      {fmtILS(row.actual || 0)}
+                    </button>
+                  )}
+                  {/* Gap */}
+                  <div
+                    className="text-center text-[12px] font-extrabold tabular-nums"
+                    style={{ color: isLocked ? "#6B7280" : gapPositive ? "#2C7A5A" : "#DC2626" }}
+                  >
+                    {isLocked ? "₪0" : gapStr}
+                  </div>
+                  {/* Notes + delete */}
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="text"
+                      value={row.notes || ""}
+                      onChange={(e) => onUpdate(sectionKey, row.id, "notes", e.target.value)}
+                      placeholder="הערה…"
+                      disabled={isLocked}
+                      className="w-full border-none bg-transparent text-right text-[11px] focus:outline-none"
+                      style={{
+                        color: "#6B7280",
+                        borderBottom: "1px dotted transparent",
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderBottomColor = "#059669";
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderBottomColor = "transparent";
+                      }}
+                    />
+                    {/* Scope picker — explicit popover, no cycling guesswork; hidden when business scope not enabled */}
+                    {!isLocked && showScopePicker && (
+                      <ScopePicker
+                        current={row.scope}
+                        onPick={(s) => onSetScope(sectionKey, row.id, s)}
+                      />
+                    )}
+                    {/* Delete — hover only, never for locked rows. Confirms
+                        before destroying the row + any sub-items underneath
+                        (a single click on the X used to wipe a whole branch). */}
+                    {!isLocked && (
+                      <button
+                        onClick={async () => {
+                          const subCount = row.subItems?.length ?? 0;
+                          const ok = await confirm({
+                            title: `למחוק את "${row.name}"?`,
+                            body:
+                              subCount > 0
+                                ? `השורה מכילה ${subCount} פריטים נוספים שיימחקו יחד איתה. פעולה זו בלתי הפיכה.`
+                                : "פעולה זו בלתי הפיכה.",
+                            confirmLabel: "כן, מחק",
+                            cancelLabel: "ביטול",
+                            variant: "danger",
+                          });
+                          if (!ok) return;
+                          onDelete(sectionKey, row.id);
+                        }}
+                        className="shrink-0 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+                        style={{ color: "#6B7280" }}
+                        title="מחק"
+                      >
+                        <span className="material-symbols-outlined text-[14px] transition-colors hover:text-red-600">
+                          close
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Expanded sub-items */}
+                {hasSubs && isExpanded && (
+                  <div
+                    className="mb-2 mr-6 overflow-hidden rounded-xl"
+                    style={{ background: "#FAFAF7", border: "1px solid #E5E7EB" }}
+                  >
+                    {row.subItems!.map((sub) => {
+                      const sb = Number(sub.budget) || 0;
+                      const sa = Number(sub.actual) || 0;
+                      const sg = sb - sa;
+                      const sgPositive = isIncome ? sg <= 0 : sg >= 0;
+                      const sgStr = fmtILS(sg, { signed: true });
+                      const subOver = !isIncome && sa > sb && sb > 0;
+
+                      const subNameLen = sub.name ? sub.name.length : 0;
+                      const subNameSize = subNameLen > 18 ? "text-[10px]" : subNameLen > 14 ? "text-[11px]" : "text-[12px]";
+
+                      return (
+                        <div
+                          key={sub.id}
+                          className="group/sub relative grid items-center px-3 py-1.5 grid-cols-[95px_65px_65px_65px_minmax(60px,1fr)] sm:grid-cols-[115px_70px_70px_70px_minmax(80px,1fr)] gap-x-1 sm:gap-x-[10px]"
+                          style={{
+                            borderBottom: "1px solid #E5E7EB",
+                          }}
+                        >
+                          {/* Sub name */}
+                          <input
+                            type="text"
+                            value={sub.name}
+                            onChange={(e) =>
+                              onUpdateSub(sectionKey, row.id, sub.id, "name", e.target.value)
+                            }
+                            placeholder="פריט"
+                            className={`w-full border-none bg-transparent font-semibold focus:outline-none ${subNameSize}`}
+                            style={{
+                              color: subOver ? "#DC2626" : "#6B7280",
+                              borderBottom: "1px dotted transparent",
+                            }}
+                            onFocus={(e) => {
+                              e.currentTarget.style.borderBottomColor = "#059669";
+                            }}
+                            onBlur={(e) => {
+                              e.currentTarget.style.borderBottomColor = "transparent";
+                            }}
+                          />
+                          {/* Sub budget */}
+                          <button
+                            type="button"
+                            onClick={() => setEditNum({ rowId: row.id, subId: sub.id, field: "budget", value: sub.budget || 0, name: sub.name || "פריט" })}
+                            className="w-full border-none bg-transparent text-center text-[12px] font-bold tabular-nums focus:outline-none hover:opacity-80"
+                            style={{ color: "#1A1A1A", borderBottom: "1px dotted transparent" }}
+                          >
+                            {fmtILS(sub.budget || 0)}
+                          </button>
+                          {/* Sub actual */}
+                          <button
+                            type="button"
+                            onClick={() => setEditNum({ rowId: row.id, subId: sub.id, field: "actual", value: sub.actual || 0, name: sub.name || "פריט" })}
+                            className="w-full border-none bg-transparent text-center text-[12px] font-bold tabular-nums focus:outline-none hover:opacity-80"
+                            style={{
+                              color: subOver ? "#DC2626" : "#1A1A1A",
+                              borderBottom: "1px dotted transparent",
+                            }}
+                          >
+                            {fmtILS(sub.actual || 0)}
+                          </button>
+                          {/* Sub gap */}
+                          <div
+                            className="text-center text-[11px] font-extrabold tabular-nums"
+                            style={{ color: sgPositive ? "#2C7A5A" : "#DC2626" }}
+                          >
+                            {sgStr}
+                          </div>
+                          {/* Sub notes + delete */}
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={sub.notes || ""}
+                              onChange={(e) =>
+                                onUpdateSub(sectionKey, row.id, sub.id, "notes", e.target.value)
+                              }
+                              placeholder="הערה…"
+                              className="w-full border-none bg-transparent text-right text-[12px] focus:outline-none"
+                              style={{
+                                color: "#6B7280",
+                                borderBottom: "1px dotted transparent",
+                              }}
+                              onFocus={(e) => {
+                                e.currentTarget.style.borderBottomColor = "#059669";
+                              }}
+                              onBlur={(e) => {
+                                e.currentTarget.style.borderBottomColor = "transparent";
+                              }}
+                            />
+                            {/* Delete sub — visible on mobile (no hover on
+                                touch), hover-reveal on desktop. Confirms first. */}
+                            <button
+                              onClick={async () => {
+                                const ok = await confirm({
+                                  title: `למחוק את "${sub.name || "הפריט"}"?`,
+                                  body: "פעולה זו בלתי הפיכה.",
+                                  confirmLabel: "כן, מחק",
+                                  cancelLabel: "ביטול",
+                                  variant: "danger",
+                                });
+                                if (!ok) return;
+                                onDeleteSub(sectionKey, row.id, sub.id);
+                              }}
+                              className="shrink-0 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/sub:opacity-100"
+                              style={{ color: "#6B7280" }}
+                              title="מחק פריט"
+                            >
+                              <span className="material-symbols-outlined text-[13px] transition-colors hover:text-red-600">
+                                close
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {/* Add sub-item */}
+                    <button
+                      onClick={() => onAddSub(sectionKey, row.id)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-bold transition-colors hover:underline"
+                      style={{ color: "#2C7A5A" }}
+                    >
+                      <span className="material-symbols-outlined text-[11px]">add</span>
+                      הוסף פריט
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Add row */}
+          <button
+            onClick={() => onAdd(sectionKey)}
+            className="inline-flex items-center gap-1 pt-2 text-[11px] font-bold transition-colors hover:underline"
+            style={{ color: "#2C7A5A" }}
+          >
+            <span className="material-symbols-outlined text-[12px]">add</span>
+            הוסף שורה
+          </button>
+        </div>
+      )}
+    </section>
+    </>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ScopePicker — compact popover to assign personal/business/mixed
+   Replaces the cycling dot so users never "lose" a row to a filter.
+   ═══════════════════════════════════════════════════════════ */
+function ScopePicker({
+  current,
+  onPick,
+}: {
+  current: Scope | undefined;
+  onPick: (scope: Scope | undefined) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDocClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [open]);
+
+  const eff = current;
+  const color = eff ? SCOPE_COLORS[eff] : "transparent";
+  const border = eff ? SCOPE_COLORS[eff] : "#c8d6c0";
+  const title = eff ? `${SCOPE_LABELS[eff]} — לחץ לשינוי` : "הגדר סיווג";
+
+  const opts: { key: Scope | undefined; label: string; color: string }[] = [
+    { key: undefined, label: "פרטי", color: SCOPE_COLORS.personal },
+    { key: "business", label: "עסקי", color: SCOPE_COLORS.business },
+    { key: "mixed", label: "מעורב", color: SCOPE_COLORS.mixed },
+  ];
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-4 w-4 items-center justify-center rounded-full transition-all hover:scale-110"
+        style={{ background: color, border: `1.5px solid ${border}` }}
+        title={title}
+        aria-label={title}
+      />
+      {open && (
+        <div
+          className="absolute right-0 top-5 z-20 flex flex-col gap-0.5 rounded-lg bg-[#FFFFFF] p-1 shadow-lg"
+          style={{ border: "1px solid #E5E7EB", minWidth: "100px" }}
+        >
+          {opts.map((opt) => {
+            const isActive = (eff ?? undefined) === opt.key || (opt.key === undefined && !eff);
+            return (
+              <button
+                key={opt.label}
+                onClick={() => {
+                  onPick(opt.key);
+                  setOpen(false);
+                }}
+                className="flex items-center gap-2 rounded px-2 py-1.5 text-right text-[11px] font-bold transition-colors hover:bg-[#FAFAF7]"
+                style={{ color: "#1A1A1A" }}
+              >
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{
+                    background: opt.color,
+                    border: isActive ? `2px solid ${opt.color}` : `1px solid ${opt.color}80`,
+                    outline: isActive ? "1px solid #FFFFFF" : "none",
+                    outlineOffset: "1px",
+                  }}
+                />
+                <span className="flex-1 text-right">{opt.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}

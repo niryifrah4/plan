@@ -15,19 +15,10 @@ export default defineConfig(({ mode }) => {
       // frontend's own v4 so @hookform/resolvers can import zod/v4/core.
       dedupe: ["react", "react-dom", "zod"],
       alias: [
-        // next/* shims — let the reused app/(client) pages + components run
-        // unchanged. Order matters: more specific paths first.
-        { find: "next/navigation", replacement: root("./src/shims/next-navigation.tsx") },
-        { find: "next/link", replacement: root("./src/shims/next-link.tsx") },
-        { find: "next/image", replacement: root("./src/shims/next-image.tsx") },
-        { find: "next/dynamic", replacement: root("./src/shims/next-dynamic.tsx") },
-        { find: "next/font/google", replacement: root("./src/shims/next-font-google.ts") },
-        { find: /^next$/, replacement: root("./src/shims/next.ts") },
-        { find: "server-only", replacement: root("./src/shims/empty.ts") },
-        { find: "@sentry/nextjs", replacement: root("./src/shims/sentry-nextjs.ts") },
-        { find: "@supabase/ssr", replacement: root("./src/shims/supabase-ssr.ts") },
+        { find: "server-only", replacement: root("./src/adapters/empty.ts") },
+        { find: "@supabase/ssr", replacement: root("./src/adapters/supabase-ssr.ts") },
         
-        // Map all Next.js Supabase clients to the Vite singleton
+        // Map shared Supabase clients to the Vite singleton
         { find: "@/lib/supabase/browser", replacement: root("./src/lib/supabase.ts") },
         { find: "@/lib/supabase/client", replacement: root("./src/lib/supabase.ts") },
         { find: "@/lib/supabase/server", replacement: root("./src/lib/supabase.ts") },
@@ -42,10 +33,10 @@ export default defineConfig(({ mode }) => {
       ],
     },
     define: {
-      // The reused lib/supabase/browser.ts reads process.env.NEXT_PUBLIC_*.
+      // Shared browser Supabase code reads Vite's VITE_* variables.
       // Map those to the Vite VITE_* values so it works without edits.
-      "process.env.NEXT_PUBLIC_SUPABASE_URL": JSON.stringify(env.VITE_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || ""),
-      "process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY": JSON.stringify(env.VITE_SUPABASE_ANON_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""),
+      "process.env.VITE_SUPABASE_URL": JSON.stringify(env.VITE_SUPABASE_URL || env.VITE_SUPABASE_URL || ""),
+      "process.env.VITE_SUPABASE_ANON_KEY": JSON.stringify(env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY || ""),
       "process.env.NODE_ENV": JSON.stringify(mode === "production" ? "production" : "development"),
     },
     server: {

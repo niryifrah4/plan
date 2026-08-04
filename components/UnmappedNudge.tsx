@@ -13,7 +13,7 @@
  * users never opened.
  */
 
-import Link from "next/link";
+import { Link } from "~/lib/router-compat";
 import { useUnmappedCount } from "@/lib/hooks/useUnmappedCount";
 
 export function UnmappedNudge() {

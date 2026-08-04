@@ -8,7 +8,7 @@
  * Clicking the card opens /deposits for full management.
  */
 
-import Link from "next/link";
+import { Link } from "~/lib/router-compat";
 import { useEffect, useState } from "react";
 import { fmtILS } from "@/lib/format";
 import {

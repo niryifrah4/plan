@@ -7,7 +7,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * takes a client-supplied householdId.
  */
 export async function assertHouseholdAccess(
-  sb: SupabaseClient,
+  sb: SupabaseClient<any>,
   userId: string,
   householdId: string
 ): Promise<boolean> {

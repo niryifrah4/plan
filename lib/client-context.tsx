@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams } from "~/lib/router-compat";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import type { Household, Profile } from "@/types/db";
 import { runClientMigration } from "@/lib/client-migration";

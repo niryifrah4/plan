@@ -7,7 +7,7 @@
  *   high → 20pts, medium → 8pts, low → 3pts (deducted from 100).
  */
 
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient<any> } from "@supabase/supabase-js";
 import type {
   CashflowSummary,
   NetWorth,
@@ -201,7 +201,7 @@ export function healthScore(tasks: Pick<Task, "severity" | "status">[]): number 
  * (any rule currently absent that had a matching open task before).
  */
 export async function persistTasks(
-  sb: SupabaseClient,
+  sb: SupabaseClient<any>,
   householdId: string,
   drafts: TaskDraft[]
 ): Promise<void> {

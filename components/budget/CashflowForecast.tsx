@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { Link } from "~/lib/router-compat";
 import { fmtILS } from "@/lib/format";
 import { buildForecast, type ForecastMonth } from "@/lib/cashflow-forecast";
 import { loadAssumptions, saveAssumptions } from "@/lib/assumptions";

@@ -3,7 +3,7 @@
  * Centralised queries — keeps components thin and decouples Supabase specifics.
  */
 
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient<any> } from "@supabase/supabase-js";
 import type {
   Household,
   Profile,
@@ -25,7 +25,7 @@ import type {
 } from "@/types/db";
 
 // ===== Households =====
-export async function listHouseholds(sb: SupabaseClient): Promise<Household[]> {
+export async function listHouseholds(sb: SupabaseClient<any>): Promise<Household[]> {
   const { data, error } = await sb
     .from("households")
     .select("*")
@@ -35,7 +35,7 @@ export async function listHouseholds(sb: SupabaseClient): Promise<Household[]> {
 }
 
 export async function getHousehold(
-  sb: SupabaseClient,
+  sb: SupabaseClient<any>,
   householdId: string
 ): Promise<Household | null> {
   const { data } = await sb.from("households").select("*").eq("id", householdId).single();
@@ -43,7 +43,7 @@ export async function getHousehold(
 }
 
 // ===== Profile (BDO answers) =====
-export async function getProfile(sb: SupabaseClient, householdId: string): Promise<Profile | null> {
+export async function getProfile(sb: SupabaseClient<any>, householdId: string): Promise<Profile | null> {
   const { data } = await sb
     .from("profiles")
     .select("*")
@@ -53,7 +53,7 @@ export async function getProfile(sb: SupabaseClient, householdId: string): Promi
 }
 
 export async function upsertProfile(
-  sb: SupabaseClient,
+  sb: SupabaseClient<any>,
   profile: Partial<Profile> & { household_id: string }
 ): Promise<void> {
   const { error } = await sb.from("profiles").upsert(profile);
@@ -62,7 +62,7 @@ export async function upsertProfile(
 
 // ===== Cashflow =====
 export async function getCashflowSummary(
-  sb: SupabaseClient,
+  sb: SupabaseClient<any>,
   householdId: string,
   limit = 12
 ): Promise<CashflowSummary[]> {
@@ -78,7 +78,7 @@ export async function getCashflowSummary(
 }
 
 export async function listMonths(
-  sb: SupabaseClient,
+  sb: SupabaseClient<any>,
   householdId: string
 ): Promise<CashflowMonth[]> {
   const { data } = await sb
@@ -90,7 +90,7 @@ export async function listMonths(
   return data ?? [];
 }
 
-export async function listTx(sb: SupabaseClient, monthId: string): Promise<CashflowTx[]> {
+export async function listTx(sb: SupabaseClient<any>, monthId: string): Promise<CashflowTx[]> {
   const { data } = await sb
     .from("cashflow_tx")
     .select("*")
@@ -99,28 +99,28 @@ export async function listTx(sb: SupabaseClient, monthId: string): Promise<Cashf
   return data ?? [];
 }
 
-export async function closeMonth(sb: SupabaseClient, monthId: string): Promise<void> {
+export async function closeMonth(sb: SupabaseClient<any>, monthId: string): Promise<void> {
   const { error } = await sb.rpc("close_month", { p_month_id: monthId });
   if (error) throw error;
 }
 
 // ===== Budget =====
 export async function getBudgetVsActual(
-  sb: SupabaseClient,
+  sb: SupabaseClient<any>,
   householdId: string
 ): Promise<BudgetVsActual[]> {
   const { data } = await sb.from("v_budget_vs_actual").select("*").eq("household_id", householdId);
   return data ?? [];
 }
 
-export async function upsertBudgetPlan(sb: SupabaseClient, plans: BudgetPlan[]): Promise<void> {
+export async function upsertBudgetPlan(sb: SupabaseClient<any>, plans: BudgetPlan[]): Promise<void> {
   const { error } = await sb.from("budget_plan").upsert(plans);
   if (error) throw error;
 }
 
 // ===== Wealth Map =====
 export async function getNetWorth(
-  sb: SupabaseClient,
+  sb: SupabaseClient<any>,
   householdId: string
 ): Promise<NetWorth | null> {
   const { data } = await sb
@@ -131,7 +131,7 @@ export async function getNetWorth(
   return data;
 }
 
-export async function listAssets(sb: SupabaseClient, householdId: string): Promise<Asset[]> {
+export async function listAssets(sb: SupabaseClient<any>, householdId: string): Promise<Asset[]> {
   const { data } = await sb
     .from("assets")
     .select("*")
@@ -141,7 +141,7 @@ export async function listAssets(sb: SupabaseClient, householdId: string): Promi
 }
 
 export async function listLiabilities(
-  sb: SupabaseClient,
+  sb: SupabaseClient<any>,
   householdId: string
 ): Promise<Liability[]> {
   const { data } = await sb
@@ -153,7 +153,7 @@ export async function listLiabilities(
 }
 
 export async function upsertLiabilities(
-  sb: SupabaseClient,
+  sb: SupabaseClient<any>,
   liabilities: Partial<Liability>[]
 ): Promise<void> {
   const { error } = await sb.from("liabilities").upsert(liabilities);
@@ -161,7 +161,7 @@ export async function upsertLiabilities(
 }
 
 // ===== Goals =====
-export async function listGoals(sb: SupabaseClient, householdId: string): Promise<Goal[]> {
+export async function listGoals(sb: SupabaseClient<any>, householdId: string): Promise<Goal[]> {
   const { data } = await sb
     .from("goals")
     .select("*")
@@ -171,7 +171,7 @@ export async function listGoals(sb: SupabaseClient, householdId: string): Promis
 }
 
 export async function upsertGoal(
-  sb: SupabaseClient,
+  sb: SupabaseClient<any>,
   goal: Partial<Goal> & {
     household_id: string;
     name: string;
@@ -184,7 +184,7 @@ export async function upsertGoal(
 }
 
 // ===== Tasks =====
-export async function listOpenTasks(sb: SupabaseClient, householdId: string): Promise<Task[]> {
+export async function listOpenTasks(sb: SupabaseClient<any>, householdId: string): Promise<Task[]> {
   const { data } = await sb
     .from("tasks")
     .select("*")
@@ -194,7 +194,7 @@ export async function listOpenTasks(sb: SupabaseClient, householdId: string): Pr
   return data ?? [];
 }
 
-export async function listAllTasks(sb: SupabaseClient, householdId: string): Promise<Task[]> {
+export async function listAllTasks(sb: SupabaseClient<any>, householdId: string): Promise<Task[]> {
   const { data } = await sb
     .from("tasks")
     .select("*")
@@ -203,12 +203,12 @@ export async function listAllTasks(sb: SupabaseClient, householdId: string): Pro
   return data ?? [];
 }
 
-export async function upsertTasks(sb: SupabaseClient, tasks: Partial<Task>[]): Promise<void> {
+export async function upsertTasks(sb: SupabaseClient<any>, tasks: Partial<Task>[]): Promise<void> {
   const { error } = await sb.from("tasks").upsert(tasks, { onConflict: "household_id,rule_id" });
   if (error) throw error;
 }
 
-export async function markTaskDone(sb: SupabaseClient, taskId: string): Promise<void> {
+export async function markTaskDone(sb: SupabaseClient<any>, taskId: string): Promise<void> {
   const { error } = await sb
     .from("tasks")
     .update({ status: "done", done_at: new Date().toISOString() })
@@ -218,7 +218,7 @@ export async function markTaskDone(sb: SupabaseClient, taskId: string): Promise<
 
 // ===== Scenarios =====
 export async function listScenarios(
-  sb: SupabaseClient,
+  sb: SupabaseClient<any>,
   householdId: string,
   kind?: string
 ): Promise<Scenario[]> {
@@ -229,7 +229,7 @@ export async function listScenarios(
 }
 
 export async function saveScenario(
-  sb: SupabaseClient,
+  sb: SupabaseClient<any>,
   scenario: Omit<Scenario, "id" | "saved_at">
 ): Promise<void> {
   const { error } = await sb.from("scenarios").insert(scenario);
@@ -238,7 +238,7 @@ export async function saveScenario(
 
 // ===== Securities / Crypto / RSU / Options =====
 export async function listSecurities(
-  sb: SupabaseClient,
+  sb: SupabaseClient<any>,
   householdId: string
 ): Promise<SecurityValued[]> {
   const { data } = await sb
@@ -250,21 +250,21 @@ export async function listSecurities(
 }
 
 export async function upsertSecurity(
-  sb: SupabaseClient,
+  sb: SupabaseClient<any>,
   sec: Partial<Security> & { household_id: string; symbol: string; kind: Security["kind"] }
 ): Promise<void> {
   const { error } = await sb.from("securities").upsert(sec);
   if (error) throw error;
 }
 
-export async function deleteSecurity(sb: SupabaseClient, id: string): Promise<void> {
+export async function deleteSecurity(sb: SupabaseClient<any>, id: string): Promise<void> {
   const { error } = await sb.from("securities").delete().eq("id", id);
   if (error) throw error;
 }
 
 // ===== Masleka =====
 export async function listMaslekaFiles(
-  sb: SupabaseClient,
+  sb: SupabaseClient<any>,
   householdId: string
 ): Promise<MaslekaFile[]> {
   const { data } = await sb
@@ -276,7 +276,7 @@ export async function listMaslekaFiles(
 }
 
 export async function listMaslekaEntries(
-  sb: SupabaseClient,
+  sb: SupabaseClient<any>,
   fileId: string
 ): Promise<MaslekaEntry[]> {
   const { data } = await sb
@@ -288,7 +288,7 @@ export async function listMaslekaEntries(
 }
 
 export async function recordMaslekaFile(
-  sb: SupabaseClient,
+  sb: SupabaseClient<any>,
   file: Omit<MaslekaFile, "id" | "uploaded_at" | "parsed_at" | "error_msg">
 ): Promise<MaslekaFile> {
   const { data, error } = await sb.from("masleka_files").insert(file).select("*").single();
@@ -297,7 +297,7 @@ export async function recordMaslekaFile(
 }
 
 /** Map a masleka entry to the household's `assets` table (auto-sourced). */
-export async function promoteMaslekaToAsset(sb: SupabaseClient, entryId: string): Promise<void> {
+export async function promoteMaslekaToAsset(sb: SupabaseClient<any>, entryId: string): Promise<void> {
   const { data: entry } = await sb.from("masleka_entries").select("*").eq("id", entryId).single();
   if (!entry) return;
   const { error } = await sb.from("assets").insert({

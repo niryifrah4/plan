@@ -102,6 +102,12 @@ export const NAV_SECTIONS: NavGroup[] = [
         icon: "checklist",
         advisorOnly: true,
       },
+      {
+        id: "family-workbook",
+        label: "חוברת משפחה",
+        href: "/family-workbook",
+        icon: "table_view",
+      },
     ],
   },
 

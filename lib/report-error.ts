@@ -11,18 +11,11 @@
  * אותחל (אין DSN ב-dev), אז אין צורך בבדיקות נוספות.
  */
 
-import * as Sentry from "@sentry/nextjs";
-
 export function reportError(scope: string, e: unknown): void {
   try {
     // eslint-disable-next-line no-console
     console.warn(`[${scope}]`, e);
   } catch {
     /* console לא זמין — אין מה לעשות */
-  }
-  try {
-    Sentry.captureException(e, { tags: { scope } });
-  } catch {
-    /* דיווח לא יכול להפיל את הזרימה */
   }
 }

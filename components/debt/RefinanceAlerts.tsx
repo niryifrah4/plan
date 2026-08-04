@@ -15,7 +15,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { Link } from "~/lib/router-compat";
 import { loadDebtData, type DebtData } from "@/lib/debt-store";
 import { loadProperties, type Property, EVENT_NAME as RE_EVENT } from "@/lib/realestate-store";
 import { useAssumptions } from "@/lib/hooks/useAssumptions";

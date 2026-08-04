@@ -16,7 +16,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname } from "~/lib/router-compat";
 
 export function RouteProgressBar() {
   const pathname = usePathname();

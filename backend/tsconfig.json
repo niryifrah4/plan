@@ -12,10 +12,10 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "server-only": ["./src/shims/server-only.ts"],
+      "server-only": ["./src/adapters/server-only.ts"],
       "@/lib/report-error": ["./src/lib/report-error.ts"],
       "@supabase/supabase-js": ["../node_modules/@supabase/supabase-js"],
-      "@supabase/ssr": ["./src/shims/supabase-ssr.ts"],
+      "@supabase/ssr": ["./src/adapters/supabase-ssr.ts"],
       "@shared/*": ["../lib/_shared/*"],
       "@/*": ["../*"]
     }

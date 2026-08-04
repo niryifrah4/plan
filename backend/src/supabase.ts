@@ -12,7 +12,7 @@ import { env } from "./env.js";
  *   makes RLS evaluate exactly as the authenticated advisor — same guarantees
  *   as the old createServerClient(), just token- instead of cookie-sourced.
  */
-export function createUserClient(accessToken: string): SupabaseClient {
+export function createUserClient(accessToken: string): SupabaseClient<any> {
   return createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: `Bearer ${accessToken}` } },
     auth: { persistSession: false, autoRefreshToken: false },
@@ -24,8 +24,8 @@ export function createUserClient(accessToken: string): SupabaseClient {
  * that previously used lib/supabase/admin.ts. Never expose to user input
  * without explicit authorization checks first.
  */
-let _admin: SupabaseClient | null = null;
-export function createAdminClient(): SupabaseClient {
+let _admin: SupabaseClient<any> | null = null;
+export function createAdminClient(): SupabaseClient<any> {
   if (!env.SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error("SUPABASE_SERVICE_ROLE_KEY missing — admin client unavailable");
   }

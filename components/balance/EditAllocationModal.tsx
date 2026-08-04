@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { scopedKey } from "@/lib/client-scope";
 import { syncOnboardingToStores } from "@/lib/onboarding-sync";
-import type { Fields, AssetRow } from "@/app/(client)/onboarding/page-files/types";
-import { Fld, ModalNumberInput, DynTable } from "@/app/(client)/onboarding/page-files/fields";
-import { ASSET_TYPES, fmt } from "@/app/(client)/onboarding/page-files/constants";
+import type { Fields, AssetRow } from "@/frontend/src/reused-pages/(client)/onboarding/page-files/types";
+import { Fld, ModalNumberInput, DynTable } from "@/frontend/src/reused-pages/(client)/onboarding/page-files/fields";
+import { ASSET_TYPES, fmt } from "@/frontend/src/reused-pages/(client)/onboarding/page-files/constants";
 import { useSaveStatus } from "@/lib/hooks/useSaveStatus";
 import { SaveStatus } from "@/components/ui/SaveStatus";
 

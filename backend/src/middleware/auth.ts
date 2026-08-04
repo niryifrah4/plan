@@ -11,7 +11,7 @@ declare global {
   namespace Express {
     interface Request {
       user?: User;
-      sb?: SupabaseClient;
+      sb?: SupabaseClient<any>;
       accessToken?: string;
     }
   }

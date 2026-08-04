@@ -9,6 +9,11 @@ import { asyncHandler } from "../lib/async-handler.js";
  */
 export const onboardingRouter = Router();
 
+// Keep the contract explicit: this endpoint is POST-only, even before auth.
+onboardingRouter.get("/complete", (_req, res) => {
+  res.status(405).json({ error: "method_not_allowed" });
+});
+
 onboardingRouter.use(requireUser);
 
 onboardingRouter.post(

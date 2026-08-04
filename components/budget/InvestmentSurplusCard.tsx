@@ -22,13 +22,13 @@
  */
 
 import { useEffect, useMemo, useState, useCallback } from "react";
-import Link from "next/link";
+import { Link } from "~/lib/router-compat";
 import { fmtILS } from "@/lib/format";
 import { buildForecast, type ForecastMonth } from "@/lib/cashflow-forecast";
 import { buildBudgetLines, totalBudget } from "@/lib/budget-store";
 import { getMonthlyNetIncome } from "@/lib/income";
 import { loadBuckets, saveBuckets, createBucket, pickColor } from "@/lib/buckets-store";
-import { AddGoalModal } from "@/app/(client)/goals/page-files/AddGoalModal";
+import { AddGoalModal } from "@/frontend/src/reused-pages/(client)/goals/page-files/AddGoalModal";
 
 function getIcon(name: string): string {
   const n = name.toLowerCase();

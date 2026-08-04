@@ -46,7 +46,7 @@ function mapVoteRow(row: MerchantCategoryVoteDbRow): MerchantCategoryVoteRecord 
 }
 
 export async function loadMerchantCategoryRulesFromDb(
-  sb: SupabaseClient
+  sb: SupabaseClient<any>
 ): Promise<MerchantCategoryRule[]> {
   try {
     const { data, error } = await sb
@@ -85,7 +85,7 @@ export async function loadMerchantCategoryRulesFromDb(
 }
 
 export async function primeMerchantCategoryRulesCacheFromDb(
-  sb: SupabaseClient
+  sb: SupabaseClient<any>
 ): Promise<MerchantCategoryRule[]> {
   const rules = await loadMerchantCategoryRulesFromDb(sb);
   setMerchantCategoryRulesCache(rules);
@@ -93,7 +93,7 @@ export async function primeMerchantCategoryRulesCacheFromDb(
 }
 
 export async function insertMerchantCategoryVotes(
-  sb: SupabaseClient,
+  sb: SupabaseClient<any>,
   userId: string,
   votes: Array<{
     merchantKey: string;
@@ -127,7 +127,7 @@ export async function insertMerchantCategoryVotes(
 }
 
 export async function deleteMerchantCategoryVotes(
-  sb: SupabaseClient,
+  sb: SupabaseClient<any>,
   merchantKeys: string[]
 ): Promise<{ deleted: boolean }> {
   if (merchantKeys.length === 0) return { deleted: true };

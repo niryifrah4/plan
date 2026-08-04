@@ -51,18 +51,62 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 var require_dist = __commonJS({
   "../node_modules/@supabase/supabase-js/dist/index.cjs"(exports) {
     "use strict";
-    var __supabase_functions_js = __require("@supabase/functions-js");
-    var __supabase_postgrest_js = __require("@supabase/postgrest-js");
-    var __supabase_realtime_js = __require("@supabase/realtime-js");
-    var __supabase_storage_js = __require("@supabase/storage-js");
-    var __supabase_auth_js = __require("@supabase/auth-js");
-    var version = "2.104.0";
+    var __defProp2 = Object.defineProperty;
+    var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
+    var __getOwnPropNames2 = Object.getOwnPropertyNames;
+    var __hasOwnProp2 = Object.prototype.hasOwnProperty;
+    var __esmMin = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
+    var __commonJSMin = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
+    var __exportAll = (all, symbols) => {
+      let target = {};
+      for (var name in all) {
+        __defProp2(target, name, {
+          get: all[name],
+          enumerable: true
+        });
+      }
+      if (symbols) {
+        __defProp2(target, Symbol.toStringTag, { value: "Module" });
+      }
+      return target;
+    };
+    var __copyProps2 = (to, from, except, desc) => {
+      if (from && typeof from === "object" || typeof from === "function") {
+        for (var keys = __getOwnPropNames2(from), i = 0, n = keys.length, key; i < n; i++) {
+          key = keys[i];
+          if (!__hasOwnProp2.call(to, key) && key !== except) {
+            __defProp2(to, key, {
+              get: ((k) => from[k]).bind(null, key),
+              enumerable: !(desc = __getOwnPropDesc2(from, key)) || desc.enumerable
+            });
+          }
+        }
+      }
+      return to;
+    };
+    var __toCommonJS = (mod) => __hasOwnProp2.call(mod, "module.exports") ? mod["module.exports"] : __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
+    var _supabase_functions_js = __require("@supabase/functions-js");
+    var _supabase_postgrest_js = __require("@supabase/postgrest-js");
+    var _supabase_realtime_js = __require("@supabase/realtime-js");
+    var _supabase_storage_js = __require("@supabase/storage-js");
+    var _supabase_auth_js = __require("@supabase/auth-js");
+    var version = "2.108.2";
     var JS_ENV = "";
-    if (typeof Deno !== "undefined") JS_ENV = "deno";
-    else if (typeof document !== "undefined") JS_ENV = "web";
+    var JS_RUNTIME_VERSION;
+    if (typeof Deno !== "undefined") {
+      JS_ENV = "deno";
+      JS_RUNTIME_VERSION = (_Deno$version = Deno.version) === null || _Deno$version === void 0 ? void 0 : _Deno$version.deno;
+    } else if (typeof document !== "undefined") JS_ENV = "web";
     else if (typeof navigator !== "undefined" && navigator.product === "ReactNative") JS_ENV = "react-native";
-    else JS_ENV = "node";
-    var DEFAULT_HEADERS = { "X-Client-Info": `supabase-js-${JS_ENV}/${version}` };
+    else {
+      JS_ENV = "node";
+      JS_RUNTIME_VERSION = typeof process !== "undefined" ? (_process$version = process.version) === null || _process$version === void 0 ? void 0 : _process$version.replace(/^v/, "") : void 0;
+    }
+    var _Deno$version;
+    var _process$version;
+    var _runtimeMeta = [`runtime=${JS_ENV}`];
+    if (JS_RUNTIME_VERSION) _runtimeMeta.push(`runtime-version=${JS_RUNTIME_VERSION}`);
+    var DEFAULT_HEADERS = { "X-Client-Info": `supabase-js/${version}; ${_runtimeMeta.join("; ")}` };
     var DEFAULT_GLOBAL_OPTIONS = { headers: DEFAULT_HEADERS };
     var DEFAULT_DB_OPTIONS = { schema: "public" };
     var DEFAULT_AUTH_OPTIONS = {
@@ -72,6 +116,672 @@ var require_dist = __commonJS({
       flowType: "implicit"
     };
     var DEFAULT_REALTIME_OPTIONS = {};
+    var DEFAULT_TRACE_PROPAGATION_OPTIONS = {
+      enabled: false,
+      respectSamplingDecision: true
+    };
+    var tslib_es6_exports = /* @__PURE__ */ __exportAll({
+      __addDisposableResource: () => __addDisposableResource,
+      __assign: () => __assign,
+      __asyncDelegator: () => __asyncDelegator,
+      __asyncGenerator: () => __asyncGenerator,
+      __asyncValues: () => __asyncValues,
+      __await: () => __await,
+      __awaiter: () => __awaiter,
+      __classPrivateFieldGet: () => __classPrivateFieldGet,
+      __classPrivateFieldIn: () => __classPrivateFieldIn,
+      __classPrivateFieldSet: () => __classPrivateFieldSet,
+      __createBinding: () => __createBinding,
+      __decorate: () => __decorate,
+      __disposeResources: () => __disposeResources,
+      __esDecorate: () => __esDecorate,
+      __exportStar: () => __exportStar,
+      __extends: () => __extends,
+      __generator: () => __generator,
+      __importDefault: () => __importDefault,
+      __importStar: () => __importStar,
+      __makeTemplateObject: () => __makeTemplateObject,
+      __metadata: () => __metadata,
+      __param: () => __param,
+      __propKey: () => __propKey,
+      __read: () => __read,
+      __rest: () => __rest,
+      __rewriteRelativeImportExtension: () => __rewriteRelativeImportExtension,
+      __runInitializers: () => __runInitializers,
+      __setFunctionName: () => __setFunctionName,
+      __spread: () => __spread,
+      __spreadArray: () => __spreadArray,
+      __spreadArrays: () => __spreadArrays,
+      __values: () => __values,
+      default: () => tslib_es6_default
+    });
+    function __extends(d, b) {
+      if (typeof b !== "function" && b !== null) throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+      extendStatics(d, b);
+      function __() {
+        this.constructor = d;
+      }
+      d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    }
+    function __rest(s, e) {
+      var t = {};
+      for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
+      if (s != null && typeof Object.getOwnPropertySymbols === "function") {
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
+      }
+      return t;
+    }
+    function __decorate(decorators, target, key, desc) {
+      var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+      if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+      else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+      return c > 3 && r && Object.defineProperty(target, key, r), r;
+    }
+    function __param(paramIndex, decorator) {
+      return function(target, key) {
+        decorator(target, key, paramIndex);
+      };
+    }
+    function __esDecorate(ctor, descriptorIn, decorators, contextIn, initializers, extraInitializers) {
+      function accept(f) {
+        if (f !== void 0 && typeof f !== "function") throw new TypeError("Function expected");
+        return f;
+      }
+      var kind = contextIn.kind, key = kind === "getter" ? "get" : kind === "setter" ? "set" : "value";
+      var target = !descriptorIn && ctor ? contextIn["static"] ? ctor : ctor.prototype : null;
+      var descriptor = descriptorIn || (target ? Object.getOwnPropertyDescriptor(target, contextIn.name) : {});
+      var _, done = false;
+      for (var i = decorators.length - 1; i >= 0; i--) {
+        var context = {};
+        for (var p in contextIn) context[p] = p === "access" ? {} : contextIn[p];
+        for (var p in contextIn.access) context.access[p] = contextIn.access[p];
+        context.addInitializer = function(f) {
+          if (done) throw new TypeError("Cannot add initializers after decoration has completed");
+          extraInitializers.push(accept(f || null));
+        };
+        var result = (0, decorators[i])(kind === "accessor" ? {
+          get: descriptor.get,
+          set: descriptor.set
+        } : descriptor[key], context);
+        if (kind === "accessor") {
+          if (result === void 0) continue;
+          if (result === null || typeof result !== "object") throw new TypeError("Object expected");
+          if (_ = accept(result.get)) descriptor.get = _;
+          if (_ = accept(result.set)) descriptor.set = _;
+          if (_ = accept(result.init)) initializers.unshift(_);
+        } else if (_ = accept(result)) if (kind === "field") initializers.unshift(_);
+        else descriptor[key] = _;
+      }
+      if (target) Object.defineProperty(target, contextIn.name, descriptor);
+      done = true;
+    }
+    function __runInitializers(thisArg, initializers, value) {
+      var useValue = arguments.length > 2;
+      for (var i = 0; i < initializers.length; i++) value = useValue ? initializers[i].call(thisArg, value) : initializers[i].call(thisArg);
+      return useValue ? value : void 0;
+    }
+    function __propKey(x) {
+      return typeof x === "symbol" ? x : "".concat(x);
+    }
+    function __setFunctionName(f, name, prefix) {
+      if (typeof name === "symbol") name = name.description ? "[".concat(name.description, "]") : "";
+      return Object.defineProperty(f, "name", {
+        configurable: true,
+        value: prefix ? "".concat(prefix, " ", name) : name
+      });
+    }
+    function __metadata(metadataKey, metadataValue) {
+      if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(metadataKey, metadataValue);
+    }
+    function __awaiter(thisArg, _arguments, P, generator) {
+      function adopt(value) {
+        return value instanceof P ? value : new P(function(resolve2) {
+          resolve2(value);
+        });
+      }
+      return new (P || (P = Promise))(function(resolve2, reject) {
+        function fulfilled(value) {
+          try {
+            step(generator.next(value));
+          } catch (e) {
+            reject(e);
+          }
+        }
+        function rejected(value) {
+          try {
+            step(generator["throw"](value));
+          } catch (e) {
+            reject(e);
+          }
+        }
+        function step(result) {
+          result.done ? resolve2(result.value) : adopt(result.value).then(fulfilled, rejected);
+        }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+      });
+    }
+    function __generator(thisArg, body) {
+      var _ = {
+        label: 0,
+        sent: function() {
+          if (t[0] & 1) throw t[1];
+          return t[1];
+        },
+        trys: [],
+        ops: []
+      }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
+      return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() {
+        return this;
+      }), g;
+      function verb(n) {
+        return function(v) {
+          return step([n, v]);
+        };
+      }
+      function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (g && (g = 0, op[0] && (_ = 0)), _) try {
+          if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+          if (y = 0, t) op = [op[0] & 2, t.value];
+          switch (op[0]) {
+            case 0:
+            case 1:
+              t = op;
+              break;
+            case 4:
+              _.label++;
+              return {
+                value: op[1],
+                done: false
+              };
+            case 5:
+              _.label++;
+              y = op[1];
+              op = [0];
+              continue;
+            case 7:
+              op = _.ops.pop();
+              _.trys.pop();
+              continue;
+            default:
+              if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) {
+                _ = 0;
+                continue;
+              }
+              if (op[0] === 3 && (!t || op[1] > t[0] && op[1] < t[3])) {
+                _.label = op[1];
+                break;
+              }
+              if (op[0] === 6 && _.label < t[1]) {
+                _.label = t[1];
+                t = op;
+                break;
+              }
+              if (t && _.label < t[2]) {
+                _.label = t[2];
+                _.ops.push(op);
+                break;
+              }
+              if (t[2]) _.ops.pop();
+              _.trys.pop();
+              continue;
+          }
+          op = body.call(thisArg, _);
+        } catch (e) {
+          op = [6, e];
+          y = 0;
+        } finally {
+          f = t = 0;
+        }
+        if (op[0] & 5) throw op[1];
+        return {
+          value: op[0] ? op[1] : void 0,
+          done: true
+        };
+      }
+    }
+    function __exportStar(m, o) {
+      for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(o, p)) __createBinding(o, m, p);
+    }
+    function __values(o) {
+      var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+      if (m) return m.call(o);
+      if (o && typeof o.length === "number") return { next: function() {
+        if (o && i >= o.length) o = void 0;
+        return {
+          value: o && o[i++],
+          done: !o
+        };
+      } };
+      throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+    }
+    function __read(o, n) {
+      var m = typeof Symbol === "function" && o[Symbol.iterator];
+      if (!m) return o;
+      var i = m.call(o), r, ar = [], e;
+      try {
+        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
+      } catch (error) {
+        e = { error };
+      } finally {
+        try {
+          if (r && !r.done && (m = i["return"])) m.call(i);
+        } finally {
+          if (e) throw e.error;
+        }
+      }
+      return ar;
+    }
+    function __spread() {
+      for (var ar = [], i = 0; i < arguments.length; i++) ar = ar.concat(__read(arguments[i]));
+      return ar;
+    }
+    function __spreadArrays() {
+      for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+      for (var r = Array(s), k = 0, i = 0; i < il; i++) for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++) r[k] = a[j];
+      return r;
+    }
+    function __spreadArray(to, from, pack) {
+      if (pack || arguments.length === 2) {
+        for (var i = 0, l = from.length, ar; i < l; i++) if (ar || !(i in from)) {
+          if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+          ar[i] = from[i];
+        }
+      }
+      return to.concat(ar || Array.prototype.slice.call(from));
+    }
+    function __await(v) {
+      return this instanceof __await ? (this.v = v, this) : new __await(v);
+    }
+    function __asyncGenerator(thisArg, _arguments, generator) {
+      if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
+      var g = generator.apply(thisArg, _arguments || []), i, q = [];
+      return i = Object.create((typeof AsyncIterator === "function" ? AsyncIterator : Object).prototype), verb("next"), verb("throw"), verb("return", awaitReturn), i[Symbol.asyncIterator] = function() {
+        return this;
+      }, i;
+      function awaitReturn(f) {
+        return function(v) {
+          return Promise.resolve(v).then(f, reject);
+        };
+      }
+      function verb(n, f) {
+        if (g[n]) {
+          i[n] = function(v) {
+            return new Promise(function(a, b) {
+              q.push([
+                n,
+                v,
+                a,
+                b
+              ]) > 1 || resume(n, v);
+            });
+          };
+          if (f) i[n] = f(i[n]);
+        }
+      }
+      function resume(n, v) {
+        try {
+          step(g[n](v));
+        } catch (e) {
+          settle(q[0][3], e);
+        }
+      }
+      function step(r) {
+        r.value instanceof __await ? Promise.resolve(r.value.v).then(fulfill, reject) : settle(q[0][2], r);
+      }
+      function fulfill(value) {
+        resume("next", value);
+      }
+      function reject(value) {
+        resume("throw", value);
+      }
+      function settle(f, v) {
+        if (f(v), q.shift(), q.length) resume(q[0][0], q[0][1]);
+      }
+    }
+    function __asyncDelegator(o) {
+      var i, p;
+      return i = {}, verb("next"), verb("throw", function(e) {
+        throw e;
+      }), verb("return"), i[Symbol.iterator] = function() {
+        return this;
+      }, i;
+      function verb(n, f) {
+        i[n] = o[n] ? function(v) {
+          return (p = !p) ? {
+            value: __await(o[n](v)),
+            done: false
+          } : f ? f(v) : v;
+        } : f;
+      }
+    }
+    function __asyncValues(o) {
+      if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
+      var m = o[Symbol.asyncIterator], i;
+      return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function() {
+        return this;
+      }, i);
+      function verb(n) {
+        i[n] = o[n] && function(v) {
+          return new Promise(function(resolve2, reject) {
+            v = o[n](v), settle(resolve2, reject, v.done, v.value);
+          });
+        };
+      }
+      function settle(resolve2, reject, d, v) {
+        Promise.resolve(v).then(function(v$1) {
+          resolve2({
+            value: v$1,
+            done: d
+          });
+        }, reject);
+      }
+    }
+    function __makeTemplateObject(cooked, raw) {
+      if (Object.defineProperty) Object.defineProperty(cooked, "raw", { value: raw });
+      else cooked.raw = raw;
+      return cooked;
+    }
+    function __importStar(mod) {
+      if (mod && mod.__esModule) return mod;
+      var result = {};
+      if (mod != null) {
+        for (var k = ownKeys$1(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+      }
+      __setModuleDefault(result, mod);
+      return result;
+    }
+    function __importDefault(mod) {
+      return mod && mod.__esModule ? mod : { default: mod };
+    }
+    function __classPrivateFieldGet(receiver, state, kind, f) {
+      if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+      if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+      return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+    }
+    function __classPrivateFieldSet(receiver, state, value, kind, f) {
+      if (kind === "m") throw new TypeError("Private method is not writable");
+      if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+      if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+      return kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value), value;
+    }
+    function __classPrivateFieldIn(state, receiver) {
+      if (receiver === null || typeof receiver !== "object" && typeof receiver !== "function") throw new TypeError("Cannot use 'in' operator on non-object");
+      return typeof state === "function" ? receiver === state : state.has(receiver);
+    }
+    function __addDisposableResource(env2, value, async) {
+      if (value !== null && value !== void 0) {
+        if (typeof value !== "object" && typeof value !== "function") throw new TypeError("Object expected.");
+        var dispose, inner;
+        if (async) {
+          if (!Symbol.asyncDispose) throw new TypeError("Symbol.asyncDispose is not defined.");
+          dispose = value[Symbol.asyncDispose];
+        }
+        if (dispose === void 0) {
+          if (!Symbol.dispose) throw new TypeError("Symbol.dispose is not defined.");
+          dispose = value[Symbol.dispose];
+          if (async) inner = dispose;
+        }
+        if (typeof dispose !== "function") throw new TypeError("Object not disposable.");
+        if (inner) dispose = function() {
+          try {
+            inner.call(this);
+          } catch (e) {
+            return Promise.reject(e);
+          }
+        };
+        env2.stack.push({
+          value,
+          dispose,
+          async
+        });
+      } else if (async) env2.stack.push({ async: true });
+      return value;
+    }
+    function __disposeResources(env2) {
+      function fail(e) {
+        env2.error = env2.hasError ? new _SuppressedError(e, env2.error, "An error was suppressed during disposal.") : e;
+        env2.hasError = true;
+      }
+      var r, s = 0;
+      function next() {
+        while (r = env2.stack.pop()) try {
+          if (!r.async && s === 1) return s = 0, env2.stack.push(r), Promise.resolve().then(next);
+          if (r.dispose) {
+            var result = r.dispose.call(r.value);
+            if (r.async) return s |= 2, Promise.resolve(result).then(next, function(e) {
+              fail(e);
+              return next();
+            });
+          } else s |= 1;
+        } catch (e) {
+          fail(e);
+        }
+        if (s === 1) return env2.hasError ? Promise.reject(env2.error) : Promise.resolve();
+        if (env2.hasError) throw env2.error;
+      }
+      return next();
+    }
+    function __rewriteRelativeImportExtension(path, preserveJsx) {
+      if (typeof path === "string" && /^\.\.?\//.test(path)) return path.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
+        return tsx ? preserveJsx ? ".jsx" : ".js" : d && (!ext || !cm) ? m : d + ext + "." + cm.toLowerCase() + "js";
+      });
+      return path;
+    }
+    var extendStatics;
+    var __assign;
+    var __createBinding;
+    var __setModuleDefault;
+    var ownKeys$1;
+    var _SuppressedError;
+    var tslib_es6_default;
+    var init_tslib_es6 = __esmMin((() => {
+      extendStatics = function(d, b) {
+        extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d$1, b$1) {
+          d$1.__proto__ = b$1;
+        } || function(d$1, b$1) {
+          for (var p in b$1) if (Object.prototype.hasOwnProperty.call(b$1, p)) d$1[p] = b$1[p];
+        };
+        return extendStatics(d, b);
+      };
+      __assign = function() {
+        __assign = Object.assign || function __assign$1(t) {
+          for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+          }
+          return t;
+        };
+        return __assign.apply(this, arguments);
+      };
+      __createBinding = Object.create ? (function(o, m, k, k2) {
+        if (k2 === void 0) k2 = k;
+        var desc = Object.getOwnPropertyDescriptor(m, k);
+        if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) desc = {
+          enumerable: true,
+          get: function() {
+            return m[k];
+          }
+        };
+        Object.defineProperty(o, k2, desc);
+      }) : (function(o, m, k, k2) {
+        if (k2 === void 0) k2 = k;
+        o[k2] = m[k];
+      });
+      __setModuleDefault = Object.create ? (function(o, v) {
+        Object.defineProperty(o, "default", {
+          enumerable: true,
+          value: v
+        });
+      }) : function(o, v) {
+        o["default"] = v;
+      };
+      ownKeys$1 = function(o) {
+        ownKeys$1 = Object.getOwnPropertyNames || function(o$1) {
+          var ar = [];
+          for (var k in o$1) if (Object.prototype.hasOwnProperty.call(o$1, k)) ar[ar.length] = k;
+          return ar;
+        };
+        return ownKeys$1(o);
+      };
+      _SuppressedError = typeof SuppressedError === "function" ? SuppressedError : function(error, suppressed, message) {
+        var e = new Error(message);
+        return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
+      };
+      tslib_es6_default = {
+        __extends,
+        __assign,
+        __rest,
+        __decorate,
+        __param,
+        __esDecorate,
+        __runInitializers,
+        __propKey,
+        __setFunctionName,
+        __metadata,
+        __awaiter,
+        __generator,
+        __createBinding,
+        __exportStar,
+        __values,
+        __read,
+        __spread,
+        __spreadArrays,
+        __spreadArray,
+        __await,
+        __asyncGenerator,
+        __asyncDelegator,
+        __asyncValues,
+        __makeTemplateObject,
+        __importStar,
+        __importDefault,
+        __classPrivateFieldGet,
+        __classPrivateFieldSet,
+        __classPrivateFieldIn,
+        __addDisposableResource,
+        __disposeResources,
+        __rewriteRelativeImportExtension
+      };
+    }));
+    var require_types = /* @__PURE__ */ __commonJSMin(((exports2) => {
+      Object.defineProperty(exports2, "__esModule", { value: true });
+    }));
+    var require_extract = /* @__PURE__ */ __commonJSMin(((exports2) => {
+      Object.defineProperty(exports2, "__esModule", { value: true });
+      exports2._resetOtelCache = _resetOtelCache;
+      exports2.extractTraceContext = extractTraceContext;
+      const tslib_1 = (init_tslib_es6(), __toCommonJS(tslib_es6_exports));
+      let otelModulePromise = null;
+      const OTEL_PKG = "@opentelemetry/api";
+      function loadOtel() {
+        if (otelModulePromise === null) otelModulePromise = Promise.resolve(`${OTEL_PKG}`).then((s) => tslib_1.__importStar(__require(s))).catch(() => null);
+        return otelModulePromise;
+      }
+      function _resetOtelCache() {
+        otelModulePromise = null;
+      }
+      function extractTraceContext() {
+        return tslib_1.__awaiter(this, void 0, void 0, function* () {
+          try {
+            const otel = yield loadOtel();
+            if (!otel || !otel.propagation || !otel.context) return null;
+            const carrier = {};
+            otel.propagation.inject(otel.context.active(), carrier);
+            const traceparent = carrier["traceparent"];
+            if (!traceparent) return null;
+            return {
+              traceparent,
+              tracestate: carrier["tracestate"],
+              baggage: carrier["baggage"]
+            };
+          } catch (_a) {
+            return null;
+          }
+        });
+      }
+    }));
+    var require_parse = /* @__PURE__ */ __commonJSMin(((exports2) => {
+      Object.defineProperty(exports2, "__esModule", { value: true });
+      exports2.parseTraceParent = parseTraceParent;
+      function parseTraceParent(traceparent) {
+        if (!traceparent || typeof traceparent !== "string") return null;
+        const parts = traceparent.split("-");
+        if (parts.length !== 4) return null;
+        const [version$1, traceId, parentId, traceFlags] = parts;
+        if (version$1.length !== 2 || traceId.length !== 32 || parentId.length !== 16 || traceFlags.length !== 2) return null;
+        const hexRegex = /^[0-9a-f]+$/i;
+        if (!hexRegex.test(version$1) || !hexRegex.test(traceId) || !hexRegex.test(parentId) || !hexRegex.test(traceFlags)) return null;
+        if (traceId === "00000000000000000000000000000000" || parentId === "0000000000000000") return null;
+        return {
+          version: version$1,
+          traceId,
+          parentId,
+          traceFlags,
+          isSampled: (parseInt(traceFlags, 16) & 1) === 1
+        };
+      }
+    }));
+    var require_validate = /* @__PURE__ */ __commonJSMin(((exports2) => {
+      Object.defineProperty(exports2, "__esModule", { value: true });
+      exports2.shouldPropagateToTarget = shouldPropagateToTarget;
+      function shouldPropagateToTarget(targetUrl, targets) {
+        if (!targetUrl || !targets || targets.length === 0) return false;
+        let url;
+        if (targetUrl instanceof URL) url = targetUrl;
+        else try {
+          url = new URL(targetUrl);
+        } catch (error) {
+          return false;
+        }
+        for (const target of targets) try {
+          if (typeof target === "string") {
+            if (matchStringTarget(url.hostname, target)) return true;
+          } else if (target instanceof RegExp) {
+            if (target.test(url.hostname)) return true;
+          } else if (typeof target === "function") {
+            if (target(url)) return true;
+          }
+        } catch (error) {
+          continue;
+        }
+        return false;
+      }
+      function matchStringTarget(hostname, target) {
+        if (target === hostname) return true;
+        if (target.startsWith("*.")) {
+          const domain = target.slice(2);
+          if (hostname.endsWith(domain)) {
+            if (hostname === domain || hostname.endsWith("." + domain)) return true;
+          }
+        }
+        return false;
+      }
+    }));
+    var require_defaults = /* @__PURE__ */ __commonJSMin(((exports2) => {
+      Object.defineProperty(exports2, "__esModule", { value: true });
+      exports2.getDefaultPropagationTargets = getDefaultPropagationTargets;
+      function getDefaultPropagationTargets(supabaseUrl) {
+        const targets = [];
+        try {
+          const url = new URL(supabaseUrl);
+          targets.push(url.hostname);
+        } catch (error) {
+        }
+        targets.push("*.supabase.co", "*.supabase.in");
+        targets.push("localhost", "127.0.0.1", "[::1]");
+        return targets;
+      }
+    }));
+    var require_main = /* @__PURE__ */ __commonJSMin(((exports2) => {
+      Object.defineProperty(exports2, "__esModule", { value: true });
+      const tslib_1 = (init_tslib_es6(), __toCommonJS(tslib_es6_exports));
+      tslib_1.__exportStar(require_types(), exports2);
+      tslib_1.__exportStar(require_extract(), exports2);
+      tslib_1.__exportStar(require_parse(), exports2);
+      tslib_1.__exportStar(require_validate(), exports2);
+      tslib_1.__exportStar(require_defaults(), exports2);
+    }));
+    var import_main = require_main();
     function _typeof(o) {
       "@babel/helpers - typeof";
       return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o$1) {
@@ -130,31 +840,61 @@ var require_dist = __commonJS({
     var resolveHeadersConstructor = () => {
       return Headers;
     };
-    var fetchWithAuth = (supabaseKey, getAccessToken, customFetch) => {
+    var fetchWithAuth = (supabaseKey, supabaseUrl, getAccessToken, customFetch, tracePropagationOptions) => {
       const fetch$1 = resolveFetch(customFetch);
       const HeadersConstructor = resolveHeadersConstructor();
+      const traceEnabled = (tracePropagationOptions === null || tracePropagationOptions === void 0 ? void 0 : tracePropagationOptions.enabled) === true;
+      const respectSampling = (tracePropagationOptions === null || tracePropagationOptions === void 0 ? void 0 : tracePropagationOptions.respectSamplingDecision) !== false;
+      const traceTargets = traceEnabled ? (0, import_main.getDefaultPropagationTargets)(supabaseUrl) : null;
       return async (input, init) => {
         var _await$getAccessToken;
         const accessToken = (_await$getAccessToken = await getAccessToken()) !== null && _await$getAccessToken !== void 0 ? _await$getAccessToken : supabaseKey;
         let headers = new HeadersConstructor(init === null || init === void 0 ? void 0 : init.headers);
         if (!headers.has("apikey")) headers.set("apikey", supabaseKey);
         if (!headers.has("Authorization")) headers.set("Authorization", `Bearer ${accessToken}`);
+        if (traceTargets) {
+          const traceHeaders = await getTraceHeaders(input, traceTargets, respectSampling);
+          if (traceHeaders) {
+            if (traceHeaders.traceparent && !headers.has("traceparent")) headers.set("traceparent", traceHeaders.traceparent);
+            if (traceHeaders.tracestate && !headers.has("tracestate")) headers.set("tracestate", traceHeaders.tracestate);
+            if (traceHeaders.baggage && !headers.has("baggage")) headers.set("baggage", traceHeaders.baggage);
+          }
+        }
         return fetch$1(input, _objectSpread2(_objectSpread2({}, init), {}, { headers }));
       };
     };
+    async function getTraceHeaders(input, targets, respectSampling) {
+      if (!(0, import_main.shouldPropagateToTarget)(typeof input === "string" ? input : input instanceof URL ? input : input.url, targets)) return null;
+      const traceContext = await (0, import_main.extractTraceContext)();
+      if (!traceContext || !traceContext.traceparent) return null;
+      if (respectSampling) {
+        const parsed = (0, import_main.parseTraceParent)(traceContext.traceparent);
+        if (parsed && !parsed.isSampled) return null;
+      }
+      return traceContext;
+    }
+    function normalizeTracePropagation(value) {
+      return typeof value === "boolean" ? { enabled: value } : value;
+    }
     function ensureTrailingSlash(url) {
       return url.endsWith("/") ? url : url + "/";
     }
     function applySettingDefaults(options, defaults) {
-      var _DEFAULT_GLOBAL_OPTIO, _globalOptions$header;
+      var _DEFAULT_GLOBAL_OPTIO, _globalOptions$header, _ref, _tracePropagationOpti, _ref2, _tracePropagationOpti2;
       const { db: dbOptions, auth: authOptions, realtime: realtimeOptions, global: globalOptions } = options;
       const { db: DEFAULT_DB_OPTIONS$1, auth: DEFAULT_AUTH_OPTIONS$1, realtime: DEFAULT_REALTIME_OPTIONS$1, global: DEFAULT_GLOBAL_OPTIONS$1 } = defaults;
+      const tracePropagationOptions = normalizeTracePropagation(options.tracePropagation);
+      const DEFAULT_TRACE_PROPAGATION_OPTIONS$1 = normalizeTracePropagation(defaults.tracePropagation);
       const result = {
         db: _objectSpread2(_objectSpread2({}, DEFAULT_DB_OPTIONS$1), dbOptions),
         auth: _objectSpread2(_objectSpread2({}, DEFAULT_AUTH_OPTIONS$1), authOptions),
         realtime: _objectSpread2(_objectSpread2({}, DEFAULT_REALTIME_OPTIONS$1), realtimeOptions),
         storage: {},
         global: _objectSpread2(_objectSpread2(_objectSpread2({}, DEFAULT_GLOBAL_OPTIONS$1), globalOptions), {}, { headers: _objectSpread2(_objectSpread2({}, (_DEFAULT_GLOBAL_OPTIO = DEFAULT_GLOBAL_OPTIONS$1 === null || DEFAULT_GLOBAL_OPTIONS$1 === void 0 ? void 0 : DEFAULT_GLOBAL_OPTIONS$1.headers) !== null && _DEFAULT_GLOBAL_OPTIO !== void 0 ? _DEFAULT_GLOBAL_OPTIO : {}), (_globalOptions$header = globalOptions === null || globalOptions === void 0 ? void 0 : globalOptions.headers) !== null && _globalOptions$header !== void 0 ? _globalOptions$header : {}) }),
+        tracePropagation: {
+          enabled: (_ref = (_tracePropagationOpti = tracePropagationOptions === null || tracePropagationOptions === void 0 ? void 0 : tracePropagationOptions.enabled) !== null && _tracePropagationOpti !== void 0 ? _tracePropagationOpti : DEFAULT_TRACE_PROPAGATION_OPTIONS$1 === null || DEFAULT_TRACE_PROPAGATION_OPTIONS$1 === void 0 ? void 0 : DEFAULT_TRACE_PROPAGATION_OPTIONS$1.enabled) !== null && _ref !== void 0 ? _ref : false,
+          respectSamplingDecision: (_ref2 = (_tracePropagationOpti2 = tracePropagationOptions === null || tracePropagationOptions === void 0 ? void 0 : tracePropagationOptions.respectSamplingDecision) !== null && _tracePropagationOpti2 !== void 0 ? _tracePropagationOpti2 : DEFAULT_TRACE_PROPAGATION_OPTIONS$1 === null || DEFAULT_TRACE_PROPAGATION_OPTIONS$1 === void 0 ? void 0 : DEFAULT_TRACE_PROPAGATION_OPTIONS$1.respectSamplingDecision) !== null && _ref2 !== void 0 ? _ref2 : true
+        },
         accessToken: async () => ""
       };
       if (options.accessToken) result.accessToken = options.accessToken;
@@ -171,7 +911,7 @@ var require_dist = __commonJS({
         throw Error("Invalid supabaseUrl: Provided URL is malformed.");
       }
     }
-    var SupabaseAuthClient = class extends __supabase_auth_js.AuthClient {
+    var SupabaseAuthClient = class extends _supabase_auth_js.AuthClient {
       constructor(options) {
         super(options);
       }
@@ -198,7 +938,7 @@ var require_dist = __commonJS({
       * import { createClient } from '@supabase/supabase-js'
       *
       * // Create a single supabase client for interacting with your database
-      * const supabase = createClient('https://xyzcompany.supabase.co', 'publishable-or-anon-key')
+      * const supabase = createClient('https://xyzcompany.supabase.co', 'your-publishable-key')
       * ```
       *
       * @example With a custom domain
@@ -206,7 +946,7 @@ var require_dist = __commonJS({
       * import { createClient } from '@supabase/supabase-js'
       *
       * // Use a custom domain as the supabase URL
-      * const supabase = createClient('https://my-custom-domain.com', 'publishable-or-anon-key')
+      * const supabase = createClient('https://my-custom-domain.com', 'your-publishable-key')
       * ```
       *
       * @example With additional parameters
@@ -226,7 +966,7 @@ var require_dist = __commonJS({
       *     headers: { 'x-my-custom-header': 'my-app-name' },
       *   },
       * }
-      * const supabase = createClient("https://xyzcompany.supabase.co", "publishable-or-anon-key", options)
+      * const supabase = createClient("https://xyzcompany.supabase.co", "your-publishable-key", options)
       * ```
       *
       * @exampleDescription With custom schemas
@@ -239,7 +979,7 @@ var require_dist = __commonJS({
       * ```js
       * import { createClient } from '@supabase/supabase-js'
       *
-      * const supabase = createClient('https://xyzcompany.supabase.co', 'publishable-or-anon-key', {
+      * const supabase = createClient('https://xyzcompany.supabase.co', 'your-publishable-key', {
       *   // Provide a custom schema. Defaults to "public".
       *   db: { schema: 'other_schema' }
       * })
@@ -254,7 +994,7 @@ var require_dist = __commonJS({
       * ```js
       * import { createClient } from '@supabase/supabase-js'
       *
-      * const supabase = createClient('https://xyzcompany.supabase.co', 'publishable-or-anon-key', {
+      * const supabase = createClient('https://xyzcompany.supabase.co', 'your-publishable-key', {
       *   global: { fetch: fetch.bind(globalThis) }
       * })
       * ```
@@ -268,7 +1008,7 @@ var require_dist = __commonJS({
       * import { createClient } from '@supabase/supabase-js'
       * import AsyncStorage from "@react-native-async-storage/async-storage";
       *
-      * const supabase = createClient("https://xyzcompany.supabase.co", "publishable-or-anon-key", {
+      * const supabase = createClient("https://xyzcompany.supabase.co", "your-publishable-key", {
       *   auth: {
       *     storage: AsyncStorage,
       *     autoRefreshToken: true,
@@ -345,7 +1085,7 @@ var require_dist = __commonJS({
       *   }
       * }
       *
-      * const supabase = createClient("https://xyzcompany.supabase.co", "publishable-or-anon-key", {
+      * const supabase = createClient("https://xyzcompany.supabase.co", "your-publishable-key", {
       *   auth: {
       *     storage: new LargeSecureStore(),
       *     autoRefreshToken: true,
@@ -359,9 +1099,33 @@ var require_dist = __commonJS({
       * ```ts
       * import { createClient } from '@supabase/supabase-js'
       *
-      * const supabase = createClient('https://xyzcompany.supabase.co', 'publishable-or-anon-key')
+      * const supabase = createClient('https://xyzcompany.supabase.co', 'your-publishable-key')
       *
       * const { data } = await supabase.from('profiles').select('*')
+      * ```
+      *
+      * @exampleDescription With OpenTelemetry tracing
+      * Opt in to W3C trace context propagation so the `trace_id` from your
+      * client-side spans is attached to Supabase requests and appears in API
+      * Gateway and Edge Function logs. Requires `@opentelemetry/api` to be
+      * installed in your application. See [Tracing with the JS SDK](https://supabase.com/docs/guides/telemetry/client-side-tracing).
+      *
+      * @example With OpenTelemetry tracing
+      * ```ts
+      * import { createClient } from '@supabase/supabase-js'
+      * import { trace } from '@opentelemetry/api'
+      *
+      * const supabase = createClient('https://xyzcompany.supabase.co', 'your-publishable-key', {
+      *   tracePropagation: true,
+      * })
+      *
+      * const tracer = trace.getTracer('my-app')
+      *
+      * await tracer.startActiveSpan('fetch-users', async (span) => {
+      *   // Outgoing request carries the active trace context.
+      *   const { data, error } = await supabase.from('users').select('*')
+      *   span.end()
+      * })
       * ```
       */
       constructor(supabaseUrl, supabaseKey, options) {
@@ -380,9 +1144,11 @@ var require_dist = __commonJS({
           db: DEFAULT_DB_OPTIONS,
           realtime: DEFAULT_REALTIME_OPTIONS,
           auth: _objectSpread2(_objectSpread2({}, DEFAULT_AUTH_OPTIONS), {}, { storageKey: defaultStorageKey }),
-          global: DEFAULT_GLOBAL_OPTIONS
+          global: DEFAULT_GLOBAL_OPTIONS,
+          tracePropagation: DEFAULT_TRACE_PROPAGATION_OPTIONS
         };
         const settings = applySettingDefaults(options !== null && options !== void 0 ? options : {}, DEFAULTS);
+        this.settings = settings;
         this.storageKey = (_settings$auth$storag = settings.auth.storageKey) !== null && _settings$auth$storag !== void 0 ? _settings$auth$storag : "";
         this.headers = (_settings$global$head = settings.global.headers) !== null && _settings$global$head !== void 0 ? _settings$global$head : {};
         if (!settings.accessToken) {
@@ -394,27 +1160,28 @@ var require_dist = __commonJS({
             throw new Error(`@supabase/supabase-js: Supabase Client is configured with the accessToken option, accessing supabase.auth.${String(prop)} is not possible`);
           } });
         }
-        this.fetch = fetchWithAuth(supabaseKey, this._getAccessToken.bind(this), settings.global.fetch);
+        this.fetch = fetchWithAuth(supabaseKey, supabaseUrl, this._getAccessToken.bind(this), settings.global.fetch, settings.tracePropagation);
         this.realtime = this._initRealtimeClient(_objectSpread2({
           headers: this.headers,
-          accessToken: this._getAccessToken.bind(this)
+          accessToken: this._getAccessToken.bind(this),
+          fetch: this.fetch
         }, settings.realtime));
         if (this.accessToken) Promise.resolve(this.accessToken()).then((token) => this.realtime.setAuth(token)).catch((e) => console.warn("Failed to set initial Realtime auth token:", e));
-        this.rest = new __supabase_postgrest_js.PostgrestClient(new URL("rest/v1", baseUrl).href, {
+        this.rest = new _supabase_postgrest_js.PostgrestClient(new URL("rest/v1", baseUrl).href, {
           headers: this.headers,
           schema: settings.db.schema,
           fetch: this.fetch,
           timeout: settings.db.timeout,
           urlLengthLimit: settings.db.urlLengthLimit
         });
-        this.storage = new __supabase_storage_js.StorageClient(this.storageUrl.href, this.headers, this.fetch, options === null || options === void 0 ? void 0 : options.storage);
+        this.storage = new _supabase_storage_js.StorageClient(this.storageUrl.href, this.headers, this.fetch, options === null || options === void 0 ? void 0 : options.storage);
         if (!settings.accessToken) this._listenForAuthEvents();
       }
       /**
       * Supabase Functions allows you to deploy and invoke edge functions.
       */
       get functions() {
-        return new __supabase_functions_js.FunctionsClient(this.functionsUrl.href, {
+        return new _supabase_functions_js.FunctionsClient(this.functionsUrl.href, {
           headers: this.headers,
           customFetch: this.fetch
         });
@@ -473,6 +1240,7 @@ var require_dist = __commonJS({
       * @param {string} name - The name of the Realtime channel.
       * @param {Object} opts - The options to pass to the Realtime channel.
       *
+      * @category Realtime
       */
       channel(name, opts = { config: {} }) {
         return this.realtime.channel(name, opts);
@@ -480,7 +1248,7 @@ var require_dist = __commonJS({
       /**
       * Returns all Realtime channels.
       *
-      * @category Initializing
+      * @category Realtime
       *
       * @example Get all channels
       * ```js
@@ -496,7 +1264,7 @@ var require_dist = __commonJS({
       * @param {RealtimeChannel} channel - The name of the Realtime channel.
       *
       *
-      * @category Initializing
+      * @category Realtime
       *
       * @remarks
       * - Removing a channel is a great way to maintain the performance of your project's Realtime service as well as your database if you're listening to Postgres changes. Supabase will automatically handle cleanup 30 seconds after a client is disconnected, but unused channels may cause degradation as more clients are simultaneously subscribed.
@@ -512,7 +1280,7 @@ var require_dist = __commonJS({
       /**
       * Unsubscribes and removes all Realtime channels from Realtime client.
       *
-      * @category Initializing
+      * @category Realtime
       *
       * @remarks
       * - Removing channels is a great way to maintain the performance of your project's Realtime service as well as your database if you're listening to Postgres changes. Supabase will automatically handle cleanup 30 seconds after a client is disconnected, but unused channels may cause degradation as more clients are simultaneously subscribed.
@@ -532,7 +1300,7 @@ var require_dist = __commonJS({
         const { data } = await _this.auth.getSession();
         return (_data$session$access_ = (_data$session = data.session) === null || _data$session === void 0 ? void 0 : _data$session.access_token) !== null && _data$session$access_ !== void 0 ? _data$session$access_ : _this.supabaseKey;
       }
-      _initSupabaseAuthClient({ autoRefreshToken, persistSession, detectSessionInUrl, storage, userStorage, storageKey, flowType, lock, debug, throwOnError }, headers, fetch$1) {
+      _initSupabaseAuthClient({ autoRefreshToken, persistSession, detectSessionInUrl, storage, userStorage, storageKey, flowType, lock, debug, throwOnError, experimental, lockAcquireTimeout, skipAutoInitialize }, headers, fetch$1) {
         const authHeaders = {
           Authorization: `Bearer ${this.supabaseKey}`,
           apikey: `${this.supabaseKey}`
@@ -550,12 +1318,15 @@ var require_dist = __commonJS({
           lock,
           debug,
           throwOnError,
+          experimental,
           fetch: fetch$1,
+          lockAcquireTimeout,
+          skipAutoInitialize,
           hasCustomAuthorizationHeader: Object.keys(this.headers).some((key) => key.toLowerCase() === "authorization")
         });
       }
       _initRealtimeClient(options) {
-        return new __supabase_realtime_js.RealtimeClient(this.realtimeUrl.href, _objectSpread2(_objectSpread2({}, options), {}, { params: _objectSpread2(_objectSpread2({}, { apikey: this.supabaseKey }), options === null || options === void 0 ? void 0 : options.params) }));
+        return new _supabase_realtime_js.RealtimeClient(this.realtimeUrl.href, _objectSpread2(_objectSpread2({}, options), {}, { params: _objectSpread2(_objectSpread2({}, { apikey: this.supabaseKey }), options === null || options === void 0 ? void 0 : options.params) }));
       }
       _listenForAuthEvents() {
         return this.auth.onAuthStateChange((event, session) => {
@@ -590,60 +1361,61 @@ var require_dist = __commonJS({
     Object.defineProperty(exports, "FunctionRegion", {
       enumerable: true,
       get: function() {
-        return __supabase_functions_js.FunctionRegion;
+        return _supabase_functions_js.FunctionRegion;
       }
     });
     Object.defineProperty(exports, "FunctionsError", {
       enumerable: true,
       get: function() {
-        return __supabase_functions_js.FunctionsError;
+        return _supabase_functions_js.FunctionsError;
       }
     });
     Object.defineProperty(exports, "FunctionsFetchError", {
       enumerable: true,
       get: function() {
-        return __supabase_functions_js.FunctionsFetchError;
+        return _supabase_functions_js.FunctionsFetchError;
       }
     });
     Object.defineProperty(exports, "FunctionsHttpError", {
       enumerable: true,
       get: function() {
-        return __supabase_functions_js.FunctionsHttpError;
+        return _supabase_functions_js.FunctionsHttpError;
       }
     });
     Object.defineProperty(exports, "FunctionsRelayError", {
       enumerable: true,
       get: function() {
-        return __supabase_functions_js.FunctionsRelayError;
+        return _supabase_functions_js.FunctionsRelayError;
       }
     });
     Object.defineProperty(exports, "PostgrestError", {
       enumerable: true,
       get: function() {
-        return __supabase_postgrest_js.PostgrestError;
+        return _supabase_postgrest_js.PostgrestError;
       }
     });
     Object.defineProperty(exports, "StorageApiError", {
       enumerable: true,
       get: function() {
-        return __supabase_storage_js.StorageApiError;
+        return _supabase_storage_js.StorageApiError;
       }
     });
     exports.SupabaseClient = SupabaseClient;
+    exports.__toCommonJS = __toCommonJS;
     exports.createClient = createClient2;
-    Object.keys(__supabase_auth_js).forEach(function(k) {
+    Object.keys(_supabase_auth_js).forEach(function(k) {
       if (k !== "default" && !Object.prototype.hasOwnProperty.call(exports, k)) Object.defineProperty(exports, k, {
         enumerable: true,
         get: function() {
-          return __supabase_auth_js[k];
+          return _supabase_auth_js[k];
         }
       });
     });
-    Object.keys(__supabase_realtime_js).forEach(function(k) {
+    Object.keys(_supabase_realtime_js).forEach(function(k) {
       if (k !== "default" && !Object.prototype.hasOwnProperty.call(exports, k)) Object.defineProperty(exports, k, {
         enumerable: true,
         get: function() {
-          return __supabase_realtime_js[k];
+          return _supabase_realtime_js[k];
         }
       });
     });
@@ -1976,9 +2748,9 @@ var init_categorizer = __esm({
   }
 });
 
-// src/shims/server-only.ts
+// src/adapters/server-only.ts
 var init_server_only = __esm({
-  "src/shims/server-only.ts"() {
+  "src/adapters/server-only.ts"() {
     "use strict";
   }
 });
@@ -2201,9 +2973,9 @@ import { config } from "dotenv";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 var __dirname = dirname(fileURLToPath(import.meta.url));
-config();
-config({ path: resolve(__dirname, "../../.env") });
-config({ path: resolve(__dirname, "../../.env.local"), override: false });
+config({ quiet: true });
+config({ path: resolve(__dirname, "../../.env"), quiet: true });
+config({ path: resolve(__dirname, "../../.env.local"), override: false, quiet: true });
 var env = {
   SUPABASE_URL: process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "",
   SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
@@ -2678,6 +3450,9 @@ settingsRouter.patch(
 // src/routes/onboarding.ts
 import { Router as Router4 } from "express";
 var onboardingRouter = Router4();
+onboardingRouter.get("/complete", (_req, res) => {
+  res.status(405).json({ error: "method_not_allowed" });
+});
 onboardingRouter.use(requireUser);
 onboardingRouter.post(
   "/complete",
@@ -2782,7 +3557,7 @@ var SCOPES = [
 function getOAuth2Client() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/gcal/callback`;
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${process.env.BASE_URL || "http://localhost:3000"}/api/gcal/callback`;
   if (!clientId || !clientSecret) {
     throw new Error("Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET env vars");
   }
@@ -6018,7 +6793,7 @@ authRouter.get(
   asyncHandler(async (req, res) => {
     const sb = req.sb;
     const user = req.user;
-    const { data: advisor } = await sb.from("advisors").select("id").eq("id", user.id).maybeSingle();
+    const { data: advisor, error: advError } = await sb.from("advisors").select("id").eq("id", user.id).maybeSingle();
     if (advisor) {
       res.json({ target: "/crm" });
       return;

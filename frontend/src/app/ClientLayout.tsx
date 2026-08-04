@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
-import ClientLayoutInner from "@/app/(client)/ClientLayoutInner";
+import ClientLayoutInner from "@/frontend/src/reused-pages/(client)/ClientLayoutInner";
 import { useAuth } from "~/auth/AuthProvider";
 import { ErrorBoundary } from "./ErrorBoundary";
 
 type Impersonation = { householdId: string; familyName: string } | null;
 
 /**
- * SPA replacement for app/(client)/layout.tsx (which was an RSC guard reading
+ * SPA replacement for reused-pages/(client)/layout.tsx (which was an RSC guard reading
  * cookies). Behaviour preserved 1:1:
  *   - not logged in            → /login (RequireAuth wraps this route)
  *   - advisor w/o impersonation cookie → /crm
@@ -19,11 +19,19 @@ type Impersonation = { householdId: string; familyName: string } | null;
 export function ClientLayout() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [resolved, setResolved] = useState(false);
+  const localBypass =
+    typeof window !== "undefined" && window.localStorage.getItem("e2e:auth-bypass") === "1";
+  const devBypass =
+    import.meta.env.DEV && (import.meta.env.VITE_DEV_AUTH_BYPASS === "1" || localBypass);
+  const [resolved, setResolved] = useState(devBypass);
   const [impersonation, setImpersonation] = useState<Impersonation>(null);
 
   useEffect(() => {
     if (loading || !user) return;
+    if (devBypass) {
+      setResolved(true);
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -54,7 +62,7 @@ export function ClientLayout() {
     return () => {
       cancelled = true;
     };
-  }, [loading, user, navigate]);
+  }, [loading, user, navigate, devBypass]);
 
   if (loading || !resolved) {
     return (

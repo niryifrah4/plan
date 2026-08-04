@@ -8,53 +8,54 @@ import { DashboardPage } from "~/pages/Dashboard";
 import { AuthCallbackPage } from "~/pages/AuthCallback";
 import { MobileLayout } from "~/app/MobileLayout";
 
-// Reused app/(client) pages — run verbatim via the next/* shims + @/ → repo
+// Reused reused-pages/(client) pages — run verbatim via the router adapters + @/ → repo
 // root alias. Each is a default export.
-import ClientDashboardPage from "@/app/(client)/dashboard/page";
-import BudgetPage from "@/app/(client)/budget/page";
-import BalancePage from "@/app/(client)/balance/page";
-import FilesPage from "@/app/(client)/files/page";
-import InvestmentsPage from "@/app/(client)/investments/page";
-import DebtPage from "@/app/(client)/debt/page";
-import GoalsPage from "@/app/(client)/goals/page";
-import PlanPage from "@/app/(client)/plan/page";
-import InsurancePage from "@/app/(client)/insurance/page";
-import OnboardingPage from "@/app/(client)/onboarding/page";
-import ToolsPage from "@/app/(client)/tools/page";
-import RoadmapPage from "@/app/(client)/roadmap/page";
-import DepositsPage from "@/app/(client)/deposits/page";
-import EquityPage from "@/app/(client)/equity/page";
-import RetirementPage from "@/app/(client)/retirement/page";
-import RealestatePage from "@/app/(client)/realestate/page";
-import ReportPage from "@/app/(client)/report/page";
-import PensionPage from "@/app/(client)/pension/page";
-import SettingsPage from "@/app/(client)/settings/page";
-import SettingsSubscriptionsPage from "@/app/(client)/settings/subscriptions/page";
-import SettingsHiddenMerchantsPage from "@/app/(client)/settings/hidden-merchants/page";
-import AdminCitiesPage from "@/app/(client)/admin/cities/page";
+import ClientDashboardPage from "@/frontend/src/reused-pages/(client)/dashboard/page";
+import BudgetPage from "@/frontend/src/reused-pages/(client)/budget/page";
+import BalancePage from "@/frontend/src/reused-pages/(client)/balance/page";
+import FilesPage from "@/frontend/src/reused-pages/(client)/files/page";
+import InvestmentsPage from "@/frontend/src/reused-pages/(client)/investments/page";
+import DebtPage from "@/frontend/src/reused-pages/(client)/debt/page";
+import GoalsPage from "@/frontend/src/reused-pages/(client)/goals/page";
+import PlanPage from "@/frontend/src/reused-pages/(client)/plan/page";
+import InsurancePage from "@/frontend/src/reused-pages/(client)/insurance/page";
+import OnboardingPage from "@/frontend/src/reused-pages/(client)/onboarding/page";
+import ToolsPage from "@/frontend/src/reused-pages/(client)/tools/page";
+import RoadmapPage from "@/frontend/src/reused-pages/(client)/roadmap/page";
+import DepositsPage from "@/frontend/src/reused-pages/(client)/deposits/page";
+import EquityPage from "@/frontend/src/reused-pages/(client)/equity/page";
+import RetirementPage from "@/frontend/src/reused-pages/(client)/retirement/page";
+import RealestatePage from "@/frontend/src/reused-pages/(client)/realestate/page";
+import ReportPage from "@/frontend/src/reused-pages/(client)/report/page";
+import PensionPage from "@/frontend/src/reused-pages/(client)/pension/page";
+import SettingsPage from "@/frontend/src/reused-pages/(client)/settings/page";
+import SettingsSubscriptionsPage from "@/frontend/src/reused-pages/(client)/settings/subscriptions/page";
+import SettingsHiddenMerchantsPage from "@/frontend/src/reused-pages/(client)/settings/hidden-merchants/page";
+import AdminCitiesPage from "@/frontend/src/reused-pages/(client)/admin/cities/page";
 
 // CRM routes
-import CrmPage from "@/app/crm/page";
-import CrmSettingsPage from "@/app/crm/settings/page";
-import CrmParsersPage from "@/app/crm/settings/parsers/page";
-import CrmPensionParsersPage from "@/app/crm/settings/pension-parsers/page";
-import CrmSubscriptionsPage from "@/app/crm/settings/subscriptions/page";
-import CrmCitiesPage from "@/app/crm/settings/cities/page";
-import CrmHiddenMerchantsPage from "@/app/crm/settings/hidden-merchants/page";
-import CrmMappingsPage from "@/app/crm/settings/mappings/page";
+import CrmPage from "@/frontend/src/reused-pages/crm/page";
+import CrmSettingsPage from "@/frontend/src/reused-pages/crm/settings/page";
+import CrmParsersPage from "@/frontend/src/reused-pages/crm/settings/parsers/page";
+import CrmPensionParsersPage from "@/frontend/src/reused-pages/crm/settings/pension-parsers/page";
+import CrmSubscriptionsPage from "@/frontend/src/reused-pages/crm/settings/subscriptions/page";
+import CrmCitiesPage from "@/frontend/src/reused-pages/crm/settings/cities/page";
+import CrmHiddenMerchantsPage from "@/frontend/src/reused-pages/crm/settings/hidden-merchants/page";
+import CrmMappingsPage from "@/frontend/src/reused-pages/crm/settings/mappings/page";
 
 // Mobile routes
-import MobileDashboardPage from "@/app/m/page";
-import MobileBalancePage from "@/app/m/balance/page";
-import MobileBudgetPage from "@/app/m/budget/page";
-import MobileGoalsPage from "@/app/m/goals/page";
+import MobileDashboardPage from "@/frontend/src/reused-pages/m/page";
+import MobileBalancePage from "@/frontend/src/reused-pages/m/balance/page";
+import MobileBudgetPage from "@/frontend/src/reused-pages/m/budget/page";
+import MobileGoalsPage from "@/frontend/src/reused-pages/m/goals/page";
 
 // Public routes
-import PrivacyPage from "@/app/privacy/page";
-import TermsPage from "@/app/terms/page";
-import ForgotPasswordPage from "@/app/login/forgot-password/page";
-import ResetPasswordPage from "@/app/login/reset-password/page";
-import ClearStoragePage from "@/app/clear-storage/page";
+import PrivacyPage from "@/frontend/src/reused-pages/privacy/page";
+import TermsPage from "@/frontend/src/reused-pages/terms/page";
+import ForgotPasswordPage from "@/frontend/src/reused-pages/login/forgot-password/page";
+import ResetPasswordPage from "@/frontend/src/reused-pages/login/reset-password/page";
+import ClearStoragePage from "@/frontend/src/reused-pages/clear-storage/page";
+import { FamilyWorkbookPage } from "~/pages/FamilyWorkbook";
 
 /**
  * Top-level route table. Replaces the Next.js file-based app/ routing.
@@ -108,6 +109,7 @@ export function App() {
         <Route path="/debt" element={<DebtPage />} />
         <Route path="/goals" element={<GoalsPage />} />
         <Route path="/plan" element={<RequireImpersonation><PlanPage /></RequireImpersonation>} />
+        <Route path="/family-workbook" element={<FamilyWorkbookPage />} />
         <Route path="/insurance" element={<InsurancePage />} />
         <Route path="/onboarding" element={<OnboardingPage />} />
         <Route path="/tools" element={<ToolsPage />} />

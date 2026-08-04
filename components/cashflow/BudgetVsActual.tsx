@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { Link } from "~/lib/router-compat";
 import { fmtILS } from "@/lib/format";
 import {
   buildBudgetLines,

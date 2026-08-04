@@ -16,7 +16,7 @@ export function getOAuth2Client() {
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   const redirectUri =
     process.env.GOOGLE_REDIRECT_URI ||
-    `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/gcal/callback`;
+    `${process.env.BASE_URL || "http://localhost:3000"}/api/gcal/callback`;
 
   if (!clientId || !clientSecret) {
     throw new Error("Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET env vars");
