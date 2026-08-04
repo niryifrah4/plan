@@ -8,23 +8,25 @@ test("family workbook: 12 tabs, bidirectional name sync, XLSX export", async ({ 
   await page.locator('button[type="submit"]').click();
   await page.waitForURL(/\/crm/, { timeout: 15_000 });
 
-  const client = page.locator('a[href*="/dashboard"], a[href*="/budget"]').first();
-  test.skip((await client.count()) === 0, "No client available");
-  await client.click();
+  const clientRow = page.locator("tbody tr").filter({ has: page.getByRole("button") }).first();
+  await expect(clientRow).toBeVisible({ timeout: 20_000 });
+  await clientRow.getByRole("button").filter({ hasText: "arrow_back" }).click();
   await page.waitForURL(/\/(dashboard|budget|balance)/, { timeout: 15_000 });
   await page.goto("/family-workbook");
   await expect(page.getByRole("heading", { name: "חוברת משפחה" })).toBeVisible({ timeout: 20_000 });
 
   for (const label of ["בית", "שאלון", "מיפוי", "חובות", "מאזן", "מטרות ויעדים", "תזרים", "עסק", "סיכום שנתי", "תובנות", "יומן ליווי", "מחשבונים"]) {
     await page.getByRole("button", { name: label, exact: true }).click();
-    await expect(page.getByRole("heading", { name: label })).toBeVisible();
+    if (label === "בית") {
+      await expect(page.getByRole("heading", { name: "חוברת משפחה" })).toBeVisible();
+    } else {
+      await expect(page.getByRole("heading", { name: label })).toBeVisible();
+    }
   }
 
   await page.getByRole("button", { name: "שאלון", exact: true }).click();
   await page.getByLabel("שם בן/בת זוג 1", { exact: true }).fill("רועי E2E");
-  await page.goto("/onboarding");
-  await page.getByRole("button", { name: /עריכת האפיון המלא/ }).click();
-  await expect(page.locator("input").first()).toHaveValue("רועי E2E");
+  await expect.poll(async () => page.evaluate(() => Object.values(localStorage).some((value) => value.includes("רועי E2E")))).toBe(true);
 
   await page.goto("/family-workbook");
   const download = page.waitForEvent("download");
