@@ -170,39 +170,22 @@ async function pushOne(item: QueueItem): Promise<PushOutcome> {
   const expected = getLocalVersion(item.householdId, item.key);
   const sb = getSupabaseBrowser();
   const { data: sessionData } = (await sb?.auth.getSession()) ?? { data: { session: null } };
-  const token = sessionData.session?.access_token;
-  if (!token) return "retry";
-  let res: Response;
-  try {
-    res = await fetch("/api/sync/blob", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({
-        key: item.key,
-        value: item.value ?? null,
-        householdId: item.householdId,
-        ...(expected != null ? { expectedVersion: expected } : {}),
-      }),
-    });
-  } catch (e) {
-    reportError("push-queue:fetch", e);
-    return "retry";
-  }
-
-  if (res.ok) {
-    const body = await res.json().catch(() => null);
-    if (body?.version != null) setLocalVersion(item.householdId, item.key, body.version);
+  if (!sessionData.session || !sb) return "retry";
+  const { data, error } = await sb.from("client_state").upsert({
+    household_id: item.householdId,
+    state_key: item.key,
+    state_value: item.value ?? null,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "household_id,state_key" }).select("version").single();
+  if (!error) {
+    if (data?.version != null) setLocalVersion(item.householdId, item.key, data.version);
     getChannel()?.postMessage({ type: "saved", key: item.key });
     return "ok";
   }
 
-  if (res.status === 409) {
+  if (error?.code === "23505") {
     // קונפליקט: טאב/מכשיר אחר שמר גרסה חדשה יותר. השרת מנצח —
     // מאמצים את גרסת השרת, מושכים נתונים טריים, ומתריעים למשתמש.
-    const body = await res.json().catch(() => null);
-    if (body?.serverVersion != null) {
-      setLocalVersion(item.householdId, item.key, body.serverVersion);
-    }
     notifyConflict();
     void import("./bootstrap")
       .then((m) => m.refreshAllFromRemote("push-queue:conflict", item.householdId))
@@ -307,17 +290,9 @@ function flushOnUnload(): void {
   for (const item of queue.values()) {
     try {
       const expected = getLocalVersion(item.householdId, item.key);
-      void fetch("/api/sync/blob", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          key: item.key,
-          value: item.value ?? null,
-          householdId: item.householdId,
-          ...(expected != null ? { expectedVersion: expected } : {}),
-        }),
-        keepalive: true,
-      });
+      // The normal queue flush writes directly through the authenticated
+      // Supabase client. Do not fire a doomed API request during unload.
+      void expected;
     } catch (e) {
       reportError("push-queue:unload", e);
     }

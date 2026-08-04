@@ -42,35 +42,22 @@ export async function pullBlob<T = any>(key: string): Promise<T | null> {
       : null;
     const targetHousehold = canonicalForUser || hh;
     if (targetHousehold !== hh) setHouseholdId(targetHousehold);
-    const fetchBlob = async (householdId: string) => {
-      let lastError: unknown;
-      for (let attempt = 0; attempt < 5; attempt += 1) {
-        try {
-          const response = await fetch(`/api/sync/blob?key=${encodeURIComponent(key)}&householdId=${encodeURIComponent(householdId)}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (response.status >= 500 && attempt < 4) {
-            await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
-            continue;
-          }
-          return response;
-        } catch (error) {
-          lastError = error;
-          await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
-        }
-      }
-      throw lastError;
-    };
-    let response = await fetchBlob(targetHousehold);
-    if (response.status === 403) {
+    const readBlob = async (householdId: string) => sb
+      .from("client_state")
+      .select("state_value, version")
+      .eq("household_id", householdId)
+      .eq("state_key", key)
+      .maybeSingle();
+    let result = await readBlob(targetHousehold);
+    if (result.error) {
       const canonical = await resolveHouseholdIdFromRemote();
       if (canonical && canonical !== targetHousehold) {
         setHouseholdId(canonical);
-        response = await fetchBlob(canonical);
+        result = await readBlob(canonical);
       }
     }
-    if (!response.ok) return null;
-    let data = await response.json() as { value?: T; version?: number | null };
+    if (result.error) return null;
+    const data = { value: result.data?.state_value as T | null, version: result.data?.version ?? null };
     // Active client can survive account/client switches in localStorage.
     // Retry on forbidden OR an empty blob with authenticated user's canonical household.
     const empty = data.value == null || (typeof data.value === "object" && data.value !== null && Object.keys(data.value as object).length === 0);
@@ -78,8 +65,8 @@ export async function pullBlob<T = any>(key: string): Promise<T | null> {
       const canonical = await resolveHouseholdIdFromRemote();
       if (canonical && canonical !== targetHousehold) {
         setHouseholdId(canonical);
-        response = await fetchBlob(canonical);
-        if (response.ok) data = await response.json() as { value?: T; version?: number | null };
+        const retry = await readBlob(canonical);
+        if (!retry.error) Object.assign(data, { value: retry.data?.state_value as T | null, version: retry.data?.version ?? null });
       }
     }
     // שומרים את הגרסה שנמשכה כך שהשמירה הבאה תשלח expectedVersion נכון
@@ -143,19 +130,14 @@ async function pushBlobViaServerRoute<T = any>(
     const { data: sessionData } = (await sb?.auth.getSession()) ?? { data: { session: null } };
     const token = sessionData.session?.access_token;
     if (!token) return false;
-    const response = await fetch("/api/sync/blob", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({
-        key,
-        value: value ?? null,
-        householdId,
-      }),
-    });
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => null);
-      console.warn(`[blob-sync:${key}] server route failed:`, response.status, payload?.error ?? response.statusText);
+    const { error } = await sb!.from("client_state").upsert({
+      household_id: householdId,
+      state_key: key,
+      state_value: value ?? null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "household_id,state_key" });
+    if (error) {
+      console.warn(`[blob-sync:${key}] Supabase write failed:`, error.message);
       return false;
     }
 

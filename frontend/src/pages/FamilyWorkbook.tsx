@@ -97,7 +97,7 @@ export function FamilyWorkbookPage() {
     workbook.balance = workbook.balance.map((row) => balanceValues[row.label] !== undefined ? { ...row, value: balanceValues[row.label], calculated: true } : row);
     // Keep the full debt template. Replacing it with one short row caused
     // mortgage/installment fields to disappear from the XLSX export.
-    const firstLoan = debt.loans[0];
+    const firstLoan = debt.loans[0] as (typeof debt.loans[number] & Record<string, unknown>) | undefined;
     const mortgageBalance = debt.mortgages.reduce((sum, m) => sum + m.tracks.reduce((trackSum, track) => trackSum + Number(track.remainingBalance || 0), 0), 0);
     const mortgagePayment = debt.mortgages.reduce((sum, m) => sum + m.tracks.reduce((trackSum, track) => trackSum + Number(track.monthlyPayment || 0), 0), 0);
     const propertyValue = properties.reduce((sum, p) => sum + Number(p.currentValue || 0), 0);
