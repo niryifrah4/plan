@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Audit אבטחה וארכיטקטורה — Plan</title>
+  <style>
+    :root{--ink:#17243a;--muted:#607089;--bg:#f5f7fb;--card:#fff;--line:#dbe3ee;--red:#b42318;--orange:#b54708;--green:#067647;--blue:#175cd3}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,"Noto Sans Hebrew",sans-serif;line-height:1.65}
+    main{max-width:1180px;margin:auto;padding:28px 18px 70px}.hero{background:linear-gradient(135deg,#17243a,#304a6b);color:#fff;border-radius:22px;padding:34px;margin-bottom:20px}.hero h1{font-size:clamp(28px,4vw,48px);margin:0 0 8px}.hero p{margin:4px 0;color:#d9e5f3}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin:16px 0;box-shadow:0 3px 12px #17243a0c}.stat{font-size:30px;font-weight:800}.muted{color:var(--muted)}h2{margin:0 0 12px;font-size:25px}h3{margin:20px 0 5px}ul{margin-top:6px}table{width:100%;border-collapse:collapse;font-size:14px}th,td{border-bottom:1px solid var(--line);padding:11px 9px;vertical-align:top;text-align:right}th{background:#eef3f8}tr:last-child td{border-bottom:0}.tag{display:inline-block;border-radius:999px;padding:2px 10px;font-weight:700;font-size:12px;white-space:nowrap}.critical{background:#fee4e2;color:var(--red)}.high{background:#ffead5;color:var(--orange)}.medium{background:#fff2cc;color:#8a6116}.pass{background:#dcfae6;color:var(--green)}.pending{background:#e0efff;color:var(--blue)}code{direction:ltr;unicode-bidi:embed;background:#eef2f6;border-radius:5px;padding:1px 5px;font-family:ui-monospace,monospace;font-size:.9em}.flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.node{background:#eef5ff;border:1px solid #b8d1f6;border-radius:10px;padding:10px 14px}.arrow{font-size:22px;color:var(--muted)}.note{border-right:4px solid var(--blue);background:#eef5ff;padding:12px 16px;border-radius:8px}.danger{border-right-color:var(--red);background:#fff1f0}.footer{font-size:13px;color:var(--muted);margin-top:26px}.small{font-size:13px}
+    @media(max-width:700px){main{padding:14px 10px 45px}.card{padding:14px;overflow-x:auto}table{min-width:780px}.hero{padding:24px 18px}}
+  </style>
+</head>
+<body>
+<main>
+  <section class="hero">
+    <h1>Audit אבטחה וארכיטקטורה</h1>
+    <p>Plan / Longevity Planning · בדיקת קוד לקראת Pentest</p>
+    <p>תאריך בדיקה: 04.08.2026 · גרסה מקומית: <code>dfa9635</code> · Vite + React + Express + Supabase</p>
+  </section>
+
+  <section class="card note"><b>שורה תחתונה:</b> לא נמצאה פרצת גישה מוכחת בבדיקה הסטטית. קיימים מנגנוני auth, RLS, rate-limit, Helmet, audit log ובדיקות tenant isolation. עדיין לא נכון לקרוא למערכת “מוכנה ל-Pentest”: יש פערים מוכחים בקוד ופערים שלא אומתו ב-Production.</section>
+
+  <section class="grid">
+    <div class="card"><div class="stat">4</div><div>ממצאים לטיפול לפני Pentest</div></div>
+    <div class="card"><div class="stat">5</div><div>בקרות שנמצאו פעילות בקוד</div></div>
+    <div class="card"><div class="stat">3</div><div>בדיקות Production שעדיין חסרות</div></div>
+    <div class="card"><div class="stat">3</div><div>חבילות עם advisories ב־npm audit</div></div>
+  </section>
+
+  <section class="card"><h2>היקף ומגבלות</h2><ul>
+    <li>נבדקו קוד frontend/backend, migrations, תצורת Vercel/Render, תסריטי E2E ו־npm audit.</li>
+    <li>לא בוצעה בדיקת חדירה פעילה, לא נבדק Dashboard של Supabase, ולא נבדקו הרשאות Production מול משתמשים אמיתיים.</li>
+    <li>המסמך שסופק מתייחס לפרויקט אחר. הוא שימש checklist בלבד; הממצאים כאן מבוססים על פרויקט Plan.</li>
+    <li>לא נקראו ערכי secrets. נבדקו שמות משתנים ושימושים בלבד.</li>
+  </ul></section>
+
+  <section class="card"><h2>ארכיטקטורה בפועל</h2><div class="flow">
+    <span class="node">דפדפן Vite/React</span><span class="arrow">←→</span><span class="node">Supabase Auth + PostgREST/RLS</span><span class="arrow">←→</span><span class="node">Express API</span><span class="arrow">←→</span><span class="node">ספקים חיצוניים</span>
+  </div><p class="muted small">הדפדפן משתמש גם ב־Supabase ישירות וגם ב־Express. נתוני מודולים רבים נקראים/נשמרים דרך שכבות localStorage ו־sync. זה עובד, אך מגדיל מספר מסלולי אמת ומחייב מטריצת סנכרון ובדיקות קונפליקט.</p></section>
+
+  <section class="card"><h2>Risk register</h2><table><thead><tr><th>ID / חומרה</th><th>ממצא</th><th>ראיה</th><th>השפעה</th><th>פעולה</th><th>סטטוס</th></tr></thead><tbody>
+    <tr><td><span class="tag high">H-01 גבוה</span></td><td>נתונים פיננסיים רבים נשמרים ב־localStorage.</td><td><code>lib/budget-store.ts</code>, <code>lib/realestate-store.ts</code>, <code>lib/family-workbook.ts</code>, <code>lib/sync/bootstrap.ts</code>.</td><td>XSS או מחשב משותף עלולים לחשוף נתוני לקוח; מקור אמת עלול להתפצל.</td><td>להגדיר localStorage כ־cache בלבד. להעביר כל domain ל־remote-first, עם schema/version/conflict policy. להשאיר מקומית רק UI state לא רגיש.</td><td><span class="tag high">פתוח</span></td></tr>
+    <tr><td><span class="tag high">H-02 גבוה</span></td><td>הרשאות DB רחבות ל־authenticated.</td><td>Migration: <code>grant select, insert, update, delete on all tables ... to authenticated</code> וגם execute על כל הפונקציות.</td><td>טעות RLS או object חדש עלולה לפתוח גישה רחבה יותר מהנדרש.</td><td>להחליף grants לפי טבלה/פעולה; לבטל default privileges רחבים; להוסיף CI matrix: anon, user A, user B, advisor.</td><td><span class="tag high">פתוח</span></td></tr>
+    <tr><td><span class="tag high">H-03 גבוה</span></td><td>תלות <code>xlsx@0.18.5</code> עם advisories.</td><td><code>npm audit --omit=dev</code>: Prototype Pollution + ReDoS; טווחים כוללים גרסה זו.</td><td>קלט XLSX לא מהימן עלול ליצור סיכון DoS/השפעה על parsing. בייצוא בלבד הסיכון נמוך יותר, אך dependency נשארת במוצר.</td><td>להחליף/לבודד parser; אם אפשר לעדכן לגרסה מתוקנת. להגביל קבצים, MIME, גודל וזמן parsing. להוסיף בדיקת dependency ל־CI.</td><td><span class="tag high">פתוח</span></td></tr>
+    <tr><td><span class="tag high">H-04 גבוה</span></td><td><code>react-router-dom</code> מושפע מ־GHSA-qwww-vcr4-c8h2 לפי npm audit.</td><td>גרסה ישירה <code>^7.18.2</code>; audit מזהה advisory בטווח <code>&gt;=7.12.0 &lt;8.3.0</code>.</td><td>ה advisory קשור ל־RSC actions. הפרויקט SPA, לכן applicability לא הוכחה, אך צריך לסגור או לתעד.</td><td>לעדכן לגרסה מתוקנת/לבדוק applicability מול שימוש בפועל; לנעול גרסאות ולשמור audit נקי.</td><td><span class="tag high">פתוח</span></td></tr>
+    <tr><td><span class="tag medium">M-01 בינוני</span></td><td>Production security headers לא מוכחים.</td><td>Vercel config מגדיר רק <code>Cache-Control</code> ל־index. Express Helmet חל על API, לא בהכרח על SPA.</td><td>CSP, HSTS, Permissions-Policy והגנות browser עלולות להיות חסרות ב־frontend.</td><td>להוסיף headers ב־Vercel; לבדוק עם <code>curl -I</code> ו־securityheaders; לא להסתמך על תיעוד בלבד.</td><td><span class="tag pending">לא אומת</span></td></tr>
+    <tr><td><span class="tag medium">M-02 בינוני</span></td><td>גיבוי/restore ו־Production parity לא מוכחים.</td><td>קיימים <code>scripts/supabase/snapshot.sh</code> ו־<code>restore.sh</code>, אך אין ראיה להרצה מוצלחת של DB + Storage בסביבה נפרדת.</td><td>קושי להתאושש ממחיקה/תקלה או לבצע Pentest בלי סיכון לנתוני אמת.</td><td>להריץ restore drill מתועד; לבדוק Storage; להגדיר RPO/RTO; להשוות migrations, env, RLS ו־headers בין staging/production.</td><td><span class="tag pending">לא אומת</span></td></tr>
+    <tr><td><span class="tag medium">M-03 בינוני</span></td><td>Audit log קיים, אבל כיסוי פעולות רגישות לא הוכח.</td><td><code>audit_logs</code> ו־triggers קיימים ב־migrations. לא נמצאה מטריצה שמוכיחה login, export, role change ו־impersonation.</td><td>אירוע אבטחה עלול להיות קשה לחקירה.</td><td>להגדיר event catalog, retention, alerts ובדיקת E2E לכל פעולה רגישה.</td><td><span class="tag pending">חלקי</span></td></tr>
+    <tr><td><span class="tag medium">M-04 בינוני</span></td><td>מספר מסלולי כתיבה וסנכרון.</td><td>Supabase direct, Express routes, <code>lib/sync/</code>, workbook stores ו־local cache.</td><td>דריסת נתון חדש בישן, retry queue או פער בין מודולים.</td><td>להגדיר לכל domain command קנוני אחד, version, idempotency ו־last-write/conflict rule. להוסיף E2E דו־כיווני.</td><td><span class="tag medium">דורש חיזוק</span></td></tr>
+  </tbody></table></section>
+
+  <section class="card"><h2>מה כבר טוב</h2><ul>
+    <li><span class="tag pass">עבר</span> כל route API הרגיש שנבדק משתמש ב־<code>requireUser</code>; CRM/impersonation משתמשים גם ב־<code>requireAdvisor</code>.</li>
+    <li><span class="tag pass">עבר</span> Express כולל Helmet, rate limit גלובלי, מגבלת JSON של 2MB, CORS allowlist ו־error response שאינו חושף stack.</li>
+    <li><span class="tag pass">עבר</span> קיים RPC קנוני <code>upsert_client_state</code> עם <code>SECURITY INVOKER</code>, revoke ל־public/anon ו־grant ל־authenticated.</li>
+    <li><span class="tag pass">עבר</span> קיימים RLS migrations, audit_logs, triggers, security baseline script ו־E2E tenant isolation.</li>
+    <li><span class="tag pass">עבר</span> frontend אינו מכיל service-role reference לפי סריקת security baseline.</li>
+  </ul></section>
+
+  <section class="card"><h2>תוכנית תיקון לפי סדר</h2><table><thead><tr><th>מתי</th><th>פעולות</th><th>תנאי סגירה</th></tr></thead><tbody>
+    <tr><td><b>0–48 שעות</b></td><td>להחליט על טיפול ב־<code>xlsx</code> וב־router; להוסיף dependency gate; לבדוק headers ב־Production; לוודא שלא נשלחים secrets ל־frontend.</td><td>npm audit מתועד/נקי או exception חתום; curl headers מציגים baseline.</td></tr>
+    <tr><td><b>שבוע 1–2</b></td><td>מטריצת RLS מלאה; צמצום grants; בדיקת הרשאות לכל טבלה/פונקציה; audit events לייצוא, impersonation והרשאות.</td><td>CI נכשל על cross-tenant read/write; אין grant כללי חדש.</td></tr>
+    <tr><td><b>שבוע 2–6</b></td><td>remote-first לכל נתוני domain; localStorage cache עם TTL/version; סנכרון קנוני ו־conflict policy; restore drill.</td><td>refresh/browser/device switch שומר נתונים; restore DB+Storage נבדק ומתועד.</td></tr>
+    <tr><td><b>לפני Pentest</b></td><td>staging זהה ל־Production; backup טרי; test accounts; Scope/Rules of Engagement; E2E smoke + tenant isolation + export.</td><td>checklist חתום; אין ממצא Critical/High פתוח בלי אישור residual risk.</td></tr>
+  </tbody></table></section>
+
+  <section class="card"><h2>בדיקות שבוצעו</h2><ul class="small">
+    <li>סריקת קבצים ו־routes בפרויקט, ללא תיקיית גיבוי Next.</li><li>קריאת <code>backend/src/server.ts</code>, middleware auth, env, migrations, Vercel ו־Render.</li><li>הרצת <code>npm audit --omit=dev</code>: 3 high vulnerabilities, 2 direct packages.</li><li>בדיקת security baseline לפי <code>scripts/verify-security-baseline.mjs</code> בקוד ובמיגרציות.</li><li>בדיקת קיום תסריטי E2E, backup/restore ו־workbook verification.</li>
+  </ul></section>
+
+  <section class="card danger"><h2>לא להציג כ״אישור אבטחה״</h2><p>זהו code/architecture audit ממוקד. הוא לא מחליף Pentest חיצוני, review של Supabase Production, בדיקת secrets, בדיקת הרשאות אמיתית, סריקת DAST או restore drill.</p></section>
+  <p class="footer">מקור: קוד הפרויקט המקומי והמסמך שסופק כייחוס. כל ממצא מסומן לפי רמת הוכחה: “פתוח” = ראיה ישירה בקוד; “לא אומת” = נדרש runtime/Production check.</p>
+</main>
+</body>
+</html>
