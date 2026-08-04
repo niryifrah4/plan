@@ -42,6 +42,8 @@ const apiLimiter = rateLimit({
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: { error: "rate_limited" },
+  // Liveness probes must remain available during request bursts.
+  skip: (req) => req.path === "/health" || req.path === "/health/",
 });
 app.use("/api", apiLimiter);
 
