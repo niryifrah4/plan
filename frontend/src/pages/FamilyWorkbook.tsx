@@ -109,19 +109,22 @@ export function FamilyWorkbookPage() {
     return ok;
   };
   const updateRow = (row: WorkbookRow, value: string) => {
-    const next = updateWorkbookRow(data[active]?.length ? data : { ...data, [active]: starter[active] || [] }, active, row.id, value);
+    const base = draftRef.current[active]?.length ? draftRef.current : { ...data, [active]: starter[active] || [] };
+    const next = updateWorkbookRow(base, active, row.id, value);
     draftDirty.current = true;
     syncWorkbookRowToSite(active, row, value);
     draftRef.current = next; setData(next);
   };
   const addRow = () => {
     const row = { id: `${active}-custom-${Date.now()}`, label: "אחר — ערוך שם סעיף", value: "", note: "שדה דינמי" };
-    const next = { ...data, [active]: [...(data[active] || []), row] };
+    const base = draftRef.current[active]?.length ? draftRef.current : { ...data, [active]: starter[active] || [] };
+    const next = { ...base, [active]: [...(base[active] || []), row] };
     draftDirty.current = true;
     draftRef.current = next; setData(next);
   };
   const updateCell = (row: WorkbookRow, index: number, value: string) => {
-    const next = updateWorkbookCell(data[active]?.length ? data : { ...data, [active]: starter[active] || [] }, active, row.id, index, value);
+    const base = draftRef.current[active]?.length ? draftRef.current : { ...data, [active]: starter[active] || [] };
+    const next = updateWorkbookCell(base, active, row.id, index, value);
     draftDirty.current = true;
     if (index === 0) syncWorkbookRowToSite(active, row, value);
     draftRef.current = next; setData(next);
