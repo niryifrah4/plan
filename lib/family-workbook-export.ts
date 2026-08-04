@@ -7,7 +7,9 @@ const TEMPLATE_URL = "/family-workbook-template.xlsx";
 
 function putValue(sheet: XLSX.WorkSheet, row: number, col: number, value: string): void {
   const address = XLSX.utils.encode_cell({ r: row, c: col });
-  sheet[address] = { t: "s", v: value };
+  // Keep the template cell's style, number format, protection and alignment.
+  // Replacing the cell object outright silently strips the Excel formatting.
+  sheet[address] = { ...(sheet[address] || {}), t: "s", v: value };
 }
 
 export function fillTemplate(book: XLSX.WorkBook, data: WorkbookData): XLSX.WorkBook {
@@ -135,9 +137,12 @@ export function buildFamilyWorkbookXlsx(data: WorkbookData): XLSX.WorkBook {
 }
 
 export async function writeFamilyWorkbookXlsx(data: WorkbookData, familyName: string): Promise<void> {
-  // SheetJS browser writer cannot reliably persist newly-written cells into
-  // the styled template. Use deterministic data writer for the download;
-  // template mapping remains covered by the standalone audit script.
-  const book = buildFamilyWorkbookXlsx(data);
+  const templateResponse = await fetch(TEMPLATE_URL);
+  if (!templateResponse.ok) throw new Error("family_workbook_template_unavailable");
+  const templateBuffer = await templateResponse.arrayBuffer();
+  const book = fillTemplate(
+    XLSX.read(templateBuffer, { type: "array", cellStyles: true }),
+    data,
+  );
   XLSX.writeFile(book, `חוברת-משפחה-${familyName || "לקוח"}.xlsx`);
 }

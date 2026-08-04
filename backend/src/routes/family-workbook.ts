@@ -43,7 +43,10 @@ familyWorkbookRouter.post("/export", asyncHandler(async (req, res) => {
   }
   const book = fillTemplate(XLSX.read(await fs.readFile(templatePath), { type: "buffer", cellStyles: true }), parsed.data.data);
   const spouse1 = parsed.data.data.questionnaire?.find((row) => row.label === "שם בן/בת זוג 1")?.value;
-  if (spouse1) book.Sheets["שאלון"]["C6"] = { t: "s", v: spouse1 };
+  if (spouse1) {
+    const cell = book.Sheets["שאלון"]["C6"] || {};
+    book.Sheets["שאלון"]["C6"] = { ...cell, t: "s", v: spouse1 };
+  }
   const buffer = XLSX.write(book, { type: "buffer", bookType: "xlsx", cellStyles: true }) as Buffer;
   const safeName = parsed.data.familyName.replace(/[\\/:*?"<>|]/g, "_") || "לקוח";
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
