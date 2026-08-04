@@ -135,13 +135,9 @@ export function buildFamilyWorkbookXlsx(data: WorkbookData): XLSX.WorkBook {
 }
 
 export async function writeFamilyWorkbookXlsx(data: WorkbookData, familyName: string): Promise<void> {
-  let book: XLSX.WorkBook;
-  try {
-    const response = await fetch(TEMPLATE_URL);
-    if (!response.ok) throw new Error(`Template HTTP ${response.status}`);
-    book = fillTemplate(XLSX.read(await response.arrayBuffer(), { type: "array", cellStyles: true }), data);
-  } catch {
-    book = buildFamilyWorkbookXlsx(data);
-  }
+  // SheetJS browser writer cannot reliably persist newly-written cells into
+  // the styled template. Use deterministic data writer for the download;
+  // template mapping remains covered by the standalone audit script.
+  const book = buildFamilyWorkbookXlsx(data);
   XLSX.writeFile(book, `חוברת-משפחה-${familyName || "לקוח"}.xlsx`);
 }
