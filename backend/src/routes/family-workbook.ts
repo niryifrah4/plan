@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requireUser } from "../middleware/auth.js";
 import { asyncHandler } from "../lib/async-handler.js";
 import { fillTemplate } from "../../../lib/family-workbook-export.js";
+import { patchFamilyTemplate } from "../lib/family-workbook-template-patch.js";
 
 const rowSchema = z.object({
   id: z.string(),
@@ -41,13 +42,14 @@ familyWorkbookRouter.post("/export", asyncHandler(async (req, res) => {
     res.status(500).json({ ok: false, error: "template_missing" });
     return;
   }
-  const book = fillTemplate(XLSX.read(await fs.readFile(templatePath), { type: "buffer", cellStyles: true }), parsed.data.data);
+  const templateBuffer = await fs.readFile(templatePath);
+  const book = fillTemplate(XLSX.read(templateBuffer, { type: "buffer", cellStyles: true }), parsed.data.data);
   const spouse1 = parsed.data.data.questionnaire?.find((row) => row.label === "שם בן/בת זוג 1")?.value;
   if (spouse1) {
     const cell = book.Sheets["שאלון"]["C6"] || {};
     book.Sheets["שאלון"]["C6"] = { ...cell, t: "s", v: spouse1 };
   }
-  const buffer = XLSX.write(book, { type: "buffer", bookType: "xlsx", cellStyles: true }) as Buffer;
+  const buffer = patchFamilyTemplate(templateBuffer, book);
   const safeName = parsed.data.familyName.replace(/[\\/:*?"<>|]/g, "_") || "לקוח";
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
   res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(`חוברת-משפחה-${safeName}.xlsx`)}`);

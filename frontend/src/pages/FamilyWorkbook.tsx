@@ -5,7 +5,6 @@ import { loadBuckets } from "@/lib/buckets-store";
 import { loadProperties } from "@/lib/realestate-store";
 import { hydrateWorkbookFromSite, loadWorkbook, saveWorkbook, syncWorkbookRowToSite, updateWorkbookCell, updateWorkbookRow, WORKBOOK_TABS, type WorkbookData, type WorkbookRow } from "@/lib/family-workbook";
 import { useClient } from "@/lib/client-context";
-import { writeFamilyWorkbookXlsx } from "@/lib/family-workbook-export";
 import { getSupabase } from "~/lib/supabase";
 import { pullBlob } from "@/lib/sync/blob-sync";
 import { fmtILS } from "@/lib/_shared/format";
@@ -110,7 +109,7 @@ export function FamilyWorkbookPage() {
         return;
       }
     }
-    await writeFamilyWorkbookXlsx(latest, familyName || "לקוח");
+    setSaveState("error");
   };
 
   return <main dir="rtl" className="min-h-screen px-3 py-5 md:px-8" style={{ background: "var(--verdant-bg, #f4f7f2)" }}><div className="mx-auto max-w-[1500px]">
