@@ -12,7 +12,7 @@
  */
 
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/browser";
-import { getHouseholdId, resolveHouseholdIdFromRemote } from "./remote-sync";
+import { getHouseholdId, resolveHouseholdIdFromRemote, setHouseholdId } from "./remote-sync";
 import { getPendingPush, getPendingPushesByPrefix, dequeuePush } from "./push-queue";
 
 export async function pullBlob<T = any>(key: string): Promise<T | null> {
@@ -25,9 +25,20 @@ export async function pullBlob<T = any>(key: string): Promise<T | null> {
     const { data: sessionData } = await sb.auth.getSession();
     const token = sessionData.session?.access_token;
     if (!token) return null;
-    const response = await fetch(`/api/sync/blob?key=${encodeURIComponent(key)}&householdId=${encodeURIComponent(hh)}`, {
+    let response = await fetch(`/api/sync/blob?key=${encodeURIComponent(key)}&householdId=${encodeURIComponent(hh)}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
+    // Active client can survive account/client switches in localStorage.
+    // Retry once with the authenticated user's canonical household.
+    if (response.status === 403) {
+      const canonical = await resolveHouseholdIdFromRemote();
+      if (canonical && canonical !== hh) {
+        setHouseholdId(canonical);
+        response = await fetch(`/api/sync/blob?key=${encodeURIComponent(key)}&householdId=${encodeURIComponent(canonical)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
+    }
     if (!response.ok) return null;
     const data = await response.json() as { value?: T; version?: number | null };
     // שומרים את הגרסה שנמשכה כך שהשמירה הבאה תשלח expectedVersion נכון
@@ -138,6 +149,13 @@ export async function pushBlob<T = any>(
   const viaRoute = await pushBlobViaServerRoute(key, value, hh);
   if (viaRoute) {
     dequeuePush(hh, key);
+    return true;
+  }
+
+  const canonical = await resolveHouseholdIdFromRemote();
+  if (canonical && canonical !== hh && await pushBlobViaServerRoute(key, value, canonical)) {
+    setHouseholdId(canonical);
+    dequeuePush(canonical, key);
     return true;
   }
 
