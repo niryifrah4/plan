@@ -11,6 +11,72 @@
 @tailwind components;
 @tailwind utilities;
 
+/* App boot screen. Mirrors index.html inline CSS to avoid any first-paint jump. */
+.app-boot {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 22px;
+  background: #f7f8f5;
+}
+
+.app-boot__mark {
+  display: grid;
+  width: 74px;
+  height: 74px;
+  place-items: center;
+  border: 1px solid rgba(44, 122, 90, 0.12);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 18px 45px rgba(31, 90, 66, 0.09);
+  animation: app-boot-breathe 1.8s ease-in-out infinite;
+}
+
+.app-boot__mark img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.app-boot__track {
+  position: relative;
+  width: 112px;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(44, 122, 90, 0.12);
+}
+
+.app-boot__track span {
+  position: absolute;
+  right: 0;
+  display: block;
+  width: 42%;
+  height: 100%;
+  border-radius: inherit;
+  background: #2c7a5a;
+  animation: app-boot-progress 1.35s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes app-boot-breathe {
+  0%, 100% { transform: translateY(0); box-shadow: 0 18px 45px rgba(31, 90, 66, 0.09); }
+  50% { transform: translateY(-2px); box-shadow: 0 22px 52px rgba(31, 90, 66, 0.14); }
+}
+
+@keyframes app-boot-progress {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-270%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-boot__mark,
+  .app-boot__track span { animation: none; }
+  .app-boot__track span { right: 0; width: 100%; opacity: 0.55; }
+}
+
 /* ─── shadcn/ui token layer ───
    HSL values mapped onto the Morning palette so shadcn primitives render in
    the forest-green brand look. Consumed by tailwind.config.ts color tokens. */

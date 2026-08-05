@@ -3,6 +3,7 @@ import { Outlet, useNavigate } from "react-router-dom";
 import ClientLayoutInner from "@/frontend/src/reused-pages/(client)/ClientLayoutInner";
 import { useAuth } from "~/auth/AuthProvider";
 import { ErrorBoundary } from "./ErrorBoundary";
+import { AppBootScreen } from "~/components/ui/AppBootScreen";
 
 type Impersonation = { householdId: string; familyName: string } | null;
 
@@ -65,13 +66,7 @@ export function ClientLayout() {
   }, [loading, user, navigate, devBypass]);
 
   if (loading || !resolved) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <span className="material-symbols-outlined animate-spin text-[32px] text-morning-forest">
-          progress_activity
-        </span>
-      </div>
-    );
+    return <AppBootScreen />;
   }
 
   return (

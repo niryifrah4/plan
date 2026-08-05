@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthProvider";
+import { AppBootScreen } from "~/components/ui/AppBootScreen";
 
 /**
  * Route guard — the SPA equivalent of the proxy.ts auth gate + the RSC layout
@@ -11,13 +12,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <span className="material-symbols-outlined animate-spin text-[32px] text-morning-forest">
-          progress_activity
-        </span>
-      </div>
-    );
+    return <AppBootScreen />;
   }
 
   if (!user) {
