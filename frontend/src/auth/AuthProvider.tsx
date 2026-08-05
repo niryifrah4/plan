@@ -4,7 +4,7 @@ import { getSupabase, isSupabaseConfigured } from "~/lib/supabase";
 
 /**
  * Client-side auth state. Replaces the server-side session reads that the
- * Next.js RSC layouts did via cookies(). Here the SPA subscribes to Supabase
+ * SPA auth state comes from Supabase
  * auth changes and exposes { user, loading } to the route guard + UI.
  */
 interface AuthCtx {

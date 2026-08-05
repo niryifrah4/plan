@@ -8,8 +8,7 @@ import { AppBootScreen } from "~/components/ui/AppBootScreen";
 type Impersonation = { householdId: string; familyName: string } | null;
 
 /**
- * SPA replacement for reused-pages/(client)/layout.tsx (which was an RSC guard reading
- * cookies). Behaviour preserved 1:1:
+ * Client-area guard and shell:
  *   - not logged in            → /login (RequireAuth wraps this route)
  *   - advisor w/o impersonation cookie → /crm
  *   - advisor WITH valid cookie → allow + pass impersonation to the shell

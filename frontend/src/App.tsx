@@ -87,10 +87,10 @@ const ResetPasswordPage = lazy(
 const ClearStoragePage = lazy(() => import("@/frontend/src/reused-pages/clear-storage/page"));
 
 /**
- * Top-level route table. Replaces the Next.js file-based app/ routing.
+ * Top-level SPA route table.
  * - Public routes render bare.
  * - The /crm advisor dashboard is a Lovable-rebuilt page.
- * - The (client) area reuses the original pages under ClientLayout.
+ * - Client area renders pages under ClientLayout.
  */
 export function App() {
   return (

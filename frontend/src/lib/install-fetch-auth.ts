@@ -2,7 +2,7 @@ import { getSupabase } from "./supabase";
 
 /**
  * Global fetch interceptor. The reused app/(client) pages + components call
- * `fetch("/api/...")` directly (they were same-origin under Next.js). In the
+ * `fetch("/api/...")` directly. In the
  * SPA those requests must carry the Supabase access token as a Bearer header
  * and include credentials (for cookie-based flows like gcal/impersonate).
  *
