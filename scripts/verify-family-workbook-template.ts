@@ -25,14 +25,26 @@ if (result.Sheets["שאלון"]?.C6?.v !== "רועי E2E") {
   throw new Error("Template injection failed: שאלון!C6");
 }
 if (result.SheetNames.length !== 12) throw new Error("Template must contain 12 sheets");
-if (result.Sheets["תזרים"]?.C6?.v !== "32500") throw new Error("Template injection failed: תזרים!C6");
-if (result.Sheets["עסק"]?.C5?.v !== "12000") throw new Error("Template injection failed: עסק!C5");
-if (result.Sheets["חובות"]?.B6?.v !== "בנק E2E" || result.Sheets["חובות"]?.E6?.v !== "4500") throw new Error("Template injection failed: חובות!B6:E6");
+if (result.Sheets["תזרים"]?.C6?.v !== 32500) throw new Error("Template injection failed: תזרים!C6");
+if (result.Sheets["עסק"]?.C5?.v !== 12000) throw new Error("Template injection failed: עסק!C5");
+if (result.Sheets["חובות"]?.B6?.v !== "בנק E2E" || result.Sheets["חובות"]?.E6?.v !== 4500) throw new Error("Template injection failed: חובות!B6:E6");
 const customDebtResult = fillTemplate(source, {
   debts: [{ id: "custom-loan", label: "הלוואה משפחתית", value: "1800", note: "החזר חודשי" }],
 });
-if (customDebtResult.Sheets["חובות"]?.B6?.v !== "הלוואה משפחתית" || customDebtResult.Sheets["חובות"]?.E6?.v !== "1800") {
+if (customDebtResult.Sheets["חובות"]?.B6?.v !== "הלוואה משפחתית" || customDebtResult.Sheets["חובות"]?.E6?.v !== 1800) {
   throw new Error("Template injection failed: custom debt row");
+}
+const numericResult = fillTemplate(source, {
+  mapping: [
+    { id: "income", label: "קצבאות (ילדים)", value: "1,800" },
+    { id: "expense", label: "ארנונה", value: "5%" },
+  ],
+});
+if (numericResult.Sheets["מיפוי"]?.C8?.t !== "n" || numericResult.Sheets["מיפוי"]?.C8?.v !== 1800) {
+  throw new Error("Numeric input exported as text: מיפוי!C8");
+}
+if (numericResult.Sheets["מיפוי"]?.C17?.t !== "n" || numericResult.Sheets["מיפוי"]?.C17?.v !== 0.05) {
+  throw new Error("Percentage input exported incorrectly: מיפוי!C17");
 }
 for (const label of ["הוצאות שנתיות (חלוקה חודשית)", "מנויים", "ביטוחים", "הוצאות שנתיות (מתחלק ל-12)"]) {
   const sectionResult = fillTemplate(source, {
@@ -41,10 +53,10 @@ for (const label of ["הוצאות שנתיות (חלוקה חודשית)", "מ�
   const leaked = Object.values(sectionResult.Sheets["מיפוי"] || {}).some((cell) => cell?.v === "נתן דוגמה 23");
   if (leaked) throw new Error(`Demo data leaked into section row: ${label}`);
 }
-if (result.Sheets["מטרות ויעדים"]?.B5?.v !== "קרן חירום" || result.Sheets["מטרות ויעדים"]?.N5?.v !== "1800") throw new Error("Template injection failed: מטרות ויעדים!B5:N5");
-if (result.Sheets["מאזן"]?.C6?.v !== "25000") throw new Error("Template injection failed: מאזן!C6");
+if (result.Sheets["מטרות ויעדים"]?.B5?.v !== "קרן חירום" || result.Sheets["מטרות ויעדים"]?.N5?.v !== 1800) throw new Error("Template injection failed: מטרות ויעדים!B5:N5");
+if (result.Sheets["מאזן"]?.C6?.v !== 25000) throw new Error("Template injection failed: מאזן!C6");
 if (result.Sheets["יומן ליווי"]?.C6?.v !== "2026-08-04" || result.Sheets["יומן ליווי"]?.E6?.v !== "בדיקת תזרים") throw new Error("Template injection failed: יומן ליווי");
-if (result.Sheets["סיכום שנתי"]?.C4?.v !== "390000") throw new Error("Template injection failed: סיכום שנתי");
-if (result.Sheets["תובנות"]?.C4?.v !== "120000") throw new Error("Template injection failed: תובנות");
-if (result.Sheets["מחשבונים"]?.C7?.v !== "45%") throw new Error("Template injection failed: מחשבונים");
+if (result.Sheets["סיכום שנתי"]?.C4?.v !== 390000) throw new Error("Template injection failed: סיכום שנתי");
+if (result.Sheets["תובנות"]?.C4?.v !== 120000) throw new Error("Template injection failed: תובנות");
+if (result.Sheets["מחשבונים"]?.C7?.v !== 0.45) throw new Error("Template injection failed: מחשבונים");
 console.log("family workbook template verified: 12 sheets, all editable domains populated");

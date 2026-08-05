@@ -14,11 +14,24 @@ const SECTION_LABELS = new Set([
   "מנויים", "ביטוחים", "הוצאות שנתיות (מתחלק ל-12)",
 ]);
 
+function asExcelValue(value: string): string | number {
+  const normalized = value.trim().replace(/,/g, "");
+  if (!normalized) return "";
+  if (/^[-+]?\d+(?:\.\d+)?%$/.test(normalized)) return Number(normalized.slice(0, -1)) / 100;
+  if (/^[-+]?\d+(?:\.\d+)?$/.test(normalized)) return Number(normalized);
+  return value;
+}
+
 function putValue(sheet: XLSX.WorkSheet, row: number, col: number, value: string): void {
   const address = XLSX.utils.encode_cell({ r: row, c: col });
   // Keep the template cell's style, number format, protection and alignment.
   // Replacing the cell object outright silently strips the Excel formatting.
-  sheet[address] = { ...(sheet[address] || {}), t: "s", v: value };
+  const excelValue = asExcelValue(value);
+  sheet[address] = {
+    ...(sheet[address] || {}),
+    t: typeof excelValue === "number" ? "n" : "s",
+    v: excelValue,
+  };
 }
 
 export function fillTemplate(book: XLSX.WorkBook, data: WorkbookData): XLSX.WorkBook {
