@@ -1,0 +1,1 @@
+import{r as t,j as r}from"./index-D_LizrAg.js";function f(u,e){const l=t.lazy(async()=>{const n=await u();return{default:typeof n=="function"?n:n.default||Object.values(n)[0]}});return function(a){var c;return r.jsx(t.Suspense,{fallback:((c=e==null?void 0:e.loading)==null?void 0:c.call(e))??null,children:r.jsx(l,{...a})})}}export{f as d};

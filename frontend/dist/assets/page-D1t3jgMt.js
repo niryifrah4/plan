@@ -1,0 +1,1 @@
+import{r as t,j as r}from"./index-D_LizrAg.js";import{a as s}from"./router-compat-CmQmE6FA.js";function m(){const e=s();return t.useEffect(()=>{e.replace("/pension")},[e]),r.jsx("div",{className:"mx-auto max-w-6xl p-6 text-center text-sm text-verdant-muted",children:"מעבר לעמוד פנסיה ופרישה..."})}export{m as default};

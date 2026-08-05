@@ -1,0 +1,1 @@
+import{r as t,j as d}from"./index-D_LizrAg.js";const l=t.forwardRef(({children:r,pad:a=!0,className:s="",...e},o)=>d.jsx("div",{ref:o,className:`v-card ${a?"p-5 md:p-6":""} flex h-full flex-col ${s}`,...e,children:r}));l.displayName="Card";export{l as C};

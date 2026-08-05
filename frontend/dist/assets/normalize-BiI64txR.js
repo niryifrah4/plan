@@ -1,0 +1,1 @@
+import{n as o}from"./normalizer-DlcaWVUX.js";function c(e){return o(e||"").toLowerCase().replace(/["‏‎]/g,"").replace(/\s+/g," ").trim()}function m(e,t){const r=t.trim();return!r||e.some(n=>n.toLowerCase()===r.toLowerCase())?e:[...e,r].slice(0,50)}export{c as h,m};

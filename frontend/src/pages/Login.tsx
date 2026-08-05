@@ -97,7 +97,8 @@ export function LoginPage() {
   };
 
   return (
-    <div
+    <main
+      id="main-content"
       dir="rtl"
       className="flex min-h-screen items-center justify-center px-4 py-10"
       style={{ background: "linear-gradient(135deg, #F4F5F0 0%, #F0F8E3 60%, #E8F4D1 100%)" }}
@@ -201,6 +202,6 @@ export function LoginPage() {
           )}
         </Card>
       </div>
-    </div>
+    </main>
   );
 }

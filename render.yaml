@@ -51,6 +51,10 @@ services:
     staticPublishPath: ./frontend/dist
     autoDeploy: false
     branch: main
+    headers:
+      - path: /*
+        name: X-Robots-Tag
+        value: noindex, nofollow, noarchive, nosnippet
     envVars:
       - key: VITE_SUPABASE_URL
         sync: false

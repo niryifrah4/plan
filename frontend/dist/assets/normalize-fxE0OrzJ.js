@@ -1,0 +1,1 @@
+import{n as c}from"./normalizer-DlcaWVUX.js";function i(r){return c(r).toLowerCase().replace(/[‏‎"']/g,"").replace(/\s*(סניף|branch|#|מס['']?|snif)\s*\d+.*$/i,"").replace(/\s*\d{3,}.*$/,"").replace(/\s+/g," ").trim()}function s(r,n){const e=n.trim();return!e||r.some(o=>o.toLowerCase()===e.toLowerCase())?r:[...r,e].slice(0,50)}export{s as m,i as s};

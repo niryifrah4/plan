@@ -1,0 +1,1 @@
+import{u as r,b as s,j as t,L as n,h as u}from"./index-D_LizrAg.js";function c(){return s()[0]}function i({href:e,...a}){return t.jsx(n,{to:e,...a})}function h(){const e=r();return{push:a=>e(a),replace:a=>e(a,{replace:!0}),back:()=>e(-1),prefetch:a=>{}}}function p(){return u().pathname}export{i as L,h as a,c as b,p as u};

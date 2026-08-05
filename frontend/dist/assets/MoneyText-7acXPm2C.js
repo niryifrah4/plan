@@ -1,0 +1,1 @@
+import{j as s}from"./index-D_LizrAg.js";function e({children:r,className:t="",style:n}){return s.jsx("span",{dir:"ltr",className:`inline-block whitespace-nowrap tabular-nums ${t}`.trim(),style:n,children:r})}export{e as M};
