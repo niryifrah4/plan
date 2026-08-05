@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title>plan</title>
+  <rect width="64" height="64" rx="16" fill="#2f7f61"/>
+  <path d="M18 45V19h13.5c8.2 0 13.5 4.2 13.5 11.4S39.7 42 31.5 42H24v3h-6Zm6-9h7.1c4.4 0 7.7-1.7 7.7-6.6s-3.3-6.6-7.7-6.6H24v13.2Z" fill="#fff"/>
+  <path d="M39 46.5 43.5 42l4.5 4.5-4.5 4.5-4.5-4.5Z" fill="#f4b942"/>
+</svg>

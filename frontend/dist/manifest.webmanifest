@@ -1,0 +1,19 @@
+{
+  "name": "plan · תכנון פיננסי משפחתי",
+  "short_name": "plan",
+  "description": "מערכת חכמה לתכנון פיננסי משפחתי",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#eef7e3",
+  "theme_color": "#2f7f61",
+  "icons": [
+    {
+      "src": "/plan-leaf-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

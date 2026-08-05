@@ -260,7 +260,7 @@ export function ClientShell({
           via a translate on a wrapper that becomes a transform context. */}
       <div
         className={
-          "transition-transform duration-200 ease-out md:transform-none " +
+          "relative z-40 transition-transform duration-200 ease-out md:transform-none " +
           (mobileNavOpen ? "translate-x-0" : "translate-x-full md:translate-x-0")
         }
       >
